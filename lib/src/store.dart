@@ -186,7 +186,7 @@ class Store<St> {
   ///
   Stream<St> get onChange => _changeController.stream;
 
-  /// Used by the storeListener.
+  /// Used by the storeTester.
   Stream<TestInfo<St>> get onReduce =>
       (_testInfoController != null) ? _testInfoController.stream : Stream<TestInfo<St>>.empty();
 

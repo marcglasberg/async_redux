@@ -115,7 +115,7 @@ This action is dispatched like this:
 Note the reducer above has direct access to both the counter state (`state.counter`) 
 and to the action state (the field `amount`).
 
-We will show you later how to easily test sync reducers, using the **StoreListener**.
+We will show you later how to easily test sync reducers, using the **StoreTester**.
 
 Try running the: <a href="./example/main.dart">Increment Example</a>.
 
@@ -142,7 +142,7 @@ This action is dispatched like this:
 
     store.dispatch(QueryAndIncrementAction());
     
-We will show you later how to easily test async reducers, using the **StoreListener**.    
+We will show you later how to easily test async reducers, using the **StoreTester**.    
 
 Try running the: <a href="./example/main_increment_async.dart">Increment Async Example</a>.
 
@@ -460,21 +460,21 @@ It's often said that vanilla Redux **reducers** are easy to test because they're
 While this is true, real-world applications are composed not only of sync reducers, 
 but also of middleware async code, which is not easy to test at all.  
  
-AsyncRedux provides the `StoreListener` class that makes it easy to test both sync and async reducers.
+AsyncRedux provides the `StoreTester` class that makes it easy to test both sync and async reducers.
 
-Start by creating the store-listener from a store:    
+Start by creating the store-tester from a store:    
     
     var store = Store<AppState>(initialState: AppState.initialState());
-    var storeListener = StoreListener.from(store);
+    var storeTester = StoreTester.from(store);
 
 Or else, creating it directly from `AppState`:       
     
-    var storeListener = StoreListener<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
     
 Then, dispatch some action, wait for it to finish, and check the resulting state:    
 
-    storeListener.dispatch(SaveNameAction("Mark"));
-    TestInfo info = await storeListener.wait(SaveNameAction);
+    storeTester.dispatch(SaveNameAction("Mark"));
+    TestInfo info = await storeTester.wait(SaveNameAction);
     expect(info.state.name, "Mark");
                 
 The variable `info` above will contain information about after the action reducer finishes executing,
@@ -492,10 +492,10 @@ The `TestInfo` instance contains the following:
  
 While the above example demonstrates the testing of a simple action, 
 real-world apps have actions that dispatch other actions. 
-You may use different `StoreListener` methods to check if the expected actions are dispatched, 
+You may use different `StoreTester` methods to check if the expected actions are dispatched, 
 and test their intermediary states.  
  
-Let's see all the available methods of the `StoreListener`:
+Let's see all the available methods of the `StoreTester`:
 
 1. `Future<TestInfo> wait(Type actionType)` 
 
@@ -545,13 +545,13 @@ For example, suppose an action named `IncrementAndGetDescriptionAction` calls an
 You can assert that all actions are called in order, 
 and then get the state after each one of them have finished, all at once:  
 
-    var storeListener = StoreListener<AppState>(initialState: AppState.initialState());
-    expect(storeListener.state.counter, 0);
-    expect(storeListener.state.description, isEmpty);
+    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    expect(storeTester.state.counter, 0);
+    expect(storeTester.state.description, isEmpty);
 
-    storeListener.dispatch(IncrementAndGetDescriptionAction());
+    storeTester.dispatch(IncrementAndGetDescriptionAction());
 
-    TestInfoList<AppState> infos = await storeListener.waitAll([
+    TestInfoList<AppState> infos = await storeTester.waitAll([
       IncrementAndGetDescriptionAction,
       WaitAction,
       IncrementAction,
@@ -581,7 +581,7 @@ If you want your tests to be comprehensive
 you should probably have 3 different types of test for each widget:
 
 1. **State Tests** — Test the state of the app, including actions/reducers. 
-This type of tests make use of the `StoreListener` described above. 
+This type of tests make use of the `StoreTester` described above. 
 
 2. **Connector Tests** — Test the connection between the store and the "dumb-widget". 
 In other words it tests the "connector-widget" and the "view-model".
