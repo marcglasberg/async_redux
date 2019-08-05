@@ -117,7 +117,7 @@ and to the action state (the field `amount`).
 
 We will show you later how to easily test sync reducers, using the **StoreListener**.
 
-Try running the: <a href="example/main_increment.dart">Increment Example</a>.
+Try running the: <a href="./example/main_increment.dart">Increment Example</a>.
 
 #### Async Reducer
  
@@ -144,7 +144,7 @@ This action is dispatched like this:
     
 We will show you later how to easily test async reducers, using the **StoreListener**.    
 
-Try running the: <a href="example/main_increment_async.dart">Increment Async Example</a>.
+Try running the: <a href="./example/main_increment_async.dart">Increment Async Example</a>.
 
 #### Changing state is optional
 
@@ -238,7 +238,7 @@ Complete example:
       void after() => dispatch(WaitAction(false));
     }
 
-Try running the: <a href="example/main_before_and_after.dart">Before and After Example</a>.
+Try running the: <a href="./example/main_before_and_after.dart">Before and After Example</a>.
 
 ## Connector
 
@@ -397,7 +397,7 @@ and then wrap your home-page with `UserExceptionDialog`, below `StoreProvider` a
                 )));
     }
  
-Try running the: <a href="example/main_show_error_dialog.dart">Show Error Dialog Example</a>. 
+Try running the: <a href="./example/main_show_error_dialog.dart">Show Error Dialog Example</a>. 
  
 **In more detail:**
  
@@ -573,7 +573,7 @@ and then get the state after each one of them have finished, all at once:
     expect(info.state.description, isNotEmpty);
     expect(info.state.counter, 1);
           
-Try running the: <a href="example/main_before_and_after_STATE_test.dart">Testing with the Store Listener</a>.      
+Try running the: <a href="./example/main_before_and_after_STATE_test.dart">Testing with the Store Listener</a>.      
 
 #### Test files
 
@@ -593,7 +593,7 @@ and then writes assertions against the rendered output.
 Think of these tests as "pure function tests" of our UI.
 It also tests that the callbacks are called when necessary.
 
-For example, suppose you have the counter app shown <a href="example/main_increment_async.dart">here</a>.
+For example, suppose you have the counter app shown <a href="./example/main_increment_async.dart">here</a>.
 Then:
 
 * The **state test** could create a store with count `0` and description empty, 
@@ -779,7 +779,7 @@ So, for example, if you use a `controller` to hold the text in a `TextField`:
       }
 
       
-Try running the: <a href="example/main_event_redux.dart">Event Example</a>.
+Try running the: <a href="./example/main_event_redux.dart">Event Example</a>.
 
 #### Can I put mutable events into the store state?
 
@@ -1015,7 +1015,7 @@ Then you could use it like this:
       }
     }
 
-The above `BarrierAction` is demonstrated in <a href="example/main_event_redux.dart">this example</a>.
+The above `BarrierAction` is demonstrated in <a href="./example/main_event_redux.dart">this example</a>.
 
 ## IDE Navigation 
 
