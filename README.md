@@ -117,7 +117,7 @@ and to the action state (the field `amount`).
 
 We will show you later how to easily test sync reducers, using the **StoreListener**.
 
-Try running the: <a href="./example/main_increment.dart">Increment Example</a>.
+Try running the: <a href="./example/main.dart">Increment Example</a>.
 
 #### Async Reducer
  
