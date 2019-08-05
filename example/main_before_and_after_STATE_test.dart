@@ -1,4 +1,4 @@
-import 'package:easy_redux/async_redux.dart';
+import 'package:async_redux/async_redux.dart';
 import "package:test/test.dart";
 
 import './main_before_and_after.dart';

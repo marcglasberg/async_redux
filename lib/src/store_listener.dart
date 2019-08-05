@@ -3,7 +3,6 @@ import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Action;
-import 'package:test/test.dart';
 
 import '../async_redux.dart';
 
@@ -245,9 +244,9 @@ class StoreListener<St> {
         testInfoState = await _next();
       }
 
-      if (action != null)
-        expect(testInfoState.action.runtimeType, action,
-            reason: "Wrong action: ${testInfoState.action.runtimeType} ${testInfoState.ini}.");
+      if (action != null && (testInfoState.action.runtimeType != action))
+        throw StoreException(
+            "Wrong action: ${testInfoState.action.runtimeType} ${testInfoState.ini}.");
     }
 
     return testInfoState;

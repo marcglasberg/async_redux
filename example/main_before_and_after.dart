@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:easy_redux/async_redux.dart';
+import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 

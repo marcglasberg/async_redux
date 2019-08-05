@@ -4,7 +4,6 @@ import 'dart:collection';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
-import 'package:meta/meta.dart';
 
 /// Developed by Marcelo Glasberg (Aug 2019).
 /// For more info, see: https://pub.dartlang.org/packages/async_redux
