@@ -1135,8 +1135,9 @@ Your final directory structure would then look something like this:
 
 ***
 
-*The AsyncRedux code is based upon packages <a href="https://pub.dev/packages/redux">redux</a>
+*The AsyncRedux code is based upon packages <a href="https://pub.dev/packages/redux">redux</a> by Brian Egan,
 and <a href="https://pub.dev/packages/flutter_redux">flutter_redux</a> by Brian Egan and John Ryan.
+Also uses code from package <a href="https://pub.dev/packages/equatable">equatable</a> by Felix Angelov.
 Special thanks: Eduardo Yamauchi and Hugo Passos helped me with the async code, 
 checking the documentation, testing everything and making suggestions.
 This work started after Thomas Burkhart explained to me why he didn't like Redux.

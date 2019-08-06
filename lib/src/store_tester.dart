@@ -246,7 +246,8 @@ class StoreTester<St> {
 
       if (action != null && (testInfoState.action.runtimeType != action))
         throw StoreException(
-            "Wrong action: ${testInfoState.action.runtimeType} ${testInfoState.ini}.");
+            "Got this action: ${testInfoState.action.runtimeType} ${testInfoState.ini}.\n"
+            "Was expecting: $action.");
     }
 
     return testInfoState;
@@ -279,7 +280,7 @@ class StoreTester<St> {
   Future cancel() async => await _subscription.cancel();
 }
 
-///////////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////////
 
 /// List of test information, before or after some actions are dispatched.
 class TestInfoList<St> {
