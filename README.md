@@ -7,6 +7,9 @@
 3. Is easy to test
 4. Has no boilerplate
 
+The below documentation is very detailed. 
+For an overview, go to the <a href="https://medium.com/@marcglasberg/https-medium-com-marcglasberg-async-redux-33ac5e27d5f6">Medium story</a>.
+
 ## What is Redux?
 
 A single **store** holds all the **state**, which is immutable.
@@ -1133,13 +1136,13 @@ Your final directory structure would then look something like this:
 ***
 
 *The AsyncRedux code is based upon packages <a href="https://pub.dev/packages/redux">redux</a>
-and <a href="flutter_redux">flutter_redux</a> by Brian Egan and John Ryan.
+and <a href="https://pub.dev/packages/flutter_redux">flutter_redux</a> by Brian Egan and John Ryan.
 Special thanks: Eduardo Yamauchi and Hugo Passos helped me with the async code, 
 checking the documentation, testing everything and making suggestions.
 This work started after Thomas Burkhart explained to me why he didn't like Redux.
 Reducers as methods of action classes were shown to me by Scott Stoll.*
 
-*Other packages I've authored:* 
+*Other Flutter packages I've authored:* 
 * <a href="https://pub.dev/packages/network_to_file_image">network_to_file_image</a>
 * <a href="https://pub.dev/packages/align_positioned">align_positioned</a> 
 * <a href="https://pub.dev/packages/back_button_interceptor">back_button_interceptor</a>

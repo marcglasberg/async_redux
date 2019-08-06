@@ -13,10 +13,10 @@ import '../async_redux.dart';
 ///
 /// For more info, see: https://pub.dartlang.org/packages/async_redux
 ///
-class StoreListener<St> {
+class StoreTester<St> {
   static const _defaultTimout = 30;
   static final TestInfoPrinter _defaultTestInfoPrinter = (TestInfo info) => print(info);
-  static final VoidCallback _defaultNewStorePrinter = () => print("New StoreListener.");
+  static final VoidCallback _defaultNewStorePrinter = () => print("New StoreTester.");
 
   Store<St> _store;
   StreamSubscription _subscription;
@@ -27,7 +27,7 @@ class StoreListener<St> {
 
   St get state => _store.state;
 
-  StoreListener({
+  StoreTester({
     @required St initialState,
     TestInfoPrinter testInfoPrinter,
     bool syncStream = false,
@@ -35,7 +35,7 @@ class StoreListener<St> {
             store: Store(initialState: initialState, syncStream: syncStream),
             testInfoPrinter: testInfoPrinter);
 
-  StoreListener.from({
+  StoreTester.from({
     @required Store<St> store,
     TestInfoPrinter testInfoPrinter,
   }) : assert(store != null) {
@@ -76,8 +76,8 @@ class StoreListener<St> {
   /// Example use:
   ///
   ///   var action = MyAction();
-  ///   storeListener.dispatch(action);
-  ///   await storeListener.waitUntilAction(action);
+  ///   storeTester.dispatch(action);
+  ///   await storeTester.waitUntilAction(action);
   ///
   Future<TestInfo> waitUntilAction(
     ReduxAction<St> action, {
