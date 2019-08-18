@@ -6,15 +6,15 @@ import 'package:flutter/material.dart' hide Action;
 
 import '../async_redux.dart';
 
-/// Developed by Marcelo Glasberg (Aug 2019).
-/// For more info, see: https://pub.dartlang.org/packages/async_redux
+// Developed by Marcelo Glasberg (Aug 2019).
+// For more info, see: https://pub.dartlang.org/packages/async_redux
 
 /// Helps testing the store, actions, and sync/async reducers.
 ///
 /// For more info, see: https://pub.dartlang.org/packages/async_redux
 ///
 class StoreTester<St> {
-  static const _defaultTimout = 30;
+  static const _defaultTimeout = 500;
   static final TestInfoPrinter _defaultTestInfoPrinter = (TestInfo info) => print(info);
   static final VoidCallback _defaultNewStorePrinter = () => print("New StoreTester.");
 
@@ -32,11 +32,14 @@ class StoreTester<St> {
     TestInfoPrinter testInfoPrinter,
     bool syncStream = false,
   }) : this.from(
-            store: Store(initialState: initialState, syncStream: syncStream),
+            Store(
+              initialState: initialState,
+              syncStream: syncStream,
+            ),
             testInfoPrinter: testInfoPrinter);
 
-  StoreTester.from({
-    @required Store<St> store,
+  StoreTester.from(
+    Store<St> store, {
     TestInfoPrinter testInfoPrinter,
   }) : assert(store != null) {
     _store = store;
@@ -57,13 +60,13 @@ class StoreTester<St> {
   /// Returns the info after the action finishes. **Ignores other** actions types.
   Future<TestInfo> waitUntil(
     Type actionType, {
-    int timeoutInSeconds = _defaultTimout,
+    int timeoutInSeconds = _defaultTimeout,
   }) async {
     assert(actionType != null);
 
     TestInfo<St> testInfo;
 
-    while (testInfo == null || testInfo.action.runtimeType != actionType || testInfo.ini == true) {
+    while (testInfo == null || testInfo.type != actionType || testInfo.isINI) {
       testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
     }
 
@@ -81,13 +84,13 @@ class StoreTester<St> {
   ///
   Future<TestInfo> waitUntilAction(
     ReduxAction<St> action, {
-    int timeoutInSeconds = _defaultTimout,
+    int timeoutInSeconds = _defaultTimeout,
   }) async {
     assert(action != null);
 
     TestInfo<St> testInfo;
 
-    while (testInfo == null || testInfo.action != action || testInfo.ini == true) {
+    while (testInfo == null || testInfo.action != action || testInfo.isINI) {
       testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
     }
 
@@ -99,58 +102,143 @@ class StoreTester<St> {
   /// Returns the info after all actions finish.
   /// Will fail with an exception if an unexpected action is seen,
   /// or if any of the expected actions are dispatched in the wrong order.
-  Future<TestInfo> waitAllGetLast(List<Type> actionTypes) async {
-    assert(actionTypes != null);
+  ///
+  /// If you pass action types to [ignore], they will be ignored. However, if an action type
+  /// exists both in [actionTypes] and [ignore], it will be expected in that particular order,
+  /// and the others of that type will be ignored.
+  Future<TestInfo> waitAllGetLast(List<Type> actionTypes, {List<Type> ignore = const []}) async {
+    assert(actionTypes != null && actionTypes.isNotEmpty);
 
-    var infoList = await waitAll(actionTypes);
+    var infoList = await waitAll(actionTypes, ignore: ignore);
     return infoList.last;
   }
 
   /// Runs until **all** given actions types are dispatched, in **any order**.
   /// Waits until all of them are finished. Returns the info after all actions finish.
   /// Will fail with an exception if an unexpected action is seen.
+  ///
+  /// If you pass action types to [ignore], they will be ignored.
+  /// However, an action type cannot exist in both [actionTypes] and [ignore] lists.
   Future<TestInfo> waitAllUnorderedGetLast(
     List<Type> actionTypes, {
-    int timeoutInSeconds = _defaultTimout,
+    int timeoutInSeconds = _defaultTimeout,
+    List<Type> ignore = const [],
   }) async =>
-      (await waitAllUnordered(actionTypes, timeoutInSeconds: timeoutInSeconds)).last;
+      (await waitAllUnordered(
+        actionTypes,
+        timeoutInSeconds: timeoutInSeconds,
+        ignore: ignore,
+      ))
+          .last;
 
   /// The same as `waitAllGetLast`, but instead of returning just the last info,
   /// it returns a list with the end info for each action.
-  Future<TestInfoList<St>> waitAll(List<Type> actionTypes) async {
-    assert(actionTypes != null);
+  ///
+  /// If you pass action types to [ignore], they will be ignored. However, if an action type
+  /// exists both in [actionTypes] and [ignore], it will be expected in that particular order,
+  /// and the others of that type will be ignored.
+  ///
+  Future<TestInfoList<St>> waitAll(List<Type> actionTypes, {List<Type> ignore = const []}) async {
+    assert(actionTypes != null && actionTypes.isNotEmpty);
+    assert(ignore != null);
 
     TestInfoList<St> results = TestInfoList<St>();
 
     // Waits the end of all actions, in any order.
     List<TestInfo<St>> endStates = [];
 
-    TestInfo<St> testInfoState;
+    // Saves obtained expected actions INI.
+    // Note: This relies on Actions not overriding operator ==.
+    List<ReduxAction> obtainedActions = [];
 
-    for (Type actionType in actionTypes) {
-      testInfoState =
-          await _getNextActionIniWhileSavingActionsEnd(actionType, testInfoState, endStates);
+    // Saves ignored actions INI.
+    // Note: This relies on Actions not overriding operator ==.
+    List<ReduxAction> ignoredActions = [];
+
+    TestInfo<St> testInfo;
+
+    testInfo = await _next();
+
+    for (int i = 0; i < actionTypes.length; i++) {
+      var actionType = actionTypes[i];
+
+      if (testInfo.isINI) {
+        // Ignores actions.
+        while (ignore.contains(testInfo.type) && (testInfo.type != actionType)) {
+          if (testInfo.isINI)
+            ignoredActions.add(testInfo.action);
+          else
+            ignoredActions.remove(testInfo.action);
+
+          testInfo = await _next();
+        }
+
+        obtainedActions.add(testInfo.action);
+
+        if (testInfo.type != actionType)
+          throw StoreException(
+              "Got this action: ${testInfo.type} ${testInfo.ini ? "INI" : "END"}.\n"
+              "Was expecting: $actionType INI.");
+
+        testInfo = await _next();
+      }
+
+      if (i < actionTypes.length - 1)
+        while (testInfo.isEND) {
+          var wasObtained = obtainedActions.remove(testInfo.action);
+          var wasIgnored = ignoredActions.remove(testInfo.action);
+
+          if (!wasObtained && !wasIgnored)
+            throw StoreException("Got this unexpected action: ${testInfo.action.runtimeType} END.");
+
+          if (wasObtained) endStates.add(testInfo);
+
+          testInfo = await _next();
+        }
     }
 
-    for (TestInfo<St> testInfoFinal in endStates) {
-      results._add(testInfoFinal);
+    //
+    while (obtainedActions.isNotEmpty || ignoredActions.isNotEmpty) {
+      var wasObtained = obtainedActions.remove(testInfo.action);
+      var wasIgnored = ignoredActions.remove(testInfo.action);
+
+      if (!testInfo.isEND || (!wasObtained && !wasIgnored))
+        throw StoreException(
+            "Got this unexpected action: ${testInfo.action.runtimeType} ${testInfo.ini ? "INI" : "END"}.\n\n"
+            "obtainedIni:$obtainedActions\n"
+            "ignoredIni:$ignoredActions\n"
+            "");
+
+      if (wasObtained) endStates.add(testInfo);
+
+      if (obtainedActions.isNotEmpty || ignoredActions.isNotEmpty) testInfo = await _next();
     }
 
-    TestInfoList<St> testInfoStateAposFinais =
-        await _waitActionsEndUnordered(actionTypes, endStates);
-
-    results._addAll(testInfoStateAposFinais);
+    //
+    for (TestInfo<St> testInfo in endStates) {
+      results._add(testInfo);
+    }
 
     return results;
   }
 
   /// The same as `waitAllUnorderedGetLast`, but instead of returning just the last info,
   /// it returns a list with the end info for each action.
+  ///
+  /// If you pass action types to [ignore], they will be ignored.
+  /// However, an action type cannot exist in both [actionTypes] and [ignore] lists.
+  ///
   Future<TestInfoList<St>> waitAllUnordered(
     List<Type> actionTypes, {
-    int timeoutInSeconds = _defaultTimout,
+    int timeoutInSeconds = _defaultTimeout,
+    List<Type> ignore = const [],
   }) async {
-    assert(actionTypes != null);
+    assert(actionTypes != null && actionTypes.isNotEmpty);
+
+    // Actions which are expected UNORDERED can't be ignored.
+    var intersection = ignore.toSet().intersection(actionTypes.toSet());
+    if (intersection.isNotEmpty)
+      throw StoreException("Actions $intersection should not be expected and ignored.");
 
     TestInfoList<St> testInfoList = TestInfoList<St>();
     List<Type> actionsIni = List.from(actionTypes);
@@ -160,16 +248,20 @@ class StoreTester<St> {
 
     while (actionsIni.isNotEmpty || actionsEnd.isNotEmpty) {
       try {
-        testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
+        testInfo = null;
+
+        while (testInfo == null || ignore.contains(testInfo.type)) {
+          testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
+        }
       } catch (error) {
         print("These actions were not dispatched: $actionsIni INI.");
         print("These actions haven't finished: $actionsEnd END.");
         rethrow;
       }
 
-      var action = testInfo.action.runtimeType;
+      var action = testInfo.type;
 
-      if (testInfo.ini) {
+      if (testInfo.isINI) {
         if (!actionsIni.remove(action))
           throw StoreException("Unexpected action was dispatched: $action INI.");
       } else {
@@ -196,65 +288,8 @@ class StoreTester<St> {
     _futures = Queue()..addLast(_completer.future);
   }
 
-  /// Waits for all actions that are still running to finish.
-  /// Then returns a list with all [TestInfo]s.
-  /// If any action is unexpected, throws.
-  /// If any INI state is found, throws.
-  Future<TestInfoList<St>> _waitActionsEndUnordered(
-    List<Type> listOfExpectedActions,
-    List<TestInfo<St>> alreadyDispatchedEnd,
-  ) async {
-    //
-    List<Type> alreadyDispatchedActions =
-        alreadyDispatchedEnd.map((state) => state.action.runtimeType).toList();
-
-    listOfExpectedActions.removeWhere(
-        (actionType) => actionType == null || alreadyDispatchedActions.remove(actionType));
-
-    TestInfo<St> testInfo;
-
-    TestInfoList<St> results = TestInfoList<St>();
-
-    while (listOfExpectedActions.isNotEmpty) {
-      testInfo = await _next();
-
-      if (testInfo.ini)
-        throw StoreException("Foi disparada uma action de INI: ${testInfo.action}.");
-
-      results._add(testInfo);
-
-      // If the action is found in the action list, removes it.
-      if (!listOfExpectedActions.remove(testInfo.action.runtimeType))
-        throw StoreException("Foi disparada uma action não listada: ${testInfo.action}.");
-    }
-
-    return results;
-  }
-
-  Future<TestInfo<St>> _getNextActionIniWhileSavingActionsEnd(
-    Type action,
-    TestInfo<St> testInfoState,
-    List<TestInfo<St>> endStates,
-  ) async {
-    if (action != null) {
-      testInfoState = await _next();
-
-      while (testInfoState.ini == false) {
-        endStates.add(testInfoState);
-        testInfoState = await _next();
-      }
-
-      if (action != null && (testInfoState.action.runtimeType != action))
-        throw StoreException(
-            "Got this action: ${testInfoState.action.runtimeType} ${testInfoState.ini}.\n"
-            "Was expecting: $action.");
-    }
-
-    return testInfoState;
-  }
-
   Future<TestInfo<St>> _next({
-    int timeoutInSeconds = _defaultTimout,
+    int timeoutInSeconds = _defaultTimeout,
   }) async {
     if (_futures.isEmpty) {
       _completer = Completer();
@@ -303,12 +338,13 @@ class TestInfoList<St> {
 
   /// Returns the n-th info corresponding to the end of the given action type
   /// Note: N == 1 is the first one.
-  TestInfo<St> get(Type actionType, [int n]) {
+  TestInfo<St> get(Type actionType, [int n = 1]) {
+    assert(n != null);
     return _info.firstWhere((info) {
       var ifFound = (info.action.runtimeType == actionType);
       if (ifFound) n--;
       return ifFound && (n == 0);
-    }, orElse: null);
+    }, orElse: () => null);
   }
 
   /// Returns all info corresponding to the action type.

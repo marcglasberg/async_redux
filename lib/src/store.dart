@@ -24,6 +24,12 @@ class TestInfo<St> {
   final int reduceCount;
   Queue<UserException> errors;
 
+  bool get isINI => ini;
+
+  bool get isEND => !ini;
+
+  Type get type => action.runtimeType;
+
   TestInfo(
     this.state,
     this.ini,
@@ -260,8 +266,19 @@ class Store<St> {
       result = _applyReducer(action);
       if (result is Future) await result;
     } catch (error) {
-      _processError(error, action, afterWasRun);
-      return;
+      dynamic processedError = _processError(error, action, afterWasRun);
+      // Error is meant to be "swallowed".
+      if (processedError == null)
+        return;
+      // Error was not changed. Rethrows.
+      else if (identical(processedError, error))
+        rethrow;
+      // Error was wrapped. Rethrows, but looses stacktrace due to Dart architecture.
+      // See: https://groups.google.com/a/dartlang.org/forum/#!topic/misc/O1OKnYTUcoo
+      // See: https://github.com/dart-lang/sdk/issues/10297
+      // This should be fixed when this issue is solved: https://github.com/dart-lang/sdk/issues/30741
+      else
+        throw processedError;
     } finally {
       _finalize(result, action, afterWasRun);
     }
@@ -292,7 +309,8 @@ class Store<St> {
     }
   }
 
-  void _processError(error, ReduxAction<St> action, _Flag<bool> afterWasRun) {
+  /// Returns the processed error. Returns `null` if the error is meant to be "swallowed".
+  dynamic _processError(error, ReduxAction<St> action, _Flag<bool> afterWasRun) {
     error = action.wrapError(error);
     assert(error == null || error is Exception || error is Error);
 
@@ -306,15 +324,17 @@ class Store<St> {
       _changeController.add(state);
     }
 
-    // If an errorObserver was NOT defined, throw all errors which are not UserException.
+    // If an errorObserver was NOT defined, return (to throw) errors which are not UserException.
     if (_errorObserver == null) {
-      if (error is! UserException) throw error;
+      if (error is! UserException) return error;
     }
     // If an errorObserver was defined, observe the error.
-    // Then, if the observer returns true, throw the error.
+    // Then, if the observer returns true, return the error to be thrown.
     else {
-      if (_errorObserver.observe(error, action, state, dispatchCount)) throw error;
+      if (_errorObserver.observe(error, action, state, dispatchCount)) return error;
     }
+
+    return null;
   }
 
   void _finalize(Future result, ReduxAction<St> action, _Flag<bool> afterWasRun) {
@@ -349,6 +369,10 @@ class Store<St> {
 // /////////////////////////////////////////////////////////////////////////////
 
 /// Actions must extend this class.
+///
+/// Important: Do NOT override operator == and hashCode. Actions must retain
+/// their default [Object] comparison by identity, or the StoreTester may not work.
+///
 abstract class ReduxAction<St> {
   Store<St> _store;
 

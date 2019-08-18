@@ -1,8 +1,8 @@
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 
-/// Developed by Marcelo Glasberg (Aug 2019).
-/// For more info, see: https://pub.dartlang.org/packages/async_redux
+// Developed by Marcelo Glasberg (Aug 2019).
+// For more info, see: https://pub.dartlang.org/packages/async_redux
 
 Store<AppState> store;
 

@@ -1,5 +1,5 @@
-/// Developed by Marcelo Glasberg (Aug 2019).
-/// For more info, see: https://pub.dartlang.org/packages/async_redux
+// Developed by Marcelo Glasberg (Aug 2019).
+// For more info, see: https://pub.dartlang.org/packages/async_redux
 
 /// The `Event` class can be used as a Redux state with *flutter_redux* , usually to change the
 /// internal state of a stateful widget. When creating the `ViewModel` with the `StoreConnector`,
@@ -177,7 +177,7 @@ class Event<T> {
   int get hashCode => 0;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////////
 
 /// An Event from multiple sub-events.
 /// When consuming this event, if the first sub-event is not spent, it will be consumed,
@@ -220,5 +220,3 @@ class EventMultiple<T> extends Event<T> {
     return st;
   }
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////

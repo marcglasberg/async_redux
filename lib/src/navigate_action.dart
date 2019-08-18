@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../async_redux.dart';
 
-/// Developed by Marcelo Glasberg (Aug 2019).
-/// For more info, see: https://pub.dartlang.org/packages/async_redux
+// Developed by Marcelo Glasberg (Aug 2019).
+// For more info, see: https://pub.dartlang.org/packages/async_redux
 
 enum NavigateType { pushNamed, pushReplacementNamed, pushNamedAndRemoveAll, pop, popUntil }
 

@@ -1,11 +1,23 @@
-## [1.0.0] - 05/08/2019
+## [1.0.0] - 2019/08/05
 
 * Initial commit.
 
-## [1.0.4] - 05/08/2019
+## [1.0.4] - 2019/08/05
 
 * Store tester.
 
-## [1.0.7] - 06/08/2019
+## [1.0.9] - 2019/08/07
 
 * Error message improvement.
+
+## [1.1.0] - 2019/08/07
+
+* Correct stacktrace for unwrapped action errors.
+
+## [1.1.1] - 2019/08/10
+
+* Ignore actions in the StoreTester.
+
+## [1.1.2] - 2019/08/13
+
+* README improvement.

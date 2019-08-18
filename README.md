@@ -8,7 +8,7 @@
 4. Has no boilerplate
 
 The below documentation is very detailed. 
-For an overview, go to the <a href="https://medium.com/@marcglasberg/https-medium-com-marcglasberg-async-redux-33ac5e27d5f6">Medium story</a>.
+For an overview, go to the <a href="https://medium.com/@marcglasberg/https-medium-com-marcglasberg-async-redux-33ac5e27d5f6?sk=87aefd759273920d444185aa9d447ba0">Medium story</a>.
 
 ## What is Redux?
 
@@ -120,7 +120,7 @@ and to the action state (the field `amount`).
 
 We will show you later how to easily test sync reducers, using the **StoreTester**.
 
-Try running the: <a href="./example/main.dart">Increment Example</a>.
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main.dart">Increment Example</a>.
 
 #### Async Reducer
  
@@ -147,7 +147,7 @@ This action is dispatched like this:
     
 We will show you later how to easily test async reducers, using the **StoreTester**.    
 
-Try running the: <a href="./example/main_increment_async.dart">Increment Async Example</a>.
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_increment_async.dart">Increment Async Example</a>.
 
 #### Changing state is optional
 
@@ -241,7 +241,7 @@ Complete example:
       void after() => dispatch(WaitAction(false));
     }
 
-Try running the: <a href="./example/main_before_and_after.dart">Before and After Example</a>.
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_before_and_after.dart">Before and After Example</a>.
 
 ## Connector
 
@@ -288,7 +288,6 @@ For example:
             onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
           );
     }
-
 
 The `StoreConnector` has a `distinct` parameter. 
 As a performance optimization, `distinct:true` allows the widget to be rebuilt only when the 
@@ -400,7 +399,7 @@ and then wrap your home-page with `UserExceptionDialog`, below `StoreProvider` a
                 )));
     }
  
-Try running the: <a href="./example/main_show_error_dialog.dart">Show Error Dialog Example</a>. 
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_show_error_dialog.dart">Show Error Dialog Example</a>. 
  
 **In more detail:**
  
@@ -477,7 +476,7 @@ Or else, creating it directly from `AppState`:
 Then, dispatch some action, wait for it to finish, and check the resulting state:    
 
     storeTester.dispatch(SaveNameAction("Mark"));
-    TestInfo info = await storeTester.wait(SaveNameAction);
+    TestInfo<AppState> info = await storeTester.wait(SaveNameAction);
     expect(info.state.name, "Mark");
                 
 The variable `info` above will contain information about after the action reducer finishes executing,
@@ -517,30 +516,34 @@ Let's see all the available methods of the `StoreTester`:
     Runs until the exact given action is dispatched, and then waits until it finishes.
     Returns the info after the action finishes. **Ignores other** actions.
   
-4. `Future<TestInfo> waitAllGetLast(List<Type> actionTypes)`
+4. `Future<TestInfo> waitAllGetLast(List<Type> actionTypes, {List<Type> ignore})`
 
     Runs until **all** given actions types are dispatched, **in order**.
     Waits until all of them are finished.
     Returns the info after all actions finish.
     Will fail with an exception if an unexpected action is seen, 
     or if any of the expected actions are dispatched in the wrong order.
+    To ignore some actions, pass them to the `ignore` list.
 
-5. `Future<TestInfo> waitAllUnorderedGetLast(List<Type> actionTypes)`
+5. `Future<TestInfo> waitAllUnorderedGetLast(List<Type> actionTypes, {List<Type> ignore})`
 
     Runs until **all** given actions types are dispatched, in **any order**.
     Waits until all of them are finished.
     Returns the info after all actions finish.
     Will fail with an exception if an unexpected action is seen.
+    To ignore some actions, pass them to the `ignore` list.
     
-6. `Future<TestInfoList> waitAll(List<Type> actionTypes)`        
+6. `Future<TestInfoList> waitAll(List<Type> actionTypes, {List<Type> ignore})`        
 
     The same as `waitAllGetLast`, but instead of returning just the last info, 
     it returns a list with the end info for each action.    
+    To ignore some actions, pass them to the `ignore` list.
 
-7. `Future<TestInfoList> waitAllUnordered(List<Type> actionTypes)`
+7. `Future<TestInfoList> waitAllUnordered(List<Type> actionTypes, {List<Type> ignore})`
 
     The same as `waitAllUnorderedGetLast`, but instead of returning just the last info, 
-    it returns a list with the end info for each action.        
+    it returns a list with the end info for each action.
+    To ignore some actions, pass them to the `ignore` list.        
     
 The last two methods above return a list of type `TestInfoList`, which contains the step 
 by step information of all the actions. You can then query for the actions you want to inspect.
@@ -576,7 +579,7 @@ and then get the state after each one of them have finished, all at once:
     expect(info.state.description, isNotEmpty);
     expect(info.state.counter, 1);
           
-Try running the: <a href="./example/main_before_and_after_STATE_test.dart">Testing with the Store Listener</a>.      
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_before_and_after_STATE_test.dart">Testing with the Store Listener</a>.      
 
 #### Test files
 
@@ -596,7 +599,7 @@ and then writes assertions against the rendered output.
 Think of these tests as "pure function tests" of our UI.
 It also tests that the callbacks are called when necessary.
 
-For example, suppose you have the counter app shown <a href="./example/main_increment_async.dart">here</a>.
+For example, suppose you have the counter app shown <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_increment_async.dart">here</a>.
 Then:
 
 * The **state test** could create a store with count `0` and description empty, 
@@ -782,7 +785,7 @@ So, for example, if you use a `controller` to hold the text in a `TextField`:
       }
 
       
-Try running the: <a href="./example/main_event_redux.dart">Event Example</a>.
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_event_redux.dart">Event Example</a>.
 
 #### Can I put mutable events into the store state?
 
@@ -917,9 +920,8 @@ the widget needs. If you have some "selecting logic" that you use in different p
 a "selector". Selectors may be put in separate files, or they may be put into state classes, as static methods.
 For example, the `TodoState` class above could contain a selector to filter out some todos:
 
-    List<Todo> selectTodosForUser(AppState state, User user) {
-      return state.todoState.todos.where((todo) => (todo.user == user)).toList();
-    }   
+    static List<Todo> selectTodosForUser(AppState state, User user) 
+       => state.todoState.todos.where((todo) => (todo.user == user)).toList();       
     
 ## Action Subclassing
     
@@ -1018,7 +1020,7 @@ Then you could use it like this:
       }
     }
 
-The above `BarrierAction` is demonstrated in <a href="./example/main_event_redux.dart">this example</a>.
+The above `BarrierAction` is demonstrated in <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_event_redux.dart">this example</a>.
 
 ## IDE Navigation 
 
@@ -1141,7 +1143,7 @@ Also uses code from package <a href="https://pub.dev/packages/equatable">equatab
 Special thanks: Eduardo Yamauchi and Hugo Passos helped me with the async code, 
 checking the documentation, testing everything and making suggestions.
 This work started after Thomas Burkhart explained to me why he didn't like Redux.
-Reducers as methods of action classes were shown to me by Scott Stoll.*
+Reducers as methods of action classes were shown to me by Scott Stoll and Simon Lightfoot.*
 
 *Other Flutter packages I've authored:* 
 * <a href="https://pub.dev/packages/network_to_file_image">network_to_file_image</a>
