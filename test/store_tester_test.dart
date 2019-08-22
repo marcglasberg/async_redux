@@ -106,6 +106,123 @@ void main() {
   ///////////////////////////////////////////////////////////////////////////////
 
   test(
+      'Dispatch some actions and wait until some condition is met. '
+      'Get the end state.', () async {
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+
+    storeTester.dispatch(Action1());
+    storeTester.dispatch(Action2());
+    storeTester.dispatch(Action3());
+    storeTester.dispatch(Action4());
+
+    var condition = (TestInfo<AppState> info) => info.state.text == "0,1,2";
+    TestInfo<AppState> info1 = await storeTester.waitConditionGetLast(condition);
+    expect(info1.state.text, "0,1,2");
+    expect(info1.ini, false);
+
+    TestInfo<AppState> info2 =
+        await storeTester.waitConditionGetLast((info) => info.state.text == "0,1,2,3,4");
+    expect(info2.state.text, "0,1,2,3,4");
+    expect(info1.ini, false);
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      'Dispatch some actions and wait until some condition is met. '
+      'Get the end state.', () async {
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+
+    storeTester.dispatch(Action1());
+    storeTester.dispatch(Action2());
+    storeTester.dispatch(Action3());
+    storeTester.dispatch(Action4());
+
+    var condition = (TestInfo<AppState> info) => info.state.text == "0,1,2" && info.ini;
+    TestInfo<AppState> info1 = await storeTester.waitConditionGetLast(condition, ignoreIni: false);
+    expect(info1.state.text, "0,1,2");
+    expect(info1.ini, true);
+
+    TestInfo<AppState> info2 = await storeTester.waitConditionGetLast(
+        (info) => info.state.text == "0,1,2,3,4" && !info.ini,
+        ignoreIni: false);
+    expect(info2.state.text, "0,1,2,3,4");
+    expect(info1.ini, true);
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      'Dispatch some actions and wait until some condition is met. '
+      'Get all of the intermediary states (END only).', () async {
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+
+    storeTester.dispatch(Action1());
+    storeTester.dispatch(Action2());
+    storeTester.dispatch(Action3());
+    storeTester.dispatch(Action4());
+
+    TestInfoList<AppState> infos =
+        await storeTester.waitCondition((info) => info.state.text == "0,1,2");
+
+    expect(infos.length, 2);
+    expect(infos.getIndex(0).state.text, "0,1");
+    expect(infos.getIndex(0).ini, false);
+    expect(infos.getIndex(1).state.text, "0,1,2");
+    expect(infos.getIndex(1).ini, false);
+
+    infos = await storeTester.waitCondition((info) => info.state.text == "0,1,2,3,4");
+    expect(infos.length, 2);
+    expect(infos.getIndex(0).state.text, "0,1,2,3");
+    expect(infos.getIndex(0).ini, false);
+    expect(infos.getIndex(1).state.text, "0,1,2,3,4");
+    expect(infos.getIndex(1).ini, false);
+  });
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      'Dispatch some actions and wait until some condition is met. '
+      'Get all of the intermediary states, '
+      'including INI and END.', () async {
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+
+    storeTester.dispatch(Action1());
+    storeTester.dispatch(Action2());
+    storeTester.dispatch(Action3());
+    storeTester.dispatch(Action4());
+
+    TestInfoList<AppState> infos =
+        await storeTester.waitCondition((info) => info.state.text == "0,1,2", ignoreIni: false);
+    expect(infos.length, 4);
+    expect(infos.getIndex(0).state.text, "0");
+    expect(infos.getIndex(0).ini, true);
+    expect(infos.getIndex(1).state.text, "0,1");
+    expect(infos.getIndex(1).ini, false);
+    expect(infos.getIndex(2).state.text, "0,1");
+    expect(infos.getIndex(2).ini, true);
+    expect(infos.getIndex(3).state.text, "0,1,2");
+    expect(infos.getIndex(3).ini, false);
+
+    infos =
+        await storeTester.waitCondition((info) => info.state.text == "0,1,2,3,4", ignoreIni: false);
+    expect(infos.length, 4);
+    expect(infos.getIndex(0).state.text, "0,1,2");
+    expect(infos.getIndex(0).ini, true);
+    expect(infos.getIndex(1).state.text, "0,1,2,3");
+    expect(infos.getIndex(1).ini, false);
+    expect(infos.getIndex(2).state.text, "0,1,2,3");
+    expect(infos.getIndex(2).ini, true);
+    expect(infos.getIndex(3).state.text, "0,1,2,3,4");
+    expect(infos.getIndex(3).ini, false);
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
       'Dispatch some action and wait for it. '
       'Get the end state.', () async {
     var storeTester = createStoreTester();

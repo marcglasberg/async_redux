@@ -544,8 +544,22 @@ Let's see all the available methods of the `StoreTester`:
     The same as `waitAllUnorderedGetLast`, but instead of returning just the last info, 
     it returns a list with the end info for each action.
     To ignore some actions, pass them to the `ignore` list.        
+  
+8. `Future<TestInfoList<St>> waitCondition(StateCondition<St> condition, {bool ignoreIni = true})`
+
+    Runs until the predicate function `condition` returns true.
+    This function will receive each testInfo, from where it can access the state, action, errors etc.
+    Only END states will be received, unless you pass `ignoreIni` as false.
+    Returns a list with all info until the condition is met.
     
-The last two methods above return a list of type `TestInfoList`, which contains the step 
+9. `Future<TestInfo<St>> waitConditionGetLast(StateCondition<St> condition, {bool ignoreIni = true})`
+
+    Runs until the predicate function `condition` returns true.
+    This function will receive each testInfo, from where it can access the state, action, errors etc.
+    Only END states will be received, unless you pass `ignoreIni` as false.
+    Returns the info after the condition is met.
+    
+Some of the methods above return a list of type `TestInfoList`, which contains the step 
 by step information of all the actions. You can then query for the actions you want to inspect.
 For example, suppose an action named `IncrementAndGetDescriptionAction` calls another 3 actions. 
 You can assert that all actions are called in order, 

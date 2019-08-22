@@ -9,6 +9,10 @@ import '../async_redux.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
+/// Predicate used in [StoreTester.waitCondition].
+/// Return true to stop waiting, and get the last state.
+typedef bool StateCondition<St>(TestInfo<St> info);
+
 /// Helps testing the store, actions, and sync/async reducers.
 ///
 /// For more info, see: https://pub.dartlang.org/packages/async_redux
@@ -50,6 +54,52 @@ class StoreTester<St> {
   void dispatch(ReduxAction<St> action) => store.dispatch(action);
 
   void defineState(St state) => _store.defineState(state);
+
+  /// Runs until the predicate function [condition] returns true.
+  /// This function will receive each testInfo, from where it can
+  /// access the state, action, errors etc.
+  /// Only END states will be received, unless you pass [ignoreIni] as false.
+  /// Returns the info after the condition is met.
+  Future<TestInfo<St>> waitConditionGetLast(
+    StateCondition<St> condition, {
+    bool ignoreIni = true,
+    int timeoutInSeconds = _defaultTimeout,
+  }) async {
+    var infoList =
+        await waitCondition(condition, ignoreIni: ignoreIni, timeoutInSeconds: timeoutInSeconds);
+    return infoList.last;
+  }
+
+  /// Runs until the predicate function [condition] returns true.
+  /// This function will receive each testInfo, from where it can
+  /// access the state, action, errors etc.
+  /// Only END states will be received, unless you pass [ignoreIni] as false.
+  /// Returns a list with all info until the condition is met.
+  Future<TestInfoList<St>> waitCondition(
+    StateCondition<St> condition, {
+    bool ignoreIni = true,
+    int timeoutInSeconds = _defaultTimeout,
+  }) async {
+    assert(condition != null);
+
+    TestInfoList<St> results = TestInfoList<St>();
+
+    TestInfo<St> testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
+
+    while (true) {
+      if (ignoreIni)
+        while (testInfo.ini) testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
+
+      results._add(testInfo);
+
+      if (condition(testInfo))
+        break;
+      else
+        testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
+    }
+
+    return results;
+  }
 
   /// Expects **one action** of the given type to be dispatched, and waits until it finishes.
   /// Returns the info after the action finishes.
