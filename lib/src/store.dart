@@ -12,7 +12,7 @@ import 'package:logging/logging.dart';
 
 // /////////////////////////////////////////////////////////////////////////////
 
-typedef Dispatch = void Function(ReduxAction action);
+typedef Dispatch<St> = void Function(ReduxAction<St> action);
 
 typedef TestInfoPrinter = void Function(TestInfo);
 
@@ -566,7 +566,7 @@ abstract class BaseModel<St> {
 
   St get state => _store.state;
 
-  Dispatch get dispatch => _store.dispatch;
+  Dispatch<St> get dispatch => _store.dispatch;
 }
 
 // /////////////////////////////////////////////////////////////////////////////

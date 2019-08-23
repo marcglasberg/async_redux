@@ -38,7 +38,13 @@
     This example lets you enter a name and click save.
     If the name has less than 4 chars, an error dialog will be shown.    
 
-6. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_event_redux.dart">main_event_redux</a>
+6. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_navigate.dart">main_navigate</a>
+
+    This example shows a route in the screen, all red. 
+    When you tap the screen it will push a new route, all blue.
+    When you tap the screen again it will pop the blue route.
+
+7. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_event_redux.dart">main_event_redux</a>
 
    This example shows a text-field, and two buttons.
    When the first button is tapped, an async process downloads some text from the internet

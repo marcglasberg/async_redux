@@ -25,3 +25,7 @@
 ## [1.1.3] - 2019/08/21
 
 * StoreTester: waitCondition and waitConditionGetLast.
+
+## [1.2.0] - 2019/08/22
+
+* Doc improvement. StoreTester improvements.

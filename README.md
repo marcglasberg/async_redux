@@ -674,7 +674,9 @@ If you need to know the route you're in, or even the complete route stack,
 you may use these static methods provided by `NavigateAction`:    
 
     String routeName = NavigateAction.getCurrentNavigatorRouteName(context);
-    List<Route> routeStack = NavigateAction.getCurrentNavigatorRouteStack(context);    
+    List<Route> routeStack = NavigateAction.getCurrentNavigatorRouteStack(context);
+    
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_navigate.dart">Navigate Example</a>.        
 
 ## Events
 
@@ -1057,6 +1059,112 @@ The first one may be used for logging, and the second for persistence:
       stateObservers: persistor.createStateObservers(),
     );
 
+## How to interact with the database
+
+The following advice works for any Redux version, including AsyncRedux.
+
+Pretend the user presses a button in the dumb-widget, 
+running a callback which was passed in its constructor. 
+This callback, which was created by the Connector widget, will dispatch an action. 
+
+This action's async reducer will connect to the database and get the desired information. 
+You can **directly** connect to the database from the async reducer, 
+or have a **DAO** to abstract the database implementation details.
+ 
+This would be your reducer: 
+
+    @override
+    Future<AppState> reduce() async {
+        var something = await myDao.loadSomething(); 
+        return state.copy(something: something);
+    }
+
+This rebuilds your widgets that depend on `something`, with its new value. 
+The state now holds the new `something`, 
+and the local store persistor may persist this value to the local file system, if that's what you want.
+
+## How to deal with Streams
+
+The following advice works for any Redux version, including AsyncRedux.
+
+AsyncRedux plays well with Streams, as long as you know how to use them:
+
+- Don't send the streams down to the dumb-widget, and not even to the Connector. 
+  If you are declaring, subscribing to, or unsubscribing from streams inside of widgets,
+  it means you are mixing Redux with some other architecture. 
+  You _can_ do that, but it's not recommended and not necessary.
+  
+- Don't put streams into the store state. 
+  They are mutable, they should not be persisted to the local filesystem and, 
+  more importantly, **they are not app state**. 
+  Instead, they are something that "generates state". 
+  
+#### So, how do you use streams? 
+
+Let's pretend you want to listen to changes to the user name, in a Firestore database.
+First, create an action to start listening, and another action to cancel. We could name them `StartListenUserNameAction`
+and `CancelListenUserNameAction`. 
+
+- If the stream should run all the time, you may dispatch the start action as soon as the app starts, 
+right after you create the store, possibly in `main`. And cancel it when the app finishes.
+
+- If the stream should run only when the user is viewing some screen, you may dispatch the action from 
+the `initState` method of the screen widget, and cancel it from the `dispose` method.
+Note: more precisely, your Connectors send the callbacks to do that to the stateful dumb-widgets.
+
+- If the stream should run only when some actions demand it, 
+their reducers may dispatch the actions to start and cancel as needed.        
+
+#### And where the stream subscriptions themselves are stored? 
+
+As discussed above, you should NOT put them 
+in the store state. Instead save them in some convenient place elsewhere, where your reducers may access them.
+Remember you **only** need to access them from the reducers. If you have separate business and client layers,
+put them into the business layer.
+
+Some ideas:
+
+- Put them as static variables of the specific **actions** that start them. 
+For example, `userNameStream` could be a static field of the `StartListenUserNameAction` class.
+
+- Put them in the **state classes** that most relate to them, but as **static** variables, 
+  not instance variables (which would be store state).
+  For example, if your `AppState` contains some `UserState`, then `userNameStream` 
+  could be a static field of the `UserState` class. 
+
+- Save them in global static variables. 
+
+- Use a service locator, like <a href="https://pub.dev/packages/get_it">get_it</a>.
+
+Or put them wherever you think makes sense.
+In all cases above, you can still inject them with mocks, for tests.
+    
+#### How do streams pass their information to the store and ultimately to the widgets?
+  
+When you create the stream, define its callback so that it dispatches an appropriate action. 
+Each time the stream gets some data it will pass it to this action's constructor.
+The action's reducer will put the data into the store state, from where it will be 
+automatically sent down to the widgets that observe them (through their Connector/ViewModel).
+
+For example:
+
+    Stream<QuerySnapshot> stream = query.snapshots();
+    
+    streamSub = stream.listen((QuerySnapshot querySnapshot) {
+      dispatch(DoSomethingAction(querySnapshot.documentChanges));
+      }, onError: ...);    
+
+#### To sum up:
+
+1. Put your stream subscriptions where they can be accessed by the reducers, 
+but NOT inside of the store state.
+
+2. Don't use streams directly in widgets (not in the Connector widget, and not in the dumb-widget).
+
+3. Create actions to start and cancel streams, and call them when necessary.
+
+4. The stream callback should dispatch actions to put the snapshot data into the store state. 
+
 ## Recommended Directory Structure
 
 You probably have your own way of organizing your directory structure, but if you want some recommendation,
@@ -1164,4 +1272,5 @@ Reducers as methods of action classes were shown to me by Scott Stoll and Simon 
 * <a href="https://pub.dev/packages/align_positioned">align_positioned</a> 
 * <a href="https://pub.dev/packages/back_button_interceptor">back_button_interceptor</a>
 * <a href="https://pub.dev/packages/indexed_list_view">indexed_list_view</a> 
+* <a href="https://pub.dev/packages/matrix4_transform">matrix4_transform</a>
 * <a href="https://pub.dev/packages/animated_size_and_fade">animated_size_and_fade</a>

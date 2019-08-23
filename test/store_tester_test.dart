@@ -843,5 +843,73 @@ void main() {
     expect(infos.getIndex(1).state.text, "0,2,8,9");
   });
 
-///////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test('Makes sure we wait until the END of all ignored actions.', () async {
+    //
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+    storeTester.dispatch(Action6());
+
+    expect(() async => await storeTester.waitAllGetLast([Action1, Action2], ignore: [Action6]),
+        throwsA(anything));
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test('Makes sure we wait until the END of all ignored actions.', () async {
+    //
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+    storeTester.dispatch(Action6());
+    TestInfo<AppState> info = await storeTester.waitAllGetLast(
+      [
+        Action1,
+        Action2,
+        Action3,
+      ],
+      ignore: [Action6],
+    );
+    expect(info.state.text, "0,1,2,3");
+    expect(info.errors, isEmpty);
+    storeTester.dispatch(Action6());
+    info = await storeTester.waitAllGetLast([
+      Action6,
+      Action1,
+      Action2,
+      Action3,
+    ]);
+
+    expect(info.state.text, "0,1,2,3,6,1,2,3,6");
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test('Makes sure we wait until the END of all ignored actions.', () async {
+    //
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+    storeTester.dispatch(Action6());
+    TestInfo<AppState> info = await storeTester.waitAllUnorderedGetLast(
+      [
+        Action1,
+        Action2,
+        Action3,
+      ],
+      ignore: [Action6],
+    );
+    expect(info.state.text, "0,1,2,3");
+    expect(info.errors, isEmpty);
+
+    storeTester.dispatch(Action6());
+    info = await storeTester.waitAllGetLast([
+      Action6,
+      Action1,
+      Action2,
+      Action3,
+    ]);
+    expect(info.state.text, "0,1,2,3,6,1,2,3,6");
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
 }

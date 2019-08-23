@@ -153,9 +153,11 @@ class StoreTester<St> {
   /// Will fail with an exception if an unexpected action is seen,
   /// or if any of the expected actions are dispatched in the wrong order.
   ///
-  /// If you pass action types to [ignore], they will be ignored. However, if an action type
+  /// If you pass action types to [ignore], they will be ignored (the test won't fail when
+  /// encountering them, and won't collect testInfo for them). However, if an action type
   /// exists both in [actionTypes] and [ignore], it will be expected in that particular order,
-  /// and the others of that type will be ignored.
+  /// and the others of that type will be ignored. This method will remember all ignored actions
+  /// and wait for them to finish, so that they don't "leak" to the next wait.
   Future<TestInfo> waitAllGetLast(List<Type> actionTypes, {List<Type> ignore = const []}) async {
     assert(actionTypes != null && actionTypes.isNotEmpty);
 
@@ -167,8 +169,11 @@ class StoreTester<St> {
   /// Waits until all of them are finished. Returns the info after all actions finish.
   /// Will fail with an exception if an unexpected action is seen.
   ///
-  /// If you pass action types to [ignore], they will be ignored.
-  /// However, an action type cannot exist in both [actionTypes] and [ignore] lists.
+  /// If you pass action types to [ignore], they will be ignored (the test won't fail when
+  /// encountering them, and won't collect testInfo for them). This method will remember all
+  /// ignored actions and wait for them to finish, so that they don't "leak" to the next wait.
+  /// An action type cannot exist in both [actionTypes] and [ignore] lists.
+  ///
   Future<TestInfo> waitAllUnorderedGetLast(
     List<Type> actionTypes, {
     int timeoutInSeconds = _defaultTimeout,
@@ -184,9 +189,11 @@ class StoreTester<St> {
   /// The same as `waitAllGetLast`, but instead of returning just the last info,
   /// it returns a list with the end info for each action.
   ///
-  /// If you pass action types to [ignore], they will be ignored. However, if an action type
+  /// If you pass action types to [ignore], they will be ignored (the test won't fail when
+  /// encountering them, and won't collect testInfo for them). However, if an action type
   /// exists both in [actionTypes] and [ignore], it will be expected in that particular order,
-  /// and the others of that type will be ignored.
+  /// and the others of that type will be ignored. This method will remember all ignored actions
+  /// and wait for them to finish, so that they don't "leak" to the next wait.
   ///
   Future<TestInfoList<St>> waitAll(List<Type> actionTypes, {List<Type> ignore = const []}) async {
     assert(actionTypes != null && actionTypes.isNotEmpty);
@@ -247,7 +254,6 @@ class StoreTester<St> {
         }
     }
 
-    //
     while (obtainedActions.isNotEmpty || ignoredActions.isNotEmpty) {
       var wasObtained = obtainedActions.remove(testInfo.action);
       var wasIgnored = ignoredActions.remove(testInfo.action);
@@ -275,8 +281,10 @@ class StoreTester<St> {
   /// The same as `waitAllUnorderedGetLast`, but instead of returning just the last info,
   /// it returns a list with the end info for each action.
   ///
-  /// If you pass action types to [ignore], they will be ignored.
-  /// However, an action type cannot exist in both [actionTypes] and [ignore] lists.
+  /// If you pass action types to [ignore], they will be ignored (the test won't fail when
+  /// encountering them, and won't collect testInfo for them). This method will remember all
+  /// ignored actions and wait for them to finish, so that they don't "leak" to the next wait.
+  /// An action type cannot exist in both [actionTypes] and [ignore] lists.
   ///
   Future<TestInfoList<St>> waitAllUnordered(
     List<Type> actionTypes, {
@@ -284,8 +292,9 @@ class StoreTester<St> {
     List<Type> ignore = const [],
   }) async {
     assert(actionTypes != null && actionTypes.isNotEmpty);
+    assert(ignore != null);
 
-    // Actions which are expected UNORDERED can't be ignored.
+    // Actions which are expected can't also be ignored.
     var intersection = ignore.toSet().intersection(actionTypes.toSet());
     if (intersection.isNotEmpty)
       throw StoreException("Actions $intersection should not be expected and ignored.");
@@ -296,14 +305,27 @@ class StoreTester<St> {
 
     TestInfo<St> testInfo;
 
+    // Saves ignored actions INI.
+    // Note: This relies on Actions not overriding operator ==.
+    List<ReduxAction> ignoredActions = [];
+
     while (actionsIni.isNotEmpty || actionsEnd.isNotEmpty) {
       try {
         testInfo = null;
 
         while (testInfo == null || ignore.contains(testInfo.type)) {
+          //
+          // Saves ignored actions.
+          if (testInfo != null && ignore.contains(testInfo.type)) {
+            if (testInfo.isINI)
+              ignoredActions.add(testInfo.action);
+            else
+              ignoredActions.remove(testInfo.action);
+          }
+
           testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
         }
-      } catch (error) {
+      } on StoreExceptionTimeout catch (error) {
         print("These actions were not dispatched: $actionsIni INI.");
         print("These actions haven't finished: $actionsEnd END.");
         rethrow;
@@ -321,6 +343,15 @@ class StoreTester<St> {
         // Only save the END states.
         testInfoList._add(testInfo);
       }
+    }
+
+    // Wait for all ignored actions to finish, so that they don't "leak" to the next wait.
+    while (ignoredActions.isNotEmpty) {
+      testInfo = await _next();
+      var wasIgnored = ignoredActions.remove(testInfo.action);
+      if (!testInfo.isEND || !wasIgnored)
+        throw StoreException(
+            "Got this unexpected action: ${testInfo.action.runtimeType} ${testInfo.ini ? "INI" : "END"}.");
     }
 
     return testInfoList;
@@ -352,7 +383,7 @@ class StoreTester<St> {
         ? result
         : result.timeout(
             Duration(seconds: timeoutInSeconds),
-            onTimeout: () => throw StoreException("Timeout."),
+            onTimeout: () => throw StoreExceptionTimeout(),
           );
   }
 
@@ -429,3 +460,11 @@ class TestInfoList<St> {
 
   void _addAll(TestInfoList<St> infoList) => _info.addAll(infoList._info);
 }
+
+// /////////////////////////////////////////////////////////////////////////////
+
+class StoreExceptionTimeout extends StoreException {
+  StoreExceptionTimeout() : super("Timeout.");
+}
+
+// /////////////////////////////////////////////////////////////////////////////
