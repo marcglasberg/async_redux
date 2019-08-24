@@ -10,6 +10,41 @@
 The below documentation is very detailed. 
 For an overview, go to the <a href="https://medium.com/@marcglasberg/https-medium-com-marcglasberg-async-redux-33ac5e27d5f6?sk=87aefd759273920d444185aa9d447ba0">Medium story</a>.
 
+# Table of Contents
+
+   * [What is Redux?](#what-is-redux)
+   * [Why use this Redux version over others?](#why-use-this-redux-version-over-others)
+   * [Store and State](#store-and-state)
+   * [Actions](#actions)
+      * [Sync Reducer](#sync-reducer)
+      * [Async Reducer](#async-reducer)
+      * [Changing state is optional](#changing-state-is-optional)
+      * [Before and After the Reducer](#before-and-after-the-reducer)
+   * [Connector](#connector)
+   * [Processing errors thrown by Actions](#processing-errors-thrown-by-actions)
+      * [Giving better error messages](#giving-better-error-messages)
+      * [User exceptions](#user-exceptions)
+   * [Testing](#testing)
+      * [Test files](#test-files)
+   * [Route Navigation](#route-navigation)
+   * [Events](#events)
+      * [Can I put mutable events into the store state?](#can-i-put-mutable-events-into-the-store-state)
+      * [When should I use events?](#when-should-i-use-events)
+      * [Advanced event features](#advanced-event-features)
+   * [State Declaration](#state-declaration)
+      * [Selectors](#selectors)
+   * [Action Subclassing](#action-subclassing)
+      * [Abstract Before and After](#abstract-before-and-after)
+   * [IDE Navigation](#ide-navigation)
+   * [Logging and Persistence](#logging-and-persistence)
+   * [How to interact with the database](#how-to-interact-with-the-database)
+   * [How to deal with Streams](#how-to-deal-with-streams)
+      * [So, how do you use streams?](#so-how-do-you-use-streams)
+      * [And where the stream subscriptions themselves are stored?](#and-where-the-stream-subscriptions-themselves-are-stored)
+      * [How do streams pass their information to the store and ultimately to the widgets?](#how-do-streams-pass-their-information-to-the-store-and-ultimately-to-the-widgets)
+      * [To sum up:](#to-sum-up)
+   * [Recommended Directory Structure](#recommended-directory-structure)
+
 ## What is Redux?
 
 A single **store** holds all the **state**, which is immutable.
@@ -92,7 +127,7 @@ The reducer has direct access to:
  - The action state itself (the class fields, passed to the action when it was instantiated and dispatched).
  - The `dispatch` method, so that other actions may be dispatched from the reducer. 
  
-#### Sync Reducer
+### Sync Reducer
 
 If you want to do some synchronous work, simply declare the reducer to return `AppState`, 
 then change the state and return it. 
@@ -122,7 +157,7 @@ We will show you later how to easily test sync reducers, using the **StoreTester
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main.dart">Increment Example</a>.
 
-#### Async Reducer
+### Async Reducer
  
 If you want to do some asynchronous work, simply declare the reducer to return `Future<AppState>` 
 then change the state and return it. There is no need of any "middleware", like for other Redux versions.
@@ -149,7 +184,7 @@ We will show you later how to easily test async reducers, using the **StoreTeste
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_increment_async.dart">Increment Async Example</a>.
 
-#### Changing state is optional
+### Changing state is optional
 
 For both sync and async reducers, returning a new state is optional. 
 If you don't plan on changing the state, simply return `null`. This is the same as returning the state unchanged.
@@ -184,7 +219,7 @@ and another action to change the state:
 Note the `reduce()` methods have direct access to `state` and `dispatch`. 
 There is no need to write `store.state` and `store.dispatch` (although you can, if you want). 
 
-#### Before and After the Reducer 
+### Before and After the Reducer 
 
 Sometimes, while an async reducer is running, you want to prevent the user from touching the screen.
 Also, sometimes you want to check preconditions like the presence of an internet connection,
@@ -361,7 +396,7 @@ For example:
 If your error observer returns `true`, the error will be rethrown after the `errorObserver` finishes. 
 If it returns `false`, the error is considered dealt with, and will be "swallowed" (not rethrown).
  
-#### Giving better error messages 
+### Giving better error messages 
 
 If your reducer throws some error you probably want to collect as much information as possible. 
 In the above code, if `checkInternetConnection()` throws an error, you want to know that you have a connection
@@ -383,7 +418,7 @@ The solution is implementing the optional `wrapError(error)` method:
 Note the `LogoutError` above gets the original error as cause, so no information is lost.
 In other words, the `wrapError(error)` method acts as the "catch" statement of the action.     
  
-#### User exceptions
+### User exceptions
 
 To show error messages to the user, make your actions throw an `UserException`, 
 and then wrap your home-page with `UserExceptionDialog`, below `StoreProvider` and `MaterialApp`:
@@ -595,7 +630,7 @@ and then get the state after each one of them have finished, all at once:
           
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_before_and_after_STATE_test.dart">Testing with the Store Listener</a>.      
 
-#### Test files
+### Test files
 
 If you want your tests to be comprehensive 
 you should probably have 3 different types of test for each widget:
@@ -803,7 +838,7 @@ So, for example, if you use a `controller` to hold the text in a `TextField`:
       
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_event_redux.dart">Event Example</a>.
 
-#### Can I put mutable events into the store state?
+### Can I put mutable events into the store state?
 
 Events are mutable, and store state is supposed to be immutable.
 Won't this create problems? No! Don't worry, events are used in a contained way, 
@@ -815,7 +850,7 @@ You can think of events as piggybacking in the Redux infrastructure,
 and not belonging to the store state. 
 You should just remember **not to persist them** when you persist the store state.
 
-#### When should I use events?  
+### When should I use events?  
  
 The short answer is that you'll know it when you see it. When you want to do something and it's not obvious 
 how to do it by changing regular store state, it's probably easy to solve it if you try using events instead.
@@ -827,7 +862,7 @@ However, we can also give these guidelines:
 3. You may use events to make one-off changes in controllers.
 4. You may use events to make one-off changes in other implicit state like the open state of dialogs or the keyboard.
 
-#### Advanced event features
+### Advanced event features
 
 There are some advanced event features you probably won't need, but you should know they exist:
 
@@ -929,7 +964,7 @@ All of your state classes may follow this pattern. For example, the `TodoState` 
       int get hashCode => ListEquality.hash(todos);
     }
     
-#### Selectors
+### Selectors
 
 Your connector-widgets usually have a view-model that goes into the store and selects the part of the store
 the widget needs. If you have some "selecting logic" that you use in different places, you may create
@@ -1012,7 +1047,7 @@ that part of the state that changed:
       }
     }
     
-#### Abstract Before and After
+### Abstract Before and After
 
 Other useful abstract classes you may create provide already overridden `before()` and `after()` methods.
 For example, this abstract class turns on a modal barrier when the action starts, 
@@ -1099,7 +1134,7 @@ AsyncRedux plays well with Streams, as long as you know how to use them:
   more importantly, **they are not app state**. 
   Instead, they are something that "generates state". 
   
-#### So, how do you use streams? 
+### So, how do you use streams? 
 
 Let's pretend you want to listen to changes to the user name, in a Firestore database.
 First, create an action to start listening, and another action to cancel. We could name them `StartListenUserNameAction`
@@ -1115,7 +1150,7 @@ Note: more precisely, your Connectors send the callbacks to do that to the state
 - If the stream should run only when some actions demand it, 
 their reducers may dispatch the actions to start and cancel as needed.        
 
-#### And where the stream subscriptions themselves are stored? 
+### And where the stream subscriptions themselves are stored? 
 
 As discussed above, you should NOT put them 
 in the store state. Instead save them in some convenient place elsewhere, where your reducers may access them.
@@ -1139,7 +1174,7 @@ For example, `userNameStream` could be a static field of the `StartListenUserNam
 Or put them wherever you think makes sense.
 In all cases above, you can still inject them with mocks, for tests.
     
-#### How do streams pass their information to the store and ultimately to the widgets?
+### How do streams pass their information to the store and ultimately to the widgets?
   
 When you create the stream, define its callback so that it dispatches an appropriate action. 
 Each time the stream gets some data it will pass it to this action's constructor.
@@ -1154,7 +1189,7 @@ For example:
       dispatch(DoSomethingAction(querySnapshot.documentChanges));
       }, onError: ...);    
 
-#### To sum up:
+### To sum up:
 
 1. Put your stream subscriptions where they can be accessed by the reducers, 
 but NOT inside of the store state.
