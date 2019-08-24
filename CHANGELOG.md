@@ -29,3 +29,7 @@
 ## [1.2.0] - 2019/08/22
 
 * Doc improvement. StoreTester improvements.
+
+## [1.2.3] - 2019/08/23
+
+* StoreTester timeout message.

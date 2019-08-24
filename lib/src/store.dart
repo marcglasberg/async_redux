@@ -804,7 +804,7 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
     this.onWillChange,
     this.onDidChange,
     this.onInitialBuild,
-  }) :super(key: key);
+  }) : super(key: key);
 
   @override
   State<StatefulWidget> createState() {
@@ -1010,7 +1010,7 @@ class Log<St> implements ActionObserver<St> {
     int dispatchCount,
     DateTime timestamp,
   ) =>
-      "$action ${ini ? 'INI' : 'FIM'}";
+      "$action ${ini ? 'INI' : 'END'}";
 
   /// A simple formatter that puts all data on one line.
   static String singleLineFormatter(

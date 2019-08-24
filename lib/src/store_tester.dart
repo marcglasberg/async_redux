@@ -326,8 +326,8 @@ class StoreTester<St> {
           testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
         }
       } on StoreExceptionTimeout catch (error) {
-        print("These actions were not dispatched: $actionsIni INI.");
-        print("These actions haven't finished: $actionsEnd END.");
+        error.addDetail("These actions were not dispatched: $actionsIni INI.");
+        error.addDetail("These actions haven't finished: $actionsEnd END.");
         rethrow;
       }
 
@@ -465,6 +465,23 @@ class TestInfoList<St> {
 
 class StoreExceptionTimeout extends StoreException {
   StoreExceptionTimeout() : super("Timeout.");
+
+  List<String> _details = <String>[];
+
+  List<String> get details => _details;
+
+  void addDetail(String detail) => _details.add(detail);
+
+  @override
+  String toString() =>
+      (details.isEmpty) ? msg : msg + "\nDetails:\n" + details.map((d) => "- $d").join("\n");
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is StoreExceptionTimeout && runtimeType == other.runtimeType;
+
+  @override
+  int get hashCode => 0;
 }
 
 // /////////////////////////////////////////////////////////////////////////////
