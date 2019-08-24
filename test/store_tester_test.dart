@@ -912,4 +912,15 @@ void main() {
   });
 
   ///////////////////////////////////////////////////////////////////////////////
+
+  test('Error message when time is out.', () async {
+    //
+    var storeTester = createStoreTester();
+    await storeTester.waitAllUnordered([Action1], timeoutInSeconds: 1).then(
+        (_) => fail('There was no timeout.'), onError: expectAsync1((error) {
+      expect(error, StoreExceptionTimeout());
+    }));
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
 }

@@ -1095,8 +1095,7 @@ AsyncRedux plays well with Streams, as long as you know how to use them:
   You _can_ do that, but it's not recommended and not necessary.
   
 - Don't put streams into the store state. 
-  They are mutable, they should not be persisted to the local filesystem and, 
-  more importantly, **they are not app state**. 
+  They are not app state, and they should not be persisted to the local filesystem. 
   Instead, they are something that "generates state". 
   
 #### So, how do you use streams? 
@@ -1110,7 +1109,8 @@ right after you create the store, possibly in `main`. And cancel it when the app
 
 - If the stream should run only when the user is viewing some screen, you may dispatch the action from 
 the `initState` method of the screen widget, and cancel it from the `dispose` method.
-Note: more precisely, your Connectors send the callbacks to do that to the stateful dumb-widgets.
+Note: More precisely, these things are done by the callbacks that the Connectors create 
+and send down to the stateful dumb-widgets.
 
 - If the stream should run only when some actions demand it, 
 their reducers may dispatch the actions to start and cancel as needed.        
@@ -1267,10 +1267,16 @@ checking the documentation, testing everything and making suggestions.
 This work started after Thomas Burkhart explained to me why he didn't like Redux.
 Reducers as methods of action classes were shown to me by Scott Stoll and Simon Lightfoot.*
 
-*Other Flutter packages I've authored:* 
+*The Flutter packages I've authored:* 
+* <a href="https://pub.dev/packages/async_redux">async_redux</a>
+* <a href="https://pub.dev/packages/align_positioned">align_positioned</a>
 * <a href="https://pub.dev/packages/network_to_file_image">network_to_file_image</a>
 * <a href="https://pub.dev/packages/align_positioned">align_positioned</a> 
 * <a href="https://pub.dev/packages/back_button_interceptor">back_button_interceptor</a>
 * <a href="https://pub.dev/packages/indexed_list_view">indexed_list_view</a> 
-* <a href="https://pub.dev/packages/matrix4_transform">matrix4_transform</a>
 * <a href="https://pub.dev/packages/animated_size_and_fade">animated_size_and_fade</a>
+
+---<br>_https://github.com/marcglasberg_<br>
+_https://twitter.com/glasbergmarcelo_<br>
+_https://stackoverflow.com/users/3411681/marcg_<br>
+_https://medium.com/@marcglasberg_<br>
