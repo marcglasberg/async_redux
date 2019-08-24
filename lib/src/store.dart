@@ -667,7 +667,7 @@ typedef OnInitialBuildCallback<VM> = void Function(VM viewModel);
 /// optimization, the Widget can be rebuilt only when the [Model] changes.
 /// In order for this to work correctly, you must implement [==] and [hashCode] for
 /// the [Model], and set the [distinct] option to true when creating your StoreConnector.
-class StoreConnector<St, Model extends BaseModel> extends StatelessWidget {
+class StoreConnector<St, Model> extends StatelessWidget {
   //
   /// Build a Widget using the [BuildContext] and [Model]. The [Model]
   /// is created by the [converter] or [model] functions.
@@ -771,24 +771,12 @@ class StoreConnector<St, Model extends BaseModel> extends StatelessWidget {
     );
   }
 
-  /// The StoreConnector needs the converter or model parameter (only one of them):
-  /// 1) Converter gets a store.
-  /// 2) Model gets state and dispatch, so it's easier to use.
-  Model getLatestValue(Store store) {
-    if (converter != null)
-      return converter(store);
-    else if (model != null) {
-      model._setStore(store);
-      return model.fromStore();
-    } else
-      throw AssertionError();
-  }
 }
 
 // /////////////////////////////////////////////////////////////////////////////
 
 /// Listens to the store and calls builder whenever the store changes.
-class _StoreStreamListener<St, Model extends BaseModel> extends StatefulWidget {
+class _StoreStreamListener<St, Model> extends StatefulWidget {
   final ViewModelBuilder<Model> builder;
   final StoreConverter<St, Model> converter;
   final BaseModel model;
@@ -816,7 +804,7 @@ class _StoreStreamListener<St, Model extends BaseModel> extends StatefulWidget {
     this.onWillChange,
     this.onDidChange,
     this.onInitialBuild,
-  }) : super(key: key);
+  }) :super(key: key);
 
   @override
   State<StatefulWidget> createState() {
@@ -826,7 +814,7 @@ class _StoreStreamListener<St, Model extends BaseModel> extends StatefulWidget {
 
 // /////////////////////////////////////////////////////////////////////////////
 
-class _StoreStreamListenerState<St, Model extends BaseModel>
+class _StoreStreamListenerState<St, Model>
     extends State<_StoreStreamListener<St, Model>> {
   Stream<Model> stream;
   Model latestValue;
@@ -918,7 +906,7 @@ class _StoreStreamListenerState<St, Model extends BaseModel>
       return widget.converter(widget.store);
     else if (widget.model != null) {
       widget.model._setStore(widget.store);
-      return widget.model.fromStore();
+      return widget.model.fromStore() as Model;
     } else
       throw AssertionError();
   }
