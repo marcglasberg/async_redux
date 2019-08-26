@@ -163,7 +163,7 @@ and to the action state (the field `amount`).
 
 We will show you later how to easily test sync reducers, using the **StoreTester**.
 
-Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main.dart">Increment Example</a>.
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main.dart">Increment Example</a>.
 
 ### Async Reducer
 
@@ -194,7 +194,7 @@ store.dispatch(QueryAndIncrementAction());
 
 We will show you later how to easily test async reducers, using the **StoreTester**.
 
-Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_increment_async.dart">Increment Async Example</a>.
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_increment_async.dart">Increment Async Example</a>.
 
 ### Changing state is optional
 
@@ -304,7 +304,7 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
 }
 ```
 
-Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_before_and_after.dart">Before and After Example</a>.
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">Before and After Example</a>.
 
 ## Connector
 
@@ -374,7 +374,7 @@ You can't forget to update this whenever new parameters are added to the model.
 to ensure they are kept correct, without you having to update them manually.
 
 * Just add all the fields you want to the `equals` parameter to the `ViewModel`'s `build` constructor.
-This will allow the ViewModel to automatically create its own equals and hashcode implicitly.
+This will allow the ViewModel to automatically create its own `operator ==` and `hashcode` implicitly.
 For example:
 
 ```dart
@@ -382,8 +382,116 @@ ViewModel.build({
 	  @required this.field1,
 	  @required this.field2,
 }) : super(equals: [field1, field2]);
-```
+```      
 
+### How to provide the ViewModel to the StoreConnector
+
+The `StoreConnector` actually accepts two parameters for the `ViewModel`, 
+of which one but **only one** should be provided in the `StoreConnector` constructor: 
+`model` or `converter`. 
+
+1. the `model` parameter 
+
+   It expects a `ViewModel` that extends `BaseModel`.
+   This allows your model class to use the `equals` parameter, as already explained above, 
+   so that you don't need to implement `operator ==` and `hashcode` by hand.
+    
+   Also, AsyncRedux will automatically inject `state` and `dispatch` into your model instance, 
+   so that boilerplate is reduced in your `fromStore` method. For example:
+   
+       class ViewModel extends BaseModel<Store<AppState>> {
+          ViewModel();
+        
+          String name;
+          VoidCallback onSave;
+       
+          ViewModel.build({
+            @required this.name,
+            @required this.onSave,
+          }) : super(equals: [name]);
+
+          @override
+          ViewModel fromStore() => ViewModel.build(
+              name: state.user.name,
+              onSave: () => dispatch(SaveUserAction()),
+          );
+       }
+       
+   With this architecture you may also create separate methods for helping construct your model, 
+   without having to pass the `store` around. For example:       
+
+       @override
+       ViewModel fromStore() => ViewModel.build(
+           name: _name(),
+           onSave: _onSave,
+       );
+       
+       String _name() => state.user.name;
+       
+       VoidCallback _onSave: () => dispatch(SaveUserAction()),
+       
+   Another idea is to subclass `BaseModel` to provide additional features to your model.
+   For example, you could add extra getters to help you access state:
+        
+        User user => state.user;                       
+        
+        @override
+        ViewModel fromStore() => ViewModel.build(
+           name: user.name,
+           ...
+        );
+        
+   Most examples in the [example tab](https://pub.dartlang.org/packages/async_redux#-example-tab-) 
+   use the `model` parameter.      
+
+2. The `converter` parameter 
+
+   This is the good old one from `flutter_redux`. 
+   It expects a static factory function that gets a `store` and returns the `ViewModel`.
+   You probably should use this one if you are migrating from `flutter_redux`.
+   
+       class ViewModel {
+          String name;
+          VoidCallback onSave;
+       
+          ViewModel({
+             @required this.name,
+             @required this.onSave,
+          });
+       
+          static ViewModel fromStore(Store<AppState> store) {
+             return ViewModel(
+                name: store.state,
+                onSave: () => store.dispatch(IncrementAction(amount: 1)),
+             );
+          }
+       
+          @override
+          bool operator ==(Object other) =>
+              identical(this, other) ||
+              other is ViewModel && runtimeType == other.runtimeType && name == other.name;
+       
+          @override
+          int get hashCode => name.hashCode;
+       }
+
+   With this architecture it's a bit more difficult to create separate methods for helping construct your model: 
+   
+       static ViewModel fromStore(Store<AppState> store) {
+          return ViewModel(
+             name: _name(store),
+             onSave: _onSave(store),
+          );
+       }
+       
+       static String _name(Store<AppState>) => store.state.user.name;
+       
+       static VoidCallback _onSave(Store<AppState>) { 
+          return () => store.dispatch(SaveUserAction());
+       } 
+      
+   To see the `converter` parameter in action, please run 
+   <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_static_view_model.dart">this example</a>.    
 
 ## Processing errors thrown by Actions
 
@@ -478,7 +586,7 @@ class MyApp extends StatelessWidget {
 }
 ```
 
-Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_show_error_dialog.dart">Show Error Dialog Example</a>.
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_error_dialog.dart">Show Error Dialog Example</a>.
 
 **In more detail:**
 
@@ -687,7 +795,7 @@ expect(info.state.description, isNotEmpty);
 expect(info.state.counter, 1);
 ```
 
-Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_before_and_after_STATE_test.dart">Testing with the Store Listener</a>.
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/test/main_before_and_after_STATE_test.dart">Testing with the Store Listener</a>.
 
 ### Test files
 
@@ -707,7 +815,7 @@ and then writes assertions against the rendered output.
 Think of these tests as "pure function tests" of our UI.
 It also tests that the callbacks are called when necessary.
 
-For example, suppose you have the counter app shown <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_increment_async.dart">here</a>.
+For example, suppose you have the counter app shown <a href="https://github.com/marcglasberg/async_redux/blob/master/lib/example/main_increment_async.dart">here</a>.
 Then:
 
 * The **state test** could create a store with count `0` and description empty,
@@ -778,7 +886,7 @@ String routeName = NavigateAction.getCurrentNavigatorRouteName(context);
 List<Route> routeStack = NavigateAction.getCurrentNavigatorRouteStack(context);
 ```
 
-Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_navigate.dart">Navigate Example</a>.
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_navigate.dart">Navigate Example</a>.
 
 ## Events
 
@@ -914,7 +1022,7 @@ void consumeEvents() {
   }
 ```
 
-Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_event_redux.dart">Event Example</a>.
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_event_redux.dart">Event Example</a>.
 
 ### Can I put mutable events into the store state?
 
@@ -1171,7 +1279,7 @@ class ChangeTextAction extends BarrierAction {
 }
 ```
 
-The above `BarrierAction` is demonstrated in <a href="https://github.com/marcglasberg/async_redux/blob/master/example/main_event_redux.dart">this example</a>.
+The above `BarrierAction` is demonstrated in <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_event_redux.dart">this example</a>.
 
 ## IDE Navigation
 

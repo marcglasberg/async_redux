@@ -33,3 +33,7 @@
 ## [1.2.3] - 2019/08/23
 
 * StoreTester timeout message.
+
+## [1.3.0] - 2019/08/26
+
+* StoreConnector's converter and model parameters.
