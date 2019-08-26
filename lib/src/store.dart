@@ -213,6 +213,7 @@ class Store<St> {
   /// Note: store.dispatch is of type Dispatch.
   void dispatch(ReduxAction<St> action) {
     _dispatchCount++;
+    var afterWasRun = _Flag<bool>(false);
 
     if (_actionObservers != null)
       for (ActionObserver observer in _actionObservers) {
@@ -220,13 +221,15 @@ class Store<St> {
       }
 
     St stateIni = _state;
-    _processAction(action);
+    _processAction(action, afterWasRun);
     St stateEnd = _state;
 
     if (_stateObservers != null)
       for (StateObserver observer in _stateObservers) {
         observer.observe(action, stateIni, stateEnd, dispatchCount);
       }
+
+    _finalize(action, afterWasRun);
   }
 
   void createTestInfoSnapshot(
@@ -248,15 +251,13 @@ class Store<St> {
   /// We check the return type of methods `before` and `reduce` to decide if the
   /// reducer is synchronous or asynchronous. It's important to run the reducer
   /// synchronously, if possible.
-  void _processAction(ReduxAction<St> action) async {
+  void _processAction(ReduxAction<St> action, _Flag<bool> afterWasRun) async {
     //
     // Creates the "INI" test snapshot.
     createTestInfoSnapshot(state, action, ini: true);
 
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
-
-    var afterWasRun = _Flag<bool>(false);
 
     dynamic result;
 
@@ -279,9 +280,7 @@ class Store<St> {
       // This should be fixed when this issue is solved: https://github.com/dart-lang/sdk/issues/30741
       else
         throw processedError;
-    } finally {
-      _finalize(result, action, afterWasRun);
-    }
+    } finally { }
   }
 
   FutureOr<void> _applyReducer(ReduxAction<St> action) {
@@ -337,7 +336,7 @@ class Store<St> {
     return null;
   }
 
-  void _finalize(Future result, ReduxAction<St> action, _Flag<bool> afterWasRun) {
+  void _finalize(ReduxAction<St> action, _Flag<bool> afterWasRun) {
     if (!afterWasRun.value) _after(action);
 
     createTestInfoSnapshot(state, action, ini: false);
