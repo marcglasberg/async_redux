@@ -311,12 +311,12 @@ class StoreTester<St> {
 
     while (actionsIni.isNotEmpty || actionsEnd.isNotEmpty) {
       try {
-        testInfo = null;
+        testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
 
-        while (testInfo == null || ignore.contains(testInfo.type)) {
+        while (ignore.contains(testInfo.type)) {
           //
           // Saves ignored actions.
-          if (testInfo != null && ignore.contains(testInfo.type)) {
+          if (ignore.contains(testInfo.type)) {
             if (testInfo.isINI)
               ignoredActions.add(testInfo.action);
             else
@@ -348,7 +348,17 @@ class StoreTester<St> {
     // Wait for all ignored actions to finish, so that they don't "leak" to the next wait.
     while (ignoredActions.isNotEmpty) {
       testInfo = await _next();
+
       var wasIgnored = ignoredActions.remove(testInfo.action);
+
+      if (!wasIgnored && ignore.contains(testInfo.type)) {
+        if (testInfo.isINI)
+          ignoredActions.add(testInfo.action);
+        else
+          ignoredActions.remove(testInfo.action);
+        continue;
+      }
+
       if (!testInfo.isEND || !wasIgnored)
         throw StoreException(
             "Got this unexpected action: ${testInfo.action.runtimeType} ${testInfo.ini ? "INI" : "END"}.");

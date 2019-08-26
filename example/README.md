@@ -27,7 +27,7 @@
     the async process ends with an error, which can be simulated by turning
     off the internet connection (putting the phone in airplane mode).
 
-5. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_static_view_model.dart.dart">main_static_view_model.dart</a>
+5. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_static_view_model.dart">main_static_view_model.dart</a>
 
     This example shows how to use the same `ViewModel` architecture of flutter_redux.
     This is specially useful if you are migrating from flutter_redux.  

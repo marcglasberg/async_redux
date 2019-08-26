@@ -27,6 +27,14 @@ class Action3 extends ReduxAction<AppState> {
   FutureOr<AppState> reduce() => AppState.add(state, "3");
 }
 
+class Action3b extends ReduxAction<AppState> {
+  @override
+  FutureOr<AppState> reduce() {
+    dispatch(Action4());
+    return AppState.add(state, "3b");
+  }
+}
+
 class Action4 extends ReduxAction<AppState> {
   @override
   FutureOr<AppState> reduce() => AppState.add(state, "4");
@@ -47,17 +55,6 @@ class Action6 extends ReduxAction<AppState> {
   }
 }
 
-class Action7 extends ReduxAction<AppState> {
-  @override
-  FutureOr<AppState> reduce() async {
-    dispatch(Action4());
-    dispatch(Action6());
-    dispatch(Action2());
-    dispatch(Action5());
-    return AppState.add(state, "7");
-  }
-}
-
 class Action6b extends ReduxAction<AppState> {
   @override
   FutureOr<AppState> reduce() async {
@@ -66,6 +63,27 @@ class Action6b extends ReduxAction<AppState> {
     dispatch(Action2());
     dispatch(Action3());
     return AppState.add(state, "6b");
+  }
+}
+
+class Action6c extends ReduxAction<AppState> {
+  @override
+  FutureOr<AppState> reduce() {
+    dispatch(Action1());
+    dispatch(Action2());
+    dispatch(Action3b());
+    return AppState.add(state, "6c");
+  }
+}
+
+class Action7 extends ReduxAction<AppState> {
+  @override
+  FutureOr<AppState> reduce() async {
+    dispatch(Action4());
+    dispatch(Action6());
+    dispatch(Action2());
+    dispatch(Action5());
+    return AppState.add(state, "7");
   }
 }
 
@@ -909,6 +927,46 @@ void main() {
       Action3,
     ]);
     expect(info.state.text, "0,1,2,3,6,1,2,3,6");
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test('Makes sure we wait until the END of all ignored actions.', () async {
+    //
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+    storeTester.dispatch(Action6());
+    TestInfo<AppState> info = await storeTester.waitAllUnorderedGetLast(
+      [
+        Action1,
+        Action2,
+      ],
+      ignore: [Action3, Action6],
+    );
+    expect(info.state.text, "0,1,2");
+    expect(info.errors, isEmpty);
+
+    // Aguarda agora a Action4 só para garantir que não vazou a Action3.
+    storeTester.dispatch(Action4());
+    info = await storeTester.waitAllGetLast(
+      [Action4],
+    );
+    expect(info.state.text, "0,1,2,3,6,4");
+    expect(info.errors, isEmpty);
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test('Makes sure we wait until the END of all ignored actions.', () async {
+    //
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+    storeTester.dispatch(Action6c());
+
+    expect(
+        () async => await storeTester
+            .waitAllUnorderedGetLast([Action1, Action2], ignore: [Action3b, Action6c]),
+        throwsA(StoreException("Got this unexpected action: Action4 INI.")));
   });
 
   ///////////////////////////////////////////////////////////////////////////////

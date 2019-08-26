@@ -815,7 +815,7 @@ and then writes assertions against the rendered output.
 Think of these tests as "pure function tests" of our UI.
 It also tests that the callbacks are called when necessary.
 
-For example, suppose you have the counter app shown <a href="https://github.com/marcglasberg/async_redux/blob/master/lib/example/main_increment_async.dart">here</a>.
+For example, suppose you have the counter app shown <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_increment_async.dart">here</a>.
 Then:
 
 * The **state test** could create a store with count `0` and description empty,

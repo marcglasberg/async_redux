@@ -1087,6 +1087,14 @@ class StoreException implements Exception {
 
   @override
   String toString() => msg;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StoreException && runtimeType == other.runtimeType && msg == other.msg;
+
+  @override
+  int get hashCode => msg.hashCode;
 }
 
 // /////////////////////////////////////////////////////////////////////////////
