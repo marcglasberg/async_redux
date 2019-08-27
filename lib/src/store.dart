@@ -211,7 +211,7 @@ class Store<St> {
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: store.dispatch is of type Dispatch.
-  void dispatch(ReduxAction<St> action) {
+  void dispatch(ReduxAction<St> action) async {
     _dispatchCount++;
     var afterWasRun = _Flag<bool>(false);
 
@@ -221,7 +221,7 @@ class Store<St> {
       }
 
     St stateIni = _state;
-    _processAction(action, afterWasRun);
+    await _processAction(action, afterWasRun);
     St stateEnd = _state;
 
     if (_stateObservers != null)
@@ -251,7 +251,7 @@ class Store<St> {
   /// We check the return type of methods `before` and `reduce` to decide if the
   /// reducer is synchronous or asynchronous. It's important to run the reducer
   /// synchronously, if possible.
-  void _processAction(ReduxAction<St> action, _Flag<bool> afterWasRun) async {
+  Future<void> _processAction(ReduxAction<St> action, _Flag<bool> afterWasRun) async {
     //
     // Creates the "INI" test snapshot.
     createTestInfoSnapshot(state, action, ini: true);
