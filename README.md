@@ -21,6 +21,7 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [Changing state is optional](#changing-state-is-optional)
       * [Before and After the Reducer](#before-and-after-the-reducer)
    * [Connector](#connector)
+      * [How to provide the ViewModel to the StoreConnector](#how-to-provide-the-viewmodel-to-the-storeconnector)
    * [Processing errors thrown by Actions](#processing-errors-thrown-by-actions)
       * [Giving better error messages](#giving-better-error-messages)
       * [User exceptions](#user-exceptions)
@@ -45,6 +46,10 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [To sum up:](#to-sum-up)
    * [Recommended Directory Structure](#recommended-directory-structure)
    * [Architectural discussion](#architectural-discussion)
+      * [Is AsyncRedux really Redux?](#is-asyncredux-really-redux)
+      * [Besides the reduction of boilerplate, what are the main advantages of the AsyncRedux architecture?](#besides-the-reduction-of-boilerplate-what-are-the-main-advantages-of-the-asyncredux-architecture)
+      * [Is AsyncRedux a minimalist or lightweight Redux version?](#is-asyncredux-a-minimalist-or-lightweight-redux-version)
+      * [Is the AsyncRedux architecture useful for small projects?](#is-the-asyncredux-architecture-useful-for-small-projects)
 
 ## What is Redux?
 
@@ -399,96 +404,106 @@ of which one but **only one** should be provided in the `StoreConnector` constru
    Also, AsyncRedux will automatically inject `state` and `dispatch` into your model instance, 
    so that boilerplate is reduced in your `fromStore` method. For example:
    
-       class ViewModel extends BaseModel<Store<AppState>> {
-          ViewModel();
-        
-          String name;
-          VoidCallback onSave;
-       
-          ViewModel.build({
-            @required this.name,
-            @required this.onSave,
-          }) : super(equals: [name]);
+```dart
+class ViewModel extends BaseModel<Store<AppState>> {
+   ViewModel();
+ 
+   String name;
+   VoidCallback onSave;
 
-          @override
-          ViewModel fromStore() => ViewModel.build(
-              name: state.user.name,
-              onSave: () => dispatch(SaveUserAction()),
-          );
-       }
+   ViewModel.build({
+     @required this.name,
+     @required this.onSave,
+   }) : super(equals: [name]);
+
+   @override
+   ViewModel fromStore() => ViewModel.build(
+       name: state.user.name,
+       onSave: () => dispatch(SaveUserAction()),
+   );
+}
+```
        
    With this architecture you may also create separate methods for helping construct your model, 
-   without having to pass the `store` around. For example:       
+   without having to pass the `store` around. For example:
 
-       @override
-       ViewModel fromStore() => ViewModel.build(
-           name: _name(),
-           onSave: _onSave,
-       );
-       
-       String _name() => state.user.name;
-       
-       VoidCallback _onSave: () => dispatch(SaveUserAction()),
+```dart
+@override
+ViewModel fromStore() => ViewModel.build(
+    name: _name(),
+    onSave: _onSave,
+);
+
+String _name() => state.user.name;
+
+VoidCallback _onSave: () => dispatch(SaveUserAction()),
+```
        
    Another idea is to subclass `BaseModel` to provide additional features to your model.
    For example, you could add extra getters to help you access state:
-        
-        User user => state.user;                       
-        
-        @override
-        ViewModel fromStore() => ViewModel.build(
-           name: user.name,
-           ...
-        );
+
+```dart
+User user => state.user;
+
+@override
+ViewModel fromStore() => ViewModel.build(
+   name: user.name,
+   ...
+);
+```
         
    Most examples in the [example tab](https://pub.dartlang.org/packages/async_redux#-example-tab-) 
-   use the `model` parameter.      
+   use the `model` parameter.
 
 2. The `converter` parameter 
 
    This is the good old one from `flutter_redux`. 
    It expects a static factory function that gets a `store` and returns the `ViewModel`.
    You probably should use this one if you are migrating from `flutter_redux`.
-   
-       class ViewModel {
-          String name;
-          VoidCallback onSave;
-       
-          ViewModel({
-             @required this.name,
-             @required this.onSave,
-          });
-       
-          static ViewModel fromStore(Store<AppState> store) {
-             return ViewModel(
-                name: store.state,
-                onSave: () => store.dispatch(IncrementAction(amount: 1)),
-             );
-          }
-       
-          @override
-          bool operator ==(Object other) =>
-              identical(this, other) ||
-              other is ViewModel && runtimeType == other.runtimeType && name == other.name;
-       
-          @override
-          int get hashCode => name.hashCode;
-       }
+
+```dart
+class ViewModel {
+   String name;
+   VoidCallback onSave;
+
+   ViewModel({
+      @required this.name,
+      @required this.onSave,
+   });
+
+   static ViewModel fromStore(Store<AppState> store) {
+      return ViewModel(
+         name: store.state,
+         onSave: () => store.dispatch(IncrementAction(amount: 1)),
+      );
+   }
+
+   @override
+   bool operator ==(Object other) =>
+       identical(this, other) ||
+       other is ViewModel && runtimeType == other.runtimeType && name == other.name;
+
+   @override
+   int get hashCode => name.hashCode;
+}
+```
 
    With this architecture it's a bit more difficult to create separate methods for helping construct your model: 
-   
-       static ViewModel fromStore(Store<AppState> store) {
-          return ViewModel(
-             name: _name(store),
-             onSave: _onSave(store),
-          );
-       }
-       
-       static String _name(Store<AppState>) => store.state.user.name;
-       
-       static VoidCallback _onSave(Store<AppState>) { 
-          return () => store.dispatch(SaveUserAction());
-       } 
+
+```dart
+static ViewModel fromStore(Store<AppState> store) {
+   return ViewModel(
+      name: _name(store),
+      onSave: _onSave(store),
+   );
+}
+
+static String _name(Store<AppState>) => store.state.user.name;
+
+static VoidCallback _onSave(Store<AppState>) { 
+   return () => store.dispatch(SaveUserAction());
+} 
+```
       
    To see the `converter` parameter in action, please run 
    <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_static_view_model.dart">this example</a>.    
