@@ -37,3 +37,7 @@
 ## [1.3.3] - 2019/08/26
 
 * StoreConnector's converter and model parameters.
+
+## [1.3.4] - 2019/08/27
+
+* README improvement.
