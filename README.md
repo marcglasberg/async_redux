@@ -1317,35 +1317,39 @@ var store = Store<AppState>(
   actionObservers: [Log.printer(formatter: Log.verySimpleFormatter)],
   stateObservers: persistor.createStateObservers(),
 );
-```                                                                  
+```
 
 The `ActionObserver` is an abstract class with an observe `method` which you can implement 
 to be notified of **action dispatching**:
  
-    abstract class ActionObserver<St> {
-    
-       void observe(
-          ReduxAction<St> action, 
-          int dispatchCount, {
-          @required bool ini,
-          }
-       );       
-    }
+ ```dart
+abstract class ActionObserver<St> {
+
+   void observe(
+      ReduxAction<St> action, 
+      int dispatchCount, {
+      @required bool ini,
+      }
+   );
+}
+ ```
     
 The above observer will actually be called twice, one with `ini==true` for the INITIAL action observation,
 and one with `ini==false` for the END action observation,
 
 Meanwhile, the `StateObserver` is an abstract class which you can implement to be notified of **state changes**:
 
-    abstract class StateObserver<St> {
-    
-       void observe(
-          ReduxAction<St> action, 
-          St stateIni, 
-          St stateEnd, 
-          int dispatchCount,
-          );
-    }
+```dart
+abstract class StateObserver<St> {
+
+   void observe(
+      ReduxAction<St> action, 
+      St stateIni, 
+      St stateEnd, 
+      int dispatchCount,
+      );
+}
+```
 
 In more detail:
 
