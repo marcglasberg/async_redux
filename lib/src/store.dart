@@ -120,12 +120,14 @@ class Store<St> {
     List<ActionObserver> actionObservers,
     List<StateObserver> stateObservers,
     ErrorObserver errorObserver,
+    ModelObserver modelObserver,
     bool defaultDistinct = true,
   })  : _state = initialState,
         _changeController = StreamController.broadcast(sync: syncStream),
         _actionObservers = actionObservers,
         _stateObservers = stateObservers,
         _errorObserver = errorObserver,
+        _modelObserver = modelObserver,
         _defaultDistinct = defaultDistinct,
         _errors = Queue<UserException>(),
         _dispatchCount = 0,
@@ -150,6 +152,8 @@ class Store<St> {
   final List<StateObserver> _stateObservers;
 
   final ErrorObserver _errorObserver;
+
+  final ModelObserver _modelObserver;
 
   final bool _defaultDistinct;
 
@@ -445,6 +449,12 @@ abstract class StateObserver<St> {
 /// Return true to throw the error. False to swallow it.
 abstract class ErrorObserver<St> {
   bool observe(Object error, ReduxAction<St> action, St state, int dispatchCount);
+}
+
+/// This will be given all errors, including those of type UserException.
+/// Return true to throw the error. False to swallow it.
+abstract class ModelObserver<Model> {
+  bool observe({Model vmPrevious, Model vmCurrent, bool isDistinct, StoreConnector storeConnector});
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -757,6 +767,7 @@ class StoreConnector<St, Model> extends StatelessWidget {
   Widget build(BuildContext context) {
     return _StoreStreamListener<St, Model>(
       store: StoreProvider.of<St>(context, debug),
+      storeConnector: this,
       builder: builder,
       converter: converter,
       model: model,
@@ -799,6 +810,7 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
   final StoreConverter<St, Model> converter;
   final BaseModel model;
   final Store<St> store;
+  final StoreConnector storeConnector;
   final bool rebuildOnChange;
   final bool distinct;
   final OnInitCallback<St> onInit;
@@ -814,6 +826,7 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
     @required this.store,
     @required this.converter,
     @required this.model,
+    @required this.storeConnector,
     this.distinct,
     this.onInit,
     this.onDispose,
@@ -834,7 +847,7 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
 
 class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St, Model>> {
   Stream<Model> stream;
-  Model latestValue;
+  Model latestVm;
 
   @override
   void initState() {
@@ -866,11 +879,11 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
       widget.onInit(widget.store);
     }
 
-    latestValue = getLatestValue();
+    latestVm = getLatestValue();
 
     if (widget.onInitialBuild != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onInitialBuild(latestValue);
+        widget.onInitialBuild(latestVm);
       });
     }
 
@@ -889,7 +902,9 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
     // Don't use `Stream.distinct` since it can't capture the initial vm produced by the `converter`.
     if (distinct == true) {
       stream = stream.where((vm) {
-        final isDistinct = vm != latestValue;
+        bool isDistinct = vm != latestVm;
+
+        _observeWithTheModelObserver(vm: vm, latestVm: latestVm, isDistinct: isDistinct);
 
         return isDistinct;
       });
@@ -899,20 +914,37 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
     // latestValue. Important: This must be done after all other optional
     // transformations, such as ignoreChange.
     stream = stream.transform(StreamTransformer.fromHandlers(handleData: (vm, sink) {
-      latestValue = vm;
+      //
+      if (distinct == false)
+        _observeWithTheModelObserver(vm: vm, latestVm: latestVm, isDistinct: null);
+
+      latestVm = vm;
 
       if (widget.onWillChange != null) {
-        widget.onWillChange(latestValue);
+        widget.onWillChange(latestVm);
       }
 
       if (widget.onDidChange != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          widget.onDidChange(latestValue);
+          widget.onDidChange(latestVm);
         });
       }
 
       sink.add(vm);
     }));
+  }
+
+  // If we have a modelObserver, observe.
+  // Observing a modelObserver is only useful for tests.
+  void _observeWithTheModelObserver({@required vm, @required latestVm, @required bool isDistinct}) {
+    if (widget.store._modelObserver != null) {
+      widget.store._modelObserver.observe(
+        vmPrevious: vm,
+        vmCurrent: latestVm,
+        isDistinct: isDistinct,
+        storeConnector: widget.storeConnector,
+      );
+    }
   }
 
   /// The StoreConnector needs the converter or model parameter (only one of them):
@@ -935,10 +967,10 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
             stream: stream,
             builder: (context, snapshot) => widget.builder(
               context,
-              snapshot.hasData ? snapshot.data : latestValue,
+              snapshot.hasData ? snapshot.data : latestVm,
             ),
           )
-        : widget.builder(context, latestValue);
+        : widget.builder(context, latestVm);
   }
 }
 
