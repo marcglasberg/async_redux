@@ -770,6 +770,25 @@ class StoreConnector<St, Model> extends StatelessWidget {
       onInitialBuild: onInitialBuild,
     );
   }
+
+  /// This is not used directly by the store, but may be used in tests.
+  /// If you have a store and a StoreConnector, and you want its associated
+  /// ViewModel, you can do:
+  ///
+  /// `BaseModel viewModel = storeConnector.getLatestValue(store);`
+  ///
+  /// And if you want to build the widget:
+  ///
+  /// `var widget = (storeConnector as dynamic).builder(context, viewModel);`
+  Model getLatestValue(Store store) {
+    if (converter != null)
+      return converter(store);
+    else if (model != null) {
+      model._setStore(store);
+      return model.fromStore() as Model;
+    } else
+      throw AssertionError();
+  }
 }
 
 // /////////////////////////////////////////////////////////////////////////////

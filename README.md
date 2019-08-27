@@ -41,7 +41,7 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
    * [How to interact with the database](#how-to-interact-with-the-database)
    * [How to deal with Streams](#how-to-deal-with-streams)
       * [So, how do you use streams?](#so-how-do-you-use-streams)
-      * [And where the stream subscriptions themselves are stored?](#and-where-the-stream-subscriptions-themselves-are-stored)
+      * [Where the stream subscriptions themselves are stored](#where-the-stream-subscriptions-themselves-are-stored)
       * [How do streams pass their information to the store and ultimately to the widgets?](#how-do-streams-pass-their-information-to-the-store-and-ultimately-to-the-widgets)
       * [To sum up:](#to-sum-up)
    * [Recommended Directory Structure](#recommended-directory-structure)
@@ -1423,7 +1423,7 @@ and send down to the stateful dumb-widgets.
 - If the stream should run only when some actions demand it,
 their reducers may dispatch the actions to start and cancel as needed.
 
-### And where the stream subscriptions themselves are stored? 
+### Where the stream subscriptions themselves are stored 
 
 As discussed above, you should NOT put them
 in the store state. Instead save them in some convenient place elsewhere, where your reducers may access them.
