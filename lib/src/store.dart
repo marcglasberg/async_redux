@@ -62,6 +62,20 @@ bool defaultErrorObserver(
   }
 }
 
+/// This model observer prints the model to the console.
+class DefaultModelObserver<Model> implements ModelObserver<Model> {
+  @override
+  void observe({
+    Model vmPrevious,
+    Model vmCurrent,
+    bool isDistinct,
+    StoreConnector storeConnector,
+    int reduceCount,
+  }) {
+    print("Model R:$reduceCount Distinct: $isDistinct. Model: $vmCurrent");
+  }
+}
+
 // /////////////////////////////////////////////////////////////////////////////
 
 /// Creates a Redux store that holds the app state.
@@ -454,7 +468,13 @@ abstract class ErrorObserver<St> {
 /// This will be given all errors, including those of type UserException.
 /// Return true to throw the error. False to swallow it.
 abstract class ModelObserver<Model> {
-  bool observe({Model vmPrevious, Model vmCurrent, bool isDistinct, StoreConnector storeConnector});
+  void observe({
+    Model vmPrevious,
+    Model vmCurrent,
+    bool isDistinct,
+    StoreConnector storeConnector,
+    int reduceCount,
+  });
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -904,7 +924,11 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
       stream = stream.where((vm) {
         bool isDistinct = vm != latestVm;
 
-        _observeWithTheModelObserver(vm: vm, latestVm: latestVm, isDistinct: isDistinct);
+        _observeWithTheModelObserver(
+            vm: vm,
+            latestVm: latestVm,
+            isDistinct: isDistinct,
+            reduceCount: widget.store.reduceCount);
 
         return isDistinct;
       });
@@ -916,7 +940,8 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
     stream = stream.transform(StreamTransformer.fromHandlers(handleData: (vm, sink) {
       //
       if (distinct == false)
-        _observeWithTheModelObserver(vm: vm, latestVm: latestVm, isDistinct: null);
+        _observeWithTheModelObserver(
+            vm: vm, latestVm: latestVm, isDistinct: null, reduceCount: widget.store.reduceCount);
 
       latestVm = vm;
 
@@ -934,16 +959,27 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
     }));
   }
 
-  // If we have a modelObserver, observe.
-  // Observing a modelObserver is only useful for tests.
-  void _observeWithTheModelObserver({@required vm, @required latestVm, @required bool isDistinct}) {
-    if (widget.store._modelObserver != null) {
-      widget.store._modelObserver.observe(
-        vmPrevious: vm,
-        vmCurrent: latestVm,
-        isDistinct: isDistinct,
-        storeConnector: widget.storeConnector,
-      );
+  // If there is a ModelObserver, observe.
+  // Note: This observer is only useful for tests.
+  void _observeWithTheModelObserver({
+    @required vm,
+    @required latestVm,
+    @required bool isDistinct,
+    @required int reduceCount,
+  }) {
+    ModelObserver modelObserver = widget.store._modelObserver;
+    if (modelObserver != null) {
+      try {
+        modelObserver.observe(
+          vmPrevious: vm,
+          vmCurrent: latestVm,
+          isDistinct: isDistinct,
+          storeConnector: widget.storeConnector,
+        );
+      } catch (error) {
+        // Swallows any errors thrown by the model observer.
+        print("Model observer has thrown an error: '$error'.");
+      }
     }
   }
 
