@@ -41,3 +41,7 @@
 ## [1.3.5] - 2019/08/27
 
 * README improvement.
+
+## [1.3.7] - 2019/08/28
+
+* ModelObserver and DefaultModelObserver.

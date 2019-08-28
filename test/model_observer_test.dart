@@ -13,14 +13,15 @@ void main() {
     //
     (WidgetTester tester) async {
       //
+      var modelObserver = DefaultModelObserver<_MyViewModel>();
       Store<_StateTest> store = Store<_StateTest>(
         initialState: _StateTest("A", 1),
-        modelObserver: _MyModelObserver(),
+        modelObserver: modelObserver,
       );
 
       StoreProvider<_StateTest> provider = StoreProvider<_StateTest>(
         store: store,
-        child: const _DumbWidgetConnectorTest(),
+        child: const _MyWidgetConnector(),
       );
 
       await tester.pumpWidget(_TestApp(provider));
@@ -32,8 +33,8 @@ void main() {
 
       await tester.pump();
 
-      expect(_MyModelObserver.previous.text, "A");
-      expect(_MyModelObserver.current.text, "B");
+      expect(modelObserver.previous.text, "A");
+      expect(modelObserver.current.text, "B");
 
       // ---
 
@@ -44,8 +45,8 @@ void main() {
 
       await tester.pump();
 
-      expect(_MyModelObserver.previous.text, "B");
-      expect(_MyModelObserver.current.text, "B");
+      expect(modelObserver.previous.text, "B");
+      expect(modelObserver.current.text, "B");
 
       // ---
 
@@ -56,8 +57,8 @@ void main() {
 
       await tester.pump();
 
-      expect(_MyModelObserver.previous.text, "B");
-      expect(_MyModelObserver.current.text, "C");
+      expect(modelObserver.previous.text, "B");
+      expect(modelObserver.current.text, "C");
 
       // ---
 
@@ -68,37 +69,10 @@ void main() {
 
       await tester.pump();
 
-      expect(_MyModelObserver.previous.text, "C");
-      expect(_MyModelObserver.current.text, "D");
+      expect(modelObserver.previous.text, "C");
+      expect(modelObserver.current.text, "D");
     },
   );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-class _MyModelObserver<T> extends DefaultModelObserver<BaseModel> {
-  static _MyViewModel previous;
-  static _MyViewModel current;
-
-  @override
-  void observe({
-    BaseModel modelPrevious,
-    BaseModel modelCurrent,
-    bool isDistinct,
-    StoreConnector storeConnector,
-    int reduceCount,
-  }) {
-    previous = modelPrevious;
-    current = modelCurrent;
-
-    super.observe(
-      modelPrevious: modelPrevious,
-      modelCurrent: modelCurrent,
-      isDistinct: isDistinct,
-      storeConnector: storeConnector,
-      reduceCount: reduceCount,
-    );
-  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -124,8 +98,8 @@ class _StateTest {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class _DumbWidgetConnectorTest extends StatelessWidget {
-  const _DumbWidgetConnectorTest();
+class _MyWidgetConnector extends StatelessWidget {
+  const _MyWidgetConnector();
 
   @override
   Widget build(BuildContext context) => StoreConnector<_StateTest, _MyViewModel>(

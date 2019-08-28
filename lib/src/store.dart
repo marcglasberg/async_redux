@@ -63,13 +63,33 @@ bool defaultErrorObserver(
 }
 
 /// This model observer prints the StoreConnector's ViewModel to the console.
+///
 /// Passe it to the store like this:
+///
 /// `var store = Store(modelObserver:DefaultModelObserver());`
-/// If you need to print the type of the `StoreConnector`,
+///
+/// If you need to print the type of the `StoreConnector` to the console,
 /// make sure to pass `debug:this` as a `StoreConnector` constructor parameter.
+/// Then, optionally, you can also specify a list of `StoreConnector`s to be
+/// observed:
+///
+/// `DefaultModelObserver([MyStoreConnector, SomeOtherStoreConnector]);`
+///
 /// You can also override your `ViewModels.toString()` to print out
-/// any info you need.
+/// any extra info you need.
+///
 class DefaultModelObserver<Model> implements ModelObserver<Model> {
+  Model _previous;
+  Model _current;
+
+  Model get previous => _previous;
+
+  Model get current => _current;
+
+  final List<Type> _storeConnectorTypes;
+
+  DefaultModelObserver([this._storeConnectorTypes = const <Type>[]]);
+
   @override
   void observe({
     Model modelPrevious,
@@ -79,10 +99,17 @@ class DefaultModelObserver<Model> implements ModelObserver<Model> {
     int reduceCount,
     int dispatchCount,
   }) {
-    print("Model D:$dispatchCount R:$reduceCount = "
-        "Rebuid: ${isDistinct == null || isDistinct}, "
-        "${storeConnector.debug == null ? "" : "Connector: ${storeConnector.debug.runtimeType}"}, "
-        "Model: $modelCurrent.");
+    _previous = modelPrevious;
+    _current = modelCurrent;
+
+    var shouldObserve = (_storeConnectorTypes == null || _storeConnectorTypes.isEmpty) ||
+        _storeConnectorTypes.contains(storeConnector.debug?.runtimeType);
+
+    if (shouldObserve)
+      print("Model D:$dispatchCount R:$reduceCount = "
+          "Rebuid:${isDistinct == null || isDistinct}, "
+          "${storeConnector.debug == null ? "" : "Connector:${storeConnector.debug.runtimeType}"}, "
+          "Model:$modelCurrent.");
   }
 }
 

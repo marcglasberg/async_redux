@@ -38,7 +38,8 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [Abstract Before and After](#abstract-before-and-after)
    * [IDE Navigation](#ide-navigation)
    * [Logging and Persistence](#logging-and-persistence)
-   * [How to interact with the database](#how-to-interact-with-the-database)
+   * [Observing rebuilds](#observing-rebuilds)
+   * [How to interact with the database](#how-to-interact-with-the-database)      
    * [How to deal with Streams](#how-to-deal-with-streams)
       * [So, how do you use streams?](#so-how-do-you-use-streams)
       * [Where the stream subscriptions themselves are stored](#where-the-stream-subscriptions-themselves-are-stored)
@@ -1319,7 +1320,7 @@ var store = Store<AppState>(
 );
 ```
 
-The `ActionObserver` is an abstract class with an observe `method` which you can implement 
+The `ActionObserver` is an abstract class with an `observe` method which you can implement 
 to be notified of **action dispatching**:
  
  ```dart
@@ -1369,6 +1370,40 @@ in case you need to compare them.
 Please note, unless the action reducer is synchronous, 
 getting an END action observation doesn't mean that all of the action effects have finished, 
 because the action may have started async processes that may well last into the future. And these processes may later dispatch other actions that will change the store state. However, it does mean that the action can no longer change the state **directly**.
+
+## Observing rebuilds
+
+Your store optionally accepts a `modelObserver`, which lets you visualize rebuilds.  
+
+The `ModelObserver` is an abstract class with an `observe` method which you can implement 
+to be notified, by each `StoreConnector` currently in the widget tree, whenever there is a state change. 
+You can create your own `ModelObserver`, but the provided `DefaultModelObserver` can be used out of the box
+to print to the console and do basic testing: 
+
+```dart
+var store = Store<AppState>(
+  initialState: state,
+  modelObserver: DefaultModelObserver(),  
+);
+```                                      
+
+This is an example output to the console. It shows how `MyWidgetConnector` responded to 3 state changes:
+
+    Model D:1 R:1 = Rebuid:true, Connector:MyWidgetConnector, Model:MyViewModel{B}.
+    Model D:2 R:2 = Rebuid:false, Connector:MyWidgetConnector, Model:MyViewModel{B}.
+    Model D:3 R:3 = Rebuid:true, Connector:MyWidgetConnector, Model:MyViewModel{C}.
+
+You can see above that the first and third state changes resulted in a rebuild (`Rebuid:true`), 
+but the second one did not, probably because the part of the state that changed was not part of `MyViewModel`.
+
+Note: You must pass `debug:this` as a `StoreConnector` constructor parameter, 
+if you want the `ModelObserver` to be able to print the `StoreConnector` type to the output. 
+
+You can also override your `ViewModel.toString()` to print out any extra info you need.
+
+The `ModelObserver` is also useful when you want to create tests 
+to assert that rebuilds happen when and only when the appropriate parts of the state change.
+For an example, see the <a href="https://github.com/marcglasberg/async_redux/blob/master/test/model_observer_test.dart">Model Observer Test</a>.
 
 ## How to interact with the database
 
