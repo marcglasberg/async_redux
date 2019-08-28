@@ -64,10 +64,6 @@ bool defaultErrorObserver(
 
 /// This model observer prints the StoreConnector's ViewModel to the console.
 /// Passe it to the store like this: var store = Store(modelObserver:DefaultModelObserver());
-///
-/// When distinct==true, it means the widget rebuilt because the model changed.
-/// When distinct==false, it means the widget didn't rebuilt because the model hasn't changed.
-/// When distinct==null, it means the widget rebuilds everytime, and the model is not relevant.
 class DefaultModelObserver<Model> implements ModelObserver<Model> {
   @override
   void observe({
@@ -77,7 +73,9 @@ class DefaultModelObserver<Model> implements ModelObserver<Model> {
     StoreConnector storeConnector,
     int reduceCount,
   }) {
-    print("Model R:$reduceCount Distinct: $isDistinct. Model: $modelCurrent");
+    print("Model R:$reduceCount "
+        "Rebuid: ${isDistinct == null || isDistinct} "
+        "Model: $modelCurrent");
   }
 }
 
@@ -472,6 +470,10 @@ abstract class ErrorObserver<St> {
 
 /// This will be given all errors, including those of type UserException.
 /// Return true to throw the error. False to swallow it.
+/// Note:
+/// * When isDistinct==true, it means the widget rebuilt because the model changed.
+/// * When isDistinct==false, it means the widget didn't rebuilt because the model hasn't changed.
+/// * When isDistinct==null, it means the widget rebuilds everytime, and the model is not relevant.
 abstract class ModelObserver<Model> {
   void observe({
     Model modelPrevious,
@@ -872,7 +874,7 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
 
 class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St, Model>> {
   Stream<Model> stream;
-  Model latestVm;
+  Model modelPrevious;
 
   @override
   void initState() {
@@ -904,11 +906,11 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
       widget.onInit(widget.store);
     }
 
-    latestVm = getLatestValue();
+    modelPrevious = getLatestValue();
 
     if (widget.onInitialBuild != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onInitialBuild(latestVm);
+        widget.onInitialBuild(modelPrevious);
       });
     }
 
@@ -926,12 +928,12 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
 
     // Don't use `Stream.distinct` since it can't capture the initial vm produced by the `converter`.
     if (distinct == true) {
-      stream = stream.where((vm) {
-        bool isDistinct = vm != latestVm;
+      stream = stream.where((modelCurrent) {
+        bool isDistinct = modelCurrent != modelPrevious;
 
         _observeWithTheModelObserver(
-            modelPrevious: vm,
-            modelCurrent: latestVm,
+            modelPrevious: modelPrevious,
+            modelCurrent: modelCurrent,
             isDistinct: isDistinct,
             reduceCount: widget.store.reduceCount);
 
@@ -942,28 +944,28 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
     // After each VM is emitted from the Stream, we update the
     // latestValue. Important: This must be done after all other optional
     // transformations, such as ignoreChange.
-    stream = stream.transform(StreamTransformer.fromHandlers(handleData: (vm, sink) {
+    stream = stream.transform(StreamTransformer.fromHandlers(handleData: (modelCurrent, sink) {
       //
       if (distinct == false)
         _observeWithTheModelObserver(
-            modelPrevious: vm,
-            modelCurrent: latestVm,
+            modelPrevious: modelPrevious,
+            modelCurrent: modelCurrent,
             isDistinct: null,
             reduceCount: widget.store.reduceCount);
 
-      latestVm = vm;
+      modelPrevious = modelCurrent;
 
       if (widget.onWillChange != null) {
-        widget.onWillChange(latestVm);
+        widget.onWillChange(modelPrevious);
       }
 
       if (widget.onDidChange != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          widget.onDidChange(latestVm);
+          widget.onDidChange(modelPrevious);
         });
       }
 
-      sink.add(vm);
+      sink.add(modelCurrent);
     }));
   }
 
@@ -1011,10 +1013,10 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
             stream: stream,
             builder: (context, snapshot) => widget.builder(
               context,
-              snapshot.hasData ? snapshot.data : latestVm,
+              snapshot.hasData ? snapshot.data : modelPrevious,
             ),
           )
-        : widget.builder(context, latestVm);
+        : widget.builder(context, modelPrevious);
   }
 }
 

@@ -1,6 +1,6 @@
 # async_redux
 
-**AsyncRedux** is a special version of Redux which:
+**Async Redux** is a special version of Redux which:
 
 1. Is easy to learn
 2. Is easy to use
@@ -1658,7 +1658,8 @@ Reducers as methods of action classes were shown to me by Scott Stoll and Simon 
 * <a href="https://pub.dev/packages/indexed_list_view">indexed_list_view</a> 
 * <a href="https://pub.dev/packages/animated_size_and_fade">animated_size_and_fade</a>
 
----<br>_https://github.com/marcglasberg_<br>
+<br>_Marcelo Glasberg:_<br>
+_https://github.com/marcglasberg_<br>
 _https://twitter.com/glasbergmarcelo_<br>
 _https://stackoverflow.com/users/3411681/marcg_<br>
 _https://medium.com/@marcglasberg_<br>
