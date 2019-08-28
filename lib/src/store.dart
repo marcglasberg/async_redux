@@ -63,7 +63,12 @@ bool defaultErrorObserver(
 }
 
 /// This model observer prints the StoreConnector's ViewModel to the console.
-/// Passe it to the store like this: var store = Store(modelObserver:DefaultModelObserver());
+/// Passe it to the store like this:
+/// `var store = Store(modelObserver:DefaultModelObserver());`
+/// If you need to print the type of the `StoreConnector`,
+/// make sure to pass `debug:this` as a `StoreConnector` constructor parameter.
+/// You can also override your `ViewModels.toString()` to print out
+/// any info you need.
 class DefaultModelObserver<Model> implements ModelObserver<Model> {
   @override
   void observe({
@@ -75,6 +80,7 @@ class DefaultModelObserver<Model> implements ModelObserver<Model> {
   }) {
     print("Model R:$reduceCount "
         "Rebuid: ${isDistinct == null || isDistinct} "
+        "${storeConnector.debug == null ? "" : "Connector: ${storeConnector.debug.runtimeType}"}"
         "Model: $modelCurrent");
   }
 }
@@ -604,6 +610,9 @@ abstract class BaseModel<St> {
   St get state => _store.state;
 
   Dispatch<St> get dispatch => _store.dispatch;
+
+  @override
+  String toString() => '$runtimeType{${equals.join(', ')}}';
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -932,10 +941,10 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
         bool isDistinct = modelCurrent != modelPrevious;
 
         _observeWithTheModelObserver(
-            modelPrevious: modelPrevious,
-            modelCurrent: modelCurrent,
-            isDistinct: isDistinct,
-            reduceCount: widget.store.reduceCount);
+          modelPrevious: modelPrevious,
+          modelCurrent: modelCurrent,
+          isDistinct: isDistinct,
+        );
 
         return isDistinct;
       });
@@ -948,10 +957,10 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
       //
       if (distinct == false)
         _observeWithTheModelObserver(
-            modelPrevious: modelPrevious,
-            modelCurrent: modelCurrent,
-            isDistinct: null,
-            reduceCount: widget.store.reduceCount);
+          modelPrevious: modelPrevious,
+          modelCurrent: modelCurrent,
+          isDistinct: null,
+        );
 
       modelPrevious = modelCurrent;
 
@@ -975,7 +984,6 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
     @required modelPrevious,
     @required modelCurrent,
     @required bool isDistinct,
-    @required int reduceCount,
   }) {
     ModelObserver modelObserver = widget.store._modelObserver;
     if (modelObserver != null) {
@@ -985,6 +993,7 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
           modelCurrent: modelCurrent,
           isDistinct: isDistinct,
           storeConnector: widget.storeConnector,
+          reduceCount: widget.store.reduceCount,
         );
       } catch (error) {
         // Swallows any errors thrown by the model observer.
