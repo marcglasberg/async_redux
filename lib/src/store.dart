@@ -77,11 +77,12 @@ class DefaultModelObserver<Model> implements ModelObserver<Model> {
     bool isDistinct,
     StoreConnector storeConnector,
     int reduceCount,
+    int dispatchCount,
   }) {
-    print("Model R:$reduceCount "
-        "Rebuid: ${isDistinct == null || isDistinct} "
-        "${storeConnector.debug == null ? "" : "Connector: ${storeConnector.debug.runtimeType}"}"
-        "Model: $modelCurrent");
+    print("Model D:$dispatchCount R:$reduceCount = "
+        "Rebuid: ${isDistinct == null || isDistinct}, "
+        "${storeConnector.debug == null ? "" : "Connector: ${storeConnector.debug.runtimeType}"}, "
+        "Model: $modelCurrent.");
   }
 }
 
@@ -487,6 +488,7 @@ abstract class ModelObserver<Model> {
     bool isDistinct,
     StoreConnector storeConnector,
     int reduceCount,
+    int dispatchCount,
   });
 }
 
@@ -994,6 +996,7 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
           isDistinct: isDistinct,
           storeConnector: widget.storeConnector,
           reduceCount: widget.store.reduceCount,
+          dispatchCount: widget.store.dispatchCount,
         );
       } catch (error) {
         // Swallows any errors thrown by the model observer.
