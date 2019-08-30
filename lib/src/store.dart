@@ -679,13 +679,13 @@ class StoreProvider<St> extends InheritedWidget {
 
 // /////////////////////////////////////////////////////////////////////////////
 
-/// Build a Widget using the [BuildContext] and [VM]. The [VM] is
-/// derived from the [Store] using a [StoreConverter].
-typedef ViewModelBuilder<VM> = Widget Function(BuildContext context, VM vm);
+/// Build a Widget using the [BuildContext] and [Model].
+/// The [Model] is derived from the [Store] using a [StoreConverter].
+typedef ViewModelBuilder<Model> = Widget Function(BuildContext context, Model vm);
 
-/// Convert the entire [Store] into a [VM]. The [VM] will be used
-/// to build a Widget using the [ViewModelBuilder].
-typedef StoreConverter<St, VM> = VM Function(Store<St> store);
+/// Convert the entire [Store] into a [Model]. The [Model] will
+/// be used to build a Widget using the [ViewModelBuilder].
+typedef StoreConverter<St, Model> = Model Function(Store<St> store);
 
 /// A function that will be run when the [StoreConnector] is initialized (using
 /// the [State.initState] method). This can be useful for dispatching actions
@@ -694,49 +694,50 @@ typedef OnInitCallback<St> = void Function(Store<St> store);
 
 /// A function that will be run when the StoreConnector is removed from the Widget Tree.
 /// It is run in the [State.dispose] method.
-/// This can be useful for dispatching actions that remove stale data from your St tree.
+/// This can be useful for dispatching actions that remove stale data from your State tree.
 typedef OnDisposeCallback<St> = void Function(Store<St> store);
 
 /// A test of whether or not your `converter` function should run in response
-/// to a St change. For advanced use only.
-/// Some changes to the St of your application will mean your `converter`
-/// function can't produce a useful VM. In these cases, such as when
+/// to a State change. For advanced use only.
+/// Some changes to the State of your application will mean your `converter`
+/// function can't produce a useful Model. In these cases, such as when
 /// performing exit animations on data that has been removed from your Store,
-/// it can be best to ignore the St change while your animation completes.
+/// it can be best to ignore the State change while your animation completes.
 /// To ignore a change, provide a function that returns true or false. If the
 /// returned value is false, the change will be ignored.
 /// If you ignore a change, and the framework needs to rebuild the Widget, the
-/// `builder` function will be called with the latest `VM` produced by your `converter` function.
-typedef IgnoreChangeTest<St> = bool Function(St state);
+/// `builder` function will be called with the latest Model produced
+/// by your `converter` or `model` functions.
+typedef ShouldUpdateModel<St> = bool Function(St state);
 
 /// A function that will be run on state change, before the build method.
-/// This function is passed the `VM`, and if `distinct` is `true`,
-/// it will only be called if the `VM` changes.
+/// This function is passed the `Model`, and if `distinct` is `true`,
+/// it will only be called if the `Model` changes.
 /// This can be useful for imperative calls to things like Navigator, TabController, etc
-typedef OnWillChangeCallback<VM> = void Function(VM viewModel);
+typedef OnWillChangeCallback<Model> = void Function(Model viewModel);
 
-/// A function that will be run on St change, after the build method.
+/// A function that will be run on State change, after the build method.
 ///
-/// This function is passed the `VM`, and if `distinct` is `true`,
-/// it will only be called if the `VM` changes.
+/// This function is passed the `Model`, and if `distinct` is `true`,
+/// it will only be called if the `Model` changes.
 /// This can be useful for running certain animations after the build is complete.
 /// Note: Using a [BuildContext] inside this callback can cause problems if
 /// the callback performs navigation. For navigation purposes, please use
 /// an [OnWillChangeCallback].
-typedef OnDidChangeCallback<VM> = void Function(VM viewModel);
+typedef OnDidChangeCallback<Model> = void Function(Model viewModel);
 
 /// A function that will be run after the Widget is built the first time.
-/// This function is passed the initial `VM` created by the [converter] function.
+/// This function is passed the initial `Model` created by the [converter] function.
 /// This can be useful for starting certain animations, such as showing
 /// Snackbars, after the Widget is built the first time.
-typedef OnInitialBuildCallback<VM> = void Function(VM viewModel);
+typedef OnInitialBuildCallback<Model> = void Function(Model viewModel);
 
 // /////////////////////////////////////////////////////////////////////////////
 
 /// Build a widget based on the state of the [Store].
 ///
 /// Before the [builder] is run, the [converter] will convert the store into a
-/// more specific `VM` tailored to the Widget being built.
+/// more specific `Model` tailored to the Widget being built.
 ///
 /// Every time the store changes, the Widget will be rebuilt. As a performance
 /// optimization, the Widget can be rebuilt only when the [Model] changes.
@@ -768,32 +769,34 @@ class StoreConnector<St, Model> extends StatelessWidget {
 
   /// A function that will be run when the StoreConnector is removed from the
   /// Widget Tree. It is run in the [State.dispose] method.
-  /// This can be useful for dispatching actions that remove stale data from your St tree.
+  /// This can be useful for dispatching actions that remove stale data from your State tree.
   final OnDisposeCallback<St> onDispose;
 
   /// Determines whether the Widget should be rebuilt when the Store emits an onChange event.
   final bool rebuildOnChange;
 
-  /// A test of whether or not your [converter] function should run in response to a St change.
-  /// For advanced use only.
-  /// Some changes to the St of your application will mean your [converter]
-  /// function can't produce a useful VM. In these cases, such as when performing exit animations
-  /// on data that has been removed from your Store, it can be best to ignore the St change
-  /// while your animation completes. To ignore a change, provide a function that returns true
-  /// or false. If the returned value is false, the change will be ignored.
-  /// If you ignore a change, and the framework needs to rebuild the Widget, the [builder]
-  /// function will be called with the latest [Model] produced by your [converter] function.
-  final IgnoreChangeTest<St> ignoreChange;
+  /// A test of whether or not your [converter] function should run in response
+  /// to a State change. For advanced use only.
+  /// Some changes to the State of your application will mean your [converter]
+  /// function can't produce a useful Model. In these cases, such as when
+  /// performing exit animations on data that has been removed from your Store,
+  /// it can be best to ignore the State change while your animation completes.
+  /// To ignore a change, provide a function that returns true or false. If the
+  /// returned value is false, the change will be ignored.
+  /// If you ignore a change, and the framework needs to rebuild the Widget, the
+  /// [builder] function will be called with the latest [Model] produced
+  /// by your [converter] or [model] functions.
+  final ShouldUpdateModel<St> shouldUpdateModel;
 
-  /// A function that will be run on St change, before the Widget is built.
-  /// This function is passed the `VM`, and if `distinct` is `true`,
-  /// it will only be called if the `VM` changes.
+  /// A function that will be run on State change, before the Widget is built.
+  /// This function is passed the `Model`, and if `distinct` is `true`,
+  /// it will only be called if the `Model` changes.
   /// This can be useful for imperative calls to things like Navigator, TabController, etc
   final OnWillChangeCallback<Model> onWillChange;
 
-  /// A function that will be run on St change, after the Widget is built.
-  /// This function is passed the `VM`, and if `distinct` is `true`,
-  /// it will only be called if the `VM` changes.
+  /// A function that will be run on State change, after the Widget is built.
+  /// This function is passed the `Model`, and if `distinct` is `true`,
+  /// it will only be called if the `Model` changes.
   /// This can be useful for running certain animations after the build is complete.
   /// Note: Using a [BuildContext] inside this callback can cause problems if
   /// the callback performs navigation. For navigation purposes, please use
@@ -801,7 +804,7 @@ class StoreConnector<St, Model> extends StatelessWidget {
   final OnDidChangeCallback<Model> onDidChange;
 
   /// A function that will be run after the Widget is built the first time.
-  /// This function is passed the initial `VM` created by the [converter] function.
+  /// This function is passed the initial `Model` created by the [converter] function.
   /// This can be useful for starting certain animations, such as showing
   /// Snackbars, after the Widget is built the first time.
   final OnInitialBuildCallback<Model> onInitialBuild;
@@ -819,7 +822,7 @@ class StoreConnector<St, Model> extends StatelessWidget {
     this.onInit,
     this.onDispose,
     this.rebuildOnChange = true,
-    this.ignoreChange,
+    this.shouldUpdateModel,
     this.onWillChange,
     this.onDidChange,
     this.onInitialBuild,
@@ -840,7 +843,7 @@ class StoreConnector<St, Model> extends StatelessWidget {
       onInit: onInit,
       onDispose: onDispose,
       rebuildOnChange: rebuildOnChange,
-      ignoreChange: ignoreChange,
+      shouldUpdateModel: shouldUpdateModel,
       onWillChange: onWillChange,
       onDidChange: onDidChange,
       onInitialBuild: onInitialBuild,
@@ -880,7 +883,7 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
   final bool distinct;
   final OnInitCallback<St> onInit;
   final OnDisposeCallback<St> onDispose;
-  final IgnoreChangeTest<St> ignoreChange;
+  final ShouldUpdateModel<St> shouldUpdateModel;
   final OnWillChangeCallback<Model> onWillChange;
   final OnDidChangeCallback<Model> onDidChange;
   final OnInitialBuildCallback<Model> onInitialBuild;
@@ -896,11 +899,13 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
     this.onInit,
     this.onDispose,
     this.rebuildOnChange = true,
-    this.ignoreChange,
     this.onWillChange,
     this.onDidChange,
     this.onInitialBuild,
-  }) : super(key: key);
+    ShouldUpdateModel<St> shouldUpdateModel,
+    @Deprecated("Use `shouldUpdateModel` instead.") ShouldUpdateModel<St> ignoreChange,
+  })  : shouldUpdateModel = shouldUpdateModel ?? ignoreChange,
+        super(key: key);
 
   @override
   State<StatefulWidget> createState() {
@@ -954,8 +959,8 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
 
     Stream<St> _stream = widget.store.onChange;
 
-    if (widget.ignoreChange != null) {
-      _stream = _stream.where((state) => !widget.ignoreChange(state));
+    if (widget.shouldUpdateModel != null) {
+      _stream = _stream.where((state) => !widget.shouldUpdateModel(state));
     }
 
     stream = _stream.map((_) => getLatestValue());
@@ -979,9 +984,9 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
       });
     }
 
-    // After each VM is emitted from the Stream, we update the
+    // After each Model is emitted from the Stream, we update the
     // latestValue. Important: This must be done after all other optional
-    // transformations, such as ignoreChange.
+    // transformations, such as shouldUpdateModel.
     stream = stream.transform(StreamTransformer.fromHandlers(handleData: (modelCurrent, sink) {
       //
       if (distinct == false)
@@ -1075,7 +1080,7 @@ typedef MessageFormatter<St> = String Function(
 );
 
 /// Connects a [Logger] to the Redux Store.
-/// Every action that is dispatched will be logged to the Logger, along with the new St
+/// Every action that is dispatched will be logged to the Logger, along with the new State
 /// that was created as a result of the action reaching your Store's reducer.
 ///
 /// By default, this class does not print anything to your console or to a web
@@ -1208,7 +1213,7 @@ class StoreConnectorError extends Error {
           
   * Dart 2 (required) 
   * Wrapping your MaterialApp with the StoreProvider<St>, rather than an individual Route
-  * Providing full type information to your Store<St>, StoreProvider<St> and StoreConnector<St, VM>
+  * Providing full type information to your Store<St>, StoreProvider<St> and StoreConnector<St, Model>
   * Ensure you are using consistent and complete imports. E.g. always use `import 'package:my_app/app_state.dart';
       ''';
   }

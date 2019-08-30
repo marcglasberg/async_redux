@@ -32,6 +32,7 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [Can I put mutable events into the store state?](#can-i-put-mutable-events-into-the-store-state)
       * [When should I use events?](#when-should-i-use-events)
       * [Advanced event features](#advanced-event-features)
+   * [Knowing when an Action finishes](#knowing-when-an-action-finishes)      
    * [State Declaration](#state-declaration)
       * [Selectors](#selectors)
    * [Action Subclassing](#action-subclassing)
@@ -1096,6 +1097,25 @@ String getMessageEvt() {
  }
 ```
 
+## Knowing when an Action finishes
+
+In a real Flutter app it's also the case that some Widgets ask for futures 
+that complete when some async process is done.
+
+If instead of `dispatch()` you use `dispatchFuture()`, 
+it will return you a `Future<void>` that completes as soon as the action is done.
+
+This is an example using the `RefreshIndicator` widget: 
+
+```dart
+Future<void> downloadStuff() => dispatchFuture(DownloadStuffAction());
+
+return RefreshIndicator(
+    onRefresh: downloadStuff;
+    child: ListView(...),
+```                                                   
+
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_dispatch_future.dart">Dispatch Future Example</a>.
 
 ## State Declaration
 
