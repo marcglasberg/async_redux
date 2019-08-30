@@ -22,6 +22,7 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [Before and After the Reducer](#before-and-after-the-reducer)
    * [Connector](#connector)
       * [How to provide the ViewModel to the StoreConnector](#how-to-provide-the-viewmodel-to-the-storeconnector)
+   * [Alternatives to the Connector](#alternatives-to-the-connector)              
    * [Processing errors thrown by Actions](#processing-errors-thrown-by-actions)
       * [Giving better error messages](#giving-better-error-messages)
       * [User exceptions](#user-exceptions)
@@ -32,7 +33,7 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [Can I put mutable events into the store state?](#can-i-put-mutable-events-into-the-store-state)
       * [When should I use events?](#when-should-i-use-events)
       * [Advanced event features](#advanced-event-features)
-   * [Knowing when an Action finishes](#knowing-when-an-action-finishes)      
+   * [Waiting until an Action is finished](#waiting-until-an-Action-is-finished)      
    * [State Declaration](#state-declaration)
       * [Selectors](#selectors)
    * [Action Subclassing](#action-subclassing)
@@ -509,6 +510,26 @@ static VoidCallback _onSave(Store<AppState>) {
       
    To see the `converter` parameter in action, please run 
    <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_static_view_model.dart">this example</a>.    
+
+## Alternatives to the Connector
+
+The `StoreConnector` forces you to cleanly separate the widgets from the way they get their data. 
+This is better for clean code and will help a lot when you are writing tests. 
+
+However, if you want **and you know what you are doing**, 
+here is how to access the store directly from inside of your widgets (for example in the `build` method):
+
+```dart
+/// Dispatch an action without a StoreConnector.
+StoreProvider.dispatch<AppState>(context, MyAction());
+
+/// Dispatch an action without a StoreConnector,
+/// and get a `Future<void>` which completes when the action is done.
+StoreProvider.dispatchFuture<AppState>(context, MyAction());
+
+/// Get the state, without a StoreConnector.
+AppState state = StoreProvider.state<AppState>(context); 
+```
 
 ## Processing errors thrown by Actions
 
@@ -1097,7 +1118,7 @@ String getMessageEvt() {
  }
 ```
 
-## Knowing when an Action finishes
+## Waiting until an Action is finished
 
 In a real Flutter app it's also the case that some Widgets ask for futures 
 that complete when some async process is done.
@@ -1407,7 +1428,7 @@ var store = Store<AppState>(
 );
 ```                                      
 
-This is an example output to the console. It shows how `MyWidgetConnector` responded to 3 state changes:
+This is an example output to the console, showing how `MyWidgetConnector` responded to 3 state changes:
 
     Model D:1 R:1 = Rebuid:true, Connector:MyWidgetConnector, Model:MyViewModel{B}.
     Model D:2 R:2 = Rebuid:false, Connector:MyWidgetConnector, Model:MyViewModel{B}.
@@ -1416,9 +1437,11 @@ This is an example output to the console. It shows how `MyWidgetConnector` respo
 You can see above that the first and third state changes resulted in a rebuild (`Rebuid:true`), 
 but the second one did not, probably because the part of the state that changed was not part of `MyViewModel`.
 
+<a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_dispatch_future.dart">This example</a>
+also shows the `ModelObserver` in action.
+
 Note: You must pass `debug:this` as a `StoreConnector` constructor parameter, 
 if you want the `ModelObserver` to be able to print the `StoreConnector` type to the output. 
-
 You can also override your `ViewModel.toString()` to print out any extra info you need.
 
 The `ModelObserver` is also useful when you want to create tests 

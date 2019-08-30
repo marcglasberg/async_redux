@@ -27,7 +27,7 @@
     the async process ends with an error, which can be simulated by turning
     off the internet connection (putting the phone in airplane mode).
 
-5. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_static_view_model.dart">main_static_view_model.dart</a>
+4. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_static_view_model.dart">main_static_view_model.dart</a>
 
     This example shows how to use the same `ViewModel` architecture of flutter_redux.
     This is specially useful if you are migrating from flutter_redux.  
@@ -35,24 +35,24 @@
     And `ViewModel` doesn't extend `BaseModel`, but has a static factory:
     `converter: (store) => ViewModel.fromStore(store)`.    
 
-6. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/test/main_before_and_after_STATE_test.dart">main_before_and_after_STATE_test</a>
+5. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/test/main_before_and_after_STATE_test.dart">main_before_and_after_STATE_test</a>
 
    This example displays the testing capabilities of AsyncRedux: 
    How to test the store, actions, sync and async reducers, 
    by using the StoreTester. **Important:** To run the tests, put this file in a test directory.
  
-7. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_error_dialog.dart">main_show_error_dialog</a>
+6. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_error_dialog.dart">main_show_error_dialog</a>
     
     This example lets you enter a name and click save.
     If the name has less than 4 chars, an error dialog will be shown.    
 
-8. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_navigate.dart">main_navigate</a>
+7. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_navigate.dart">main_navigate</a>
 
     This example shows a route in the screen, all red. 
     When you tap the screen it will push a new route, all blue.
     When you tap the screen again it will pop the blue route.
 
-9. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_event_redux.dart">main_event_redux</a>
+8. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_event_redux.dart">main_event_redux</a>
 
    This example shows a text-field, and two buttons.
    When the first button is tapped, an async process downloads some text from the internet
@@ -63,6 +63,12 @@
     
    It also demonstrates the use of an abstract class to override the action's `before()` and `after()` methods.
     
+9. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_dispatch_future.dart">main_dispatch_future</a>
+
+   This example demonstrates how to get a `Future` that completes when an action is done.
+   It shows a list of number descriptions. 
+   If you pull to refresh the page (scroll above the top of the page) a `RefreshIndicator` will appear
+   until the list is updated with different data.
    
-    
+ 
     

@@ -693,17 +693,21 @@ class StoreProvider<St> extends InheritedWidget {
     return provider._store;
   }
 
-  // Sugar to dispatch an Action ouside of a StoreConnectors context
+  /// Dispatch an action without a StoreConnector.
   static void dispatch<St>(BuildContext context, ReduxAction action, {Object debug}) {
     of<St>(context, debug).dispatch(action);
   }
 
-  // Sugar to dispatchFuture an Action ouside of a StoreConnectors context
-  static Future<void> dispatchFuture<St>(BuildContext context, ReduxAction action, {Object debug}) async {
-    return of<St>(context, debug).dispatchFuture(action);
-  }
+  /// Dispatch an action without a StoreConnector,
+  /// and get a `Future<void>` which completes when the action is done.
+  static Future<void> dispatchFuture<St>(BuildContext context, ReduxAction action,
+          {Object debug}) async =>
+      of<St>(context, debug).dispatchFuture(action);
 
-  // Workaround to capture generics.
+  /// Get the state, without a StoreConnector.
+  static St state<St>(BuildContext context, {Object debug}) => of<St>(context, debug).state;
+
+  /// Workaround to capture generics.
   static Type _typeOf<T>() => T;
 
   @override

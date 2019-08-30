@@ -10,12 +10,14 @@ import 'package:http/http.dart';
 
 Store<AppState> store;
 
-/// This example shows a List of Number descriptions.
-/// Scrolling to the bottom to the List will async load the next 20 Elements.
-/// Pull to refresh the page, this uses a dispatchFuture to tell the RefreshIndicator
-/// when the Action completes.
-/// IsLoadingAction prevents the User to load more, while an async loading Action is running.
-
+/// This example shows a List of number descriptions.
+/// Scrolling to the bottom of the list will async load the next 20 elements.
+/// Scrolling past the top of the list (pull to refresh) will use `dispatchFuture`
+/// to dispatch an action, and get a `Future<void>` that tells a `RefreshIndicator`
+/// when the action completes.
+///
+/// `IsLoadingAction` prevents the user to load more while the async loading action is running.
+///
 void main() {
   var state = AppState.initialState();
   store = Store<AppState>(
@@ -70,7 +72,8 @@ class MyApp extends StatelessWidget {
 class LoadMoreAction extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    Response response = await get('http://numbersapi.com/${state.numTrivias.length}..${state.numTrivias.length + 19}');
+    Response response = await get(
+        'http://numbersapi.com/${state.numTrivias.length}..${state.numTrivias.length + 19}');
     List<String> list = state.numTrivias;
     Map<String, dynamic> map = jsonDecode(response.body);
     map.forEach((String v, e) => list.add(e.toString()));
@@ -114,40 +117,43 @@ class MyHomePageConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ViewModel>(
+      debug: this,
       model: ViewModel(),
       onInit: (st) => st.dispatch(RefreshAction()),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         numTrivias: vm.numTrivias,
         isLoading: vm.isLoading,
         loadMore: vm.loadMore,
+        onRefresh: vm.onRefresh,
       ),
-      debug: this,
     );
   }
 }
 
-/// Helper class to the connector widget. Holds the part of the State the widget needs,
-/// and may perform conversions to the type of data the widget can conveniently work with.
 class ViewModel extends BaseModel<AppState> {
   ViewModel();
 
   List<String> numTrivias;
   bool isLoading;
   VoidCallback loadMore;
-
-  //VoidCallback onIncrement;
+  Future<void> Function() onRefresh;
 
   ViewModel.build({
     @required this.numTrivias,
     @required this.isLoading,
     @required this.loadMore,
-  }) : super(equals: [numTrivias, isLoading]);
+    @required this.onRefresh,
+  }) : super(equals: [
+          numTrivias,
+          isLoading,
+        ]);
 
   @override
   ViewModel fromStore() => ViewModel.build(
         numTrivias: state.numTrivias,
         isLoading: state.isLoading,
         loadMore: () => dispatch(LoadMoreAction()),
+        onRefresh: () => dispatchFuture(RefreshAction()),
       );
 }
 
@@ -157,12 +163,14 @@ class MyHomePage extends StatefulWidget {
   final List<String> numTrivias;
   final bool isLoading;
   final VoidCallback loadMore;
+  final Future<void> Function() onRefresh;
 
   MyHomePage({
     Key key,
     this.numTrivias,
     this.isLoading,
     this.loadMore,
+    this.onRefresh,
   }) : super(key: key);
 
   @override
@@ -176,7 +184,8 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     _controller = ScrollController()
       ..addListener(() {
-        if (!widget.isLoading && _controller.position.maxScrollExtent == _controller.position.pixels) {
+        if (!widget.isLoading &&
+            _controller.position.maxScrollExtent == _controller.position.pixels) {
           widget.loadMore();
         }
       });
@@ -192,11 +201,11 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Future Dispatch Example')),
+      appBar: AppBar(title: Text('Dispatch Future Example')),
       body: (widget.numTrivias == null || widget.numTrivias.isEmpty)
           ? Container()
           : RefreshIndicator(
-              onRefresh: () => StoreProvider.dispatchFuture<AppState>(context, RefreshAction()),
+              onRefresh: widget.onRefresh,
               child: ListView.builder(
                 controller: _controller,
                 itemCount: widget.numTrivias.length,
@@ -209,3 +218,5 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
+///////////////////////////////////////////////////////////////////////////////

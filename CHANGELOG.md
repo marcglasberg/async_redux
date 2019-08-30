@@ -45,3 +45,8 @@
 ## [1.3.7] - 2019/08/28
 
 * ModelObserver and DefaultModelObserver.
+
+## [1.3.8] - 2019/08/30
+
+* Alternatives to the Connector (StoreProvider static methods).
+* Waiting until an Action is finished (dispatchFuture).
