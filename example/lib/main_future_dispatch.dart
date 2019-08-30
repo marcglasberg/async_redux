@@ -10,6 +10,12 @@ import 'package:http/http.dart';
 
 Store<AppState> store;
 
+/// This example shows a List of Number descriptions.
+/// Scrolling to the bottom to the List will async load the next 20 Elements.
+/// Pull to refresh the page, this uses a dispatchFuture to tell the RefreshIndicator
+/// when the Action completes.
+/// IsLoadingAction prevents the User to load more, while an async loading Action is running.
+
 void main() {
   var state = AppState.initialState();
   store = Store<AppState>(
@@ -64,16 +70,16 @@ class MyApp extends StatelessWidget {
 class LoadMoreAction extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    Response response = await get('http://numbersapi.com/${state.numTrivias.length}..${state.numTrivias.length + 20}');
+    Response response = await get('http://numbersapi.com/${state.numTrivias.length}..${state.numTrivias.length + 19}');
     List<String> list = state.numTrivias;
     Map<String, dynamic> map = jsonDecode(response.body);
     map.forEach((String v, e) => list.add(e.toString()));
     return state.copy(numTrivias: list);
   }
 
-  void before() => dispatch(LoadingAction(true));
+  void before() => dispatch(IsLoadingAction(true));
 
-  void after() => dispatch(LoadingAction(false));
+  void after() => dispatch(IsLoadingAction(false));
 }
 
 class RefreshAction extends ReduxAction<AppState> {
@@ -86,13 +92,13 @@ class RefreshAction extends ReduxAction<AppState> {
     return state.copy(numTrivias: list);
   }
 
-  void before() => dispatch(LoadingAction(true));
+  void before() => dispatch(IsLoadingAction(true));
 
-  void after() => dispatch(LoadingAction(false));
+  void after() => dispatch(IsLoadingAction(false));
 }
 
-class LoadingAction extends ReduxAction<AppState> {
-  LoadingAction(this.val);
+class IsLoadingAction extends ReduxAction<AppState> {
+  IsLoadingAction(this.val);
 
   final bool val;
 
@@ -185,25 +191,21 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          appBar: AppBar(title: Text('Future Dispatch Example')),
-          body: (widget.numTrivias == null || widget.numTrivias.isEmpty)
-              ? Container()
-              : RefreshIndicator(
-                  onRefresh: () => StoreProvider.of<AppState>(context, 'refresh').dispatchFuture(RefreshAction()),
-                  child: ListView.builder(
-                    controller: _controller,
-                    itemCount: widget.numTrivias.length,
-                    itemBuilder: (context, index) => ListTile(
-                      leading: Text(index.toString()),
-                      title: Text(widget.numTrivias[index]),
-                    ),
-                  ),
+    return Scaffold(
+      appBar: AppBar(title: Text('Future Dispatch Example')),
+      body: (widget.numTrivias == null || widget.numTrivias.isEmpty)
+          ? Container()
+          : RefreshIndicator(
+              onRefresh: () => StoreProvider.dispatchFuture<AppState>(context, RefreshAction()),
+              child: ListView.builder(
+                controller: _controller,
+                itemCount: widget.numTrivias.length,
+                itemBuilder: (context, index) => ListTile(
+                  leading: CircleAvatar(child: Text(index.toString())),
+                  title: Text(widget.numTrivias[index]),
                 ),
-        ),
-      ],
+              ),
+            ),
     );
   }
 }
