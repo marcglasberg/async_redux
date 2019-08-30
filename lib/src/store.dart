@@ -14,6 +14,8 @@ import 'package:logging/logging.dart';
 
 typedef Dispatch<St> = void Function(ReduxAction<St> action);
 
+typedef DispatchFuture<St> = Future<void> Function(ReduxAction<St> action);
+
 typedef TestInfoPrinter = void Function(TestInfo);
 
 class TestInfo<St> {
@@ -284,6 +286,25 @@ class Store<St> {
       }
   }
 
+  Future<void> dispatchFuture(ReduxAction<St> action) async {
+    _dispatchCount++;
+
+    if (_actionObservers != null)
+      for (ActionObserver observer in _actionObservers) {
+        observer.observe(action, dispatchCount, ini: true);
+      }
+
+    St stateIni = _state;
+    await _processAction(action);
+    St stateEnd = _state;
+
+    if (_stateObservers != null)
+      for (StateObserver observer in _stateObservers) {
+        observer.observe(action, stateIni, stateEnd, dispatchCount);
+      }
+    return null;
+  }
+
   void createTestInfoSnapshot(
     St state,
     ReduxAction<St> action, {
@@ -303,7 +324,7 @@ class Store<St> {
   /// We check the return type of methods `before` and `reduce` to decide if the
   /// reducer is synchronous or asynchronous. It's important to run the reducer
   /// synchronously, if possible.
-  void _processAction(ReduxAction<St> action) async {
+  Future<void> _processAction(ReduxAction<St> action) async {
     //
     // Creates the "INI" test snapshot.
     createTestInfoSnapshot(state, action, ini: true);
@@ -640,6 +661,8 @@ abstract class BaseModel<St> {
 
   Dispatch<St> get dispatch => _store.dispatch;
 
+  DispatchFuture<St> get dispatchFuture => _store.dispatchFuture;
+
   @override
   String toString() => '$runtimeType{${equals.join(', ')}}';
 }
@@ -668,6 +691,16 @@ class StoreProvider<St> extends InheritedWidget {
     if (provider == null) throw StoreConnectorError(type, debug);
 
     return provider._store;
+  }
+
+  // Sugar to dispatch an Action ouside of a StoreConnectors context
+  static void dispatch<St>(BuildContext context, ReduxAction action, {Object debug}) {
+    of<St>(context, debug).dispatch(action);
+  }
+
+  // Sugar to dispatchFuture an Action ouside of a StoreConnectors context
+  static Future<void> dispatchFuture<St>(BuildContext context, ReduxAction action, {Object debug}) async {
+    return of<St>(context, debug).dispatchFuture(action);
   }
 
   // Workaround to capture generics.
