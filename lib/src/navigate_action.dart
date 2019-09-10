@@ -11,6 +11,8 @@ enum NavigateType { pushNamed, pushReplacementNamed, pushNamedAndRemoveAll, pop,
 class NavigateAction<St> extends ReduxAction<St> {
   static GlobalKey<NavigatorState> _navigatorKey;
 
+  static GlobalKey<NavigatorState> get navigatorKey => _navigatorKey;
+
   static void setNavigatorKey(GlobalKey<NavigatorState> navigatorKey) =>
       _navigatorKey = navigatorKey;
 

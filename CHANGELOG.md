@@ -50,3 +50,15 @@
 
 * Alternatives to the Connector (StoreProvider static methods).
 * Waiting until an Action is finished (dispatchFuture).
+
+## [1.3.9] - 2019/08/31
+
+* NavigateAction.navigatorKey getter.
+
+## [1.4.0] - 2019/09/02
+
+* Fix: dispatchFuture getter in ReduxAction.
+
+## [1.4.1] - 2019/09/06
+
+* Flutter Awesome badge, and Pub badge.

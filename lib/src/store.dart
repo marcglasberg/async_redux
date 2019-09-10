@@ -458,7 +458,9 @@ abstract class ReduxAction<St> {
 
   St get state => _store.state;
 
-  Dispatch get dispatch => _store.dispatch;
+  Dispatch<St> get dispatch => _store.dispatch;
+
+  DispatchFuture<St> get dispatchFuture => _store.dispatchFuture;
 
   /// This is an optional method that may be overridden to run during action
   /// dispatching, before `reduce`. If this method throws an error, the
@@ -560,6 +562,17 @@ abstract class ModelObserver<Model> {
 /// If there is a non-null [code], the String returned by [ExceptionCode.asText] may
 /// be used instead of the [msg]. This facilitates translating error messages,
 /// since [ExceptionCode.asText] accepts a [Locale].
+///
+/// You can define a special Matcher for your UserException, to use in your tests.
+/// Create a test lib with this code:
+/// ```
+/// import 'package:matcher/matcher.dart';
+/// const Matcher throwsUserException = Throws(const TypeMatcher<UserException>());
+/// ```
+/// Then use it in your tests:
+/// ```
+/// expect(() => someFunction(), throwsUserException);
+/// ```
 ///
 class UserException implements Exception {
   /// Some message shown to the user.
