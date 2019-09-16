@@ -63,6 +63,6 @@
 
 * Flutter Awesome badge, and Pub badge.
 
-## [1.4.2] - 2019/09/15
+## [1.4.3] - 2019/09/15
 
 * Alternative: Use AsyncRedux with Provider (package provider_for_redux).
