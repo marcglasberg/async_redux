@@ -31,16 +31,42 @@ class StoreTester<St> {
 
   St get state => _store.state;
 
+  /// The [StoreTester] makes it easy to test both sync and async reducers.
+  /// You may dispatch some action, wait for it to finish or wait until some
+  /// arbitrary condition is met, and then check the resulting state.
+  ///
+  /// If [shouldThrowUserExceptions] is true, all errors will be thrown,
+  /// and not swallowed, including UserExceptions. Use this in all tests
+  /// that should throw no errors. Pass [shouldThrowUserExceptions] as
+  /// false when you are testing code that should throw UserExceptions.
+  /// These exceptions will then silently go to the `errors` queue,
+  /// where you can assert they exist with the right error messages.
+  ///
   StoreTester({
     @required St initialState,
     TestInfoPrinter testInfoPrinter,
     bool syncStream = false,
+    ErrorObserver errorObserver,
+    bool shouldThrowUserExceptions = false,
   }) : this.from(
             Store(
               initialState: initialState,
               syncStream: syncStream,
+              errorObserver:
+                  errorObserver ?? (shouldThrowUserExceptions ? TestErrorObserver() : null),
             ),
             testInfoPrinter: testInfoPrinter);
+
+  //  StoreTester({
+//    @required St initialState,
+//    TestInfoPrinter testInfoPrinter,
+//    bool syncStream = false,
+//  }) : this.from(
+//      Store(
+//        initialState: initialState,
+//        syncStream: syncStream,
+//      ),
+//      testInfoPrinter: testInfoPrinter);
 
   StoreTester.from(
     Store<St> store, {
@@ -492,6 +518,23 @@ class StoreExceptionTimeout extends StoreException {
 
   @override
   int get hashCode => 0;
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+
+/// During tests, use this error observer if you want all errors to be thrown,
+/// and not swallowed, including UserExceptions. You should probably use this
+/// in all tests that you don't expect to throw any errors, including
+/// UserExceptions.
+///
+/// On the contrary, when you are actually testing that some code throws
+/// specific UserExceptions, you should NOT use this error observer, but
+/// should instead let the UserExceptions go silently to the error queue
+/// (the `errors` field in the store), and then assert that the queue
+/// actually contains those errors.
+///
+class TestErrorObserver<St> implements ErrorObserver<St> {
+  bool observe(Object error, ReduxAction<St> action, Store store) => true;
 }
 
 // /////////////////////////////////////////////////////////////////////////////

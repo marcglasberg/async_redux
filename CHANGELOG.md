@@ -66,3 +66,8 @@
 ## [1.4.3] - 2019/09/15
 
 * Alternative: Use AsyncRedux with Provider (package provider_for_redux).
+
+## [2.0.0] - 2019/09/17
+
+* Breaking change: ErrorObserver API.
+* StoreTester parameter: shouldThrowUserExceptions (see <a href="https://github.com/marcglasberg/async_redux/issues/20">issue</a>).

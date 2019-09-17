@@ -49,18 +49,26 @@ class TestInfo<St> {
 
 // /////////////////////////////////////////////////////////////////////////////
 
-/// This default error handler shows all errors as UserExceptions,
-/// and throws only errors which are NOT UserExceptions.
-/// This handler may be useful during development, but probably not during production.
-bool defaultErrorObserver(
-    Object error, ReduxAction action, Store store, Object state, int dispatchCount) {
-  if (error is UserException)
-    return false;
-  else {
-    UserException errorAsUserException = UserException(error.toString(), cause: error);
-    store._addError(errorAsUserException);
-    store._changeController.add(state);
-    return true;
+/// During development, use this error observer if you want all errors to be
+/// shown to the user in a dialog, not only UserExceptions. In more detail:
+/// This will wrap all errors into UserExceptions, and put them all into the
+/// error queue. Note that errors which are NOT originally UserExceptions will
+/// still be thrown, while UserExceptions will still be swallowed.
+///
+/// Passe it to the store like this:
+///
+/// `var store = Store(errorObserver:DevelopmentErrorObserver());`
+///
+class DevelopmentErrorObserver<St> implements ErrorObserver<St> {
+  bool observe(Object error, ReduxAction<St> action, Store store) {
+    if (error is UserException)
+      return false;
+    else {
+      UserException errorAsUserException = UserException(error.toString(), cause: error);
+      store._addError(errorAsUserException);
+      store._changeController.add(store.state);
+      return true;
+    }
   }
 }
 
@@ -407,7 +415,7 @@ class Store<St> {
     // If an errorObserver was defined, observe the error.
     // Then, if the observer returns true, return the error to be thrown.
     else {
-      if (_errorObserver.observe(error, action, state, dispatchCount)) return error;
+      if (_errorObserver.observe(error, action, this)) return error;
     }
 
     return null;
@@ -521,8 +529,16 @@ abstract class StateObserver<St> {
 
 /// This will be given all errors, including those of type UserException.
 /// Return true to throw the error. False to swallow it.
+///
+/// Don't use the store to dispatch any actions, as this may have
+/// unpredictable results.
+///
 abstract class ErrorObserver<St> {
-  bool observe(Object error, ReduxAction<St> action, St state, int dispatchCount);
+  bool observe(
+    Object error,
+    ReduxAction<St> action,
+    Store<St> store,
+  );
 }
 
 /// This will be given all errors, including those of type UserException.
@@ -612,6 +628,18 @@ class UserException implements Exception {
 
   @override
   String toString() => _dialogTitleAndContent();
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UserException &&
+          runtimeType == other.runtimeType &&
+          msg == other.msg &&
+          cause == other.cause &&
+          code == other.code;
+
+  @override
+  int get hashCode => msg.hashCode ^ cause.hashCode ^ code.hashCode;
 }
 
 abstract class ExceptionCode {
