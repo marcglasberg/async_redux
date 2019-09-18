@@ -25,18 +25,20 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [Before and After the Reducer](#before-and-after-the-reducer)
    * [Connector](#connector)
       * [How to provide the ViewModel to the StoreConnector](#how-to-provide-the-viewmodel-to-the-storeconnector)
-   * [Alternatives to the Connector](#alternatives-to-the-connector)              
+   * [Alternatives to the Connector](#alternatives-to-the-connector)
+      * [Provider](#provider)
    * [Processing errors thrown by Actions](#processing-errors-thrown-by-actions)
       * [Giving better error messages](#giving-better-error-messages)
       * [User exceptions](#user-exceptions)
    * [Testing](#testing)
+      * [Testing UserExceptions](#testing-userexceptions)
       * [Test files](#test-files)
    * [Route Navigation](#route-navigation)
    * [Events](#events)
       * [Can I put mutable events into the store state?](#can-i-put-mutable-events-into-the-store-state)
       * [When should I use events?](#when-should-i-use-events)
       * [Advanced event features](#advanced-event-features)
-   * [Waiting until an Action is finished](#waiting-until-an-Action-is-finished)      
+   * [Waiting until an Action is finished](#waiting-until-an-action-is-finished)
    * [State Declaration](#state-declaration)
       * [Selectors](#selectors)
    * [Action Subclassing](#action-subclassing)
@@ -44,7 +46,7 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
    * [IDE Navigation](#ide-navigation)
    * [Logging and Persistence](#logging-and-persistence)
    * [Observing rebuilds](#observing-rebuilds)
-   * [How to interact with the database](#how-to-interact-with-the-database)      
+   * [How to interact with the database](#how-to-interact-with-the-database)
    * [How to deal with Streams](#how-to-deal-with-streams)
       * [So, how do you use streams?](#so-how-do-you-use-streams)
       * [Where the stream subscriptions themselves are stored](#where-the-stream-subscriptions-themselves-are-stored)
@@ -855,7 +857,7 @@ expect(info.state.counter, 1);
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/test/main_before_and_after_STATE_test.dart">Testing with the Store Listener</a>.
 
-#### Testing UserExceptions
+### Testing UserExceptions
 
 Since `UserException`s don't represent bugs in the code, 
 AsyncRedux put them into the store's `errors` queue, and then swallows them. 
