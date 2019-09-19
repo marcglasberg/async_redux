@@ -1,3 +1,7 @@
+## [2.0.1] - 2019/09/19
+
+* Fix: UserException.dialogContent accepts String as cause.
+
 ## [2.0.0] - 2019/09/17
 
 * Breaking change: ErrorObserver API.

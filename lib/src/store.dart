@@ -606,9 +606,14 @@ class UserException implements Exception {
   String dialogTitle([Locale locale]) =>
       (cause is UserException || cause is String) ? _codeAsTextOrMsg(locale) : "";
 
-  String dialogContent([Locale locale]) => (cause is UserException || cause is String)
-      ? (cause as UserException)._dialogTitleAndContent(locale)
-      : _codeAsTextOrMsg(locale);
+  String dialogContent([Locale locale]) {
+    if (cause is UserException)
+      return (cause as UserException)._dialogTitleAndContent(locale);
+    else if (cause is String)
+      return cause;
+    else
+      return _codeAsTextOrMsg(locale);
+  }
 
   String _dialogTitleAndContent([Locale locale]) => (cause is UserException)
       ? "${_codeAsTextOrMsg(locale)}\n\nReason: ${(cause as UserException)._codeAsTextOrMsg(locale)}"
