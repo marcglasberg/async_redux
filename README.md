@@ -707,7 +707,22 @@ UserExceptionDialog<AppState>(
 	  onShowUserExceptionDialog:
 		  (BuildContext context, UserException userException) => showDialog(...),
 );
-```
+```                                             
+
+### UserExceptionAction 
+
+If you want the `UserExceptionDialog` to display some `UserException`,
+you must throw the exception from inside an action's `before()` or `reduce()` methods.
+
+However, sometimes you need to create some **callback** that throws an `UserException`. 
+If this callback is called **outside** of an action, the dialog will **not** display the exception. 
+To solve this, the callback should not throw an exception, but instead call the provided `UserExceptionAction`,
+which will then simply throw the exception in its own `reduce()` method.
+
+The `UserExceptionAction` is also useful even inside of actions, 
+when you want to display an error dialog to the user 
+but you don't want to interrupt the action by throwing an exception.
+
 
 ## Testing
 
