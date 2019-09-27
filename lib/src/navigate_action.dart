@@ -39,23 +39,33 @@ class NavigateAction<St> extends ReduxAction<St> {
 
   NavigateType navigateType;
   String routeName;
+  Object arguments;
 
-  NavigateAction(
-    this.routeName, {
-    @required this.navigateType,
-  })  : assert(navigateType != null),
+  NavigateAction(this.routeName, {@required this.navigateType, this.arguments})
+      : assert(navigateType != null),
         assert(navigateType == NavigateType.pop || routeName != null);
 
   NavigateAction.pop() : this(null, navigateType: NavigateType.pop);
 
-  NavigateAction.pushNamed(String routeName)
-      : this(routeName, navigateType: NavigateType.pushNamed);
+  NavigateAction.pushNamed(
+    String routeName, {
+    Object arguments,
+  }) : this(routeName,
+            navigateType: NavigateType.pushNamed, arguments: arguments);
 
-  NavigateAction.pushReplacementNamed(String routeName)
-      : this(routeName, navigateType: NavigateType.pushReplacementNamed);
+  NavigateAction.pushReplacementNamed(
+    String routeName, {
+    Object arguments,
+  }) : this(routeName,
+            navigateType: NavigateType.pushReplacementNamed,
+            arguments: arguments);
 
-  NavigateAction.pushNamedAndRemoveAll(String routeName)
-      : this(routeName, navigateType: NavigateType.pushNamedAndRemoveAll);
+  NavigateAction.pushNamedAndRemoveAll(
+    String routeName, {
+    Object arguments,
+  }) : this(routeName,
+            navigateType: NavigateType.pushNamedAndRemoveAll,
+            arguments: arguments);
 
   NavigateAction.popUntil(String routeName) : this(routeName, navigateType: NavigateType.popUntil);
 
@@ -69,16 +79,18 @@ class NavigateAction<St> extends ReduxAction<St> {
           break;
 
         case NavigateType.pushNamed:
-          _navigatorKey.currentState.pushNamed(routeName);
+          _navigatorKey.currentState.pushNamed(routeName, arguments: arguments);
           break;
 
         case NavigateType.pushReplacementNamed:
-          _navigatorKey.currentState.pushReplacementNamed(routeName);
+          _navigatorKey.currentState
+              .pushReplacementNamed(routeName, arguments: arguments);
           break;
 
         case NavigateType.pushNamedAndRemoveAll:
-          _navigatorKey.currentState
-              .pushNamedAndRemoveUntil(routeName, (Route<dynamic> route) => false);
+          _navigatorKey.currentState.pushNamedAndRemoveUntil(
+              routeName, (Route<dynamic> route) => false,
+              arguments: arguments);
           break;
 
         case NavigateType.popUntil:
