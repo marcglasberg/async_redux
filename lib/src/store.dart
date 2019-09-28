@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:async_redux/async_redux.dart';
-import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
@@ -590,9 +590,7 @@ abstract class BaseModel<St> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is BaseModel &&
-          runtimeType == other.runtimeType &&
-          const ListEquality().equals(equals, other.equals);
+      other is BaseModel && runtimeType == other.runtimeType && listEquals(equals, other.equals);
 
   @override
   int get hashCode => runtimeType.hashCode ^ _propsHashCode;

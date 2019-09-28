@@ -27,16 +27,6 @@ class NavigateAction<St> extends ReduxAction<St> {
     return currentRoute.settings.name;
   }
 
-  /// Trick explained here: https://github.com/flutter/flutter/issues/20451
-  static List<Route> getCurrentNavigatorRouteStack(BuildContext context) {
-    List<Route> currentRoutes = [];
-    Navigator.popUntil(context, (route) {
-      currentRoutes.add(route);
-      return true;
-    });
-    return currentRoutes;
-  }
-
   NavigateType navigateType;
   String routeName;
   Object arguments;
@@ -50,22 +40,17 @@ class NavigateAction<St> extends ReduxAction<St> {
   NavigateAction.pushNamed(
     String routeName, {
     Object arguments,
-  }) : this(routeName,
-            navigateType: NavigateType.pushNamed, arguments: arguments);
+  }) : this(routeName, navigateType: NavigateType.pushNamed, arguments: arguments);
 
   NavigateAction.pushReplacementNamed(
     String routeName, {
     Object arguments,
-  }) : this(routeName,
-            navigateType: NavigateType.pushReplacementNamed,
-            arguments: arguments);
+  }) : this(routeName, navigateType: NavigateType.pushReplacementNamed, arguments: arguments);
 
   NavigateAction.pushNamedAndRemoveAll(
     String routeName, {
     Object arguments,
-  }) : this(routeName,
-            navigateType: NavigateType.pushNamedAndRemoveAll,
-            arguments: arguments);
+  }) : this(routeName, navigateType: NavigateType.pushNamedAndRemoveAll, arguments: arguments);
 
   NavigateAction.popUntil(String routeName) : this(routeName, navigateType: NavigateType.popUntil);
 
@@ -83,8 +68,7 @@ class NavigateAction<St> extends ReduxAction<St> {
           break;
 
         case NavigateType.pushReplacementNamed:
-          _navigatorKey.currentState
-              .pushReplacementNamed(routeName, arguments: arguments);
+          _navigatorKey.currentState.pushReplacementNamed(routeName, arguments: arguments);
           break;
 
         case NavigateType.pushNamedAndRemoveAll:

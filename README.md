@@ -1003,12 +1003,11 @@ dispatch(NavigateAction.popUntil("myRoute"));
 ```
 
 Note: Don't ever save the current route in the store. This will create all sorts of problems.
-If you need to know the route you're in, or even the complete route stack,
-you may use these static methods provided by `NavigateAction`:
+If you need to know the route you're in, 
+you may use this static method provided by `NavigateAction`:
 
 ```dart
 String routeName = NavigateAction.getCurrentNavigatorRouteName(context);
-List<Route> routeStack = NavigateAction.getCurrentNavigatorRouteStack(context);
 ```
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_navigate.dart">Navigate Example</a>.
@@ -1291,11 +1290,11 @@ class TodoState {
   @override
   bool operator ==(Object other) {          
     return identical(this, other) || other is TodoState && runtimeType == other.runtimeType && 
-      ListEquality.equals(todos, other.todos);
+      listEquals(todos, other.todos);
   }    
   
   @override
-  int get hashCode => ListEquality.hash(todos);
+  int get hashCode => const ListEquality.hash(todos);
 }
 ```
     
