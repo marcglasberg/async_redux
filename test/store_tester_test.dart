@@ -115,6 +115,24 @@ class Action9 extends ReduxAction<AppState> {
   }
 }
 
+class Action10 extends ReduxAction<AppState> {
+  @override
+  FutureOr<AppState> reduce() async {
+    dispatch(Action1());
+    dispatch(Action2());
+    dispatch(Action11());
+    dispatch(Action3());
+    return AppState.add(state, "10");
+  }
+}
+
+class Action11 extends ReduxAction<AppState> {
+  @override
+  FutureOr<AppState> reduce() async {
+    throw UserException("Hello!");
+  }
+}
+
 void main() {
   StoreTester<AppState> createStoreTester() {
     var store = Store<AppState>(initialState: AppState("0"));
@@ -978,6 +996,73 @@ void main() {
         (_) => fail('There was no timeout.'), onError: expectAsync1((error) {
       expect(error, StoreExceptionTimeout());
     }));
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      'An action dispatches other actions, and one of them throws an error. '
+      'Wait until that action finishes, '
+      'and check the error.', () async {
+    var storeTester = createStoreTester();
+
+    runZoned(() {
+      storeTester.dispatch(Action10());
+    }, onError: (error, stackTrace) {
+      expect(error, UserException("Hello!"));
+    });
+
+    TestInfo<AppState> info = await storeTester.waitUntil(Action11);
+    expect(info.error, UserException("Hello!"));
+    expect(info.processedError, null);
+    expect(info.state.text, "0,1,2,3");
+    expect(info.ini, false);
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      'An action dispatches other actions, and one of them throws an error. '
+      'Wait until the error TYPE is thrown, '
+      'and check the error.', () async {
+    var storeTester = createStoreTester();
+
+    runZoned(() {
+      storeTester.dispatch(Action10());
+    }, onError: (error, stackTrace) {});
+
+    TestInfo<AppState> info = await storeTester.waitErrorGetLast(
+      error: UserException,
+      timeoutInSeconds: 1,
+    );
+
+    expect(info.error, UserException("Hello!"));
+    expect(info.processedError, null);
+    expect(info.state.text, "0,1,2,3");
+    expect(info.ini, false);
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      'An action dispatches other actions, and one of them throws an error. '
+      'Wait until the error (compare using equals) is thrown, '
+      'and check the error.', () async {
+    var storeTester = createStoreTester();
+
+    runZoned(() {
+      storeTester.dispatch(Action10());
+    }, onError: (error, stackTrace) {});
+
+    TestInfo<AppState> info = await storeTester.waitErrorGetLast(
+      error: UserException("Hello!"),
+      timeoutInSeconds: 1,
+    );
+
+    expect(info.error, UserException("Hello!"));
+    expect(info.processedError, null);
+    expect(info.state.text, "0,1,2,3");
+    expect(info.ini, false);
   });
 
   ///////////////////////////////////////////////////////////////////////////////

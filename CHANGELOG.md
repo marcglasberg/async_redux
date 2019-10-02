@@ -1,3 +1,7 @@
+## [2.0.4] - 2019/10/01
+
+* StoreTester: waitError and waitErrorGetLast.
+
 ## [2.0.3] - 2019/09/21
 
 * NavigateAction tests.

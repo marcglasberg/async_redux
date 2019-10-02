@@ -57,17 +57,6 @@ class StoreTester<St> {
             ),
             testInfoPrinter: testInfoPrinter);
 
-  //  StoreTester({
-//    @required St initialState,
-//    TestInfoPrinter testInfoPrinter,
-//    bool syncStream = false,
-//  }) : this.from(
-//      Store(
-//        initialState: initialState,
-//        syncStream: syncStream,
-//      ),
-//      testInfoPrinter: testInfoPrinter);
-
   StoreTester.from(
     Store<St> store, {
     TestInfoPrinter testInfoPrinter,
@@ -125,6 +114,50 @@ class StoreTester<St> {
     }
 
     return results;
+  }
+
+  /// If [error] is a Type, runs until after an action throws an error of this exact type.
+  /// If [error] is NOT a Type, runs until after an action throws this [error] (using equals).
+  ///
+  /// You can also, instead, define [processedError], which is the error after wrapped by the
+  /// action's wrapError() method. Note, if you define both [error] and [processedError],
+  /// both need to match.
+  ///
+  /// Returns the info after the error condition is met.
+  Future<TestInfo<St>> waitErrorGetLast({
+    Object error,
+    Object processedError,
+    int timeoutInSeconds = _defaultTimeout,
+  }) async {
+    var infoList = await waitError(
+        error: error, processedError: processedError, timeoutInSeconds: timeoutInSeconds);
+    return infoList.last;
+  }
+
+  /// If [error] is a Type, runs until after an action throws an error of this exact type.
+  /// If [error] is NOT a Type, runs until after an action throws this [error] (using equals).
+  ///
+  /// You can also, instead, define [processedError], which is the error after wrapped by the
+  /// action's wrapError() method. Note, if you define both [error] and [processedError],
+  /// both need to match.
+  ///
+  /// Returns a list with all info until the error condition is met.
+  Future<TestInfoList<St>> waitError({
+    Object error,
+    Object processedError,
+    int timeoutInSeconds = _defaultTimeout,
+  }) async {
+    assert(error != null || processedError != null);
+
+    var condition = (TestInfo<St> info) =>
+        (error == null ||
+            (error is Type && info.error.runtimeType == error) ||
+            (error is! Type && info.error == error)) &&
+        (processedError == null ||
+            (processedError is Type && info.processedError.runtimeType == processedError) ||
+            (processedError is! Type && info.processedError == processedError));
+
+    return await waitCondition(condition, ignoreIni: true, timeoutInSeconds: timeoutInSeconds);
   }
 
   /// Expects **one action** of the given type to be dispatched, and waits until it finishes.

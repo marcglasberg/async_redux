@@ -25,7 +25,17 @@ class TestInfo<St> {
   final ReduxAction<St> action;
   final int dispatchCount;
   final int reduceCount;
+
+  /// List of all UserException's waiting to be displayed in the error dialog.
   Queue<UserException> errors;
+
+  /// The error thrown by the action, if any,
+  /// before being processed by the action's wrapError() method.
+  final Object error;
+
+  /// The error thrown by the action,
+  /// after being processed by the action's wrapError() method.
+  final Object processedError;
 
   bool get isINI => ini;
 
@@ -37,6 +47,8 @@ class TestInfo<St> {
     this.state,
     this.ini,
     this.action,
+    this.error,
+    this.processedError,
     this.dispatchCount,
     this.reduceCount,
     this.errors,
@@ -70,6 +82,16 @@ class DevelopmentErrorObserver<St> implements ErrorObserver<St> {
       store._changeController.add(store.state);
       return true;
     }
+  }
+}
+
+/// Swallows all errors (not recommended). Passe it to the store like this:
+///
+/// `var store = Store(errorObserver:SwallowErrorObserver());`
+///
+class SwallowErrorObserver<St> implements ErrorObserver<St> {
+  bool observe(Object error, ReduxAction<St> action, Store store) {
+    return false;
   }
 }
 
@@ -316,7 +338,9 @@ class Store<St> {
 
   void createTestInfoSnapshot(
     St state,
-    ReduxAction<St> action, {
+    ReduxAction<St> action,
+    dynamic error,
+    dynamic processedError, {
     @required bool ini,
   }) {
     assert(state != null);
@@ -324,7 +348,8 @@ class Store<St> {
     assert(ini != null);
 
     if (_testInfoController != null || testInfoPrinter != null) {
-      var reduceInfo = TestInfo<St>(state, ini, action, dispatchCount, reduceCount, _errors);
+      var reduceInfo = TestInfo<St>(
+          state, ini, action, error, processedError, dispatchCount, reduceCount, _errors);
       if (_testInfoController != null) _testInfoController.add(reduceInfo);
       if (testInfoPrinter != null) testInfoPrinter(reduceInfo);
     }
@@ -336,7 +361,7 @@ class Store<St> {
   Future<void> _processAction(ReduxAction<St> action) async {
     //
     // Creates the "INI" test snapshot.
-    createTestInfoSnapshot(state, action, ini: true);
+    createTestInfoSnapshot(state, action, null, null, ini: true);
 
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
@@ -345,13 +370,17 @@ class Store<St> {
 
     dynamic result;
 
+    dynamic originalError;
+    dynamic processedError;
+
     try {
       result = action.before();
       if (result is Future) await result;
       result = _applyReducer(action);
       if (result is Future) await result;
     } catch (error) {
-      dynamic processedError = _processError(error, action, afterWasRun);
+      originalError = error;
+      processedError = _processError(error, action, afterWasRun);
       // Error is meant to be "swallowed".
       if (processedError == null)
         return;
@@ -365,7 +394,7 @@ class Store<St> {
       else
         throw processedError;
     } finally {
-      _finalize(result, action, afterWasRun);
+      _finalize(result, action, originalError, processedError, afterWasRun);
     }
   }
 
@@ -397,7 +426,6 @@ class Store<St> {
   /// Returns the processed error. Returns `null` if the error is meant to be "swallowed".
   dynamic _processError(error, ReduxAction<St> action, _Flag<bool> afterWasRun) {
     error = action.wrapError(error);
-    assert(error == null || error is Exception || error is Error);
 
     afterWasRun.value = true;
     _after(action);
@@ -422,10 +450,11 @@ class Store<St> {
     return null;
   }
 
-  void _finalize(Future result, ReduxAction<St> action, _Flag<bool> afterWasRun) {
+  void _finalize(Future result, ReduxAction<St> action, dynamic error, dynamic processedError,
+      _Flag<bool> afterWasRun) {
     if (!afterWasRun.value) _after(action);
 
-    createTestInfoSnapshot(state, action, ini: false);
+    createTestInfoSnapshot(state, action, error, processedError, ini: false);
 
     if (_actionObservers != null)
       for (ActionObserver observer in _actionObservers) {

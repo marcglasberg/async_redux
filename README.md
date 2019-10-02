@@ -834,6 +834,20 @@ Let's see all the available methods of the `StoreTester`:
 	Only END states will be received, unless you pass `ignoreIni` as false.
 	Returns the info after the condition is met.
 
+10. `Future<TestInfo> waitError({Object error, Object processedError})`
+
+	Runs until after an action throws an error of this exact type, or this exact error (using equals).
+    You can also, instead, define `processedError`, which is the error after wrapped by the
+    action's `wrapError()` method. 
+    Returns a list with all info until the error condition is met.
+
+10. `Future<TestInfo> waitErrorGetLast({Object error, Object processedError})`
+
+	Runs until after an action throws an error of this exact type, or this exact error (using equals).
+    You can also, instead, define `processedError`, which is the error after wrapped by the
+    action's `wrapError()` method. 
+    Returns the info after the condition is met.
+
 Some of the methods above return a list of type `TestInfoList`, which contains the step
 by step information of all the actions. You can then query for the actions you want to inspect.
 For example, suppose an action named `IncrementAndGetDescriptionAction` calls another 3 actions.
