@@ -1031,7 +1031,7 @@ void main() {
       storeTester.dispatch(Action10());
     }, onError: (error, stackTrace) {});
 
-    TestInfo<AppState> info = await storeTester.waitErrorGetLast(
+    TestInfo<AppState> info = await storeTester.waitUntilErrorGetLast(
       error: UserException,
       timeoutInSeconds: 1,
     );
@@ -1054,7 +1054,7 @@ void main() {
       storeTester.dispatch(Action10());
     }, onError: (error, stackTrace) {});
 
-    TestInfo<AppState> info = await storeTester.waitErrorGetLast(
+    TestInfo<AppState> info = await storeTester.waitUntilErrorGetLast(
       error: UserException("Hello!"),
       timeoutInSeconds: 1,
     );

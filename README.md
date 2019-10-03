@@ -834,14 +834,14 @@ Let's see all the available methods of the `StoreTester`:
 	Only END states will be received, unless you pass `ignoreIni` as false.
 	Returns the info after the condition is met.
 
-10. `Future<TestInfo> waitError({Object error, Object processedError})`
+10. `Future<TestInfo> waitUntilError({Object error, Object processedError})`
 
 	Runs until after an action throws an error of this exact type, or this exact error (using equals).
     You can also, instead, define `processedError`, which is the error after wrapped by the
     action's `wrapError()` method. 
     Returns a list with all info until the error condition is met.
 
-10. `Future<TestInfo> waitErrorGetLast({Object error, Object processedError})`
+10. `Future<TestInfo> waitUntilErrorGetLast({Object error, Object processedError})`
 
 	Runs until after an action throws an error of this exact type, or this exact error (using equals).
     You can also, instead, define `processedError`, which is the error after wrapped by the
@@ -885,6 +885,10 @@ expect(info.state.counter, 1);
 ```
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/test/main_before_and_after_STATE_test.dart">Testing with the Store Listener</a>.
+
+Also, the <a href="https://github.com/marcglasberg/async_redux/blob/master/test/store_tester_test.dart">tests of the StoreTester</a> can also serve as examples. 
+
+
 
 ### Testing UserExceptions
 

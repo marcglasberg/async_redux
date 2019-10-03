@@ -124,12 +124,12 @@ class StoreTester<St> {
   /// both need to match.
   ///
   /// Returns the info after the error condition is met.
-  Future<TestInfo<St>> waitErrorGetLast({
+  Future<TestInfo<St>> waitUntilErrorGetLast({
     Object error,
     Object processedError,
     int timeoutInSeconds = _defaultTimeout,
   }) async {
-    var infoList = await waitError(
+    var infoList = await waitUntilError(
         error: error, processedError: processedError, timeoutInSeconds: timeoutInSeconds);
     return infoList.last;
   }
@@ -142,7 +142,7 @@ class StoreTester<St> {
   /// both need to match.
   ///
   /// Returns a list with all info until the error condition is met.
-  Future<TestInfoList<St>> waitError({
+  Future<TestInfoList<St>> waitUntilError({
     Object error,
     Object processedError,
     int timeoutInSeconds = _defaultTimeout,
