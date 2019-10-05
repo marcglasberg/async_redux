@@ -673,13 +673,13 @@ class StoreProvider<St> extends InheritedWidget {
   }
 
   /// Dispatch an action without a StoreConnector.
-  static void dispatch<St>(BuildContext context, ReduxAction action, {Object debug}) {
+  static void dispatch<St>(BuildContext context, ReduxAction<St> action, {Object debug}) {
     of<St>(context, debug).dispatch(action);
   }
 
   /// Dispatch an action without a StoreConnector,
   /// and get a `Future<void>` which completes when the action is done.
-  static Future<void> dispatchFuture<St>(BuildContext context, ReduxAction action,
+  static Future<void> dispatchFuture<St>(BuildContext context, ReduxAction<St> action,
           {Object debug}) async =>
       of<St>(context, debug).dispatchFuture(action);
 

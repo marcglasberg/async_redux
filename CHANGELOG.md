@@ -1,3 +1,7 @@
+## [2.0.5] - 2019/10/05
+
+* Better typing of StoreProvider.dispatch and StoreProvider.dispatchFuture.
+
 ## [2.0.4] - 2019/10/01
 
 * StoreTester: waitUntilError and waitUntilErrorGetLast.

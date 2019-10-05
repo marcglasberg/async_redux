@@ -89,8 +89,7 @@ class MyPage extends StatelessWidget {
     return Scaffold(
       body: Column(
         children: <Widget>[
-          Text(
-              "Current route: ${NavigateAction.getCurrentNavigatorRouteName(context)}"),
+          Text("Current route: ${NavigateAction.getCurrentNavigatorRouteName(context)}"),
           //
           _NavAction(
             Key("pushNamedPage2"),
@@ -139,22 +138,17 @@ void main() {
   });
 
   final Finder page1Finder = find.byKey(Key("page1"));
-  final Finder page1IncludeIfOffstageFinder =
-      find.byKey(Key("page1"), skipOffstage: false);
-  final Finder pushAndRemoveAllPage1Finder =
-      find.byKey(Key("pushNamedAndRemoveAllPage1"));
+  final Finder page1IncludeIfOffstageFinder = find.byKey(Key("page1"), skipOffstage: false);
+  final Finder pushAndRemoveAllPage1Finder = find.byKey(Key("pushNamedAndRemoveAllPage1"));
   final Finder popUntilPage1Finder = find.byKey(Key("popUntilPage1"));
 
   final Finder page2Finder = find.byKey(Key("page2"));
-  final Finder page2IncludeIfOffstageFinder =
-      find.byKey(Key("page2"), skipOffstage: false);
+  final Finder page2IncludeIfOffstageFinder = find.byKey(Key("page2"), skipOffstage: false);
   final Finder pushPage2Finder = find.byKey(Key("pushNamedPage2"));
-  final Finder pushReplacementPage2Finder =
-      find.byKey(Key("pushReplacementNamedPage2"));
+  final Finder pushReplacementPage2Finder = find.byKey(Key("pushReplacementNamedPage2"));
 
   final Finder page3Finder = find.byKey(Key("page3"));
-  final Finder page3IncludeIfOffstageFinder =
-      find.byKey(Key("page3"), skipOffstage: false);
+  final Finder page3IncludeIfOffstageFinder = find.byKey(Key("page3"), skipOffstage: false);
   final Finder pushPage3Finder = find.byKey(Key("pushNamedPage3"));
 
   final Finder popFinder = find.byKey(Key("pop"));
@@ -190,8 +184,7 @@ void main() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  testWidgets(NavigateType.pushNamedAndRemoveAll.toString(),
-      (WidgetTester tester) async {
+  testWidgets(NavigateType.pushNamedAndRemoveAll.toString(), (WidgetTester tester) async {
     await tester.pumpWidget(MyApp());
     await tester.pumpAndSettle();
 
@@ -236,8 +229,7 @@ void main() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  testWidgets(NavigateType.pushReplacementNamed.toString(),
-      (WidgetTester tester) async {
+  testWidgets(NavigateType.pushReplacementNamed.toString(), (WidgetTester tester) async {
     await tester.pumpWidget(MyApp());
     await tester.pumpAndSettle();
 
