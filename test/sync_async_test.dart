@@ -92,7 +92,7 @@ void main() {
   /////////////////////////////////////////////////////////////////////////////
 
   test(
-      'This tests what happens if the developer makes a mistake and creates a returns a COMPLETED Future: '
+      'This tests what happens if the developer makes a mistake and returns a COMPLETED Future: '
       'The reducer changes the state to A, and it should later be changed to B. '
       'It fails if the reducer returns a Future<AppState> and it does NOT contain the await keyword. '
       'If the reducer does NOT contain the `await` keyword, it means it was created as a completed Future. '
@@ -200,7 +200,7 @@ void main() {
 
   test(
       '6) This tests what happens if the developer makes a mistake '
-      'and creates a returns a COMPLETED Future: '
+      'and returns a COMPLETED Future: '
       'The reducer dispatches another ASYNC action. '
       'The second reducer finishes BEFORE the first, '
       'but its change of state is lost.', () async {
@@ -272,6 +272,7 @@ void main() {
 ///   await Future.delayed(Duration(seconds: 1));
 ///
 /// More info:
+/// https://www.woolha.com/articles/dart-event-loop-microtask-event-queue
 /// https://steemit.com/utopian-io/@tensor/the-fundamentals-of-zones-microtasks-and-event-loops-in-the-dart-programming-language-dart-tutorial-part-3
 
 // ----------------------------------------------
