@@ -1,3 +1,8 @@
+## [2.0.6] - 2019/10/07
+
+* Added sync_async_test.dart
+* Doc warning about async reducer returning completed future (missing await). 
+
 ## [2.0.5] - 2019/10/05
 
 * Better typing of StoreProvider.dispatch and StoreProvider.dispatchFuture.

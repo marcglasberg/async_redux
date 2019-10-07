@@ -209,6 +209,36 @@ We will show you later how to easily test async reducers, using the **StoreTeste
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_increment_async.dart">Increment Async Example</a>.
 
+#### One important rule
+
+When your reducer returns `Future<AppState>` you must make sure you **do not return a completed future**.
+In other words, all execution paths of the reducer must pass through at least one `await` keyword.
+
+If your reducer has no `await`s, you must return `AppState` instead of `Future<AppState>`, 
+or simply add something like `await Future.sync(() {});`.   
+
+Example:
+
+```dart 
+// These are right:
+AppState reduce() { return state; }
+AppState reduce() { someFunc(); return state; }
+Future<AppState> reduce() async { await someFuture(); return state; }
+Future<AppState> reduce() async { await Future.value(null); return state; }
+
+// But these are wrong:
+Future<AppState> reduce() async { return state; }
+Future<AppState> reduce() async { someFunc(); return state; }
+```
+
+Dart doesn't let AsyncRedux detect if a future is completed or not 
+(the information is there, but in a private field), so we can't help you with that.
+One day we'll have an IDE plugin to warn you if you make this mistake, but until then, please pay attention.
+
+If you don't follow this rule, AsyncRedux may seem to work ok, but will eventually misbehave.
+If you're an advanced user interested in the details, check the 
+<a href="https://github.com/marcglasberg/async_redux/blob/master/test/sync_async_test.dart">sync/async tests</a>.   
+
 ### Changing state is optional
 
 For both sync and async reducers, returning a new state is optional.
@@ -318,6 +348,44 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
 ```
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">Before and After Example</a>.
+
+#### What's the order of execution of sync and async reducers?
+
+A reducer is only sync if both `reducer()` return `AppState` AND `before()` return `void`. 
+If you any of them return a `Future`, then the reducer is async. 
+
+When you dispatch **sync** reducers, they are executed synchronously, in the order they are called. 
+For example, this code will wait until `MyAction1` is finished and only then run `MyAction2`,
+assuming both are sync reducers:
+
+```dart
+dispatch(MyAction1()); 
+dispatch(MyAction2());
+```
+
+When you dispatch an **async** reducer with `dispatch` it starts immediately, 
+but there is really no way of knowing when it finishes, because it depends 
+on how long the async code takes to run, which depends on the async code itself, not AsyncRedux.
+
+Dispatching an async reducer with dispatch is like starting any other async processes without writing `await`. 
+The process will start, but you are not waiting for it to finish. 
+For example, this code will start both `MyAsyncAction1` and `MyAsyncAction2`, 
+but is says nothing about how long they will take or which one finishes first:
+
+```dart
+dispatch(MyAsyncAction1()); 
+dispatch(MyAsyncAction2());
+```
+
+If you want to wait for some async action to finish, 
+you must dispatch it with `dispatchFuture` instead of dispatch. 
+Then you can actually wait for it to finish. 
+For example, this code will wait until `MyAsyncAction1` is finished, and only then run `MyAsyncAction2`:
+
+```dart      
+await dispatchFuture(MyAsyncAction1()); 
+await dispatchFuture(MyAsyncAction2());
+```
 
 ## Connector
 
