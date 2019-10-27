@@ -34,8 +34,6 @@ class AppState {
   String toString() => text.toString();
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 List<AppState> states;
 
 void main() {

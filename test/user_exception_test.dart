@@ -194,7 +194,7 @@ void main() {
     expect(
         exception.dialogContent(localeEn), "Try again\n\nReason: There is no internet connection");
     expect(exception.dialogContent(localePt),
-        "Tente novamente\n\nReason: Não há conexão com a internet");
+        "Tente novamente\n\nMotivo: Não há conexão com a internet");
     expect(exception.toString(), "Some msg\n\nReason: Other msg");
   });
 
@@ -217,6 +217,52 @@ void main() {
     // Again, code with no translation and no message: uses the code id.
     exception = UserException("", code: UserExceptionCode.unknownError);
     expect(exception.dialogContent(localeEn), "unknownError");
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test('Message with a reason gets translated to the current locale.', () {
+    //
+    var exception = UserException(
+      "This is a message",
+      cause: UserException(
+        "This is a cause",
+        cause: UserException("Another cause"),
+      ),
+    );
+
+    // Locale "en_US".
+    expect(exception.dialogTitle(localeEn), "This is a message");
+    expect(exception.dialogContent(localeEn), "This is a cause\n\nReason: Another cause");
+
+    // Locale "pt_BR".
+    expect(exception.dialogTitle(localePt), "This is a message");
+    expect(exception.dialogContent(localePt), "This is a cause\n\nMotivo: Another cause");
+
+    // Locale "en" (language only).
+    expect(exception.dialogTitle(Locale('en')), "This is a message");
+    expect(exception.dialogContent(Locale('en')), "This is a cause\n\nReason: Another cause");
+
+    // Locale "pt" (language only).
+    expect(exception.dialogTitle(Locale('pt')), "This is a message");
+    expect(exception.dialogContent(Locale('pt')), "This is a cause\n\nMotivo: Another cause");
+
+    // Unknown locale.
+    expect(exception.dialogTitle(Locale('unkwnow')), "This is a message");
+    expect(exception.dialogContent(Locale('unkwnow')), "This is a cause\n\nReason: Another cause");
+
+    // ---
+
+    UserException.joinExceptionMainAndCause =
+        (Locale locale, String mainMsg, String causeMsg) => "xyz $locale $mainMsg $causeMsg";
+
+    // Locale "en_US".
+    expect(exception.dialogTitle(localeEn), "This is a message");
+    expect(exception.dialogContent(localeEn), "xyz en_US This is a cause Another cause");
+
+    // Locale "en_US".
+    expect(exception.dialogTitle(Locale('unkwnow')), "This is a message");
+    expect(exception.dialogContent(Locale('unkwnow')), "xyz unkwnow This is a cause Another cause");
   });
 
   ///////////////////////////////////////////////////////////////////////////////

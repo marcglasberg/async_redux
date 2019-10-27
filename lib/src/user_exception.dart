@@ -65,8 +65,42 @@ class UserException implements Exception {
   }
 
   String _dialogTitleAndContent([Locale locale]) => (cause is UserException)
-      ? "${_codeAsTextOrMsg(locale)}\n\nReason: ${(cause as UserException)._codeAsTextOrMsg(locale)}"
+      ? joinExceptionMainAndCause(
+          locale, _codeAsTextOrMsg(locale), (cause as UserException)._codeAsTextOrMsg(locale))
       : _codeAsTextOrMsg(locale);
+
+  /// Return the string that join the main message and the reason message.
+  /// You can change this variable to inject another way to join them.
+  static var joinExceptionMainAndCause = (Locale locale, String mainMsg, String causeMsg) =>
+      "$mainMsg\n\n${_getReasonFromLocale(locale) ?? "Reason"}: $causeMsg";
+
+  static _getReasonFromLocale(Locale locale) {
+    if (locale == null)
+      return null;
+    else {
+      var reason = _reason[locale.toString()];
+      if (reason == null) reason = _reason[locale.languageCode];
+      return reason;
+    }
+  }
+
+  static const Map _reason = {
+    "en": "Reason", // English
+    "es": "Razón", // Spanish
+    "fr": "Raison", // French
+    "de": "Grund", // German
+    "zh": "原因", // Chinese
+    "jp": "理由", // Japanese
+    "pt": "Motivo", // Portuguese
+    "it": "Motivo", // Italian
+    "pl": "Powód", // Polish
+    "ko": "이유", // Korean
+    "ms": "Sebab", // Malay
+    "ru": "Причина", // Russian
+    "uk": "Причина", // Ukrainian
+    "ar": "السبب", // Arabic
+    "he": "סיבה", // Hebrew
+  };
 
   /// If there is a [code], and this [code] has a non-empty text returned by [ExceptionCode.asText]
   /// in the given [Locale], return this text.

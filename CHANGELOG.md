@@ -1,3 +1,7 @@
+## [2.0.7] - 2019/10/27
+
+* Better translations support for UserException. 
+
 ## [2.0.6] - 2019/10/07
 
 * Added sync_async_test.dart
