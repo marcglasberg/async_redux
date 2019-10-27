@@ -30,9 +30,11 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
    * [Processing errors thrown by Actions](#processing-errors-thrown-by-actions)
       * [Giving better error messages](#giving-better-error-messages)
       * [User exceptions](#user-exceptions)
+      * [Converting third-party errors into UserExceptions](#converting-third-party-errors-into-userexceptions)
+      * [UserExceptionAction](#user-exception-action)   
    * [Testing](#testing)
       * [Testing UserExceptions](#testing-userexceptions)
-      * [Test files](#test-files)
+      * [Test files](#test-files)   
    * [Route Navigation](#route-navigation)
    * [Events](#events)
       * [Can I put mutable events into the store state?](#can-i-put-mutable-events-into-the-store-state)
@@ -828,8 +830,7 @@ It may then return a `UserException` which will be used instead of the original 
 Otherwise, it just returns `null`, so that the original exception will not be modified.
 
 Note this wrapper is called **after** `ReduxAction.wrapError`, and **before** the `ErrorObserver`.
- 
- 
+         
 
 ### UserExceptionAction 
 
