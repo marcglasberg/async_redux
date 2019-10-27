@@ -431,7 +431,9 @@ class Store<St> {
   dynamic _processError(error, ReduxAction<St> action, _Flag<bool> afterWasRun) {
     error = action.wrapError(error);
 
-    if (_wrapError != null && error is UserException) error = _wrapError.wrap(error);
+    if (_wrapError != null && error is! UserException) {
+      error = _wrapError.wrap(error) ?? error;
+    }
 
     afterWasRun.value = true;
     _after(action);

@@ -777,6 +777,60 @@ UserExceptionDialog<AppState>(
 );
 ```                                             
 
+### Converting third-party errors into UserExceptions
+
+Third-party code may also throw errors which should not be considered bugs, 
+but simply messages to be displayed in a dialog to the user.
+
+For example, Firebase my throw some `PlatformException`s in response to a bad connection to the server.
+In this case, you can convert this error into a `UserException`, so that a dialog appears to the user,
+as already explained above. There are two ways to do that. 
+
+The first is to do this conversion in the action itself
+by implementing the optional `ReduxAction.wrapError(error)` method:
+
+```dart
+class MyAction extends ReduxAction<AppState> {
+
+  @override
+  Object wrapError(error) {
+     if ((error is PlatformException) && (error.code == "Error performing get") &&
+               (error.message == "Failed to get document because the client is offline."))
+        return UserException("Check your internet connection.", cause: error);
+     else 
+        return error; 
+  }    
+```
+
+However, then you'd have to add this to all actions that use Firebase. 
+A better way is doing this globally by passing a `WrapError` object to the store:
+
+```dart              
+var store = Store<AppState>(
+  initialState: AppState.initialState(),
+  wrapError: MyWrapError(),
+);
+
+class MyWrapError extends WrapError {
+  @override
+  UserException wrap(Object error) {
+    if ((error is PlatformException) && (error.code == "Error performing get") &&
+          (error.message == "Failed to get document because the client is offline.")) 
+        return UserException("Check your internet connection.", cause: error);
+    else 
+        return null;
+  }
+}    
+```
+
+The `WrapError` object will be given all errors which are **not** of type `UserException`.
+It may then return a `UserException` which will be used instead of the original exception.
+Otherwise, it just returns `null`, so that the original exception will not be modified.
+
+Note this wrapper is called **after** `ReduxAction.wrapError`, and **before** the `ErrorObserver`.
+ 
+ 
+
 ### UserExceptionAction 
 
 If you want the `UserExceptionDialog` to display some `UserException`,
