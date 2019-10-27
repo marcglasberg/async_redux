@@ -1,4 +1,4 @@
-## [2.0.8] - 2019/10/27
+## [2.1.0] - 2019/10/27
 
 * Better translations support for UserException. 
 * Global WrapError in the store. 
@@ -14,7 +14,7 @@
 
 ## [2.0.4] - 2019/10/01
 
-* StoreTester: waitUntilError and waitUntilErrorGetLast.
+* StoreTester.waitUntilError and waitUntilErrorGetLast.
 
 ## [2.0.3] - 2019/09/21
 
