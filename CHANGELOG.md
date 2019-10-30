@@ -1,3 +1,7 @@
+## [2.1.1] - 2019/10/30
+
+* Removed deprecated ignoreChange. Use shouldUpdateModel instead.
+ 
 ## [2.1.0] - 2019/10/27
 
 * Better translations support for UserException. 

@@ -947,10 +947,8 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
     this.onWillChange,
     this.onDidChange,
     this.onInitialBuild,
-    ShouldUpdateModel<St> shouldUpdateModel,
-    @Deprecated("Use `shouldUpdateModel` instead.") ShouldUpdateModel<St> ignoreChange,
-  })  : shouldUpdateModel = shouldUpdateModel ?? ignoreChange,
-        super(key: key);
+    this.shouldUpdateModel,
+  }) : super(key: key);
 
   @override
   State<StatefulWidget> createState() {

@@ -526,8 +526,6 @@ class TestInfoList<St> {
   bool get isNotEmpty => !isEmpty;
 
   void _add(TestInfo<St> info) => _info.add(info);
-
-  void _addAll(TestInfoList<St> infoList) => _info.addAll(infoList._info);
 }
 
 // /////////////////////////////////////////////////////////////////////////////
