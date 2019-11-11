@@ -8,14 +8,15 @@ void main() {
   Persistor persistor;
   LocalDb localDb;
 
-  Future<void> setupPersistorAndLocalDb({Duration throttle}) async {
-    persistor = Persistor(throttle: throttle);
+  Future<void> setupPersistorAndLocalDb({
+    Duration throttle,
+    Duration saveDuration,
+  }) async {
+    persistor = Persistor(throttle: throttle, saveDuration: saveDuration);
     await persistor.init();
     await persistor.deleteAppState();
     localDb = persistor.localDb;
   }
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   Future<StoreTester<AppState>> createStoreTester() async {
     //
@@ -33,6 +34,8 @@ void main() {
 
     return StoreTester.from(store);
   }
+
+  void printResults(List<Object> results) => print("-\nRESULTS:\n${results.join("\n")}\n-");
 
   ///////////////////////////////////////////////////////////////////////////////
 
@@ -92,16 +95,370 @@ void main() {
 
   ///////////////////////////////////////////////////////////////////////////////
 
-//  test(
-//      'The state is taking time to persist.
-//      Meanwhile it tries to persist again.
-//      It will not persist at this time, since the last persist hasn't finished,
-//      but it will schedule a future persist.',
-//      () async {
-//  });
+  test(
+      "There is no throttle. "
+      "The state is changed each 40 milliseconds. "
+      "Here we test that the initial state is persisted, "
+      "and then that the state and the persistence change together.", () async {
+    //
+    List<String> results = [];
+
+    await setupPersistorAndLocalDb(throttle: null);
+    var storeTester = await createStoreTester();
+
+    String result = writeStateAndDb(storeTester, localDb);
+    results.add(result);
+
+    int count = 0;
+    Completer completer = Completer();
+
+    Timer.periodic(Duration(milliseconds: 40), (timer) {
+      storeTester.dispatch(ChangeNameAction(count.toString()));
+      String result = writeStateAndDb(storeTester, localDb);
+      results.add(result);
+      count++;
+      if (count == 8) {
+        timer.cancel();
+        completer.complete();
+      }
+    });
+
+    await completer.future;
+
+    printResults(results);
+
+    expect(
+        results.join(),
+        "(state:John, db: John)"
+        "(state:0, db: 0)"
+        "(state:1, db: 1)"
+        "(state:2, db: 2)"
+        "(state:3, db: 3)"
+        "(state:4, db: 4)"
+        "(state:5, db: 5)"
+        "(state:6, db: 6)"
+        "(state:7, db: 7)");
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      "The throttle period is 215 milliseconds. "
+      "The state is changed each 60 milliseconds. "
+      "Here we test that the initial state is persisted, "
+      "and then that the state and the persistence occur when they should.", () async {
+    //
+    List<String> results = [];
+
+    await setupPersistorAndLocalDb(throttle: Duration(milliseconds: 215));
+    var storeTester = await createStoreTester();
+
+    String result = writeStateAndDb(storeTester, localDb);
+    results.add(result);
+
+    int count = 0;
+    Completer completer = Completer();
+
+    Timer.periodic(Duration(milliseconds: 60), (timer) {
+      storeTester.dispatch(ChangeNameAction(count.toString()));
+      String result = writeStateAndDb(storeTester, localDb);
+      results.add(result);
+      count++;
+      if (count == 15) {
+        timer.cancel();
+        completer.complete();
+      }
+    });
+
+    await completer.future;
+
+    printResults(results);
+
+    expect(
+        results.join(),
+        "(state:John, db: John)" // It starts with state and db in the initial state: John.
+        "(state:0, db: John)" // Saved state in 60 millis.
+        "(state:1, db: John)" // Saved state in 120 millis.
+        "(state:2, db: John)" // Saved state in 180 millis.
+        "(state:3, db: 2)" // Saved state in 240 millis. Saved db em 215 millis.
+        "(state:4, db: 2)" // Saved state in 300 millis.
+        "(state:5, db: 2)" // Saved state in 360 millis.
+        "(state:6, db: 2)" // Saved state in 420 millis.
+        "(state:7, db: 6)" // Saved state in 480 millis. Saved db em 430 millis.
+        "(state:8, db: 6)" // Saved state in 540 millis.
+        "(state:9, db: 6)" // Saved state in 600 millis.
+        "(state:10, db: 9)" // Saved state in 660 millis. Saved db em 645 millis.
+        "(state:11, db: 9)" // Saved state in 720 millis.
+        "(state:12, db: 9)" // Saved state in 780 millis.
+        "(state:13, db: 9)" // Saved state in 840 millis.
+        "(state:14, db: 13)"); // Saved state in 900 millis. Saved db em 860 millis.
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      "There is no throttle. "
+      "Each save takes 215 milliseconds. "
+      "The state is changed each 60 milliseconds. "
+      "Here we test that the initial state is persisted, "
+      "and then that the state and the persistence occur when they should.", () async {
+    //
+    List<String> results = [];
+
+    await setupPersistorAndLocalDb(
+      throttle: null,
+      saveDuration: Duration(milliseconds: 215),
+    );
+
+    var storeTester = await createStoreTester();
+
+    String result = writeStateAndDb(storeTester, localDb);
+    results.add(result);
+
+    int count = 0;
+    Completer completer = Completer();
+
+    Timer.periodic(Duration(milliseconds: 60), (timer) {
+      storeTester.dispatch(ChangeNameAction(count.toString()));
+
+      String result = writeStateAndDb(storeTester, localDb);
+      results.add(result);
+
+      count++;
+      if (count == 16) {
+        timer.cancel();
+        completer.complete();
+      }
+    });
+
+    await completer.future;
+
+    printResults(results);
+
+    expect(
+        results.join(),
+        "(state:John, db: John)" // It starts with state and db in the initial state: John.
+        "(state:0, db: John)" // Changed the state in 60 millis. Started saving state 0 (will finish: 60+215=275 millis).
+        "(state:1, db: John)" // Changed the state in 120 millis.
+        "(state:2, db: John)" // Changed state in 180 millis.
+        "(state:3, db: John)" // Changed state in 240 millis. Started saving state 3 in 275 millis (will finish: 275+215=490 millis).
+        "(state:4, db: 0)" // Changed state in 300 millis.
+        "(state:5, db: 0)" // Changed state in 360 millis.
+        "(state:6, db: 0)" // Changed state in 420 millis.
+        "(state:7, db: 0)" // Changed state in 480 millis. Started saving state 7 in 490 millis (will finish: 490+215=705 millis).
+        "(state:8, db: 3)" // Changed state in 540 millis.
+        "(state:9, db: 3)" // Changed state in 600 millis.
+        "(state:10, db: 3)" // Changed state in 660 millis. Started saving state 10 in 705 millis (will finish: 705+215=920 millis).
+        "(state:11, db: 7)" // Changed state in 720 millis.
+        "(state:12, db: 7)" // Changed state in 780 millis.
+        "(state:13, db: 7)" // Changed state in 840 millis.
+        "(state:14, db: 7)" // Changed state in 900 millis.
+        "(state:15, db: 10)"); // Changed state in 960 millis. Started saving state 15 in 920 millis (will finish: 920+215 millis).
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      "There is a 300 millis throttle. "
+      "A first state change happens. A save starts immediately."
+      "A second state change happens 100 millis after the first. "
+      "No other state changes happen. "
+      "A second save will happen at 300 millis. "
+      "This second save is necessary to save the second state change.", () async {
+    //
+    List<String> results = [];
+
+    await setupPersistorAndLocalDb(
+      throttle: Duration(milliseconds: 300),
+      saveDuration: null,
+    );
+
+    var storeTester = await createStoreTester();
+
+    /// Discard the time waiting for the saving of the initial state.
+    await Future.delayed(Duration(milliseconds: 300));
+
+    // At 0 millis: (state:John, db: John)
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 0 millis the state is changed and saved: (state:1st, db: 1st)
+    storeTester.dispatch(ChangeNameAction("1st"));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 100 millis the state is initially unchanged (state:1st, db: 1st)
+    await Future.delayed(Duration(milliseconds: 100));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 100 millis the state is changed and saved: (state:2nd, db: 1st)
+    storeTester.dispatch(ChangeNameAction("2nd"));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 200 millis the state is unchanged: (state:2nd, db: 1st)
+    await Future.delayed(Duration(milliseconds: 100));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // Right before 300 millis the state is unchanged: (state:2nd, db: 1st)
+    await Future.delayed(Duration(milliseconds: 80));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // Right after 300 millis the state is saved: (state:2nd, db: 2nd)
+    await Future.delayed(Duration(milliseconds: 40));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    printResults(results);
+
+    expect(
+        results.join(),
+        "(state:John, db: John)"
+        "(state:1st, db: 1st)"
+        "(state:1st, db: 1st)"
+        "(state:2nd, db: 1st)"
+        "(state:2nd, db: 1st)"
+        "(state:2nd, db: 1st)"
+        "(state:2nd, db: 2nd)");
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      "There is a 300 save duration, and no throttle. "
+      "A first state change happens. A save starts immediately."
+      "A second state change happens 100 millis after the first. "
+      "No other state changes happen. "
+      "A second save will happen at 300 millis. "
+      "This second save is necessary to save the second state change.", () async {
+    //
+    List<String> results = [];
+
+    await setupPersistorAndLocalDb(
+      throttle: null,
+      saveDuration: Duration(milliseconds: 300),
+    );
+
+    var storeTester = await createStoreTester();
+
+    /// Discard the time waiting for the saving of the initial state.
+    await Future.delayed(Duration(milliseconds: 300));
+
+    // At 0 millis: (state:John, db: John)
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 0 millis the state is and the save starts: (state:1st, db: John)
+    storeTester.dispatch(ChangeNameAction("1st"));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 100 millis the state is initially unchanged (state:1st, db: John)
+    await Future.delayed(Duration(milliseconds: 100));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 100 millis the state is changed, but the previous save hasn't finished: (state:2nd, db: John)
+    storeTester.dispatch(ChangeNameAction("2nd"));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 200 millis the state is unchanged: (state:2nd, db: John)
+    await Future.delayed(Duration(milliseconds: 100));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // Right before 300 millis the state is unchanged: (state:2nd, db: John)
+    await Future.delayed(Duration(milliseconds: 80));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // Right after 300 millis the 1st state is saved: (state:2nd, db: 1st)
+    await Future.delayed(Duration(milliseconds: 40));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // It will take 300 millis more (until 600) to save the 2nd state.
+    // So, at 580 millis we're still at (state:2nd, db: 1st)
+    await Future.delayed(Duration(milliseconds: 260));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 620 we're finally finished: (state:2nd, db: 2nd)
+    await Future.delayed(Duration(milliseconds: 40));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    printResults(results);
+
+    expect(
+        results.join(),
+        "(state:John, db: John)"
+        "(state:1st, db: John)"
+        "(state:1st, db: John)"
+        "(state:2nd, db: John)"
+        "(state:2nd, db: John)"
+        "(state:2nd, db: John)"
+        "(state:2nd, db: 1st)"
+        "(state:2nd, db: 1st)"
+        "(state:2nd, db: 2nd)");
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      "There is throttle period of 300 millis. "
+      "A first state change happens. A save starts immediately."
+      "A second state change happens 100 millis after the first. "
+      "However at 150 a PersistAction is dispatched. "
+      "And this saves the second state change right away.", () async {
+    //
+    List<String> results = [];
+
+    await setupPersistorAndLocalDb(
+      throttle: Duration(milliseconds: 300),
+      saveDuration: null,
+    );
+
+    var storeTester = await createStoreTester();
+
+    /// Discard the throttle period for the saving of the initial state.
+    await Future.delayed(Duration(milliseconds: 300));
+
+    // At 0 millis: (state:John, db: John)
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 0 millis the state is changed and saved: (state:1st, db: 1st)
+    storeTester.dispatch(ChangeNameAction("1st"));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 100 millis the state is initially unchanged (state:1st, db: 1st)
+    await Future.delayed(Duration(milliseconds: 100));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 100 millis the state is changed and saved: (state:2nd, db: 1st)
+    storeTester.dispatch(ChangeNameAction("2nd"));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 150 millis the state is initially unchanged (state:2nd, db: 1st)
+    await Future.delayed(Duration(milliseconds: 50));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 150 millis the PersistAction is dispatched. The state is changed: (state:2nd, db: 2nd)
+    storeTester.dispatch(PersistAction());
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    // At 400 millis the state is unchanged (state:2nd, db: 2nd)
+    await Future.delayed(Duration(milliseconds: 150));
+    results.add(writeStateAndDb(storeTester, localDb));
+
+    printResults(results);
+
+    expect(
+        results.join(),
+        "(state:John, db: John)"
+        "(state:1st, db: 1st)"
+        "(state:1st, db: 1st)"
+        "(state:2nd, db: 1st)"
+        "(state:2nd, db: 1st)"
+        "(state:2nd, db: 2nd)"
+        "(state:2nd, db: 2nd)");
+  });
 
   ///////////////////////////////////////////////////////////////////////////////
 }
+
+String writeStateAndDb(StoreTester<AppState> storeTester, LocalDb localDb) => "("
+    "state:${storeTester.state.name}, "
+    "db: ${localDb.get(db: 'main', id: Id('name'))}"
+    ")";
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -200,12 +557,18 @@ abstract class LocalDb<T> {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+class NotFound {
+  const NotFound();
+
+  static const instance = NotFound();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 class SavedInfo {
   //
   final Id id;
   final Object info;
-
-  static const notFound = SavedInfo._();
 
   const SavedInfo._()
       : id = null,
@@ -214,8 +577,9 @@ class SavedInfo {
   SavedInfo(this.id, this.info) : assert(id != null);
 
   @override
-  String toString() =>
-      identical(this, notFound) ? "SavedInfo{Not Found}" : 'SavedInfo{id: $id, info: $info}';
+  String toString() => identical(this, NotFound.instance)
+      ? "SavedInfo{Not Found}"
+      : 'SavedInfo{id: $id, info: $info}';
 
   @override
   bool operator ==(Object other) =>
@@ -290,7 +654,7 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
     if (orElse != null)
       return orElse();
     else
-      return SavedInfo.notFound;
+      return NotFound.instance;
   }
 
   /// Searches the LAST change.
@@ -311,7 +675,7 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
       deserializer: deserializer,
     );
 
-    if (value == SavedInfo.notFound)
+    if (value == NotFound.instance)
       throw PersistException("Can't find: $id in db: $db.");
     else
       return value;
@@ -323,10 +687,17 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
 class Persistor implements PersistObserver<AppState> {
   //
   Duration _throttle;
+  Duration _saveDuration;
 
-  Persistor({Duration throttle}) : _throttle = throttle;
+  Persistor({
+    Duration throttle,
+    Duration saveDuration,
+  })  : _throttle = throttle,
+        _saveDuration = saveDuration;
 
   Duration get throttle => _throttle;
+
+  Duration get saveDuration => _saveDuration;
 
   LocalDb _localDb;
 
@@ -343,7 +714,7 @@ class Persistor implements PersistObserver<AppState> {
     if (localDb.isNotEmpty)
       throw PersistException("Store is already persisted.");
     else
-      persistDifference(lastPersistedState: null, newState: state);
+      return persistDifference(lastPersistedState: null, newState: state);
   }
 
   @override
@@ -353,7 +724,7 @@ class Persistor implements PersistObserver<AppState> {
   }) async {
     assert(newState != null);
 
-    List<Future<void>> saves = [];
+    if (saveDuration != null) await Future.delayed(saveDuration);
 
     if (lastPersistedState == null || lastPersistedState.name != newState.name) {
       await localDb.save(db: "main", id: Id("name"), info: newState.name);
@@ -380,9 +751,7 @@ class ChangeNameAction extends ReduxAction<AppState> {
   ChangeNameAction(this.name);
 
   @override
-  FutureOr<AppState> reduce() => state.copy(
-        name: name,
-      );
+  FutureOr<AppState> reduce() => state.copy(name: name);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

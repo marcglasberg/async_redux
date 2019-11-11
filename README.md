@@ -1631,8 +1631,7 @@ and then a single call to the method will be made with all the changes after thi
 
 Also, the `persistDifference` method won't be called while the previous save is not finished, 
 even if the throttle period is done. 
-In this case, if a new state becomes available, 
-the method will be called as soon as the current save finishes.
+In this case, if a new state becomes available the method will be called as soon as the current save finishes.
 
 Note you can also override the `throttle` getter to define a different throttle period.
 In special, if you define it as `null` there will be no throttle, 
