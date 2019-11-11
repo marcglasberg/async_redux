@@ -46,7 +46,8 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
    * [Action Subclassing](#action-subclassing)
       * [Abstract Before and After](#abstract-before-and-after)
    * [IDE Navigation](#ide-navigation)
-   * [Logging and Persistence](#logging-and-persistence)
+   * [Persistence](#persistence)
+   * [Logging](#logging)
    * [Observing rebuilds](#observing-rebuilds)
    * [How to interact with the database](#how-to-interact-with-the-database)
    * [How to deal with Streams](#how-to-deal-with-streams)
@@ -1575,16 +1576,89 @@ During development, if you need to see what some action does, you just tell your
 If you need to list all of your actions,
 you just go to the `ReduxAction` class declaration and ask the IDE to list all of its subclasses.
 
-## Logging and Persistence
 
-Your store optionally accepts lists of `actionObservers` and `stateObservers`.
-The first one may be used for logging, and the second for persistence:
+## Persistence
+
+Your store optionally accepts a `persistObserver`, which may be used for local persistence, 
+i.e., keeping the current app state saved to the local disk of the device.
+
+You should create your own `Persistor` class which extends the `PersistObserver` abstract class.
+This is the recommended way to use it: 
+
+```dart                       
+var persistor = Persistor();          
+
+var initialState = await persistor.readAppState();
+
+if (initialState == null) {
+      initialState = AppState.initialState();
+      persistor.saveInitialState(initialState);
+    }
+
+var store = Store<AppState>(
+  initialState: initialState,  
+  persistObserver: persistor,
+);
+```           
+
+As you can see above, when the app starts you use the `readAppState` method 
+to try and read the state from the disk.
+If this method returns `null`, you must create an initial state and save it.
+You then create the store with the `initialState` and the `persistor`.  
+
+This is the `PersistObserver` implementation: 
+ 
+```dart
+abstract class PersistObserver<St> {
+  Future<St> readAppState();  
+  Future<void> deleteAppState();  
+  Future<void> persistDifference({@required St lastPersistedState, @required St newState});  
+  Future<void> saveInitialState(St state) => persistDifference(lastPersistedState: null, newState: state);    
+  Duration get throttle => const Duration(seconds: 2);
+}
+```                   
+
+The `persistDifference` method is the one you should implement 
+to be notified whenever you must save the state.
+It gets the `newState` and the `lastPersistedState`, 
+so that you can compare them and save the difference. Or, if your app state is simple,
+you can simply save the whole `newState` each time the method is called.
+    
+The `persistDifference` method will be called by AsyncRedux whenever the state changes, 
+but not more than once each 2 seconds, which is the throttle period.
+All state changes within these 2 seconds will be collected, 
+and then a single call to the method will be made with all the changes after this period.
+
+Also, the `persistDifference` method won't be called while the previous save is not finished, 
+even if the throttle period is done. 
+In this case, if a new state becomes available, 
+the method will be called as soon as the current save finishes.
+
+Note you can also override the `throttle` getter to define a different throttle period.
+In special, if you define it as `null` there will be no throttle, 
+and you'll be able to save the state as soon as it changes.    
+
+Even if you have a non-zero throttle period, sometimes you may want to save the state immediately.
+This is usually the case, for example, when the app is closing.
+You can do that by dispatching the provided `PersistAction`. 
+This action will ignore the throttle period 
+and call the `persistDifference` method right away to save the current state.
+
+```dart
+store.dispatch(PersistAction());
+```
+   
+
+## Logging
+
+Your store optionally accepts lists of `actionObservers` and `stateObservers`, 
+which may be used for logging:
 
 ```dart
 var store = Store<AppState>(
   initialState: state,
   actionObservers: [Log.printer(formatter: Log.verySimpleFormatter)],
-  stateObservers: persistor.createStateObservers(),
+  stateObservers: [StateLogger()],
 );
 ```
 
@@ -1638,6 +1712,7 @@ in case you need to compare them.
 Please note, unless the action reducer is synchronous, 
 getting an END action observation doesn't mean that all of the action effects have finished, 
 because the action may have started async processes that may well last into the future. And these processes may later dispatch other actions that will change the store state. However, it does mean that the action can no longer change the state **directly**.
+
 
 ## Observing rebuilds
 
@@ -1961,7 +2036,7 @@ Reducers as methods of action classes were shown to me by Scott Stoll and Simon 
 *The Flutter packages I've authored:* 
 * <a href="https://pub.dev/packages/async_redux">async_redux</a>
 * <a href="https://pub.dev/packages/provider_for_redux">provider_for_redux</a>
-* <a href="https://pub.dev/packages/i18_extension">i18_extension</a>
+* <a href="https://pub.dev/packages/i18n_extension">i18n_extension</a>
 * <a href="https://pub.dev/packages/align_positioned">align_positioned</a>
 * <a href="https://pub.dev/packages/network_to_file_image">network_to_file_image</a>
 * <a href="https://pub.dev/packages/matrix4_transform">matrix4_transform</a> 

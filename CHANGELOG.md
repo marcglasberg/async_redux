@@ -1,4 +1,8 @@
-## [2.1.1] - 2019/10/30
+## [2.1.4] - 2019/11/10
+
+* PersistObserver.
+
+## [2.1.3] - 2019/10/30
 
 * Removed deprecated ignoreChange. Use shouldUpdateModel instead.
  
