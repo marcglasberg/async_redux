@@ -47,6 +47,7 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [Abstract Before and After](#abstract-before-and-after)
    * [IDE Navigation](#ide-navigation)
    * [Persistence](#persistence)
+      * [Saving and Loading](#saving-and-loading)     
    * [Logging](#logging)
    * [Observing rebuilds](#observing-rebuilds)
    * [How to interact with the database](#how-to-interact-with-the-database)
@@ -1645,8 +1646,64 @@ and call the `persistDifference` method right away to save the current state.
 
 ```dart
 store.dispatch(PersistAction());
+```      
+
+Have a look at the: <a href="https://github.com/marcglasberg/async_redux/blob/master/test/persistence_test.dart">Persistence tests</a>.
+
+### Saving and Loading
+
+You can choose any way you want to save the state difference to the local disk,
+but one way is using the provided `Saver`, `Loader` and `Deleter` classes,
+which are very easy to use.
+ 
+First you need to convert yourself your objects to a list of **simple objects** 
+composed only of numbers, booleans, strings, lists and maps (you can nest lists and maps).    
+
+For example, this is a list of simple objects:
+
+```dart
+List<Object> simpleObjs = [
+  'Goodbye',
+  '"Life is what happens\n\rwhen you\'re busy making other plans." -John Lennon',
+  [100, 200, {"name": "João"}],
+  true,
+  42,
+];
 ```
-   
+
+Use the `Saver` class to save the list to the `abc.db` file: 
+
+```dart
+File file 
+   = await Saver(simpleObjs)
+       .save("abc.db");
+```
+
+And then later load them by using the `Loader` class:
+
+```dart
+List<Object> decoded 
+  = await Loader().load("abc.db");
+
+// Make sure they are equal.
+expect(decoded, simpleObjs);
+```
+
+Usually the `Saver` class rewrites the file. But it also lets you append more objects:  
+    
+```dart
+List<Object> moreObjs = ['Lets', 'append', 'more'];
+await saver.save("abc.db", append: true);
+```
+ 
+You can also delete the file by using the `Deleter`:  
+    
+```dart
+await Deleter().delete("abc.db");
+```                            
+
+Have a look at the: <a href="https://github.com/marcglasberg/async_redux/blob/master/test/saver_loader_test.dart">Saver and Loader tests</a>.
+ 
 
 ## Logging
 

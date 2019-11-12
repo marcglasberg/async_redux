@@ -632,7 +632,7 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
   }
 
   /// Searches the LAST change.
-  /// If not found, returns SavedInfo.notFound.
+  /// If not found, returns NotFound.instance.
   /// Will return null if the saved value is null.
   @override
   Object get({
@@ -658,7 +658,7 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
   }
 
   /// Searches the LAST change.
-  /// If not found, returns SavedInfo.notFound.
+  /// If not found, returns NotFound.instance.
   /// Will return null if the saved value is null.
   @override
   Object getOrThrow({
