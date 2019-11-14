@@ -262,16 +262,31 @@ class Loader {
 class Deleter {
   //
   /// Deletes "appDocsDir/db/$dbName" (except in tests it deletes from the system temp dir).
-  Future<File> delete(String dbName, {String dbSubDir}) async {
+  /// If the file was deleted, returns true.
+  /// If the file did not exist, return false.
+  Future<bool> delete(String dbName, {String dbSubDir}) async {
     if (Saver._appDocDir == null) await Saver._findAppDocDir();
     String pathNameStr = Saver.pathName(dbName, dbSubDir: dbSubDir);
     File file = File(pathNameStr);
     return deleteFile(file);
   }
 
-  /// Loads from the given file.
-  Future<File> deleteFile(File file) async {
-    return file.delete(recursive: true);
+  /// Deletes the file.
+  /// If the file was deleted, returns true.
+  /// If the file did not exist, return false.
+  Future<bool> deleteFile(File file) async {
+    if (!file.existsSync())
+      return false;
+    else {
+      try {
+        await file.delete(recursive: true);
+        return true;
+      } catch (error) {
+        if ((error is FileSystemException) && error.message.contains("No such file or directory"))
+          return false;
+        rethrow;
+      }
+    }
   }
 }
 

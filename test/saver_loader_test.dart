@@ -198,15 +198,30 @@ void main() {
 
   test("Load/Length/Exists file that doesn't exist, or exists and is empty.", () async {
     //
+    // File doesn't exist.
     expect(await Loader().load("doesnotexist"), isNull);
     expect(await Loader().length("doesnotexist"), 0);
     expect(Loader().exists("doesnotexist"), false);
 
+    // File exists and is empty.
     var saver = Saver([]);
     File file = await saver.save("my_file");
     expect(await Loader().loadFile(file), []);
     expect(await Loader().lengthFile(file), 0);
     expect(Loader().existsFile(file), true);
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  test("Deletes a file that exists or doesn't exist.", () async {
+    //
+    // File doesn't exist.
+    expect(await Deleter().delete("doesnotexist"), isFalse);
+
+    // File exists and is deleted.
+    var saver = Saver([]);
+    File file = await saver.save("my_file");
+    expect(await Deleter().deleteFile(file), isTrue);
   });
 
   /////////////////////////////////////////////////////////////////////////////
