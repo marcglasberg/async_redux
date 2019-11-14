@@ -1593,7 +1593,7 @@ var initialState = await persistor.readAppState();
 
 if (initialState == null) {
       initialState = AppState.initialState();
-      persistor.saveInitialState(initialState);
+      await persistor.saveInitialState(initialState);
     }
 
 var store = Store<AppState>(

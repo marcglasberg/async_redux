@@ -58,7 +58,7 @@ void main() {
     ];
 
     var saver = Saver(simpleObjs);
-    File file = await saver.save("abc.db");
+    File file = await saver.save("abc");
 
     var loader = Loader();
     List<Object> decoded = await loader.loadFile(file);
@@ -74,7 +74,7 @@ void main() {
         '$randNumber (int)');
 
     // Cleans up test.
-    await Deleter().delete("abc.db");
+    await Deleter().delete("abc");
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -90,10 +90,10 @@ void main() {
     var saver = Saver()
       ..add(randNumber1)
       ..addAll([randNumber2, randNumber3]);
-    await saver.save("xyz.db");
+    await saver.save("xyz");
 
     var loader = Loader();
-    List<Object> decoded = await loader.load("xyz.db");
+    List<Object> decoded = await loader.load("xyz");
 
     expect(decoded, [randNumber1, randNumber2, randNumber3]);
 
@@ -104,7 +104,7 @@ void main() {
         '$randNumber3 (int)');
 
     // Cleans up test.
-    await Deleter().delete("xyz.db");
+    await Deleter().delete("xyz");
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -117,10 +117,10 @@ void main() {
     int randNumber2 = rand.nextInt(1000);
 
     var saver = Saver(["Hello", randNumber1]);
-    await saver.save("lmn.db", append: false);
+    await saver.save("lmn", append: false);
 
     saver = Saver(["There", randNumber2]);
-    await saver.save("lmn.db", append: true);
+    await saver.save("lmn", append: true);
 
     saver = Saver([
       35,
@@ -130,10 +130,10 @@ void main() {
         "y": [1, 2]
       }
     ]);
-    await saver.save("lmn.db", append: true);
+    await saver.save("lmn", append: true);
 
     var loader = Loader();
-    List<Object> decoded = await loader.load("lmn.db");
+    List<Object> decoded = await loader.load("lmn");
 
     expect(decoded, [
       "Hello",
@@ -159,7 +159,7 @@ void main() {
         '{x: 1, y: [1, 2]} (_InternalLinkedHashMap<String, dynamic>)');
 
     // Cleans up test.
-    await Deleter().delete("lmn.db");
+    await Deleter().delete("lmn");
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -168,30 +168,45 @@ void main() {
     //
     // Create.
     var saver = Saver([123]);
-    File file = await saver.save("klm.db", append: false);
+    File file = await saver.save("klm", append: false);
     var loader = Loader();
-    var decoded = await loader.load("klm.db");
+    var decoded = await loader.load("klm");
     expect(decoded, [123]);
 
     // Append.
     saver = Saver([456]);
     await saver.saveFile(file, append: true);
     loader = Loader();
-    decoded = await loader.load("klm.db");
+    decoded = await loader.load("klm");
     expect(decoded, [123, 456]);
 
     // Overwrite.
     saver = Saver([789]);
     await saver.saveFile(file, append: false);
     loader = Loader();
-    decoded = await loader.load("klm.db");
+    decoded = await loader.load("klm");
     expect(decoded, [789]);
 
     // Delete.
     var deleter = Deleter();
     expect(file.existsSync(), true);
-    await deleter.delete("klm.db");
+    await deleter.delete("klm");
     expect(file.existsSync(), false);
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  test("Load/Length/Exists file that doesn't exist, or exists and is empty.", () async {
+    //
+    expect(await Loader().load("doesnotexist"), isNull);
+    expect(await Loader().length("doesnotexist"), 0);
+    expect(Loader().exists("doesnotexist"), false);
+
+    var saver = Saver([]);
+    File file = await saver.save("my_file");
+    expect(await Loader().loadFile(file), []);
+    expect(await Loader().lengthFile(file), 0);
+    expect(Loader().existsFile(file), true);
   });
 
   /////////////////////////////////////////////////////////////////////////////

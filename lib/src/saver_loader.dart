@@ -32,6 +32,10 @@ class Saver {
   /// This is not final, so you can change it.
   static String defaultDbSubDir = "db";
 
+  /// The default is adding a ".db" termination to the file name.
+  /// This is not final, so you can change it.
+  static String defaultTermination = ".db";
+
   static Directory get appDocDir => _appDocDir;
   static Directory _appDocDir;
 
@@ -50,8 +54,10 @@ class Saver {
   Future<File> save(String dbName, {String dbSubDir, bool append: false}) async {
     if (_appDocDir == null) await _findAppDocDir();
 
-    String pathName = p.join(_appDocDir.path, dbSubDir ?? defaultDbSubDir, "$dbName.db");
-    File file = File(pathName);
+    String pathNameStr = pathName(dbName, dbSubDir: dbSubDir);
+
+    File file = File(pathNameStr);
+
     file.createSync(recursive: true);
 
     return saveFile(file, append: append);
@@ -67,6 +73,9 @@ class Saver {
       mode: append ? FileMode.writeOnlyAppend : FileMode.writeOnly,
     );
   }
+
+  static String pathName(String dbName, {String dbSubDir}) => p.join(Saver._appDocDir.path,
+      dbSubDir ?? Saver.defaultDbSubDir, "$dbName${Saver.defaultTermination}");
 
   /// If running from Flutter, this will get the application's documents directory.
   /// If running from tests, it will use the system's temp directory.
@@ -136,7 +145,7 @@ class Saver {
 /// 2) Example of loading from a file name:
 ///
 /// var loader = Loader();
-/// List<Object> decoded = await loader.load("my_file.db");
+/// List<Object> decoded = await loader.load("my_file");
 /// loader.printSimpleObjs(decoded);
 ///
 /// 3) Example of decoding, and not loading:
@@ -151,22 +160,67 @@ class Loader {
   List<Object> simpleObjs;
 
   /// Loads from "appDocsDir/db/$dbName" (except in tests it loads from the system temp dir).
+  /// If the file doesn't exist, returns null.
+  /// If the file exists and is empty, returns an empty list.
   Future<List<Object>> load(String dbName, {String dbSubDir}) async {
     if (Saver._appDocDir == null) await Saver._findAppDocDir();
-
-    String pathName =
-        p.join(Saver._appDocDir.path, dbSubDir ?? Saver.defaultDbSubDir, "$dbName.db");
-    var file = File(pathName);
-
+    String pathNameStr = Saver.pathName(dbName, dbSubDir: dbSubDir);
+    var file = File(pathNameStr);
     return loadFile(file);
   }
 
   /// Loads from the given file.
+  /// If the file doesn't exist, returns null.
+  /// If the file exists and is empty, returns an empty list.
   Future<List<Object>> loadFile(File file) async {
-    Uint8List encoded = await file.readAsBytes();
-    simpleObjs = decode(encoded);
-    return simpleObjs;
+    if (!file.existsSync())
+      return null;
+    else {
+      Uint8List encoded;
+      try {
+        encoded = await file.readAsBytes();
+      } catch (error) {
+        if ((error is FileSystemException) && error.message.contains("No such file or directory"))
+          return null;
+        rethrow;
+      }
+
+      simpleObjs = decode(encoded);
+      return simpleObjs;
+    }
   }
+
+  /// Returns the file length.
+  /// If the file doesn't exist, or exists and is empty, returns 0.
+  Future<int> length(String dbName, {String dbSubDir}) async {
+    String pathNameStr = Saver.pathName(dbName, dbSubDir: dbSubDir);
+    return lengthFile(File(pathNameStr));
+  }
+
+  /// Returns the file length.
+  /// If the file doesn't exist, or exists and is empty, returns 0.
+  Future<int> lengthFile(File file) async {
+    if (!file.existsSync())
+      return 0;
+    else {
+      try {
+        return file.length();
+      } catch (error) {
+        if ((error is FileSystemException) && error.message.contains("No such file or directory"))
+          return 0;
+        rethrow;
+      }
+    }
+  }
+
+  /// Returns true if the file exist. False, otherwise.
+  bool exists(String dbName, {String dbSubDir}) {
+    String pathNameStr = Saver.pathName(dbName, dbSubDir: dbSubDir);
+    return existsFile(File(pathNameStr));
+  }
+
+  /// Returns true if the file exist. False, otherwise.
+  bool existsFile(File file) => file.existsSync();
 
   @override
   String toString() => simpleObjs == null
@@ -210,11 +264,8 @@ class Deleter {
   /// Deletes "appDocsDir/db/$dbName" (except in tests it deletes from the system temp dir).
   Future<File> delete(String dbName, {String dbSubDir}) async {
     if (Saver._appDocDir == null) await Saver._findAppDocDir();
-
-    String pathName =
-        p.join(Saver._appDocDir.path, dbSubDir ?? Saver.defaultDbSubDir, "$dbName.db");
-    File file = File(pathName);
-
+    String pathNameStr = Saver.pathName(dbName, dbSubDir: dbSubDir);
+    File file = File(pathNameStr);
     return deleteFile(file);
   }
 
