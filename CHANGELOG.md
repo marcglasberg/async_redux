@@ -1,3 +1,7 @@
+## [2.2.0] - 2019/11/15
+
+* * Breaking change: PersistObserver became Persistor (and other renames).
+
 ## [2.1.9] - 2019/11/12
 
 * Saver/Loader.

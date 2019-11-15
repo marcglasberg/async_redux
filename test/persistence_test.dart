@@ -5,22 +5,22 @@ import "package:test/test.dart";
 
 void main() {
   //
-  Persistor persistor;
+  MyPersistor persistor;
   LocalDb localDb;
 
   Future<void> setupPersistorAndLocalDb({
     Duration throttle,
     Duration saveDuration,
   }) async {
-    persistor = Persistor(throttle: throttle, saveDuration: saveDuration);
+    persistor = MyPersistor(throttle: throttle, saveDuration: saveDuration);
     await persistor.init();
-    await persistor.deleteAppState();
+    await persistor.deleteState();
     localDb = persistor.localDb;
   }
 
   Future<StoreTester<AppState>> createStoreTester() async {
     //
-    var initialState = await persistor.readAppState();
+    var initialState = await persistor.readState();
 
     if (initialState == null) {
       initialState = AppState.initialState();
@@ -29,7 +29,7 @@ void main() {
 
     var store = Store<AppState>(
       initialState: initialState,
-      persistObserver: persistor,
+      persistor: persistor,
     );
 
     return StoreTester.from(store);
@@ -44,17 +44,17 @@ void main() {
 
     var storeTester = await createStoreTester();
     expect(storeTester.state.name, "John");
-    expect(await persistor.readAppState(), storeTester.state);
+    expect(await persistor.readState(), storeTester.state);
 
     storeTester.dispatch(ChangeNameAction("Mary"));
     TestInfo<AppState> info1 = await storeTester.waitAllGetLast([ChangeNameAction]);
     expect(localDb.get(db: "main", id: Id("name")), "Mary");
-    expect(await persistor.readAppState(), info1.state);
+    expect(await persistor.readState(), info1.state);
 
     storeTester.dispatch(ChangeNameAction("Steve"));
     TestInfo<AppState> info2 = await storeTester.waitAllGetLast([ChangeNameAction]);
     expect(localDb.get(db: "main", id: Id("name")), "Steve");
-    expect(await persistor.readAppState(), info2.state);
+    expect(await persistor.readState(), info2.state);
   });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -64,33 +64,33 @@ void main() {
 
     var storeTester = await createStoreTester();
     expect(storeTester.state.name, "John");
-    expect(await persistor.readAppState(), storeTester.state);
+    expect(await persistor.readState(), storeTester.state);
 
     // 1) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Mary"));
     TestInfo<AppState> info1 = await storeTester.waitAllGetLast([ChangeNameAction]);
     expect(localDb.get(db: "main", id: Id("name")), "John");
     expect(info1.state.name, "Mary");
-    expect(await persistor.readAppState(), isNot(info1.state));
+    expect(await persistor.readState(), isNot(info1.state));
 
     // 2) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Steve"));
     TestInfo<AppState> info2 = await storeTester.waitAllGetLast([ChangeNameAction]);
     expect(localDb.get(db: "main", id: Id("name")), "John");
     expect(info2.state.name, "Steve");
-    expect(await persistor.readAppState(), isNot(info2.state));
+    expect(await persistor.readState(), isNot(info2.state));
 
     // 3) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Eve"));
     TestInfo<AppState> info3 = await storeTester.waitAllGetLast([ChangeNameAction]);
     expect(localDb.get(db: "main", id: Id("name")), "John");
     expect(info3.state.name, "Eve");
-    expect(await persistor.readAppState(), isNot(info3.state));
+    expect(await persistor.readState(), isNot(info3.state));
 
     // 4) Now lets wait until the save is done.
     await Future.delayed(Duration(milliseconds: 1500));
     expect(localDb.get(db: "main", id: Id("name")), "Eve");
-    expect(await persistor.readAppState(), storeTester.state);
+    expect(await persistor.readState(), storeTester.state);
   });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -684,12 +684,12 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class Persistor implements PersistObserver<AppState> {
+class MyPersistor implements Persistor<AppState> {
   //
   Duration _throttle;
   Duration _saveDuration;
 
-  Persistor({
+  MyPersistor({
     Duration throttle,
     Duration saveDuration,
   })  : _throttle = throttle,
@@ -731,14 +731,14 @@ class Persistor implements PersistObserver<AppState> {
     }
   }
 
-  Future<AppState> readAppState() async {
+  Future<AppState> readState() async {
     if (localDb.isEmpty)
       return null;
     else
       return AppState(name: localDb.getOrThrow(db: "main", id: Id("name")));
   }
 
-  Future<void> deleteAppState() async {
+  Future<void> deleteState() async {
     localDb.deleteDatabases();
   }
 }

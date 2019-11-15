@@ -2,14 +2,16 @@ import 'dart:async';
 
 import 'package:async_redux/src/store.dart';
 
+import '../async_redux.dart';
+
 class ProcessPersistence<St> {
   //
-  ProcessPersistence(this.persistObserver)
+  ProcessPersistence(this.persistor)
       : isPersisting = false,
         newStateAvailable = false,
         lastPersistTime = DateTime.now().toUtc();
 
-  PersistObserver persistObserver;
+  Persistor persistor;
   St lastPersistedState;
   St newestState;
   bool isPersisting;
@@ -17,7 +19,7 @@ class ProcessPersistence<St> {
   DateTime lastPersistTime;
   Timer timer;
 
-  Duration get throttle => persistObserver.throttle ?? const Duration();
+  Duration get throttle => persistor.throttle ?? const Duration();
 
   void process(
     ReduxAction<St> action,
@@ -60,7 +62,7 @@ class ProcessPersistence<St> {
     lastPersistTime = now;
     newStateAvailable = false;
 
-    persistObserver
+    persistor
         .persistDifference(lastPersistedState: lastPersistedState, newState: newState)
         .whenComplete(() {
       lastPersistedState = newState;

@@ -1580,14 +1580,14 @@ you just go to the `ReduxAction` class declaration and ask the IDE to list all o
 
 ## Persistence
 
-Your store optionally accepts a `persistObserver`, which may be used for local persistence, 
+Your store optionally accepts a `persistor`, which may be used for local persistence, 
 i.e., keeping the current app state saved to the local disk of the device.
 
-You should create your own `Persistor` class which extends the `PersistObserver` abstract class.
+You should create your own `MyPersistor` class which extends the `Persistor` abstract class.
 This is the recommended way to use it: 
 
 ```dart                       
-var persistor = Persistor();          
+var persistor = MyPersistor();          
 
 var initialState = await persistor.readAppState();
 
@@ -1598,7 +1598,7 @@ if (initialState == null) {
 
 var store = Store<AppState>(
   initialState: initialState,  
-  persistObserver: persistor,
+  persistor: persistor,
 );
 ```           
 
@@ -1607,12 +1607,12 @@ to try and read the state from the disk.
 If this method returns `null`, you must create an initial state and save it.
 You then create the store with the `initialState` and the `persistor`.  
 
-This is the `PersistObserver` implementation: 
+This is the `Persistor` implementation: 
  
 ```dart
-abstract class PersistObserver<St> {
-  Future<St> readAppState();  
-  Future<void> deleteAppState();  
+abstract class Persistor<St> {
+  Future<St> readState();  
+  Future<void> deleteState();  
   Future<void> persistDifference({@required St lastPersistedState, @required St newState});  
   Future<void> saveInitialState(St state) => persistDifference(lastPersistedState: null, newState: state);    
   Duration get throttle => const Duration(seconds: 2);

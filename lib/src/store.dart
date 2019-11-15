@@ -204,7 +204,7 @@ class Store<St> {
     bool ifRecordsTestInfo,
     List<ActionObserver> actionObservers,
     List<StateObserver> stateObservers,
-    PersistObserver persistObserver,
+    Persistor persistor,
     ModelObserver modelObserver,
     ErrorObserver errorObserver,
     WrapError wrapError,
@@ -213,7 +213,7 @@ class Store<St> {
         _changeController = StreamController.broadcast(sync: syncStream),
         _actionObservers = actionObservers,
         _stateObservers = stateObservers,
-        _processPersistence = persistObserver == null ? null : ProcessPersistence(persistObserver),
+        _processPersistence = persistor == null ? null : ProcessPersistence(persistor),
         _modelObserver = modelObserver,
         _errorObserver = errorObserver,
         _wrapError = wrapError,
@@ -573,20 +573,6 @@ abstract class ActionObserver<St> {
 
 abstract class StateObserver<St> {
   void observe(ReduxAction<St> action, St stateIni, St stateEnd, int dispatchCount);
-}
-
-abstract class PersistObserver<St> {
-  Future<St> readAppState();
-
-  Future<void> deleteAppState();
-
-  Future<void> persistDifference({@required St lastPersistedState, @required St newState});
-
-  Future<void> saveInitialState(St state) =>
-      persistDifference(lastPersistedState: null, newState: state);
-
-  /// The default throttle is 2 seconds. Pass null to turn off throttle.
-  Duration get throttle => const Duration(seconds: 2);
 }
 
 /// This will be given all errors, including those of type [UserException].
@@ -1302,34 +1288,6 @@ class StoreException implements Exception {
 
   @override
   int get hashCode => msg.hashCode;
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-
-class PersistException implements Exception {
-  final Object error;
-
-  PersistException(this.error);
-
-  @override
-  String toString() => error.toString();
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is PersistException && runtimeType == other.runtimeType && error == other.error;
-
-  @override
-  int get hashCode => error.hashCode;
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-
-class PersistAction<St> extends ReduxAction<St> {
-  @override
-  St reduce() {
-    return null;
-  }
 }
 
 // /////////////////////////////////////////////////////////////////////////////
