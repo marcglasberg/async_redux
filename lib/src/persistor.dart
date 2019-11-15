@@ -90,6 +90,27 @@ class PersistorPrinterDecorator<T> extends Persistor<T> {
 
 // /////////////////////////////////////////////////////////////////////////////
 
+/// A dummy persistor.
+///
+class PersistorDummy<T> extends Persistor<T> {
+  @override
+  Future<T> readState() async => null;
+
+  @override
+  Future<void> deleteState() async => null;
+
+  @override
+  Future<void> persistDifference({lastPersistedState, newState}) async => null;
+
+  @override
+  Future<void> saveInitialState(state) async => null;
+
+  @override
+  Duration get throttle => null;
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+
 class PersistException implements Exception {
   final Object error;
 

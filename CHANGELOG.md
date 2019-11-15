@@ -1,6 +1,7 @@
 ## [2.2.0] - 2019/11/15
 
-* * Breaking change: PersistObserver became Persistor (and other renames).
+* Breaking change: PersistObserver became Persistor (and other renames).
+* PersistorPrinterDecorator. PersistorDummy.
 
 ## [2.1.9] - 2019/11/12
 
