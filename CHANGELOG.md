@@ -1,3 +1,7 @@
+## [2.2.1] - 2019/11/18
+
+* Persistor: Load single objects.
+
 ## [2.2.0] - 2019/11/15
 
 * Breaking change: PersistObserver became Persistor (and other renames).

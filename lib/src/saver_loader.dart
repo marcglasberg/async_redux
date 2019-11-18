@@ -190,6 +190,28 @@ class Loader {
     }
   }
 
+  /// Same as [load], but expects the file to be a Map<String, dynamic>
+  /// representing a single object. Will fail if it's not a map,
+  /// or if contains more than one single object.
+  Future<Map<String, dynamic>> loadAsObj(String dbName, {String dbSubDir}) async {
+    if (Saver._appDocDir == null) await Saver._findAppDocDir();
+    String pathNameStr = Saver.pathName(dbName, dbSubDir: dbSubDir);
+    var file = File(pathNameStr);
+    return loadFileAsObj(file);
+  }
+
+  /// Same as [loadFile], but expects the file to be a Map<String, dynamic>
+  /// representing a single object. Will fail if it's not a map,
+  /// or if contains more than one single object.
+  Future<Map<String, dynamic>> loadFileAsObj(File file) async {
+    List<Object> simpleObjs = await loadFile(file);
+    if (simpleObjs == null) return null;
+    if (simpleObjs.length != 1) throw PersistException("Not a single object.");
+    var simpleObj = simpleObjs[0];
+    if (simpleObj is! Map<String, dynamic>) throw PersistException("Not an object.");
+    return simpleObj;
+  }
+
   /// Returns the file length.
   /// If the file doesn't exist, or exists and is empty, returns 0.
   Future<int> length(String dbName, {String dbSubDir}) async {

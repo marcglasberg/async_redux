@@ -225,4 +225,81 @@ void main() {
   });
 
   /////////////////////////////////////////////////////////////////////////////
+
+  test('Load as object.', () async {
+    //
+    // User a random number to make sure it's not checking already saved files.
+    int randNumber = Random().nextInt(100000);
+
+    List<Object> simpleObjs = [
+      {
+        "one": 1,
+        "two": randNumber,
+      }
+    ];
+
+    var saver = Saver(simpleObjs);
+    File file = await saver.save("obj");
+
+    var loader = Loader();
+    Map<String, dynamic> decoded = await loader.loadFileAsObj(file);
+
+    expect(decoded, simpleObjs[0]);
+
+    // Cleans up test.
+    await Deleter().delete("obj");
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  test('Load many object as single object.', () async {
+    //
+    List<Object> simpleObjs = [
+      {
+        "one": 1,
+        "two": 2,
+      },
+      {
+        "three": 1,
+        "four": 2,
+      }
+    ];
+
+    var saver = Saver(simpleObjs);
+    File file = await saver.save("obj");
+
+    var error;
+    try {
+      await Loader().loadFileAsObj(file);
+    } catch (_error) {
+      error = _error;
+    }
+    expect(error, PersistException("Not a single object."));
+
+    // Cleans up test.
+    await Deleter().delete("obj");
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  test('Load as object (map) something which is not an object.', () async {
+    //
+    List<Object> simpleObjs = ["hey"];
+
+    var saver = Saver(simpleObjs);
+    File file = await saver.save("obj");
+
+    var error;
+    try {
+      await Loader().loadFileAsObj(file);
+    } catch (_error) {
+      error = _error;
+    }
+    expect(error, PersistException("Not an object."));
+
+    // Cleans up test.
+    await Deleter().delete("obj");
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
 }
