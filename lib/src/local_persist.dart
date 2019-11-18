@@ -10,38 +10,22 @@ import 'package:path_provider/path_provider.dart';
 // Developed by Marcelo Glasberg (Nov 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-/// This will save multiple simple objects in UTF-8 Json format.
-/// or will load multiple simple objects in UTF-8 Json format.
+/// This will save/load multiple simple objects in UTF-8 Json format.
 ///
-/// 1) Example of saving:
+/// Save example:
 ///
+/// ```dart
+/// var persist = LocalPersist("xyz");
 /// List<Object> simpleObjs = ['"Hello"', '"How are you?"', [1, 2, 3], 42];
-/// var saver = Saver(simpleObjs);
-/// File file = await saver.save("xyz");
+/// await persist.save();
+/// ```
 ///
-/// 2) Example of encoding, and not saving:
+/// Load example:
 ///
-/// saver = Saver(['"How are you?"', [1, 2, 3], 42]);
-/// Uint8List encoded = Saver.encode(saver.simpleObjs);
-///
-/// 3) Example of loading from a file:
-///
-/// var loader = Loader();
-/// List<Object> decoded = await loader.loadFile(file);
-/// loader.printSimpleObjs(decoded);
-///
-/// 4) Example of loading from a file name:
-///
-/// var loader = Loader();
-/// List<Object> decoded = await loader.load("my_file");
-/// loader.printSimpleObjs(decoded);
-///
-/// 5) Example of decoding, and not loading:
-///
-/// Uint8List encoded = Saver.encode(Saver(simpleObjs).simpleObjs);
-/// var loader = Loader();
-/// List<Object> decoded = loader.decode(encoded);
-/// loader.printSimpleObjs(decoded);
+/// ```dart
+/// var persist = LocalPersist("xyz");
+/// List<Object> decoded = await persist.load();
+/// ```
 ///
 class LocalPersist {
   //

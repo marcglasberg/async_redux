@@ -1653,7 +1653,7 @@ Have a look at the: <a href="https://github.com/marcglasberg/async_redux/blob/ma
 ### Saving and Loading
 
 You can choose any way you want to save the state difference to the local disk,
-but one way is using the provided `Persist` classe,
+but one way is using the provided `LocalPersist` class,
 which is very easy to use.
  
 First you need to convert yourself your objects to a list of **simple objects** 
@@ -1671,10 +1671,10 @@ List<Object> simpleObjs = [
 ];
 ```
 
-Then create a `Persist` class to use the `/db/myFile.db` file: 
+Then create a `LocalPersist` class to use the `/db/myFile.db` file: 
 
 ```dart
-var persist = Persist("myFile");
+var persist = LocalPersist("myFile");
 ```
 
 You can save the list to the file: 
@@ -1704,7 +1704,7 @@ bool exists = await persist.exists();
 await persist.delete();
 ```                            
 
-Have a look at the: <a href="https://github.com/marcglasberg/async_redux/blob/master/test/saver_loader_test.dart">Saver and Loader tests</a>.
+Have a look at the: <a href="https://github.com/marcglasberg/async_redux/blob/master/test/local_persist_test.dart">Local Persist tests</a>.
  
 
 ## Logging
