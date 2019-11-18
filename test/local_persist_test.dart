@@ -24,8 +24,8 @@ void main() {
       false
     ];
 
-    Uint8List encoded = Saver.encode(simpleObjs);
-    List<Object> decoded = Loader.decode(encoded);
+    Uint8List encoded = LocalPersist.encode(simpleObjs);
+    List<Object> decoded = LocalPersist.decode(encoded);
     expect(decoded, simpleObjs);
 
     expect(
@@ -57,11 +57,11 @@ void main() {
       randNumber,
     ];
 
-    var saver = Saver(simpleObjs);
-    File file = await saver.save("abc");
+    var persist = LocalPersist.fromFilename("abc");
 
-    var loader = Loader();
-    List<Object> decoded = await loader.loadFile(file);
+    await persist.save(simpleObjs);
+
+    List<Object> decoded = await persist.load();
 
     expect(decoded, simpleObjs);
 
@@ -74,7 +74,7 @@ void main() {
         '$randNumber (int)');
 
     // Cleans up test.
-    await Deleter().delete("abc");
+    await persist.delete();
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -87,13 +87,10 @@ void main() {
     int randNumber2 = rand.nextInt(1000);
     int randNumber3 = rand.nextInt(1000);
 
-    var saver = Saver()
-      ..add(randNumber1)
-      ..addAll([randNumber2, randNumber3]);
-    await saver.save("xyz");
+    var persist = LocalPersist.fromFilename("xyz");
+    await persist.save([randNumber1, randNumber2, randNumber3]);
 
-    var loader = Loader();
-    List<Object> decoded = await loader.load("xyz");
+    List<Object> decoded = await persist.load();
 
     expect(decoded, [randNumber1, randNumber2, randNumber3]);
 
@@ -104,7 +101,7 @@ void main() {
         '$randNumber3 (int)');
 
     // Cleans up test.
-    await Deleter().delete("xyz");
+    await persist.delete();
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -116,24 +113,22 @@ void main() {
     int randNumber1 = rand.nextInt(1000);
     int randNumber2 = rand.nextInt(1000);
 
-    var saver = Saver(["Hello", randNumber1]);
-    await saver.save("lmn", append: false);
+    var persist = LocalPersist.fromFilename("lmn");
 
-    saver = Saver(["There", randNumber2]);
-    await saver.save("lmn", append: true);
+    await persist.save(["Hello", randNumber1], append: false);
+    await persist.save(["There", randNumber2], append: true);
 
-    saver = Saver([
+    var simpleObjs = [
       35,
       false,
       {
         "x": 1,
         "y": [1, 2]
       }
-    ]);
-    await saver.save("lmn", append: true);
+    ];
+    await persist.save(simpleObjs, append: true);
 
-    var loader = Loader();
-    List<Object> decoded = await loader.load("lmn");
+    List<Object> decoded = await persist.load();
 
     expect(decoded, [
       "Hello",
@@ -149,7 +144,7 @@ void main() {
     ]);
 
     expect(
-        decoded.map((obj) => "$obj (${obj.runtimeType})").join("\n"),
+        LocalPersist.simpleObjsToString(decoded),
         'Hello (String)\n'
         '$randNumber1 (int)\n'
         'There (String)\n'
@@ -159,38 +154,34 @@ void main() {
         '{x: 1, y: [1, 2]} (_InternalLinkedHashMap<String, dynamic>)');
 
     // Cleans up test.
-    await Deleter().delete("lmn");
+    await persist.delete();
   });
 
   /////////////////////////////////////////////////////////////////////////////
 
   test('Test create, append, overwrite and delete the file.', () async {
     //
+    var persist = LocalPersist.fromFilename("klm");
+
     // Create.
-    var saver = Saver([123]);
-    File file = await saver.save("klm", append: false);
-    var loader = Loader();
-    var decoded = await loader.load("klm");
+    await persist.save([123], append: false);
+    var decoded = await persist.load();
     expect(decoded, [123]);
 
     // Append.
-    saver = Saver([456]);
-    await saver.saveFile(file, append: true);
-    loader = Loader();
-    decoded = await loader.load("klm");
+    await persist.save([456], append: true);
+    decoded = await persist.load();
     expect(decoded, [123, 456]);
 
     // Overwrite.
-    saver = Saver([789]);
-    await saver.saveFile(file, append: false);
-    loader = Loader();
-    decoded = await loader.load("klm");
+    await persist.save([789], append: false);
+    decoded = await persist.load();
     expect(decoded, [789]);
 
     // Delete.
-    var deleter = Deleter();
+    File file = await persist.file();
     expect(file.existsSync(), true);
-    await deleter.delete("klm");
+    await persist.delete();
     expect(file.existsSync(), false);
   });
 
@@ -199,16 +190,17 @@ void main() {
   test("Load/Length/Exists file that doesn't exist, or exists and is empty.", () async {
     //
     // File doesn't exist.
-    expect(await Loader().load("doesnotexist"), isNull);
-    expect(await Loader().length("doesnotexist"), 0);
-    expect(Loader().exists("doesnotexist"), false);
+    var persist = LocalPersist.fromFilename("doesnotexist");
+    expect(await persist.load(), isNull);
+    expect(await persist.length(), 0);
+    expect(await persist.exists(), false);
 
     // File exists and is empty.
-    var saver = Saver([]);
-    File file = await saver.save("my_file");
-    expect(await Loader().loadFile(file), []);
-    expect(await Loader().lengthFile(file), 0);
-    expect(Loader().existsFile(file), true);
+    persist = LocalPersist.fromFilename("my_file");
+    await persist.save([]);
+    expect(await persist.load(), []);
+    expect(await persist.length(), 0);
+    expect(await persist.exists(), true);
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -216,12 +208,13 @@ void main() {
   test("Deletes a file that exists or doesn't exist.", () async {
     //
     // File doesn't exist.
-    expect(await Deleter().delete("doesnotexist"), isFalse);
+    var persist = LocalPersist.fromFilename("doesnotexist");
+    expect(await persist.delete(), isFalse);
 
     // File exists and is deleted.
-    var saver = Saver([]);
-    File file = await saver.save("my_file");
-    expect(await Deleter().deleteFile(file), isTrue);
+    persist = LocalPersist.fromFilename("my_file");
+    await persist.save([]);
+    expect(await persist.delete(), isTrue);
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -238,16 +231,15 @@ void main() {
       }
     ];
 
-    var saver = Saver(simpleObjs);
-    File file = await saver.save("obj");
+    var persist = LocalPersist.fromFilename("obj");
+    await persist.save(simpleObjs);
 
-    var loader = Loader();
-    Map<String, dynamic> decoded = await loader.loadFileAsObj(file);
+    Map<String, dynamic> decoded = await persist.loadAsObj();
 
     expect(decoded, simpleObjs[0]);
 
     // Cleans up test.
-    await Deleter().delete("obj");
+    await persist.delete();
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -265,19 +257,19 @@ void main() {
       }
     ];
 
-    var saver = Saver(simpleObjs);
-    File file = await saver.save("obj");
+    var persist = LocalPersist.fromFilename("obj");
+    await persist.save(simpleObjs);
 
     var error;
     try {
-      await Loader().loadFileAsObj(file);
+      await persist.loadAsObj();
     } catch (_error) {
       error = _error;
     }
     expect(error, PersistException("Not a single object."));
 
     // Cleans up test.
-    await Deleter().delete("obj");
+    await persist.delete();
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -286,19 +278,19 @@ void main() {
     //
     List<Object> simpleObjs = ["hey"];
 
-    var saver = Saver(simpleObjs);
-    File file = await saver.save("obj");
+    var persist = LocalPersist.fromFilename("obj");
+    await persist.save(simpleObjs);
 
     var error;
     try {
-      await Loader().loadFileAsObj(file);
+      await persist.loadAsObj();
     } catch (_error) {
       error = _error;
     }
     expect(error, PersistException("Not an object."));
 
     // Cleans up test.
-    await Deleter().delete("obj");
+    await persist.delete();
   });
 
   /////////////////////////////////////////////////////////////////////////////

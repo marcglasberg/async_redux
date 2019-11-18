@@ -1653,8 +1653,8 @@ Have a look at the: <a href="https://github.com/marcglasberg/async_redux/blob/ma
 ### Saving and Loading
 
 You can choose any way you want to save the state difference to the local disk,
-but one way is using the provided `Saver`, `Loader` and `Deleter` classes,
-which are very easy to use.
+but one way is using the provided `Persist` classe,
+which is very easy to use.
  
 First you need to convert yourself your objects to a list of **simple objects** 
 composed only of numbers, booleans, strings, lists and maps (you can nest lists and maps).    
@@ -1671,35 +1671,37 @@ List<Object> simpleObjs = [
 ];
 ```
 
-Use the `Saver` class to save the list to the `abc.db` file: 
+Then create a `Persist` class to use the `/db/myFile.db` file: 
 
 ```dart
-File file 
-   = await Saver(simpleObjs)
-       .save("abc.db");
+var persist = Persist("myFile");
 ```
 
-And then later load them by using the `Loader` class:
+You can save the list to the file: 
 
 ```dart
-List<Object> decoded 
-  = await Loader().load("abc.db");
-
-// Make sure they are equal.
-expect(decoded, simpleObjs);
+await persist.save(simpleObjs);
 ```
 
-Usually the `Saver` class rewrites the file. But it also lets you append more objects:  
+And then later load these objects:
+
+```dart                                       
+List<Object> simpleObjs = await persistence.load();
+```
+
+Usually the `save` method rewrites the file. But it also lets you append more objects:  
     
 ```dart
 List<Object> moreObjs = ['Lets', 'append', 'more'];
-await saver.save("abc.db", append: true);
+await persist.save(simpleObjs, append: true);
 ```
  
-You can also delete the file by using the `Deleter`:  
+You can also delete the file, get its length, see if it exists etc:  
     
-```dart
-await Deleter().delete("abc.db");
+```dart                      
+int length = await persist.length();
+bool exists = await persist.exists();
+await persist.delete();
 ```                            
 
 Have a look at the: <a href="https://github.com/marcglasberg/async_redux/blob/master/test/saver_loader_test.dart">Saver and Loader tests</a>.

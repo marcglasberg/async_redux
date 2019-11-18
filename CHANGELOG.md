@@ -1,7 +1,7 @@
-## [2.2.1] - 2019/11/18
+## [2.3.0] - 2019/11/18
 
 * Better treatment of wrap-errors that throw.
-* Persistor: Load single objects.
+* LocalPersist (instead of Saver/Loader).
 
 ## [2.2.0] - 2019/11/15
 
