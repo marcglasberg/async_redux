@@ -1,5 +1,6 @@
 ## [2.2.1] - 2019/11/18
 
+* Better treatment of wrap-errors that throw.
 * Persistor: Load single objects.
 
 ## [2.2.0] - 2019/11/15

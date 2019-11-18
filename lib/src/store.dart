@@ -439,10 +439,22 @@ class Store<St> {
 
   /// Returns the processed error. Returns `null` if the error is meant to be "swallowed".
   dynamic _processError(error, ReduxAction<St> action, _Flag<bool> afterWasRun) {
-    error = action.wrapError(error);
+    try {
+      error = action.wrapError(error);
+    } catch (_error) {
+      // Swallows any errors thrown by the action's wrapError.
+      // WrapError should never throw. It should return an error.
+      print("Method '${action.runtimeType}.wrapError()' has thrown an error: '$_error'.");
+    }
 
     if (_wrapError != null && error is! UserException) {
-      error = _wrapError.wrap(error) ?? error;
+      try {
+        error = _wrapError.wrap(error) ?? error;
+      } catch (_error) {
+        // Swallows any errors thrown by the global wrapError.
+        // WrapError should never throw. It should return an error.
+        print("Method 'WrapError.wrap()' has thrown an error: '$_error'.");
+      }
     }
 
     afterWasRun.value = true;
@@ -484,7 +496,9 @@ class Store<St> {
     try {
       action.after();
     } catch (error) {
-      // Swallows error.
+      // Swallows any errors thrown by the [after] method.
+      // After should never throw.
+      print("Method '${action.runtimeType}.after()' has thrown an error: '$error'.");
     }
   }
 
