@@ -5,6 +5,8 @@ import 'dart:typed_data';
 import 'package:async_redux/async_redux.dart';
 import "package:test/test.dart";
 
+enum files { abc, xyz }
+
 void main() {
   /////////////////////////////////////////////////////////////////////////////
 
@@ -57,7 +59,7 @@ void main() {
       randNumber,
     ];
 
-    var persist = LocalPersist.fromFilename("abc");
+    var persist = LocalPersist("abc");
 
     await persist.save(simpleObjs);
 
@@ -79,6 +81,20 @@ void main() {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  test('Test file can be defined by String or enum.', () async {
+    //
+    File file = await LocalPersist("abc").file();
+    expect(file.path.endsWith("\\db\\abc.db") || file.path.endsWith("/db/abc.db"), isTrue);
+
+    file = await LocalPersist(files.abc).file();
+    expect(file.path.endsWith("\\db\\abc.db") || file.path.endsWith("/db/abc.db"), isTrue);
+
+    file = await LocalPersist(files.xyz, dbSubDir: "kkk").file();
+    expect(file.path.endsWith("\\kkk\\xyz.db") || file.path.endsWith("/kkk/xyz.db"), isTrue);
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
   test('Add objects to save, and load from file name.', () async {
     //
     // User random numbers to make sure it's not checking already saved files.
@@ -87,7 +103,7 @@ void main() {
     int randNumber2 = rand.nextInt(1000);
     int randNumber3 = rand.nextInt(1000);
 
-    var persist = LocalPersist.fromFilename("xyz");
+    var persist = LocalPersist("xyz");
     await persist.save([randNumber1, randNumber2, randNumber3]);
 
     List<Object> decoded = await persist.load();
@@ -113,7 +129,7 @@ void main() {
     int randNumber1 = rand.nextInt(1000);
     int randNumber2 = rand.nextInt(1000);
 
-    var persist = LocalPersist.fromFilename("lmn");
+    var persist = LocalPersist("lmn");
 
     await persist.save(["Hello", randNumber1], append: false);
     await persist.save(["There", randNumber2], append: true);
@@ -161,7 +177,7 @@ void main() {
 
   test('Test create, append, overwrite and delete the file.', () async {
     //
-    var persist = LocalPersist.fromFilename("klm");
+    var persist = LocalPersist("klm");
 
     // Create.
     await persist.save([123], append: false);
@@ -190,13 +206,13 @@ void main() {
   test("Load/Length/Exists file that doesn't exist, or exists and is empty.", () async {
     //
     // File doesn't exist.
-    var persist = LocalPersist.fromFilename("doesnotexist");
+    var persist = LocalPersist("doesnotexist");
     expect(await persist.load(), isNull);
     expect(await persist.length(), 0);
     expect(await persist.exists(), false);
 
     // File exists and is empty.
-    persist = LocalPersist.fromFilename("my_file");
+    persist = LocalPersist("my_file");
     await persist.save([]);
     expect(await persist.load(), []);
     expect(await persist.length(), 0);
@@ -208,11 +224,11 @@ void main() {
   test("Deletes a file that exists or doesn't exist.", () async {
     //
     // File doesn't exist.
-    var persist = LocalPersist.fromFilename("doesnotexist");
+    var persist = LocalPersist("doesnotexist");
     expect(await persist.delete(), isFalse);
 
     // File exists and is deleted.
-    persist = LocalPersist.fromFilename("my_file");
+    persist = LocalPersist("my_file");
     await persist.save([]);
     expect(await persist.delete(), isTrue);
   });
@@ -231,7 +247,7 @@ void main() {
       }
     ];
 
-    var persist = LocalPersist.fromFilename("obj");
+    var persist = LocalPersist("obj");
     await persist.save(simpleObjs);
 
     Map<String, dynamic> decoded = await persist.loadAsObj();
@@ -257,7 +273,7 @@ void main() {
       }
     ];
 
-    var persist = LocalPersist.fromFilename("obj");
+    var persist = LocalPersist("obj");
     await persist.save(simpleObjs);
 
     var error;
@@ -278,7 +294,7 @@ void main() {
     //
     List<Object> simpleObjs = ["hey"];
 
-    var persist = LocalPersist.fromFilename("obj");
+    var persist = LocalPersist("obj");
     await persist.save(simpleObjs);
 
     var error;

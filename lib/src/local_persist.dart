@@ -49,19 +49,28 @@ class LocalPersist {
 
   File _file;
 
+  /// Saves to `appDocsDir/db/${dbName}.db`
+  /// (except in tests it saves to the system temp dir).
+  ///
+  /// If [dbName] is a String, it will be used as such.
+  /// If [dbName] is an enum, it will use only the enum value itself.
+  /// For example if `files` is an enum, then `LocalPersist(files.abc)`
+  /// is the same as `LocalPersist("abc")`
+  /// If [dbName] is another object type, a toString() will be done,
+  /// and then the text after the last dot will be used.
+  ///
+  LocalPersist(Object dbName, {String dbSubDir})
+      : assert(dbName != null),
+        dbName = _getDbName(dbName),
+        dbSubDir = dbSubDir,
+        _file = null;
+
   /// Saves to the given file.
-  LocalPersist(File file)
+  LocalPersist.from(File file)
       : assert(file != null),
         dbName = null,
         dbSubDir = null,
         _file = file;
-
-  /// Saves to "appDocsDir/db/${dbName}.db"
-  /// (except in tests it saves to the system temp dir).
-  LocalPersist.fromFilename(String dbName, {String dbSubDir, bool append: false})
-      : dbName = dbName,
-        dbSubDir = dbSubDir,
-        _file = null;
 
   /// Saves the given simple objects.
   /// If [append] is false (the default), the file will be overwritten.
@@ -176,6 +185,11 @@ class LocalPersist {
 
   static String pathName(String dbName, {String dbSubDir}) => p.join(LocalPersist._appDocDir.path,
       dbSubDir ?? LocalPersist.defaultDbSubDir, "$dbName${LocalPersist.defaultTermination}");
+
+  static String _getDbName(Object dbName) {
+    var split = dbName.toString().split(".");
+    return split.last;
+  }
 
   /// If running from Flutter, this will get the application's documents directory.
   /// If running from tests, it will use the system's temp directory.
