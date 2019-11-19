@@ -22,7 +22,8 @@ class StoreTester<St> {
   static final TestInfoPrinter _defaultTestInfoPrinter = (TestInfo info) => print(info);
   static final VoidCallback _defaultNewStorePrinter = () => print("New StoreTester.");
 
-  Store<St> _store;
+  final Store<St> _store;
+  final List<Type> _ignore;
   StreamSubscription _subscription;
   Completer<TestInfo<St>> _completer;
   Queue<Future<TestInfo<St>>> _futures;
@@ -45,6 +46,7 @@ class StoreTester<St> {
   StoreTester({
     @required St initialState,
     TestInfoPrinter testInfoPrinter,
+    List<Type> ignore,
     bool syncStream = false,
     ErrorObserver errorObserver,
     bool shouldThrowUserExceptions = false,
@@ -55,13 +57,16 @@ class StoreTester<St> {
               errorObserver:
                   errorObserver ?? (shouldThrowUserExceptions ? TestErrorObserver() : null),
             ),
-            testInfoPrinter: testInfoPrinter);
+            testInfoPrinter: testInfoPrinter,
+            ignore: ignore);
 
   StoreTester.from(
     Store<St> store, {
     TestInfoPrinter testInfoPrinter,
-  }) : assert(store != null) {
-    _store = store;
+    List<Type> ignore,
+  })  : assert(store != null),
+        _ignore = ignore ?? const [],
+        _store = store {
     _listen(testInfoPrinter);
     _defaultNewStorePrinter();
   }
@@ -70,11 +75,15 @@ class StoreTester<St> {
 
   void defineState(St state) => _store.defineState(state);
 
+  /// Returns a mutable copy of the global ignore list.
+  List<Type> get ignore => List.of(_ignore);
+
   /// Runs until the predicate function [condition] returns true.
   /// This function will receive each testInfo, from where it can
   /// access the state, action, errors etc.
   /// Only END states will be received, unless you pass [ignoreIni] as false.
   /// Returns the info after the condition is met.
+  ///
   Future<TestInfo<St>> waitConditionGetLast(
     StateCondition<St> condition, {
     bool ignoreIni = true,
@@ -90,6 +99,7 @@ class StoreTester<St> {
   /// access the state, action, errors etc.
   /// Only END states will be received, unless you pass [ignoreIni] as false.
   /// Returns a list with all info until the condition is met.
+  ///
   Future<TestInfoList<St>> waitCondition(
     StateCondition<St> condition, {
     bool ignoreIni = true,
@@ -124,6 +134,7 @@ class StoreTester<St> {
   /// both need to match.
   ///
   /// Returns the info after the error condition is met.
+  ///
   Future<TestInfo<St>> waitUntilErrorGetLast({
     Object error,
     Object processedError,
@@ -142,6 +153,7 @@ class StoreTester<St> {
   /// both need to match.
   ///
   /// Returns a list with all info until the error condition is met.
+  ///
   Future<TestInfoList<St>> waitUntilError({
     Object error,
     Object processedError,
@@ -167,6 +179,7 @@ class StoreTester<St> {
 
   /// Runs until an action of the given type is dispatched, and then waits until it finishes.
   /// Returns the info after the action finishes. **Ignores other** actions types.
+  ///
   Future<TestInfo> waitUntil(
     Type actionType, {
     int timeoutInSeconds = _defaultTimeout,
@@ -217,8 +230,17 @@ class StoreTester<St> {
   /// exists both in [actionTypes] and [ignore], it will be expected in that particular order,
   /// and the others of that type will be ignored. This method will remember all ignored actions
   /// and wait for them to finish, so that they don't "leak" to the next wait.
-  Future<TestInfo> waitAllGetLast(List<Type> actionTypes, {List<Type> ignore = const []}) async {
+  ///
+  /// If [ignore] is null, it will use the global ignore provided in the
+  /// [StoreTester] constructor, if any. If [ignore] is an empty list, it
+  /// will disable that global ignore.
+  ///
+  Future<TestInfo> waitAllGetLast(
+    List<Type> actionTypes, {
+    List<Type> ignore,
+  }) async {
     assert(actionTypes != null && actionTypes.isNotEmpty);
+    if (ignore == null) ignore = _ignore;
 
     var infoList = await waitAll(actionTypes, ignore: ignore);
     return infoList.last;
@@ -236,7 +258,7 @@ class StoreTester<St> {
   Future<TestInfo> waitAllUnorderedGetLast(
     List<Type> actionTypes, {
     int timeoutInSeconds = _defaultTimeout,
-    List<Type> ignore = const [],
+    List<Type> ignore,
   }) async =>
       (await waitAllUnordered(
         actionTypes,
@@ -254,9 +276,13 @@ class StoreTester<St> {
   /// and the others of that type will be ignored. This method will remember all ignored actions
   /// and wait for them to finish, so that they don't "leak" to the next wait.
   ///
-  Future<TestInfoList<St>> waitAll(List<Type> actionTypes, {List<Type> ignore = const []}) async {
+  /// If [ignore] is null, it will use the global ignore provided in the
+  /// [StoreTester] constructor, if any. If [ignore] is an empty list, it
+  /// will disable that global ignore.
+  ///
+  Future<TestInfoList<St>> waitAll(List<Type> actionTypes, {List<Type> ignore}) async {
     assert(actionTypes != null && actionTypes.isNotEmpty);
-    assert(ignore != null);
+    if (ignore == null) ignore = _ignore;
 
     TestInfoList<St> results = TestInfoList<St>();
 
@@ -345,13 +371,17 @@ class StoreTester<St> {
   /// ignored actions and wait for them to finish, so that they don't "leak" to the next wait.
   /// An action type cannot exist in both [actionTypes] and [ignore] lists.
   ///
+  /// If [ignore] is null, it will use the global ignore provided in the
+  /// [StoreTester] constructor, if any. If [ignore] is an empty list, it
+  /// will disable that global ignore.
+  ///
   Future<TestInfoList<St>> waitAllUnordered(
     List<Type> actionTypes, {
     int timeoutInSeconds = _defaultTimeout,
-    List<Type> ignore = const [],
+    List<Type> ignore,
   }) async {
     assert(actionTypes != null && actionTypes.isNotEmpty);
-    assert(ignore != null);
+    if (ignore == null) ignore = _ignore;
 
     // Actions which are expected can't also be ignored.
     var intersection = ignore.toSet().intersection(actionTypes.toSet());

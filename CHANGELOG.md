@@ -1,7 +1,8 @@
-## [2.3.0] - 2019/11/18
+## [2.3.0] - 2019/11/19
 
+* Global ignore in the StoreTester constructor.
 * Better treatment of wrap-errors that throw.
-* LocalPersist (instead of Saver/Loader).
+* Breaking change: LocalPersist (instead of Saver/Loader).
 
 ## [2.2.0] - 2019/11/15
 
