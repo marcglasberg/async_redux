@@ -881,6 +881,34 @@ void main() {
 
   ///////////////////////////////////////////////////////////////////////////////
 
+  test(
+      'An ignored action starts after the last expected actions starts, '
+      'but before this last expected action finishes.', () async {
+    //
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+    storeTester.dispatch(Action9());
+    storeTester.dispatch(Action1());
+    storeTester.dispatch(Action9());
+    storeTester.dispatch(Action1());
+
+    TestInfoList<AppState> infos = await storeTester.waitAll(
+      [
+        Action9,
+        Action9,
+      ],
+      ignore: [Action1],
+    );
+
+    expect(infos.last.state.text, "0,1,1,9,9");
+    expect(infos.last.errors, isEmpty);
+    expect(infos.length, 2);
+    expect(infos.getIndex(0).state.text, "0,1,1,9");
+    expect(infos.getIndex(1).state.text, "0,1,1,9,9");
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
   test('Makes sure we wait until the END of all ignored actions.', () async {
     //
     var storeTester = createStoreTester();
@@ -964,7 +992,7 @@ void main() {
     expect(info.state.text, "0,1,2");
     expect(info.errors, isEmpty);
 
-    // Aguarda agora a Action4 só para garantir que não vazou a Action3.
+    // Now waits Action4 just to make sure Action3 hasn't leaked.
     storeTester.dispatch(Action4());
     info = await storeTester.waitAllGetLast(
       [Action4],

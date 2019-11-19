@@ -340,6 +340,13 @@ class StoreTester<St> {
     }
 
     while (obtainedActions.isNotEmpty || ignoredActions.isNotEmpty) {
+      //
+      // Ignores actions.
+      while (ignore.contains(testInfo.type) && (testInfo.isINI)) {
+        ignoredActions.add(testInfo.action);
+        testInfo = await _next();
+      }
+
       var wasObtained = obtainedActions.remove(testInfo.action);
       var wasIgnored = ignoredActions.remove(testInfo.action);
 
