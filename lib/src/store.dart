@@ -221,6 +221,7 @@ class Store<St> {
         _errors = Queue<UserException>(),
         _dispatchCount = 0,
         _reduceCount = 0,
+        _shutdown = false,
         _testInfoPrinter = testInfoPrinter,
         _testInfoController =
             (testInfoPrinter == null) ? null : StreamController.broadcast(sync: syncStream);
@@ -251,6 +252,8 @@ class Store<St> {
   final bool _defaultDistinct;
 
   final Queue<UserException> _errors;
+
+  bool _shutdown;
 
   // For testing:
   int _dispatchCount;
@@ -306,9 +309,19 @@ class Store<St> {
     return (_errors.isEmpty) ? null : _errors.removeFirst();
   }
 
+  /// Call this method to shut down the store.
+  /// It won't accept dispatches or change the state anymore.
+  shutdown() {
+    _shutdown = true;
+  }
+
+  bool get isShutdown => _shutdown;
+
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: store.dispatch is of type Dispatch.
   void dispatch(ReduxAction<St> action) {
+    if (_shutdown) return;
+
     _dispatchCount++;
 
     if (_actionObservers != null)
@@ -329,6 +342,8 @@ class Store<St> {
   }
 
   Future<void> dispatchFuture(ReduxAction<St> action) async {
+    if (_shutdown) return;
+
     _dispatchCount++;
 
     if (_actionObservers != null)
@@ -338,6 +353,7 @@ class Store<St> {
 
     St stateIni = _state;
     await _processAction(action);
+    if (_shutdown) return;
     St stateEnd = _state;
 
     if (_stateObservers != null)
@@ -346,8 +362,6 @@ class Store<St> {
       }
 
     if (_processPersistence != null) _processPersistence.process(action, stateEnd);
-
-    return null;
   }
 
   void createTestInfoSnapshot(
@@ -390,8 +404,10 @@ class Store<St> {
     try {
       result = action.before();
       if (result is Future) await result;
+      if (_shutdown) return;
       result = _applyReducer(action);
       if (result is Future) await result;
+      if (_shutdown) return;
     } catch (error) {
       originalError = error;
       processedError = _processError(error, action, afterWasRun);
@@ -431,6 +447,8 @@ class Store<St> {
   /// did not returned null, and if it did not return the same identical state.
   /// Note: We compare the state using `identical` (which is fast).
   void _registerState(St state, ReduxAction<St> pureAction) {
+    if (_shutdown) return;
+
     if (state != null && !identical(_state, state)) {
       _state = state;
       _changeController.add(state);
