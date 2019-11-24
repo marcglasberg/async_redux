@@ -340,7 +340,6 @@ class StoreTester<St> {
     }
 
     while (obtainedActions.isNotEmpty || ignoredActions.isNotEmpty) {
-      //
       // Ignores actions.
       while (ignore.contains(testInfo.type) && (testInfo.isINI)) {
         ignoredActions.add(testInfo.action);
@@ -362,7 +361,6 @@ class StoreTester<St> {
       if (obtainedActions.isNotEmpty || ignoredActions.isNotEmpty) testInfo = await _next();
     }
 
-    //
     for (TestInfo<St> testInfo in endStates) {
       results._add(testInfo);
     }

@@ -10,7 +10,7 @@ environment:
 dependencies:
   logging: ^0.11.3+2
   path: ^1.6.4
-  path_provider: ^1.4.2
+  path_provider: ^1.4.4
   flutter:
     sdk: flutter
 
