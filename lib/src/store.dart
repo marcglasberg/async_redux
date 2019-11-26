@@ -319,6 +319,7 @@ class Store<St> {
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: store.dispatch is of type Dispatch.
+
   void dispatch(ReduxAction<St> action) {
     if (_shutdown) return;
 
@@ -330,15 +331,16 @@ class Store<St> {
       }
 
     St stateIni = _state;
-    _processAction(action);
-    St stateEnd = _state;
+    _processAction(action).then((_){
+      St stateEnd = _state;
 
-    if (_stateObservers != null)
-      for (StateObserver observer in _stateObservers) {
-        observer.observe(action, stateIni, stateEnd, dispatchCount);
-      }
+      if (_stateObservers != null)
+        for (StateObserver observer in _stateObservers) {
+          observer.observe(action, stateIni, stateEnd, dispatchCount);
+        }
 
-    if (_processPersistence != null) _processPersistence.process(action, stateEnd);
+      if (_processPersistence != null) _processPersistence.process(action, stateEnd);
+    });
   }
 
   Future<void> dispatchFuture(ReduxAction<St> action) async {
