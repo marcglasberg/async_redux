@@ -319,7 +319,6 @@ class Store<St> {
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: store.dispatch is of type Dispatch.
-
   void dispatch(ReduxAction<St> action) {
     if (_shutdown) return;
 
