@@ -329,17 +329,7 @@ class Store<St> {
         observer.observe(action, dispatchCount, ini: true);
       }
 
-    St stateIni = _state;
-    _processAction(action).then((_){
-      St stateEnd = _state;
-
-      if (_stateObservers != null)
-        for (StateObserver observer in _stateObservers) {
-          observer.observe(action, stateIni, stateEnd, dispatchCount);
-        }
-
-      if (_processPersistence != null) _processPersistence.process(action, stateEnd);
-    });
+    _processAction(action);
   }
 
   Future<void> dispatchFuture(ReduxAction<St> action) async {
@@ -352,17 +342,7 @@ class Store<St> {
         observer.observe(action, dispatchCount, ini: true);
       }
 
-    St stateIni = _state;
     await _processAction(action);
-    if (_shutdown) return;
-    St stateEnd = _state;
-
-    if (_stateObservers != null)
-      for (StateObserver observer in _stateObservers) {
-        observer.observe(action, stateIni, stateEnd, dispatchCount);
-      }
-
-    if (_processPersistence != null) _processPersistence.process(action, stateEnd);
   }
 
   void createTestInfoSnapshot(
@@ -436,24 +416,34 @@ class Store<St> {
 
     if (result is Future<St>) {
       return result.then((state) => _registerState(state, action));
-    } else if (result is St) {
-      St state = result;
-      _registerState(state, action);
-    } else if (result != null) {
+    } else if (result is St || result == null) {
+      _registerState(result, action);
+    } else
       throw AssertionError();
-    }
   }
 
   /// Adds the state to the changeController, but only if the `reduce` method
   /// did not returned null, and if it did not return the same identical state.
   /// Note: We compare the state using `identical` (which is fast).
-  void _registerState(St state, ReduxAction<St> pureAction) {
+  void _registerState(St state, ReduxAction<St> action) {
     if (_shutdown) return;
 
+    St stateIni = _state;
+
+    // Reducers may return null state, or the unaltered state,
+    // when they don't want to change the state.
     if (state != null && !identical(_state, state)) {
       _state = state;
       _changeController.add(state);
     }
+    St stateEnd = _state;
+
+    if (_stateObservers != null)
+      for (StateObserver observer in _stateObservers) {
+        observer.observe(action, stateIni, stateEnd, dispatchCount);
+      }
+
+    if (_processPersistence != null) _processPersistence.process(action, stateEnd);
   }
 
   /// Returns the processed error. Returns `null` if the error is meant to be "swallowed".
