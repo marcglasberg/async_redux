@@ -24,7 +24,7 @@ class _MyAsyncAction extends ReduxAction<num> {
   }
 }
 
-class _MyStoreObserver extends StateObserver<num>{
+class _MyStateObserver extends StateObserver<num>{
   num iniValue;
   num endValue;
 
@@ -38,11 +38,11 @@ class _MyStoreObserver extends StateObserver<num>{
 
 void main() {
 
-  var observer = _MyStoreObserver();
+  var observer = _MyStateObserver();
   StoreTester<num> createStoreTester() {
     var store = Store<num>(
-      initialState: 0,
-      stateObservers: [observer]
+        initialState: 0,
+        stateObservers: [observer]
     );
     return StoreTester.from(store);
   }
