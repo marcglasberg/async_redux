@@ -57,6 +57,7 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [How do streams pass their information to the store and ultimately to the widgets?](#how-do-streams-pass-their-information-to-the-store-and-ultimately-to-the-widgets)
       * [To sum up:](#to-sum-up)
    * [Recommended Directory Structure](#recommended-directory-structure)
+   * [Where to put your business logic](#where-to-put-your-business-logic)
    * [Architectural discussion](#architectural-discussion)
       * [Is AsyncRedux really Redux?](#is-asyncredux-really-redux)
       * [Besides the reduction of boilerplate, what are the main advantages of the AsyncRedux architecture?](#besides-the-reduction-of-boilerplate-what-are-the-main-advantages-of-the-asyncredux-architecture)
@@ -2013,6 +2014,24 @@ Your final directory structure would then look something like this:
     └── pubspec.yaml
 ```
 
+## Where to put your business logic
+
+Widgets, Connectors and ViewModels are part of the client code. 
+If you use the recommended directory structure, they should be in the client directory, 
+which is **not** visible to the business code.
+
+Actions, reducers and state classes are part of the business code. 
+If you use the recommended directory structure, they should be in the business directory, 
+which is visible to the client code.
+
+Rules of thumb:
+
+* Don't put your business logic in the Widgets.
+* Don't put your business logic in the Connectors.
+* Don't put your business logic in the ViewModels of the Connectors.
+* Put your business logic in the Action reducers.
+* Put your business logic in the State classes.
+ 
 ## Architectural discussion 
 
 Reading the following text is not important for the practical use of AsyncRedux,

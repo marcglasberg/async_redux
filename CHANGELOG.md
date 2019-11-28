@@ -1,3 +1,7 @@
+## [2.3.2] - 2019/11/28
+
+* Docs improvement.
+
 ## [2.3.0] - 2019/11/19
 
 * Global ignore in the StoreTester constructor.
