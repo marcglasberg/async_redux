@@ -1,3 +1,7 @@
+## [2.3.3] - 2019/12/07
+
+* iOS specific dialog for UserExceptions.
+
 ## [2.3.2] - 2019/11/28
 
 * Docs improvement.

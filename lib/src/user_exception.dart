@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'dart:ui';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../async_redux.dart';
@@ -234,19 +236,34 @@ class _Widget extends StatefulWidget {
     BuildContext context,
     UserException userException,
   ) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: Text(userException.dialogTitle()),
-        content: Text(userException.dialogContent()),
-        actions: [
-          FlatButton(
-            child: Text("OK"),
-            onPressed: () => Navigator.of(context).pop(),
-          )
-        ],
-      ),
-    );
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (BuildContext context) => CupertinoAlertDialog(
+          title: Text(userException.dialogTitle()),
+          content: Text(userException.dialogContent()),
+          actions: [
+            CupertinoDialogAction(
+              child: Text("OK"),
+              onPressed: () => Navigator.of(context).pop(),
+            )
+          ],
+        ),
+      );
+    } else
+      showDialog(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: Text(userException.dialogTitle()),
+          content: Text(userException.dialogContent()),
+          actions: [
+            FlatButton(
+              child: Text("OK"),
+              onPressed: () => Navigator.of(context).pop(),
+            )
+          ],
+        ),
+      );
   }
 
   @override
