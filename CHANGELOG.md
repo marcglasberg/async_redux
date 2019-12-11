@@ -1,4 +1,4 @@
-## [2.4.0] - 2019/12/10
+## [2.4.1] - 2019/12/10
 
 * Breaking change: Global WrapError, if defined, now receives all errors, including UserExceptions.
 
