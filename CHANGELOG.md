@@ -1,3 +1,7 @@
+## [2.4.0] - 2019/12/10
+
+* Breaking change: Global WrapError, if defined, now receives all errors, including UserExceptions.
+
 ## [2.3.3] - 2019/12/07
 
 * iOS specific dialog for UserExceptions.

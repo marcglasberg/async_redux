@@ -828,7 +828,7 @@ class MyWrapError extends WrapError {
 }    
 ```
 
-The `WrapError` object will be given all errors which are **not** of type `UserException`.
+The `WrapError` object will be given all errors.
 It may then return a `UserException` which will be used instead of the original exception.
 Otherwise, it just returns `null`, so that the original exception will not be modified.
 

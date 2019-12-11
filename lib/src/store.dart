@@ -456,7 +456,7 @@ class Store<St> {
       print("Method '${action.runtimeType}.wrapError()' has thrown an error: '$_error'.");
     }
 
-    if (_wrapError != null && error is! UserException) {
+    if (_wrapError != null) {
       try {
         error = _wrapError.wrap(error) ?? error;
       } catch (_error) {
@@ -612,7 +612,7 @@ abstract class ErrorObserver<St> {
   );
 }
 
-/// This will be given all errors which are NOT of type UserException.
+/// This will be given all errors (including of type UserException).
 /// * If it returns a [UserException], it will be used instead of the
 ///   original exception.
 /// * Otherwise, just return null, so that the original exception will
@@ -622,7 +622,7 @@ abstract class ErrorObserver<St> {
 /// and BEFORE the [ErrorObserver].
 ///
 /// The use case for this is to have a global place to convert some exceptions
-/// into [UserException]s. For example, Firebase my throw some
+/// into [UserException]s. For example, Firebase may throw some
 /// PlatformExceptions in response to a bad connection to the server.
 /// In this case, you may want to show the user a dialog explaining that the
 /// connection is bad, which you can do by converting it to a [UserException].
