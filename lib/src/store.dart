@@ -45,9 +45,10 @@ class TestInfo<St> {
   Type get type {
     // Removes the generic type from UserExceptionAction and NavigateAction.
     // For example UserExceptionAction<AppState> becomes UserExceptionAction<dynamic>.
-    if (action is UserExceptionAction)
+    if (action is UserExceptionAction &&
+        action.runtimeType.toString().split('<')[0] == 'UserExceptionAction')
       return UserExceptionAction;
-    else if (action is NavigateAction)
+    if (action is NavigateAction && action.runtimeType.toString().split('<')[0] == 'NavigateAction')
       return NavigateAction;
     else
       return action.runtimeType;

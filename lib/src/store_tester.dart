@@ -518,7 +518,7 @@ class TestInfoList<St> {
 
   /// Returns the first info corresponding to the end of the given action type.
   TestInfo<St> operator [](Type actionType) {
-    return _info.firstWhere((info) => info.action.runtimeType == actionType, orElse: null);
+    return _info.firstWhere((info) => info.type == actionType, orElse: null);
   }
 
   /// Returns the n-th info corresponding to the end of the given action type
@@ -526,7 +526,7 @@ class TestInfoList<St> {
   TestInfo<St> get(Type actionType, [int n = 1]) {
     assert(n != null);
     return _info.firstWhere((info) {
-      var ifFound = (info.action.runtimeType == actionType);
+      var ifFound = (info.type == actionType);
       if (ifFound) n--;
       return ifFound && (n == 0);
     }, orElse: () => null);
@@ -534,7 +534,7 @@ class TestInfoList<St> {
 
   /// Returns all info corresponding to the action type.
   List<TestInfo<St>> getAll(Type actionType) {
-    return _info.where((info) => info.action.runtimeType == actionType).toList();
+    return _info.where((info) => info.type == actionType).toList();
   }
 
   void forEach(void action(TestInfo<St> element)) => _info.forEach(action);
