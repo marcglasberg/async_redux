@@ -42,7 +42,16 @@ class TestInfo<St> {
 
   bool get isEND => !ini;
 
-  Type get type => action.runtimeType;
+  Type get type {
+    // Removes the generic type from UserExceptionAction and NavigateAction.
+    // For example UserExceptionAction<AppState> becomes UserExceptionAction<dynamic>.
+    if (action is UserExceptionAction)
+      return UserExceptionAction;
+    else if (action is NavigateAction)
+      return NavigateAction;
+    else
+      return action.runtimeType;
+  }
 
   TestInfo(
     this.state,

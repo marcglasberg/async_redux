@@ -331,7 +331,7 @@ class StoreTester<St> {
           var wasIgnored = ignoredActions.remove(testInfo.action);
 
           if (!wasObtained && !wasIgnored)
-            throw StoreException("Got this unexpected action: ${testInfo.action.runtimeType} END.");
+            throw StoreException("Got this unexpected action: ${testInfo.type} END.");
 
           if (wasObtained) endStates.add(testInfo);
 
@@ -351,7 +351,7 @@ class StoreTester<St> {
 
       if (!testInfo.isEND || (!wasObtained && !wasIgnored))
         throw StoreException(
-            "Got this unexpected action: ${testInfo.action.runtimeType} ${testInfo.ini ? "INI" : "END"}.\n\n"
+            "Got this unexpected action: ${testInfo.type} ${testInfo.ini ? "INI" : "END"}.\n\n"
             "obtainedIni:$obtainedActions\n"
             "ignoredIni:$ignoredActions\n"
             "");
@@ -455,7 +455,7 @@ class StoreTester<St> {
 
       if (!testInfo.isEND || !wasIgnored)
         throw StoreException(
-            "Got this unexpected action: ${testInfo.action.runtimeType} ${testInfo.ini ? "INI" : "END"}.");
+            "Got this unexpected action: ${testInfo.type} ${testInfo.ini ? "INI" : "END"}.");
     }
 
     return testInfoList;

@@ -1,3 +1,7 @@
+## [2.4.2] - 2019/12/18
+
+* TestInfo.type now returns generic NavigateAction and UserExceptionAction, to play well with the StoreTester.
+
 ## [2.4.1] - 2019/12/10
 
 * Breaking change: Global WrapError, if defined, now receives all errors, including UserExceptions.
