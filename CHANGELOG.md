@@ -1,3 +1,7 @@
+## [2.4.3] - 2019/01/11
+
+* Small UserExceptionDialog web fix.
+
 ## [2.4.2] - 2019/12/18
 
 * TestInfo.type now returns generic NavigateAction and UserExceptionAction, to play well with the StoreTester.
