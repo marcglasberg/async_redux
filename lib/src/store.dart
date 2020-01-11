@@ -408,7 +408,7 @@ class Store<St> {
       // Error was not changed. Rethrows.
       else if (identical(processedError, error))
         rethrow;
-      // Error was wrapped. Rethrows, but looses stacktrace due to Dart architecture.
+      // Error was wrapped. Rethrows, but loses stacktrace due to Dart architecture.
       // See: https://groups.google.com/a/dartlang.org/forum/#!topic/misc/O1OKnYTUcoo
       // See: https://github.com/dart-lang/sdk/issues/10297
       // This should be fixed when this issue is solved: https://github.com/dart-lang/sdk/issues/30741

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../async_redux.dart';
@@ -236,7 +237,7 @@ class _Widget extends StatefulWidget {
     BuildContext context,
     UserException userException,
   ) {
-    if (Platform.isIOS) {
+    if (!kIsWeb && (Platform.isMacOS || Platform.isIOS)) {
       showCupertinoDialog(
         context: context,
         builder: (BuildContext context) => CupertinoAlertDialog(
