@@ -73,6 +73,8 @@ class StoreTester<St> {
 
   void dispatch(ReduxAction<St> action) => store.dispatch(action);
 
+  Future<void> dispatchFuture(ReduxAction<St> action) => store.dispatchFuture(action);
+
   void defineState(St state) => _store.defineState(state);
 
   /// Returns a mutable copy of the global ignore list.

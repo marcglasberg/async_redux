@@ -1,3 +1,7 @@
+## [2.4.4] - 2019/01/13
+
+* StoreTester dispatchFuture.
+
 ## [2.4.3] - 2019/01/11
 
 * Small UserExceptionDialog web fix.
