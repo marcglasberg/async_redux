@@ -1,3 +1,9 @@
+## [2.5.0] - 2020/01/20
+
+* Breaking change: The StoreConnector's shouldUpdateModel parameter now functions properly. 
+If you are using this, make sure you return true to apply changes (the default when the parameter is not defined), 
+and false to ignore model changes.
+
 ## [2.4.4] - 2019/01/13
 
 * StoreTester dispatchFuture.

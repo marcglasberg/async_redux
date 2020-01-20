@@ -869,8 +869,9 @@ class StoreConnector<St, Model> extends StatelessWidget {
   /// function can't produce a useful Model. In these cases, such as when
   /// performing exit animations on data that has been removed from your Store,
   /// it can be best to ignore the State change while your animation completes.
-  /// To ignore a change, provide a function that returns true or false. If the
-  /// returned value is false, the change will be ignored.
+  /// To ignore a change, provide a function that returns true or false.
+  /// If the returned value is true, the change will be applied.
+  /// If the returned value is false, the change will be ignored.
   /// If you ignore a change, and the framework needs to rebuild the Widget, the
   /// [builder] function will be called with the latest [Model] produced
   /// by your [converter] or [model] functions.
@@ -1046,7 +1047,7 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
     Stream<St> _stream = widget.store.onChange;
 
     if (widget.shouldUpdateModel != null) {
-      _stream = _stream.where((state) => !widget.shouldUpdateModel(state));
+      _stream = _stream.where((state) => widget.shouldUpdateModel(state));
     }
 
     stream = _stream.map((_) => getLatestValue());
