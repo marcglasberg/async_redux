@@ -1143,6 +1143,7 @@ dispatch(NavigateAction.pop());
 dispatch(NavigateAction.pushNamed("myRoute"));
 dispatch(NavigateAction.pushReplacementNamed("myRoute"));
 dispatch(NavigateAction.pushNamedAndRemoveAll("myRoute"));
+dispatch(NavigateAction.pushNamedAndRemoveUntil("myRoute", predicate: (Route<dynamic> route) { return route.settings.name == "anotherRoute"; }));
 dispatch(NavigateAction.popUntil("myRoute"));
 ```
 

@@ -5,7 +5,7 @@ import '../async_redux.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-enum NavigateType { pushNamed, pushReplacementNamed, pushNamedAndRemoveAll, pop, popUntil }
+enum NavigateType { pushNamed, pushReplacementNamed, pushNamedAndRemoveAll, pushNamedAndRemoveUntil, pop, popUntil }
 
 /// For more info, see: https://pub.dartlang.org/packages/async_redux
 class NavigateAction<St> extends ReduxAction<St> {
@@ -29,10 +29,12 @@ class NavigateAction<St> extends ReduxAction<St> {
 
   NavigateType navigateType;
   String routeName;
+  RoutePredicate predicate;
   Object arguments;
 
-  NavigateAction(this.routeName, {@required this.navigateType, this.arguments})
+  NavigateAction(this.routeName, {@required this.navigateType, this.arguments, this.predicate})
       : assert(navigateType != null),
+        assert((navigateType == NavigateType.pushNamedAndRemoveUntil && predicate != null) || predicate == null),
         assert(navigateType == NavigateType.pop || routeName != null);
 
   NavigateAction.pop() : this(null, navigateType: NavigateType.pop);
@@ -46,6 +48,12 @@ class NavigateAction<St> extends ReduxAction<St> {
     String routeName, {
     Object arguments,
   }) : this(routeName, navigateType: NavigateType.pushReplacementNamed, arguments: arguments);
+
+  NavigateAction.pushNamedAndRemoveUntil(
+      String routeName, {
+        Object arguments,
+        RoutePredicate predicate,
+      }) : this(routeName, navigateType: NavigateType.pushNamedAndRemoveUntil, arguments: arguments, predicate: predicate);
 
   NavigateAction.pushNamedAndRemoveAll(
     String routeName, {
@@ -75,6 +83,11 @@ class NavigateAction<St> extends ReduxAction<St> {
           _navigatorKey.currentState.pushNamedAndRemoveUntil(
               routeName, (Route<dynamic> route) => false,
               arguments: arguments);
+          break;
+
+        case NavigateType.pushNamedAndRemoveUntil:
+          _navigatorKey.currentState.pushNamedAndRemoveUntil(
+                routeName, predicate, arguments: arguments);
           break;
 
         case NavigateType.popUntil:
