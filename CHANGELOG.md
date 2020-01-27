@@ -1,3 +1,7 @@
+## [2.5.1] - 2020/01/20
+
+* NavigateAction.pushNamedAndRemoveUntil.
+
 ## [2.5.0] - 2020/01/20
 
 * Breaking change: The StoreConnector's shouldUpdateModel parameter now functions properly. 
