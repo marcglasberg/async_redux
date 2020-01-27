@@ -32,11 +32,13 @@ class MyApp extends StatelessWidget {
 class _NavAction extends StatelessWidget {
   final String route;
   final NavigateType navigateType;
+  final RoutePredicate predicate;
 
   _NavAction(
     Key key, {
     this.route,
     @required this.navigateType,
+    this.predicate,
   }) : super(key: key);
 
   @override
@@ -54,6 +56,11 @@ class _NavAction extends StatelessWidget {
           case NavigateType.pushReplacementNamed:
             {
               _action = NavigateAction.pushReplacementNamed(route);
+            }
+            break;
+          case NavigateType.pushNamedAndRemoveUntil:
+            {
+              _action = NavigateAction.pushNamedAndRemoveUntil(route, predicate: predicate);
             }
             break;
           case NavigateType.pushNamed:
@@ -113,6 +120,14 @@ class MyPage extends StatelessWidget {
             route: "/page2",
             navigateType: NavigateType.pushReplacementNamed,
           ),
+          _NavAction(
+            Key("pushNamedAndRemoveUntilPage2"),
+            route: "/page2",
+            predicate: (Route<dynamic> route) {
+              return route.settings.name == "/";
+            },
+            navigateType: NavigateType.pushNamedAndRemoveUntil,
+          ),
           //
           _NavAction(
             Key("popUntilPage1"),
@@ -146,6 +161,7 @@ void main() {
   final Finder page2IncludeIfOffstageFinder = find.byKey(Key("page2"), skipOffstage: false);
   final Finder pushPage2Finder = find.byKey(Key("pushNamedPage2"));
   final Finder pushReplacementPage2Finder = find.byKey(Key("pushReplacementNamedPage2"));
+  final Finder pushNamedAndRemoveUntilPage2Finder = find.byKey(Key("pushNamedAndRemoveUntilPage2"));
 
   final Finder page3Finder = find.byKey(Key("page3"));
   final Finder page3IncludeIfOffstageFinder = find.byKey(Key("page3"), skipOffstage: false);
@@ -261,6 +277,56 @@ void main() {
     expect(find.text("Current route: /page2"), findsOneWidget);
     expect(page1IncludeIfOffstageFinder, findsOneWidget);
     expect(page2IncludeIfOffstageFinder, findsNWidgets(2));
+    expect(page3IncludeIfOffstageFinder, findsNothing);
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  testWidgets(NavigateType.pushNamedAndRemoveUntil.toString(), (WidgetTester tester) async {
+    await tester.pumpWidget(MyApp());
+    await tester.pumpAndSettle();
+
+    // initial route
+    expect(find.text("Current route: /"), findsOneWidget);
+    expect(page1IncludeIfOffstageFinder, findsOneWidget);
+    expect(page2IncludeIfOffstageFinder, findsNothing);
+    expect(page3IncludeIfOffstageFinder, findsNothing);
+
+    // push page 2
+    await tester.tap(pushPage2Finder);
+    await tester.pumpAndSettle();
+    expect(find.text("Current route: /page2"), findsOneWidget);
+    expect(page1IncludeIfOffstageFinder, findsOneWidget);
+    expect(page2IncludeIfOffstageFinder, findsOneWidget);
+    expect(page3IncludeIfOffstageFinder, findsNothing);
+
+    // push page 3
+    await tester.tap(pushPage3Finder);
+    await tester.pumpAndSettle();
+    expect(find.text("Current route: /page3"), findsOneWidget);
+    expect(page1IncludeIfOffstageFinder, findsOneWidget);
+    expect(page2IncludeIfOffstageFinder, findsOneWidget);
+    expect(page3IncludeIfOffstageFinder, findsOneWidget);
+
+    // the current stack should be:
+    // page 3
+    // page 2
+    // page 1
+
+    // if we push page 2 and replace until page 1,then the stack should be:
+    // page 2 (pushed)
+    // page 3 (removed)
+    // page 2 (removed)
+    // page 1
+
+    // which would result in a stack of
+    // page 2
+    // page 1
+    await tester.tap(pushNamedAndRemoveUntilPage2Finder);
+    await tester.pumpAndSettle();
+    expect(find.text("Current route: /page2"), findsOneWidget);
+    expect(page1IncludeIfOffstageFinder, findsOneWidget);
+    expect(page2IncludeIfOffstageFinder, findsOneWidget);
     expect(page3IncludeIfOffstageFinder, findsNothing);
   });
 
