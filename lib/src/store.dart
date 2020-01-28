@@ -62,8 +62,9 @@ class TestInfo<St> {
     this.processedError,
     this.dispatchCount,
     this.reduceCount,
-    this.errors,
-  )   : assert(state != null),
+    Queue<UserException> errors,
+  )   : errors = Queue<UserException>.of(errors),
+        assert(state != null),
         assert(action != null),
         assert(ini != null);
 

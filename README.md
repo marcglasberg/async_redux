@@ -234,6 +234,7 @@ Future<AppState> reduce() async { await Future.value(null); return state; }
 // But these are wrong:
 Future<AppState> reduce() async { return state; }
 Future<AppState> reduce() async { someFunc(); return state; }
+Future<AppState> reduce() async { if (state.someBool) await someFuture(); return state; }
 ```
 
 Dart doesn't let AsyncRedux detect if a future is completed or not 
@@ -641,7 +642,7 @@ class LogoutAction extends ReduxAction<AppState> {
   Future<AppState> reduce() async {
 	await checkInternetConnection();
 	await deleteDatabase();
-	dispatch(NavigateToLoginScreenAction();
+	dispatch(NavigateToLoginScreenAction());
 	return AppState.initialState();
   }
 }
@@ -668,7 +669,7 @@ var store = Store<AppState>(
 );
 
 bool errorObserver(Object error, ReduxAction action, Store store, Object state, int dispatchCount) {
-  print("Error thrown during $action: $error);
+  print("Error thrown during $action: $error");
   return true;
 }
 ```
@@ -960,7 +961,7 @@ Let's see all the available methods of the `StoreTester`:
 	Only END states will be received, unless you pass `ignoreIni` as false.
 	Returns the info after the condition is met.
 
-10. `Future<TestInfo> waitUntilError({Object error, Object processedError})`
+10. `Future<TestInfoList<St>> waitUntilError({Object error, Object processedError})`
 
 	Runs until after an action throws an error of this exact type, or this exact error (using equals).
     You can also, instead, define `processedError`, which is the error after wrapped by the

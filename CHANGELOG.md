@@ -1,4 +1,8 @@
-## [2.5.1] - 2020/01/20
+## [2.5.2] - 2020/01/28
+
+* Errors queue is cloned in TestInfo.
+
+## [2.5.1] - 2020/01/26
 
 * NavigateAction.pushNamedAndRemoveUntil.
 
