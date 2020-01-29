@@ -43,13 +43,17 @@ class TestInfo<St> {
   bool get isEND => !ini;
 
   Type get type {
-    // Removes the generic type from UserExceptionAction and NavigateAction.
+    // Removes the generic type from UserExceptionAction, NavigateAction and PersistAction.
     // For example UserExceptionAction<AppState> becomes UserExceptionAction<dynamic>.
     if (action is UserExceptionAction &&
         action.runtimeType.toString().split('<')[0] == 'UserExceptionAction')
       return UserExceptionAction;
-    if (action is NavigateAction && action.runtimeType.toString().split('<')[0] == 'NavigateAction')
+    else if (action is NavigateAction &&
+        action.runtimeType.toString().split('<')[0] == 'NavigateAction')
       return NavigateAction;
+    else if (action is PersistAction &&
+        action.runtimeType.toString().split('<')[0] == 'PersistAction')
+      return PersistAction;
     else
       return action.runtimeType;
   }

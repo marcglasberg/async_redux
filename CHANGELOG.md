@@ -1,3 +1,7 @@
+## [2.5.3] - 2020/01/29
+
+* Removes the generic type from PersistAction in tests.
+
 ## [2.5.2] - 2020/01/28
 
 * Errors queue is cloned in TestInfo.
