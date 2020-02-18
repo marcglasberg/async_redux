@@ -1,3 +1,7 @@
+## [2.5.4] - 2020/02/18
+
+* Docs improvement.
+
 ## [2.5.3] - 2020/01/29
 
 * Removes the generic type from PersistAction in tests.

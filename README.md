@@ -1015,6 +1015,23 @@ Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/maste
 
 Also, the <a href="https://github.com/marcglasberg/async_redux/blob/master/test/store_tester_test.dart">tests of the StoreTester</a> can also serve as examples. 
 
+**Important:** The `StoreTester` has access to the store state via `StoreTester.state`, 
+but you should not try to assert directly from this state. 
+This would seem to work most of the time,
+but by the time you do the assert the state could already have been changed by some other action. 
+To avoid that, always assert from the `info` you get from the `StoreTester` methods, 
+which is guaranteed to be the one right after your *wait condition* is achieved.
+For example:    
+
+```dart
+// This is right:
+TestInfo<AppState> info = await storeTester.wait(SaveNameAction);
+expect(info.state.name, "Mark");
+
+// This is wrong:
+await storeTester.wait(SaveNameAction);
+expect(storeTester.state.name, "Mark");
+```
 
 
 ### Testing UserExceptions
