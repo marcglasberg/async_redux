@@ -1,6 +1,8 @@
 ## [2.5.5] - 2020/02/18
 
-* StoreTester.lastInfo.
+* StoreTester.lastInfo (Search for lastInfo in README.md).
+* PersistorPrinterDecorator: saveInitialState linked to the correct method.
+* Fix failing tests by ensuring initialization.
 
 ## [2.5.4] - 2020/02/18
 

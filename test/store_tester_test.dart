@@ -1095,9 +1095,7 @@ void main() {
 
   ///////////////////////////////////////////////////////////////////////////////
 
-  test(
-      'Dispatch some actions and wait until some condition is met. '
-          'Get the end state.', () async {
+  test('The lastInfo can be accessed through StoreTester.lastInfo.', () async {
     var storeTester = createStoreTester();
     expect(storeTester.state.text, "0");
 
