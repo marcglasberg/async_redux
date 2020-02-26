@@ -1,7 +1,7 @@
 [![pub package](https://img.shields.io/pub/v/async_redux.svg)](https://pub.dartlang.org/packages/async_redux) 
 [![pub package](https://img.shields.io/badge/Awesome-Flutter-blue.svg?longCache=true&style=flat-square)](https://github.com/Solido/awesome-flutter)
 
-# async_redux
+# 1. async_redux
 
 **Async Redux** is a special version of Redux which:
 
@@ -13,58 +13,62 @@
 The below documentation is very detailed.
 For an overview, go to the <a href="https://medium.com/@marcglasberg/https-medium-com-marcglasberg-async-redux-33ac5e27d5f6?sk=87aefd759273920d444185aa9d447ba0">Medium story</a>.
 
-# Table of Contents
+# 2. Table of Contents
 
-   * [What is Redux?](#what-is-redux)
-   * [Why use this Redux version over others?](#why-use-this-redux-version-over-others)
-   * [Store and State](#store-and-state)
-   * [Actions](#actions)
-      * [Sync Reducer](#sync-reducer)
-      * [Async Reducer](#async-reducer)
-      * [Changing state is optional](#changing-state-is-optional)
-      * [Before and After the Reducer](#before-and-after-the-reducer)
-   * [Connector](#connector)
-      * [How to provide the ViewModel to the StoreConnector](#how-to-provide-the-viewmodel-to-the-storeconnector)
-   * [Alternatives to the Connector](#alternatives-to-the-connector)
-      * [Provider](#provider)
-   * [Processing errors thrown by Actions](#processing-errors-thrown-by-actions)
-      * [Giving better error messages](#giving-better-error-messages)
-      * [User exceptions](#user-exceptions)
-      * [Converting third-party errors into UserExceptions](#converting-third-party-errors-into-userexceptions)
-      * [UserExceptionAction](#user-exception-action)   
-   * [Testing](#testing)
-      * [Testing UserExceptions](#testing-userexceptions)
-      * [Test files](#test-files)   
-   * [Route Navigation](#route-navigation)
-   * [Events](#events)
-      * [Can I put mutable events into the store state?](#can-i-put-mutable-events-into-the-store-state)
-      * [When should I use events?](#when-should-i-use-events)
-      * [Advanced event features](#advanced-event-features)
-   * [Waiting until an Action is finished](#waiting-until-an-action-is-finished)
-   * [State Declaration](#state-declaration)
-      * [Selectors](#selectors)
-   * [Action Subclassing](#action-subclassing)
-      * [Abstract Before and After](#abstract-before-and-after)
-   * [IDE Navigation](#ide-navigation)
-   * [Persistence](#persistence)
-      * [Saving and Loading](#saving-and-loading)     
-   * [Logging](#logging)
-   * [Observing rebuilds](#observing-rebuilds)
-   * [How to interact with the database](#how-to-interact-with-the-database)
-   * [How to deal with Streams](#how-to-deal-with-streams)
-      * [So, how do you use streams?](#so-how-do-you-use-streams)
-      * [Where the stream subscriptions themselves are stored](#where-the-stream-subscriptions-themselves-are-stored)
-      * [How do streams pass their information to the store and ultimately to the widgets?](#how-do-streams-pass-their-information-to-the-store-and-ultimately-to-the-widgets)
-      * [To sum up:](#to-sum-up)
-   * [Recommended Directory Structure](#recommended-directory-structure)
-   * [Where to put your business logic](#where-to-put-your-business-logic)
-   * [Architectural discussion](#architectural-discussion)
-      * [Is AsyncRedux really Redux?](#is-asyncredux-really-redux)
-      * [Besides the reduction of boilerplate, what are the main advantages of the AsyncRedux architecture?](#besides-the-reduction-of-boilerplate-what-are-the-main-advantages-of-the-asyncredux-architecture)
-      * [Is AsyncRedux a minimalist or lightweight Redux version?](#is-asyncredux-a-minimalist-or-lightweight-redux-version)
-      * [Is the AsyncRedux architecture useful for small projects?](#is-the-asyncredux-architecture-useful-for-small-projects)
+- [1. async_redux](#1-async_redux)
+- [2. Table of Contents](#2-table-of-contents)
+    - [2.1. What is Redux?](#21-what-is-redux)
+    - [2.2. Why use this Redux version over others?](#22-why-use-this-redux-version-over-others)
+    - [2.3. Store and State](#23-store-and-state)
+    - [2.4. Actions](#24-actions)
+        - [2.4.1. Sync Reducer](#241-sync-reducer)
+        - [2.4.2. Async Reducer](#242-async-reducer)
+            - [2.4.2.1. One important rule](#2421-one-important-rule)
+        - [2.4.3. Changing state is optional](#243-changing-state-is-optional)
+        - [2.4.4. Before and After the Reducer](#244-before-and-after-the-reducer)
+            - [2.4.4.1. What's the order of execution of sync and async reducers?](#2441-whats-the-order-of-execution-of-sync-and-async-reducers)
+    - [2.5. Connector](#25-connector)
+        - [2.5.1. How to provide the ViewModel to the StoreConnector](#251-how-to-provide-the-viewmodel-to-the-storeconnector)
+    - [2.6. Alternatives to the Connector](#26-alternatives-to-the-connector)
+        - [2.6.1. Provider](#261-provider)
+    - [2.7. Processing errors thrown by Actions](#27-processing-errors-thrown-by-actions)
+        - [2.7.1. Giving better error messages](#271-giving-better-error-messages)
+        - [2.7.2. User exceptions](#272-user-exceptions)
+        - [2.7.3. Converting third-party errors into UserExceptions](#273-converting-third-party-errors-into-userexceptions)
+        - [2.7.4. UserExceptionAction](#274-userexceptionaction)
+    - [2.8. Testing](#28-testing)
+        - [2.8.1. Testing UserExceptions](#281-testing-userexceptions)
+        - [2.8.2. Test files](#282-test-files)
+    - [2.9. Route Navigation](#29-route-navigation)
+    - [2.10. Events](#210-events)
+        - [2.10.1. Can I put mutable events into the store state?](#2101-can-i-put-mutable-events-into-the-store-state)
+        - [2.10.2. When should I use events?](#2102-when-should-i-use-events)
+        - [2.10.3. Advanced event features](#2103-advanced-event-features)
+    - [2.11. Waiting until an Action is finished](#211-waiting-until-an-action-is-finished)
+    - [2.12. State Declaration](#212-state-declaration)
+        - [2.12.1. Selectors](#2121-selectors)
+    - [2.13. Action Subclassing](#213-action-subclassing)
+        - [2.13.1. Abstract Before and After](#2131-abstract-before-and-after)
+    - [2.14. IDE Navigation](#214-ide-navigation)
+    - [2.15. Persistence](#215-persistence)
+        - [2.15.1. Saving and Loading](#2151-saving-and-loading)
+    - [2.16. Logging](#216-logging)
+    - [2.17. Observing rebuilds](#217-observing-rebuilds)
+    - [2.18. How to interact with the database](#218-how-to-interact-with-the-database)
+    - [2.19. How to deal with Streams](#219-how-to-deal-with-streams)
+        - [2.19.1. So, how do you use streams?](#2191-so-how-do-you-use-streams)
+        - [2.19.2. Where the stream subscriptions themselves are stored](#2192-where-the-stream-subscriptions-themselves-are-stored)
+        - [2.19.3. How do streams pass their information to the store and ultimately to the widgets?](#2193-how-do-streams-pass-their-information-to-the-store-and-ultimately-to-the-widgets)
+        - [2.19.4. To sum up:](#2194-to-sum-up)
+    - [2.20. Recommended Directory Structure](#220-recommended-directory-structure)
+    - [2.21. Where to put your business logic](#221-where-to-put-your-business-logic)
+    - [2.22. Architectural discussion](#222-architectural-discussion)
+        - [2.22.1. Is AsyncRedux really Redux?](#2221-is-asyncredux-really-redux)
+        - [2.22.2. Besides the reduction of boilerplate, what are the main advantages of the AsyncRedux architecture?](#2222-besides-the-reduction-of-boilerplate-what-are-the-main-advantages-of-the-asyncredux-architecture)
+        - [2.22.3. Is AsyncRedux a minimalist or lightweight Redux version?](#2223-is-asyncredux-a-minimalist-or-lightweight-redux-version)
+        - [2.22.4. Is the AsyncRedux architecture useful for small projects?](#2224-is-the-asyncredux-architecture-useful-for-small-projects)
 
-## What is Redux?
+## 2.1. What is Redux?
 
 A single **store** holds all the **state**, which is immutable.
 When you need to modify some state you **dispatch** an **action**.
@@ -72,7 +76,7 @@ Then a **reducer** creates a new copy of the state, with the desired changes.
 Your widgets are **connected** to the store (through **store-connectors** and **view-models**),
 so they know that the state changed, and rebuild as needed.
 
-## Why use this Redux version over others?
+## 2.2. Why use this Redux version over others?
 
 Plain vanilla Redux is too low-level, which makes it very flexible
 but results in a lot of boilerplate, and a steep learning curve.
@@ -123,7 +127,7 @@ However, this state must be in the `ScrollController`, not the store.
 * It helps you show errors thrown by reducers to the user.
 * It's easy to add both logging and store persistence.
 
-## Store and State
+## 2.3. Store and State
 
 Declare your store and state, like this:
 
@@ -136,7 +140,7 @@ var store = Store<AppState>(
 ```
 
 
-## Actions
+## 2.4. Actions
 
 If you want to change the store state you must "dispatch" some action.
 In AsyncRedux all actions extend `ReduxAction`.
@@ -149,7 +153,7 @@ The reducer has direct access to:
  - The action state itself (the class fields, passed to the action when it was instantiated and dispatched).
  - The `dispatch` method, so that other actions may be dispatched from the reducer.
 
-### Sync Reducer
+### 2.4.1. Sync Reducer
 
 If you want to do some synchronous work, simply declare the reducer to return `AppState`,
 then change the state and return it.
@@ -183,7 +187,7 @@ We will show you later how to easily test sync reducers, using the **StoreTester
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main.dart">Increment Example</a>.
 
-### Async Reducer
+### 2.4.2. Async Reducer
 
 If you want to do some asynchronous work, simply declare the reducer to return `Future<AppState>`
 then change the state and return it. There is no need of any "middleware", like for other Redux versions.
@@ -214,7 +218,7 @@ We will show you later how to easily test async reducers, using the **StoreTeste
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_increment_async.dart">Increment Async Example</a>.
 
-#### One important rule
+#### 2.4.2.1. One important rule
 
 When your reducer returns `Future<AppState>` you must make sure you **do not return a completed future**.
 In other words, all execution paths of the reducer must pass through at least one `await` keyword.
@@ -245,7 +249,7 @@ If you don't follow this rule, AsyncRedux may seem to work ok, but will eventual
 If you're an advanced user interested in the details, check the 
 <a href="https://github.com/marcglasberg/async_redux/blob/master/test/sync_async_test.dart">sync/async tests</a>.   
 
-### Changing state is optional
+### 2.4.3. Changing state is optional
 
 For both sync and async reducers, returning a new state is optional.
 If you don't plan on changing the state, simply return `null`. This is the same as returning the state unchanged.
@@ -282,7 +286,7 @@ class IncrementAction extends ReduxAction<AppState> {
 Note the `reduce()` methods have direct access to `state` and `dispatch`. 
 There is no need to write `store.state` and `store.dispatch` (although you can, if you want). 
 
-### Before and After the Reducer 
+### 2.4.4. Before and After the Reducer 
 
 Sometimes, while an async reducer is running, you want to prevent the user from touching the screen.
 Also, sometimes you want to check preconditions like the presence of an internet connection,
@@ -355,7 +359,7 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">Before and After Example</a>.
 
-#### What's the order of execution of sync and async reducers?
+#### 2.4.4.1. What's the order of execution of sync and async reducers?
 
 A reducer is only sync if both `reducer()` return `AppState` AND `before()` return `void`. 
 If you any of them return a `Future`, then the reducer is async. 
@@ -393,7 +397,7 @@ await dispatchFuture(MyAsyncAction1());
 await dispatchFuture(MyAsyncAction2());
 ```
 
-## Connector
+## 2.5. Connector
 
 As usual, in Redux you generally have two widgets, one called the "dumb-widget", which knows nothing
 about Redux and the store, and another one to "wire" the store with that dumb-widget.
@@ -471,7 +475,7 @@ ViewModel.build({
 }) : super(equals: [field1, field2]);
 ```      
 
-### How to provide the ViewModel to the StoreConnector
+### 2.5.1. How to provide the ViewModel to the StoreConnector
 
 The `StoreConnector` actually accepts two parameters for the `ViewModel`, 
 of which one but **only one** should be provided in the `StoreConnector` constructor: 
@@ -590,7 +594,7 @@ static VoidCallback _onSave(Store<AppState>) {
    To see the `converter` parameter in action, please run 
    <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_static_view_model.dart">this example</a>.    
 
-## Alternatives to the Connector
+## 2.6. Alternatives to the Connector
 
 The `StoreConnector` forces you to cleanly separate the widgets from the way they get their data. 
 This is better for clean code and will help a lot when you are writing tests. 
@@ -610,7 +614,7 @@ StoreProvider.dispatchFuture<AppState>(context, MyAction());
 AppState state = StoreProvider.state<AppState>(context); 
 ```          
 
-### Provider
+### 2.6.1. Provider
 
 Another good alternative to the `StoreConnector` is using the <a href="https://pub.dev/packages/provider">Provider</a> 
 package. 
@@ -627,7 +631,7 @@ Please visit the <a href="https://pub.dev/packages/provider_for_redux">provider_
 in-depth explanation and examples on how to use AsyncRedux and Provider together.
 
 
-## Processing errors thrown by Actions
+## 2.7. Processing errors thrown by Actions
 
 AsyncRedux has special provisions for dealing with errors, including observing errors, showing errors to users,
 and wrapping errors into more meaningful descriptions.
@@ -677,7 +681,7 @@ bool errorObserver(Object error, ReduxAction action, Store store, Object state, 
 If your error observer returns `true`, the error will be rethrown after the `errorObserver` finishes.
 If it returns `false`, the error is considered dealt with, and will be "swallowed" (not rethrown).
 
-### Giving better error messages 
+### 2.7.1. Giving better error messages 
 
 If your reducer throws some error you probably want to collect as much information as possible.
 In the above code, if `checkInternetConnection()` throws an error, you want to know that you have a connection
@@ -702,7 +706,7 @@ Note the `LogoutError` above gets the original error as cause, so no information
 
 In other words, the `wrapError(error)` method acts as the "catch" statement of the action.
  
-### User exceptions
+### 2.7.2. User exceptions
 
 To show error messages to the user, make your actions throw an `UserException`,
 and then wrap your home-page with `UserExceptionDialog`, below `StoreProvider` and `MaterialApp`:
@@ -783,7 +787,7 @@ UserExceptionDialog<AppState>(
 );
 ```                                             
 
-### Converting third-party errors into UserExceptions
+### 2.7.3. Converting third-party errors into UserExceptions
 
 Third-party code may also throw errors which should not be considered bugs, 
 but simply messages to be displayed in a dialog to the user.
@@ -836,7 +840,7 @@ Otherwise, it just returns `null`, so that the original exception will not be mo
 Note this wrapper is called **after** `ReduxAction.wrapError`, and **before** the `ErrorObserver`.
          
 
-### UserExceptionAction 
+### 2.7.4. UserExceptionAction 
 
 If you want the `UserExceptionDialog` to display some `UserException`,
 you must throw the exception from inside an action's `before()` or `reduce()` methods.
@@ -851,7 +855,7 @@ when you want to display an error dialog to the user
 but you don't want to interrupt the action by throwing an exception.
 
 
-## Testing
+## 2.8. Testing
 
 It's often said that vanilla Redux **reducers** are easy to test because they're pure functions.
 While this is true, real-world applications are composed not only of sync reducers,
@@ -1034,7 +1038,7 @@ expect(storeTester.state.name, "Mark");
 ```
 
 
-### Testing UserExceptions
+### 2.8.1. Testing UserExceptions
 
 Since `UserException`s don't represent bugs in the code, 
 AsyncRedux put them into the store's `errors` queue, and then swallows them. 
@@ -1084,7 +1088,7 @@ TestInfo info = await storeTester.waitAllGetLast([MyAction]);
 expect(info.errors.removeFirst().msg, "You can't do this.");
 ```
   
-### Test files
+### 2.8.2. Test files
 
 If you want your tests to be comprehensive
 you should probably have 3 different types of test for each widget:
@@ -1126,7 +1130,7 @@ The three corresponding test files could be named `my_widget_STATE_test.dart`,
 `my_widget_CONNECTOR_test.dart` and `my_widget_PRESENTATION_test.dart`.
 If you don't like this convention use your own, but just choose one early and stick to it.
 
-## Route Navigation
+## 2.9. Route Navigation
 
 AsyncRedux comes with a `NavigateAction` which you can dispatch to navigate your Flutter app.
 For this to work, during app initialization you must create a navigator key and then inject it into the action:
@@ -1175,7 +1179,7 @@ String routeName = NavigateAction.getCurrentNavigatorRouteName(context);
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_navigate.dart">Navigate Example</a>.
 
-## Events
+## 2.10. Events
 
 In a real Flutter app it's not practical to assume that a Redux store can hold all of the application state.
 Widgets like `TextField` and `ListView` make use of controllers, which hold state,
@@ -1311,7 +1315,7 @@ void consumeEvents() {
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_event_redux.dart">Event Example</a>.
 
-### Can I put mutable events into the store state?
+### 2.10.1. Can I put mutable events into the store state?
 
 Events are mutable, and store state is supposed to be immutable.
 Won't this create problems? No! Don't worry, events are used in a contained way,
@@ -1323,7 +1327,7 @@ You can think of events as piggybacking in the Redux infrastructure,
 and not belonging to the store state.
 You should just remember **not to persist them** when you persist the store state.
 
-### When should I use events?
+### 2.10.2. When should I use events?
  
 The short answer is that you'll know it when you see it. When you want to do something and it's not obvious 
 how to do it by changing regular store state, it's probably easy to solve it if you try using events instead.
@@ -1335,7 +1339,7 @@ However, we can also give these guidelines:
 3. You may use events to make one-off changes in controllers.
 4. You may use events to make one-off changes in other implicit state like the open state of dialogs or the keyboard.
 
-### Advanced event features
+### 2.10.3. Advanced event features
 
 There are some advanced event features you probably won't need, but you should know they exist:
 
@@ -1367,7 +1371,7 @@ String getMessageEvt() {
  }
 ```
 
-## Waiting until an Action is finished
+## 2.11. Waiting until an Action is finished
 
 In a real Flutter app it's also the case that some Widgets ask for futures 
 that complete when some async process is done.
@@ -1387,7 +1391,7 @@ return RefreshIndicator(
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_dispatch_future.dart">Dispatch Future Example</a>.
 
-## State Declaration
+## 2.12. State Declaration
 
 While your main state class, usually called `AppState`, may be simple and contain all of the state directly, in a real world application
 you will probably want to create many state classes and add them to the main state class. For example, if you have
@@ -1461,7 +1465,7 @@ class TodoState {
 }
 ```
     
-### Selectors
+### 2.12.1. Selectors
 
 Your connector-widgets usually have a view-model that goes into the store and selects the part of the store
 the widget needs. If you have some "selecting logic" that you use in different places, you may create
@@ -1473,7 +1477,7 @@ static List<Todo> selectTodosForUser(AppState state, User user)
    => state.todoState.todos.where((todo) => (todo.user == user)).toList();
 ```
 
-## Action Subclassing
+## 2.13. Action Subclassing
 
 Suppose you have the following `AddTodoAction` for the To-Do app:
 
@@ -1557,7 +1561,7 @@ class AddTodoAction extends TodoAction {
 }
 ```
  
-### Abstract Before and After
+### 2.13.1. Abstract Before and After
 
 Other useful abstract classes you may create provide already overridden `before()` and `after()` methods.
 For example, this abstract class turns on a modal barrier when the action starts,
@@ -1587,7 +1591,7 @@ class ChangeTextAction extends BarrierAction {
 
 The above `BarrierAction` is demonstrated in <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_event_redux.dart">this example</a>.
 
-## IDE Navigation
+## 2.14. IDE Navigation
 
 How does AsyncRedux solve the IDE navigation problem?
 
@@ -1598,7 +1602,7 @@ If you need to list all of your actions,
 you just go to the `ReduxAction` class declaration and ask the IDE to list all of its subclasses.
 
 
-## Persistence
+## 2.15. Persistence
 
 Your store optionally accepts a `persistor`, which may be used for local persistence, 
 i.e., keeping the current app state saved to the local disk of the device.
@@ -1670,7 +1674,7 @@ store.dispatch(PersistAction());
 
 Have a look at the: <a href="https://github.com/marcglasberg/async_redux/blob/master/test/persistence_test.dart">Persistence tests</a>.
 
-### Saving and Loading
+### 2.15.1. Saving and Loading
 
 You can choose any way you want to save the state difference to the local disk,
 but one way is using the provided `LocalPersist` class,
@@ -1727,7 +1731,7 @@ await persist.delete();
 Have a look at the: <a href="https://github.com/marcglasberg/async_redux/blob/master/test/local_persist_test.dart">Local Persist tests</a>.
  
 
-## Logging
+## 2.16. Logging
 
 Your store optionally accepts lists of `actionObservers` and `stateObservers`, 
 which may be used for logging:
@@ -1792,7 +1796,7 @@ getting an END action observation doesn't mean that all of the action effects ha
 because the action may have started async processes that may well last into the future. And these processes may later dispatch other actions that will change the store state. However, it does mean that the action can no longer change the state **directly**.
 
 
-## Observing rebuilds
+## 2.17. Observing rebuilds
 
 Your store optionally accepts a `modelObserver`, which lets you visualize rebuilds.  
 
@@ -1828,7 +1832,7 @@ The `ModelObserver` is also useful when you want to create tests
 to assert that rebuilds happen when and only when the appropriate parts of the state change.
 For an example, see the <a href="https://github.com/marcglasberg/async_redux/blob/master/test/model_observer_test.dart">Model Observer Test</a>.
 
-## How to interact with the database
+## 2.18. How to interact with the database
 
 The following advice works for any Redux version, including AsyncRedux.
 
@@ -1854,7 +1858,7 @@ This rebuilds your widgets that depend on `something`, with its new value.
 The state now holds the new `something`,
 and the local store persistor may persist this value to the local file system, if that's what you want.
 
-## How to deal with Streams
+## 2.19. How to deal with Streams
 
 The following advice works for any Redux version, including AsyncRedux.
 
@@ -1868,7 +1872,7 @@ AsyncRedux plays well with Streams, as long as you know how to use them:
   They are not app state, and they should not be persisted to the local filesystem. 
   Instead, they are something that "generates state". 
   
-### So, how do you use streams? 
+### 2.19.1. So, how do you use streams? 
 
 Let's pretend you want to listen to changes to the user name, in a Firestore database.
 First, create an action to start listening, and another action to cancel. We could name them `StartListenUserNameAction`
@@ -1885,7 +1889,7 @@ and send down to the stateful dumb-widgets.
 - If the stream should run only when some actions demand it,
 their reducers may dispatch the actions to start and cancel as needed.
 
-### Where the stream subscriptions themselves are stored 
+### 2.19.2. Where the stream subscriptions themselves are stored 
 
 As discussed above, you should NOT put them
 in the store state. Instead save them in some convenient place elsewhere, where your reducers may access them.
@@ -1909,7 +1913,7 @@ For example, `userNameStream` could be a static field of the `StartListenUserNam
 Or put them wherever you think makes sense.
 In all cases above, you can still inject them with mocks, for tests.
     
-### How do streams pass their information to the store and ultimately to the widgets?
+### 2.19.3. How do streams pass their information to the store and ultimately to the widgets?
   
 When you create the stream, define its callback so that it dispatches an appropriate action. 
 Each time the stream gets some data it will pass it to this action's constructor.
@@ -1926,7 +1930,7 @@ streamSub = stream.listen((QuerySnapshot querySnapshot) {
   }, onError: ...);
 ```
 
-### To sum up:
+### 2.19.4. To sum up:
 
 1. Put your stream subscriptions where they can be accessed by the reducers,
 but NOT inside of the store state.
@@ -1937,7 +1941,7 @@ but NOT inside of the store state.
 
 4. The stream callback should dispatch actions to put the snapshot data into the store state.
 
-## Recommended Directory Structure
+## 2.20. Recommended Directory Structure
 
 You probably have your own way of organizing your directory structure, but if you want some recommendation,
 here it goes.
@@ -2033,7 +2037,7 @@ Your final directory structure would then look something like this:
     └── pubspec.yaml
 ```
 
-## Where to put your business logic
+## 2.21. Where to put your business logic
 
 Widgets, Connectors and ViewModels are part of the client code. 
 If you use the recommended directory structure, they should be in the client directory, 
@@ -2051,12 +2055,12 @@ Rules of thumb:
 * Put your business logic in the Action reducers.
 * Put your business logic in the State classes.
  
-## Architectural discussion 
+## 2.22. Architectural discussion 
 
 Reading the following text is not important for the practical use of AsyncRedux,
 and is meant only for those interested in architectural discussions:
 
-### Is AsyncRedux really Redux?
+### 2.22.1. Is AsyncRedux really Redux?
 
 According to redux.js.org there are three principles to Redux:
 
@@ -2088,7 +2092,7 @@ via thunks, sagas, observables, etc.
 But when you take a second look, `return state.copy(...)` is the pure reducer, 
 and everything else in `reduce()` is essentially middleware.
 
-### Besides the reduction of boilerplate, what are the main advantages of the AsyncRedux architecture?
+### 2.22.2. Besides the reduction of boilerplate, what are the main advantages of the AsyncRedux architecture?
 
 In vanilla Redux it's easy to reason about the code at first, when it's just pure function reducers, 
 but it gets difficult to understand the whole picture as soon as you have to add complex Middleware. 
@@ -2104,7 +2108,7 @@ AsyncRedux also helps with code errors, by simply letting your reducers throw er
 AsyncRedux will catch them and deal with them appropriately, while vanilla Redux forces your
 middleware to catch errors and maybe even dispatch actions do deal with them.   
 
-### Is AsyncRedux a minimalist or lightweight Redux version?
+### 2.22.3. Is AsyncRedux a minimalist or lightweight Redux version?
 
 No. AsyncRedux is concerned with being "easy to use", not with being lightweight.
 In terms of library code size it's larger than the original Redux implementation.
@@ -2112,7 +2116,7 @@ However it's still very small, and will make the total application code smaller 
 the vanilla implementation, because of the boilerplate reduction.
 In terms of speed/performance there should be no differences in respect to the vanilla implementation.    
 
-### Is the AsyncRedux architecture useful for small projects?
+### 2.22.4. Is the AsyncRedux architecture useful for small projects?
 
 It's usually said that you should not use Redux for small projects,
 because of the extra boilerplate and limitations. Maybe it's not worth the effort.
