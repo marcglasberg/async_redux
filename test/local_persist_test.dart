@@ -3,11 +3,14 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:async_redux/async_redux.dart';
+import 'package:flutter/material.dart';
 import "package:test/test.dart";
 
 enum files { abc, xyz }
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
   /////////////////////////////////////////////////////////////////////////////
 
   test('Encode and decode state.', () async {
