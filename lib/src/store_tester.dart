@@ -32,6 +32,8 @@ class StoreTester<St> {
 
   St get state => _store.state;
 
+  TestInfo<St> lastInfo;
+
   /// The [StoreTester] makes it easy to test both sync and async reducers.
   /// You may dispatch some action, wait for it to finish or wait until some
   /// arbitrary condition is met, and then check the resulting state.
@@ -93,6 +95,7 @@ class StoreTester<St> {
   }) async {
     var infoList =
         await waitCondition(condition, ignoreIni: ignoreIni, timeoutInSeconds: timeoutInSeconds);
+
     return infoList.last;
   }
 
@@ -109,7 +112,7 @@ class StoreTester<St> {
   }) async {
     assert(condition != null);
 
-    TestInfoList<St> results = TestInfoList<St>();
+    TestInfoList<St> infoList = TestInfoList<St>();
 
     TestInfo<St> testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
 
@@ -117,7 +120,7 @@ class StoreTester<St> {
       if (ignoreIni)
         while (testInfo.ini) testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
 
-      results._add(testInfo);
+      infoList._add(testInfo);
 
       if (condition(testInfo))
         break;
@@ -125,7 +128,9 @@ class StoreTester<St> {
         testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
     }
 
-    return results;
+    lastInfo = infoList.last;
+
+    return infoList;
   }
 
   /// If [error] is a Type, runs until after an action throws an error of this exact type.
@@ -144,6 +149,7 @@ class StoreTester<St> {
   }) async {
     var infoList = await waitUntilError(
         error: error, processedError: processedError, timeoutInSeconds: timeoutInSeconds);
+
     return infoList.last;
   }
 
@@ -171,7 +177,12 @@ class StoreTester<St> {
             (processedError is Type && info.processedError.runtimeType == processedError) ||
             (processedError is! Type && info.processedError == processedError));
 
-    return await waitCondition(condition, ignoreIni: true, timeoutInSeconds: timeoutInSeconds);
+    var infoList =
+        await waitCondition(condition, ignoreIni: true, timeoutInSeconds: timeoutInSeconds);
+
+    lastInfo = infoList.last;
+
+    return infoList;
   }
 
   /// Expects **one action** of the given type to be dispatched, and waits until it finishes.
@@ -193,6 +204,8 @@ class StoreTester<St> {
     while (testInfo == null || testInfo.type != actionType || testInfo.isINI) {
       testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
     }
+
+    lastInfo = testInfo;
 
     return testInfo;
   }
@@ -217,6 +230,8 @@ class StoreTester<St> {
     while (testInfo == null || testInfo.action != action || testInfo.isINI) {
       testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
     }
+
+    lastInfo = testInfo;
 
     return testInfo;
   }
@@ -245,6 +260,9 @@ class StoreTester<St> {
     if (ignore == null) ignore = _ignore;
 
     var infoList = await waitAll(actionTypes, ignore: ignore);
+
+    lastInfo = infoList.last;
+
     return infoList.last;
   }
 
@@ -286,7 +304,7 @@ class StoreTester<St> {
     assert(actionTypes != null && actionTypes.isNotEmpty);
     if (ignore == null) ignore = _ignore;
 
-    TestInfoList<St> results = TestInfoList<St>();
+    TestInfoList<St> infoList = TestInfoList<St>();
 
     // Waits the end of all actions, in any order.
     List<TestInfo<St>> endStates = [];
@@ -364,10 +382,12 @@ class StoreTester<St> {
     }
 
     for (TestInfo<St> testInfo in endStates) {
-      results._add(testInfo);
+      infoList._add(testInfo);
     }
 
-    return results;
+    lastInfo = infoList.last;
+
+    return infoList;
   }
 
   /// The same as `waitAllUnorderedGetLast`, but instead of returning just the last info,
@@ -395,7 +415,7 @@ class StoreTester<St> {
     if (intersection.isNotEmpty)
       throw StoreException("Actions $intersection should not be expected and ignored.");
 
-    TestInfoList<St> testInfoList = TestInfoList<St>();
+    TestInfoList<St> infoList = TestInfoList<St>();
     List<Type> actionsIni = List.from(actionTypes);
     List<Type> actionsEnd = List.from(actionTypes);
 
@@ -437,7 +457,7 @@ class StoreTester<St> {
           throw StoreException("Unexpected action was dispatched: $action END.");
 
         // Only save the END states.
-        testInfoList._add(testInfo);
+        infoList._add(testInfo);
       }
     }
 
@@ -460,7 +480,9 @@ class StoreTester<St> {
             "Got this unexpected action: ${testInfo.type} ${testInfo.ini ? "INI" : "END"}.");
     }
 
-    return testInfoList;
+    lastInfo = infoList.last;
+
+    return infoList;
   }
 
   void _listen(TestInfoPrinter testInfoPrinter) {

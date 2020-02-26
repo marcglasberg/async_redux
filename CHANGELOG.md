@@ -1,3 +1,7 @@
+## [2.5.5] - 2020/02/18
+
+* StoreTester.lastInfo.
+
 ## [2.5.4] - 2020/02/18
 
 * Docs improvement.

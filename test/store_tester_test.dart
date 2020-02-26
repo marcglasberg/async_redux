@@ -160,7 +160,7 @@ void main() {
     TestInfo<AppState> info2 =
         await storeTester.waitConditionGetLast((info) => info.state.text == "0,1,2,3,4");
     expect(info2.state.text, "0,1,2,3,4");
-    expect(info1.ini, false);
+    expect(info2.ini, false);
   });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -185,7 +185,7 @@ void main() {
         (info) => info.state.text == "0,1,2,3,4" && !info.ini,
         ignoreIni: false);
     expect(info2.state.text, "0,1,2,3,4");
-    expect(info1.ini, true);
+    expect(info2.ini, false);
   });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -1091,6 +1091,37 @@ void main() {
     expect(info.processedError, null);
     expect(info.state.text, "0,1,2,3");
     expect(info.ini, false);
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      'Dispatch some actions and wait until some condition is met. '
+          'Get the end state.', () async {
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+
+    storeTester.dispatch(Action1());
+    storeTester.dispatch(Action2());
+    storeTester.dispatch(Action3());
+    storeTester.dispatch(Action4());
+
+    var condition = (TestInfo<AppState> info) => info.state.text == "0,1,2";
+    await storeTester.waitConditionGetLast(condition);
+
+    // Same as expect(info1.state.text, "0,1,2");
+    expect(storeTester.lastInfo.state.text, "0,1,2");
+
+    // Same as expect(info1.ini, false);
+    expect(storeTester.lastInfo.ini, false);
+
+    await storeTester.waitConditionGetLast((info) => info.state.text == "0,1,2,3,4");
+
+    // Same as expect(info2.state.text, "0,1,2,3,4");
+    expect(storeTester.lastInfo.state.text, "0,1,2,3,4");
+
+    // Same as expect(info1.ini, false);
+    expect(storeTester.lastInfo.ini, false);
   });
 
   ///////////////////////////////////////////////////////////////////////////////
