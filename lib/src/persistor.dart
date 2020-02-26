@@ -81,7 +81,7 @@ class PersistorPrinterDecorator<T> extends Persistor<T> {
   @override
   Future<void> saveInitialState(state) async {
     print("Persistor: save initial state.");
-    return _persistor?.readState();
+    return _persistor?.saveInitialState(state);
   }
 
   @override
