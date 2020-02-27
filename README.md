@@ -42,7 +42,7 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [Advanced event features](#advanced-event-features)
    * [Waiting until an Action is finished](#waiting-until-an-action-is-finished)
    * [State Declaration](#state-declaration)
-      * [Selectors](#selectors)
+      * [Selectors](#selectors)             
    * [Action Subclassing](#action-subclassing)
       * [Abstract Before and After](#abstract-before-and-after)
    * [IDE Navigation](#ide-navigation)
@@ -133,7 +133,11 @@ var state = AppState.initialState();
 var store = Store<AppState>(
   initialState: state,
 );
-```
+```  
+
+Note: _Your state can be any immutable object, 
+but typically you create a class called `AppState` to help with the state creation and manipulation.
+I later give some [recommendations](#state-declaration) on how to create this class._ 
 
 
 ## Actions
@@ -1403,9 +1407,10 @@ Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/maste
 
 ## State Declaration
 
-While your main state class, usually called `AppState`, may be simple and contain all of the state directly, in a real world application
-you will probably want to create many state classes and add them to the main state class. For example, if you have
-some state for the login, some user related state, and some *todos* in a To-Do app, you can organize it like this:
+While your main state class, usually called `AppState`, may be simple and contain all of the state directly, 
+in a real world application you will probably want to create many state classes and add them to the main state class. 
+For example, if you have some state for the login, some user related state, and some *todos* in a To-Do app, 
+you can organize it like this:
 
 ```dart
 class AppState {
@@ -1450,7 +1455,10 @@ class AppState {
 
 All of your state classes may follow this pattern. For example, the `TodoState` could be like this:
 
-```dart
+```dart  
+import 'package:flutter/foundation.dart'; 
+import 'package:collection/collection.dart';
+
 class TodoState {    
   
   final List<Todo> todos;            
