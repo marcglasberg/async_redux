@@ -1,3 +1,7 @@
+## [2.5.6] - 2020/03/05
+
+* Fixed orElse in TestInfo operator [].
+
 ## [2.5.5] - 2020/02/18
 
 * StoreTester.lastInfo (Search for lastInfo in README.md).

@@ -542,7 +542,7 @@ class TestInfoList<St> {
 
   /// Returns the first info corresponding to the end of the given action type.
   TestInfo<St> operator [](Type actionType) {
-    return _info.firstWhere((info) => info.type == actionType, orElse: null);
+    return _info.firstWhere((info) => info.type == actionType, orElse: () => null);
   }
 
   /// Returns the n-th info corresponding to the end of the given action type
@@ -564,13 +564,13 @@ class TestInfoList<St> {
   void forEach(void action(TestInfo<St> element)) => _info.forEach(action);
 
   TestInfo<St> firstWhere(bool test(TestInfo<St> element), {TestInfo<St> orElse()}) =>
-      _info.firstWhere(test);
+      _info.firstWhere(test, orElse: orElse);
 
   TestInfo<St> lastWhere(bool test(TestInfo<St> element), {TestInfo<St> orElse()}) =>
-      _info.lastWhere(test);
+      _info.lastWhere(test, orElse: orElse);
 
   TestInfo<St> singleWhere(bool test(TestInfo<St> element), {TestInfo<St> orElse()}) =>
-      _info.singleWhere(test);
+      _info.singleWhere(test, orElse: orElse);
 
   Iterable<TestInfo<St>> where(bool test(TestInfo<St> element)) => _info.where(test);
 
