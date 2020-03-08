@@ -701,11 +701,7 @@ abstract class BaseModel<St> {
   @override
   int get hashCode => runtimeType.hashCode ^ _propsHashCode;
 
-  int get _propsHashCode {
-    int hashCode = 0;
-    equals.forEach((Object prop) => hashCode = hashCode ^ prop.hashCode);
-    return hashCode;
-  }
+  int get _propsHashCode => equals.fold(0, (hashCode, Object prop) => hashCode ^ prop.hashCode);
 
   Store<St> _store;
 
