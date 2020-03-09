@@ -1,3 +1,7 @@
+## [2.5.7] - 2020/03/09
+
+* Action.abortDispatch.
+
 ## [2.5.6] - 2020/03/05
 
 * Fixed orElse in TestInfo operator [].

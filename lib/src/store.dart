@@ -335,7 +335,7 @@ class Store<St> {
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: store.dispatch is of type Dispatch.
   void dispatch(ReduxAction<St> action) {
-    if (_shutdown) return;
+    if (_shutdown || action.abortDispatch()) return;
 
     _dispatchCount++;
 
@@ -589,6 +589,12 @@ abstract class ReduxAction<St> {
   /// throwing a FormatException you could do:
   /// `wrapError(error) => UserException("Please enter a valid number.", error: error)`
   Object wrapError(error) => error;
+
+  /// If this returns true, the action will not be dispatched: `before`, `reduce`
+  /// and `after` will not be called, and the action will not be visible to the
+  /// `StoreTester`. This is only useful under rare circumstances, and you should
+  /// only use it if you know what you are doing.
+  bool abortDispatch() => false;
 
   /// Nest state reducers without dispatching another action.
   /// Example: return AddTaskAction(demoTask).reduceWithState(state);
