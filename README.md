@@ -491,7 +491,7 @@ of which one but **only one** should be provided in the `StoreConnector` constru
    so that boilerplate is reduced in your `fromStore` method. For example:
    
 ```dart
-class ViewModel extends BaseModel<Store<AppState>> {
+class ViewModel extends BaseModel<AppState> {
    ViewModel();
  
    String name;
