@@ -6,6 +6,7 @@ import '../async_redux.dart';
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
 enum NavigateType {
+  push,
   pushNamed,
   pushReplacementNamed,
   pushNamedAndRemoveAll,
@@ -34,16 +35,26 @@ class NavigateAction<St> extends ReduxAction<St> {
     return currentRoute.settings.name;
   }
 
-  NavigateType navigateType;
-  String routeName;
-  RoutePredicate predicate;
-  Object arguments;
+  final NavigateType navigateType;
+  final Route route;
+  final String routeName;
+  final RoutePredicate predicate;
+  final Object arguments;
 
   NavigateAction(this.routeName, {@required this.navigateType, this.arguments, this.predicate})
       : assert(navigateType != null),
         assert((navigateType == NavigateType.pushNamedAndRemoveUntil && predicate != null) ||
             predicate == null),
-        assert(navigateType == NavigateType.pop || routeName != null);
+        assert(navigateType == NavigateType.pop || routeName != null),
+        route = null;
+
+  NavigateAction.push(
+    this.route, {
+    Object arguments,
+  })  : routeName = null,
+        navigateType = NavigateType.push,
+        predicate = null,
+        arguments = null;
 
   NavigateAction.pop() : this(null, navigateType: NavigateType.pop);
 
@@ -78,6 +89,10 @@ class NavigateAction<St> extends ReduxAction<St> {
     if (_navigatorKey != null)
       switch (navigateType) {
         //
+        case NavigateType.push:
+          _navigatorKey.currentState.push(route);
+          break;
+
         case NavigateType.pop:
           _navigatorKey.currentState.pop();
           break;

@@ -1,3 +1,7 @@
+## [2.5.8] - 2020/03/17
+
+* NavigateAction.push(Route).
+
 ## [2.5.7] - 2020/03/09
 
 * Action.abortDispatch.

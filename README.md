@@ -1181,6 +1181,7 @@ dispatch(NavigateAction.pushReplacementNamed("myRoute"));
 dispatch(NavigateAction.pushNamedAndRemoveAll("myRoute"));
 dispatch(NavigateAction.pushNamedAndRemoveUntil("myRoute", predicate: (Route<dynamic> route) => route.settings.name == "anotherRoute"));
 dispatch(NavigateAction.popUntil("myRoute"));
+dispatch(NavigateAction.push(route));
 ```
 
 Note: Don't ever save the current route in the store. This will create all sorts of problems.
