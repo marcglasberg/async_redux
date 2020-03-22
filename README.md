@@ -1632,7 +1632,7 @@ This is the recommended way to use it:
 ```dart                       
 var persistor = MyPersistor();          
 
-var initialState = await persistor.readAppState();
+var initialState = await persistor.readState();
 
 if (initialState == null) {
       initialState = AppState.initialState();
@@ -1645,7 +1645,7 @@ var store = Store<AppState>(
 );
 ```           
 
-As you can see above, when the app starts you use the `readAppState` method 
+As you can see above, when the app starts you use the `readState` method 
 to try and read the state from the disk.
 If this method returns `null`, you must create an initial state and save it.
 You then create the store with the `initialState` and the `persistor`.  

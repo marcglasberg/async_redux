@@ -16,7 +16,7 @@ import 'package:flutter/material.dart';
 /// ```dart
 /// var persistor = MyPersistor();
 ///
-/// var initialState = await persistor.readAppState();
+/// var initialState = await persistor.readState();
 ///
 /// if (initialState == null) {
 /// initialState = AppState.initialState();
