@@ -1,3 +1,8 @@
+## [2.6.0] - 2020/04/01
+
+* The default timeout for the StoreTester wait functions can now be globally changed.
+* The default debug information printed to the console now can be changed or turned off globally.
+
 ## [2.5.8] - 2020/03/17
 
 * NavigateAction.push(Route).

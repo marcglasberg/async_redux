@@ -18,9 +18,20 @@ typedef bool StateCondition<St>(TestInfo<St> info);
 /// For more info, see: https://pub.dartlang.org/packages/async_redux
 ///
 class StoreTester<St> {
-  static const _defaultTimeout = 500;
-  static final TestInfoPrinter _defaultTestInfoPrinter = (TestInfo info) => print(info);
-  static final VoidCallback _defaultNewStorePrinter = () => print("New StoreTester.");
+  //
+  /// The global default timeout for the wait functions.
+  static const defaultTimeout = 500;
+
+  /// If the default debug info should be printed to the console or not.
+  static bool printDefaultDebugInfo = true;
+
+  static TestInfoPrinter defaultTestInfoPrinter = (TestInfo info) {
+    if (printDefaultDebugInfo) print(info);
+  };
+
+  static VoidCallback defaultNewStorePrinter = () {
+    if (printDefaultDebugInfo) print("New StoreTester.");
+  };
 
   final Store<St> _store;
   final List<Type> _ignore;
@@ -37,6 +48,11 @@ class StoreTester<St> {
   /// The [StoreTester] makes it easy to test both sync and async reducers.
   /// You may dispatch some action, wait for it to finish or wait until some
   /// arbitrary condition is met, and then check the resulting state.
+  ///
+  /// The [StoreTester] will, by default, print some default debug
+  /// information to the console. You can disable these prints globally
+  /// by making `StoreTester.printDebugInfo = false`.
+  /// Note you can also provide your own custom [testInfoPrinter].
   ///
   /// If [shouldThrowUserExceptions] is true, all errors will be thrown,
   /// and not swallowed, including UserExceptions. Use this in all tests
@@ -70,7 +86,7 @@ class StoreTester<St> {
         _ignore = ignore ?? const [],
         _store = store {
     _listen(testInfoPrinter);
-    _defaultNewStorePrinter();
+    defaultNewStorePrinter();
   }
 
   void dispatch(ReduxAction<St> action) => store.dispatch(action);
@@ -91,7 +107,7 @@ class StoreTester<St> {
   Future<TestInfo<St>> waitConditionGetLast(
     StateCondition<St> condition, {
     bool ignoreIni = true,
-    int timeoutInSeconds = _defaultTimeout,
+    int timeoutInSeconds = defaultTimeout,
   }) async {
     var infoList =
         await waitCondition(condition, ignoreIni: ignoreIni, timeoutInSeconds: timeoutInSeconds);
@@ -108,7 +124,7 @@ class StoreTester<St> {
   Future<TestInfoList<St>> waitCondition(
     StateCondition<St> condition, {
     bool ignoreIni = true,
-    int timeoutInSeconds = _defaultTimeout,
+    int timeoutInSeconds = defaultTimeout,
   }) async {
     assert(condition != null);
 
@@ -145,7 +161,7 @@ class StoreTester<St> {
   Future<TestInfo<St>> waitUntilErrorGetLast({
     Object error,
     Object processedError,
-    int timeoutInSeconds = _defaultTimeout,
+    int timeoutInSeconds = defaultTimeout,
   }) async {
     var infoList = await waitUntilError(
         error: error, processedError: processedError, timeoutInSeconds: timeoutInSeconds);
@@ -165,7 +181,7 @@ class StoreTester<St> {
   Future<TestInfoList<St>> waitUntilError({
     Object error,
     Object processedError,
-    int timeoutInSeconds = _defaultTimeout,
+    int timeoutInSeconds = defaultTimeout,
   }) async {
     assert(error != null || processedError != null);
 
@@ -195,7 +211,7 @@ class StoreTester<St> {
   ///
   Future<TestInfo> waitUntil(
     Type actionType, {
-    int timeoutInSeconds = _defaultTimeout,
+    int timeoutInSeconds = defaultTimeout,
   }) async {
     assert(actionType != null);
 
@@ -221,7 +237,7 @@ class StoreTester<St> {
   ///
   Future<TestInfo> waitUntilAction(
     ReduxAction<St> action, {
-    int timeoutInSeconds = _defaultTimeout,
+    int timeoutInSeconds = defaultTimeout,
   }) async {
     assert(action != null);
 
@@ -277,7 +293,7 @@ class StoreTester<St> {
   ///
   Future<TestInfo> waitAllUnorderedGetLast(
     List<Type> actionTypes, {
-    int timeoutInSeconds = _defaultTimeout,
+    int timeoutInSeconds = defaultTimeout,
     List<Type> ignore,
   }) async =>
       (await waitAllUnordered(
@@ -404,7 +420,7 @@ class StoreTester<St> {
   ///
   Future<TestInfoList<St>> waitAllUnordered(
     List<Type> actionTypes, {
-    int timeoutInSeconds = _defaultTimeout,
+    int timeoutInSeconds = defaultTimeout,
     List<Type> ignore,
   }) async {
     assert(actionTypes != null && actionTypes.isNotEmpty);
@@ -489,7 +505,7 @@ class StoreTester<St> {
     if (testInfoPrinter != null)
       _store.initTestInfoPrinter(testInfoPrinter);
     else if (_store.testInfoPrinter == null)
-      _store.initTestInfoPrinter(testInfoPrinter ?? _defaultTestInfoPrinter);
+      _store.initTestInfoPrinter(testInfoPrinter ?? defaultTestInfoPrinter);
 
     _store.initTestInfoController();
     _subscription = _store.onReduce.listen(_completeFuture);
@@ -498,7 +514,7 @@ class StoreTester<St> {
   }
 
   Future<TestInfo<St>> _next({
-    int timeoutInSeconds = _defaultTimeout,
+    int timeoutInSeconds = defaultTimeout,
   }) async {
     if (_futures.isEmpty) {
       _completer = Completer();
