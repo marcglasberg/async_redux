@@ -51,7 +51,7 @@ class StoreTester<St> {
   ///
   /// The [StoreTester] will, by default, print some default debug
   /// information to the console. You can disable these prints globally
-  /// by making `StoreTester.printDebugInfo = false`.
+  /// by making `StoreTester.printDefaultDebugInfo = false`.
   /// Note you can also provide your own custom [testInfoPrinter].
   ///
   /// If [shouldThrowUserExceptions] is true, all errors will be thrown,
