@@ -1413,7 +1413,7 @@ which may be difficult to do.
 If you need help with this problem, 
 an option is using the built-in classes `WaitAction` and `Wait`.
 
-For this to work your store state must have a `Wait` field named `wait`,
+For this to work, your store state must have a `Wait` field named `wait`,
 and then the state's `copy` method must also copy this field as a named parameter. 
 For example:
 
@@ -1430,7 +1430,7 @@ class AppState {
   
 Then, when you want to start waiting, simply dispatch a `WaitAction` 
 and pass it some immutable object to act as a flag.
-And when you finish waiting, just remove the flag. For example:
+When you finish waiting, just remove the flag. For example:
 
 ```dart
 dispatch(WaitAction.add("my flag")); // To add a flag.   
@@ -1441,7 +1441,7 @@ In the `ViewModel`, if there's any waiting, then `state.wait.isWaiting` will ret
 
 <br>
 
-The flag can be any convenient immutable object, like an URL, an user id, an index, an enum, a String or a number.
+The flag can be any convenient **immutable object**, like an URL, an user id, an index, an enum, a String, a number, or other.
 
 When you are inside of an async action, 
 you can use its `before` and `after` methods do dispatch the `WaitAction`:
@@ -1460,13 +1460,13 @@ class LoadAction extends ReduxAction<AppState> {
 ```                                                            
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_wait_action_simple.dart">Wait Action Simple Example</a>
-(which is similar to
-<a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">this</a> example). 
+(which is similar to the
+<a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">Before and After example</a> but using the built-in `WaitAction`). 
 It uses the action itself as the flag, by passing `this`. 
 
 <br>
 
-A more advanced example is the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">Wait Action Advanced 1 Example</a>. Here, 10 buttons are shown. 
+A more advanced example is the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_wait_action_advanced_1.dart">Wait Action Advanced 1 Example</a>. Here, 10 buttons are shown. 
 When a button is clicked it will be replaced by a downloaded text description. 
 Each button shows a progress indicator while its description is downloading. 
 Also, the screen title shows the text `"Downloading..."` if any of the buttons is currently downloading.
@@ -1492,7 +1492,7 @@ Note: If necessary, you can clear all flags by doing `dispatch(WaitAction.clear(
  
 If you fear your flag may conflict with others, you can also add a "namespace", by 
 further dividing flags into references. 
-This can be seen in the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">Wait Action Advanced 2 Example</a>: 
+This can be seen in the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_wait_action_advanced_2.dart">Wait Action Advanced 2 Example</a>: 
 
 ```dart
 void before() => dispatch(WaitAction.add("button-download", ref: index));

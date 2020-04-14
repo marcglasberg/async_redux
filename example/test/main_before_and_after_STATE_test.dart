@@ -59,12 +59,12 @@ void main() {
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.waiting, false);
 
-    storeTester.dispatch(WaitAction(true));
-    TestInfo<AppState> info = await storeTester.wait(WaitAction);
+    storeTester.dispatch(BarrierAction(true));
+    TestInfo<AppState> info = await storeTester.wait(BarrierAction);
     expect(info.state.waiting, true);
 
-    storeTester.dispatch(WaitAction(false));
-    info = await storeTester.wait(WaitAction);
+    storeTester.dispatch(BarrierAction(false));
+    info = await storeTester.wait(BarrierAction);
     expect(info.state.waiting, false);
   });
 
@@ -80,13 +80,13 @@ void main() {
 
     TestInfoList<AppState> infos = await storeTester.waitAll([
       IncrementAndGetDescriptionAction,
-      WaitAction,
+      BarrierAction,
       IncrementAction,
-      WaitAction,
+      BarrierAction,
     ]);
 
-    // Modal barrier is turned on (first time WaitAction is dispatched).
-    var info = infos.get(WaitAction, 1);
+    // Modal barrier is turned on (first time BarrierAction is dispatched).
+    var info = infos.get(BarrierAction, 1);
     expect(info.state.waiting, true);
     expect(info.state.description, isEmpty);
     expect(info.state.counter, 0);
@@ -96,8 +96,8 @@ void main() {
     expect(info.state.counter, 1);
     expect(info.state.waiting, true);
 
-    // Then the modal barrier is dismissed (second time WaitAction is dispatched).
-    info = infos.get(WaitAction, 2);
+    // Then the modal barrier is dismissed (second time BarrierAction is dispatched).
+    info = infos.get(BarrierAction, 2);
     expect(info.state.waiting, false);
     expect(info.state.description, isNotEmpty);
     expect(info.state.counter, 1);

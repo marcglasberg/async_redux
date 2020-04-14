@@ -9,15 +9,29 @@ import 'package:http/http.dart';
 
 Store<AppState> store;
 
-/// This example shows a counter, a text description, and a button.
-/// When the button is tapped, the counter will increment synchronously,
-/// while an async process downloads some text description that relates
-/// to the counter number (using the NumberAPI: http://numbersapi.com).
+/// This example is the same as the one in `main_before_and_after.dart`.
+/// However, instead of declaring a `MyWaitAction`, it uses the build-in
+/// [WaitAction].
 ///
-/// While the async process is running, a redish modal barrier will prevent
-/// the user from tapping the button. The model barrier is removed even if
-/// the async process ends with an error, which can be simulated by turning
-/// off the internet connection (putting the phone in airplane mode).
+/// For this to work, the [AppState] must have a [wait] field of type [Wait],
+/// and this field must be in the [AppState.copy] method as a named parameter.
+///
+/// While the async process is running, the action's `before` method will
+/// add the action itself as a wait-flag reference:
+///
+/// ```
+/// void before() => dispatch(WaitAction.add(this));
+/// ```
+///
+/// The [ViewModel] will read this info from `state.wait.isWaiting` to
+/// turn on the modal barrier.
+///
+/// When the async process finishes, the action's before method will
+/// remove the action from the wait-flag set:
+///
+/// ```
+/// void after() => dispatch(WaitAction.remove(this));
+/// ```
 ///
 void main() {
   var state = AppState.initialState();
@@ -27,21 +41,27 @@ void main() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-/// The app state, which in this case is a counter, a description, and a waiting flag.
+/// The app state contains a [wait] object of type [Wait].
 class AppState {
   final int counter;
   final String description;
-  final bool waiting;
+  final Wait wait;
 
-  AppState({this.counter, this.description, this.waiting});
+  AppState({this.counter, this.description, this.wait});
 
-  AppState copy({int counter, String description, bool waiting}) => AppState(
+  /// The copy method has a named [wait] parameter of type [Wait].
+  AppState copy({int counter, String description, Wait wait}) => AppState(
         counter: counter ?? this.counter,
         description: description ?? this.description,
-        waiting: waiting ?? this.waiting,
+        wait: wait ?? this.wait,
       );
 
-  static AppState initialState() => AppState(counter: 0, description: "", waiting: false);
+  /// The [wait] parameter is instantiated to `Wait()`.
+  static AppState initialState() => AppState(
+        counter: 0,
+        description: "",
+        wait: Wait(),
+      );
 
   @override
   bool operator ==(Object other) =>
@@ -50,10 +70,10 @@ class AppState {
           runtimeType == other.runtimeType &&
           counter == other.counter &&
           description == other.description &&
-          waiting == other.waiting;
+          wait == other.wait;
 
   @override
-  int get hashCode => counter.hashCode ^ description.hashCode ^ waiting.hashCode;
+  int get hashCode => counter.hashCode ^ description.hashCode ^ wait.hashCode;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -69,56 +89,30 @@ class MyApp extends StatelessWidget {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-/// This action increments the counter by 1,
-/// and then gets some description text relating to the new counter number.
 class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
-  //
-  // Async reducer.
-  // To make it async we simply return Future<AppState> instead of AppState.
   @override
   Future<AppState> reduce() async {
-    // First, we increment the counter, synchronously.
     dispatch(IncrementAction(amount: 1));
-
-    // Then, we start and wait for some asynchronous process.
     String description = await read("http://numbersapi.com/${state.counter}");
-
-    // After we get the response, we can modify the state with it,
-    // without having to dispatch another action.
     return state.copy(description: description);
   }
 
-  // This adds a modal barrier while the async process is running.
-  void before() => dispatch(BarrierAction(true));
+  // The wait starts here. We add the action itself (`this`)
+  // as a wait-flag reference.
+  void before() => dispatch(WaitAction.add(this));
 
-  // This removes the modal barrier when the async process ends,
-  // even if there was some error in the process.
-  // You can test it by turning off the internet connection.
-  void after() => dispatch(BarrierAction(false));
+  // The wait ends here. We remove the action from the
+  // wait-flag references.
+  void after() => dispatch(WaitAction.remove(this));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class BarrierAction extends ReduxAction<AppState> {
-  final bool waiting;
-
-  BarrierAction(this.waiting);
-
-  @override
-  AppState reduce() {
-    return state.copy(waiting: waiting);
-  }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-/// This action increments the counter by [amount]].
 class IncrementAction extends ReduxAction<AppState> {
   final int amount;
 
   IncrementAction({@required this.amount}) : assert(amount != null);
 
-  // Synchronous reducer.
   @override
   AppState reduce() => state.copy(counter: state.counter + amount);
 }
@@ -143,8 +137,6 @@ class MyHomePageConnector extends StatelessWidget {
   }
 }
 
-/// Helper class to the connector widget. Holds the part of the State the widget needs,
-/// and may perform conversions to the type of data the widget can conveniently work with.
 class ViewModel extends BaseModel<AppState> {
   ViewModel();
 
@@ -164,7 +156,10 @@ class ViewModel extends BaseModel<AppState> {
   ViewModel fromStore() => ViewModel.build(
         counter: state.counter,
         description: state.description,
-        waiting: state.waiting,
+
+        /// If there is any waiting, `state.wait.isWaiting` will return true.
+        waiting: state.wait.isWaiting,
+
         onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
       );
 }
@@ -190,17 +185,13 @@ class MyHomePage extends StatelessWidget {
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(title: Text('Before and After Example')),
+          appBar: AppBar(title: Text('Wait Action Example')),
           body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('You have pushed the button this many times:'),
-                Text('$counter', style: TextStyle(fontSize: 30)),
-                Text(description, style: TextStyle(fontSize: 15), textAlign: TextAlign.center),
-              ],
-            ),
-          ),
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Text('You have pushed the button this many times:'),
+            Text('$counter', style: TextStyle(fontSize: 30)),
+            Text(description, style: TextStyle(fontSize: 15), textAlign: TextAlign.center),
+          ])),
           floatingActionButton: FloatingActionButton(
             onPressed: onIncrement,
             child: Icon(Icons.add),
