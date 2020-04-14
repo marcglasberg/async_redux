@@ -1,3 +1,10 @@
+## [2.7.0] - 2020/04/14
+
+* WaitAction (Search for Progress indicators in README.md).
+* Example: main_wait_action_simple.dart
+* Example: main_wait_action_advanced_1.dart
+* Example: main_wait_action_advanced_2.dart
+
 ## [2.6.0] - 2020/04/01
 
 * The default timeout for the StoreTester wait functions can now be globally changed.

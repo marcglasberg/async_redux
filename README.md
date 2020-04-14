@@ -321,7 +321,7 @@ Future<void> before() async => await checkInternetConnection();
 This method is also capable of dispatching actions, so it can be used to turn on a modal barrier:
 
 ```dart
-void before() => dispatch(WaitAction(true));
+void before() => dispatch(BarrierAction(true));
 ```
 
 Note: If this method runs asynchronously, then `reduce()` will also be async,
@@ -335,7 +335,7 @@ This method can also dispatch actions, so it can be used to turn off some modal 
 when the reducer ends, even if there was some error in the process:
 
 ```dart
-void after() => dispatch(WaitAction(false));
+void after() => dispatch(BarrierAction(false));
 ```
 
 Complete example:
@@ -351,9 +351,9 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
 	return state.copy(description: description);
   }
 
-  void before() => dispatch(WaitAction(true));
+  void before() => dispatch(BarrierAction(true));
 
-  void after() => dispatch(WaitAction(false));
+  void after() => dispatch(BarrierAction(false));
 }
 ```
 
@@ -994,19 +994,19 @@ storeTester.dispatch(IncrementAndGetDescriptionAction());
 
 TestInfoList<AppState> infos = await storeTester.waitAll([
   IncrementAndGetDescriptionAction,
-  WaitAction,
+  BarrierAction,
   IncrementAction,
-  WaitAction,
+  BarrierAction,
 ]);
 
-// Modal barrier is turned on (first time WaitAction is dispatched).
-expect(infos.get(WaitAction, 1).state.waiting, true);
+// Modal barrier is turned on (first time BarrierAction is dispatched).
+expect(infos.get(BarrierAction, 1).state.waiting, true);
 
 // While the counter was incremented the barrier was on.
 expect(infos[IncrementAction].waiting, true);
 
-// Then the modal barrier is dismissed (second time WaitAction is dispatched).
-expect(infos.get(WaitAction, 2).state.waiting, false);
+// Then the modal barrier is dismissed (second time BarrierAction is dispatched).
+expect(infos.get(BarrierAction, 2).state.waiting, false);
 
 // In the end, counter is incremented, description is created, and barrier is dismissed.
 var info = infos[IncrementAndGetDescriptionAction];
@@ -1386,6 +1386,124 @@ String getMessageEvt() {
  }
 ```
 
+## Progress indicators
+
+A **progress indicator** is a visual indication 
+that some important process is taking some time to finish 
+(and will hopefully finish soon). For example:  
+
+* A save button that displays a `CircularProgressIndicator` while some info is saving.  
+
+* A `Text("Please wait...")` that is displayed in the center of the screen while some info is being calculated.
+
+* A <a href="https://pub.dev/packages?q=shimmer">shimmer</a> that is displayed as a placeholder while some widget info is being downloaded.
+
+* A modal barrier that prevents the user from interacting with the screen while some info is loading or saving.
+
+<br>
+
+In the [Before and After the Reducer](#before-and-after-the-reducer) section 
+I show how to manually create a boolean flag 
+that is used to add or remove a modal barrier in the screen
+(see the code <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">here</a>).
+
+However, sometimes you need to keep track of many such boolean flags, 
+which may be difficult to do.
+If you need help with this problem, 
+an option is using the built-in classes `WaitAction` and `Wait`.
+
+For this to work your store state must have a `Wait` field named `wait`,
+and then the state's `copy` method must also copy this field as a named parameter. 
+For example:
+
+```dart
+class AppState {
+  final Wait wait;
+  ...
+  
+  AppState({this.wait, ...});
+
+  AppState copy({Wait wait, ...}) => AppState(wait: wait, ...);
+  }
+```
+  
+Then, when you want to start waiting, simply dispatch a `WaitAction` 
+and pass it some immutable object to act as a flag.
+And when you finish waiting, just remove the flag. For example:
+
+```dart
+dispatch(WaitAction.add("my flag")); // To add a flag.   
+dispatch(WaitAction.remove("my flag")); // To remove a flag.   
+```            
+
+In the `ViewModel`, if there's any waiting, then `state.wait.isWaiting` will return `true`.                          
+
+<br>
+
+The flag can be any convenient immutable object, like an URL, an user id, an index, an enum, a String or a number.
+
+When you are inside of an async action, 
+you can use its `before` and `after` methods do dispatch the `WaitAction`:
+
+```dart
+class LoadAction extends ReduxAction<AppState> {
+
+  Future<AppState> reduce() async {    
+    var newText = await loadText(); 
+    return state.copy(text: newText);
+  }
+  
+  void before() => dispatch(WaitAction.add(...));
+  void after() => dispatch(WaitAction.remove(...));
+}
+```                                                            
+
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_wait_action_simple.dart">Wait Action Simple Example</a>
+(which is similar to
+<a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">this</a> example). 
+It uses the action itself as the flag, by passing `this`. 
+
+<br>
+
+A more advanced example is the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">Wait Action Advanced 1 Example</a>. Here, 10 buttons are shown. 
+When a button is clicked it will be replaced by a downloaded text description. 
+Each button shows a progress indicator while its description is downloading. 
+Also, the screen title shows the text `"Downloading..."` if any of the buttons is currently downloading.
+
+![](https://github.com/marcglasberg/async_redux/blob/master/example/lib/images/waitAction.png)
+
+The flag in this case is simply the index of the button, from `0` to `9`:
+
+```dart                                                        
+int index;
+
+void before() => dispatch(WaitAction.add(index));
+void after() => dispatch(WaitAction.remove(index));
+```                            
+
+In the `ViewModel`, just as before, if there's any waiting, then `state.wait.isWaiting` will return `true`.
+However, now you can check each button wait flag separately by its index. 
+`state.wait.isWaitingFor(index)` will return `true` if that specific button is waiting.
+
+Note: If necessary, you can clear all flags by doing `dispatch(WaitAction.clear())`.
+
+<br> 
+ 
+If you fear your flag may conflict with others, you can also add a "namespace", by 
+further dividing flags into references. 
+This can be seen in the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">Wait Action Advanced 2 Example</a>: 
+
+```dart
+void before() => dispatch(WaitAction.add("button-download", ref: index));
+void after() => dispatch(WaitAction.remove("button-download", ref: index));
+```                            
+
+Now, to check a button's wait flag, you must pass both the flag and the reference: 
+`state.wait.isWaitingFor("button-download", ref: index)`.
+
+Note: If necessary, you can clear all references of that flag by doing `dispatch(WaitAction.clear("button-download"))`.
+
+
 ## Waiting until an Action is finished
 
 In a real Flutter app it's also the case that some Widgets ask for futures 
@@ -1588,8 +1706,8 @@ and removes it when the action finishes:
 
 ```dart
 abstract class BarrierAction extends ReduxAction<AppState> {
-  void before() => dispatch(WaitAction(true));
-  void after() => dispatch(WaitAction(false));
+  void before() => dispatch(BarrierAction(true));
+  void after() => dispatch(BarrierAction(false));
 }
 ```
 

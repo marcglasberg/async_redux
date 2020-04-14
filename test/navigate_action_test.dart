@@ -48,6 +48,11 @@ class _NavAction extends StatelessWidget {
         NavigateAction<AppState> _action;
 
         switch (navigateType) {
+          case NavigateType.push:
+            {
+              // TODO: Test this one.
+            }
+            break;
           case NavigateType.pushNamedAndRemoveAll:
             {
               _action = NavigateAction.pushNamedAndRemoveAll(route);
