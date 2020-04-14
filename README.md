@@ -40,6 +40,7 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [Can I put mutable events into the store state?](#can-i-put-mutable-events-into-the-store-state)
       * [When should I use events?](#when-should-i-use-events)
       * [Advanced event features](#advanced-event-features)
+   * [Progress indicators](#progress-indicators)
    * [Waiting until an Action is finished](#waiting-until-an-action-is-finished)
    * [State Declaration](#state-declaration)
       * [Selectors](#selectors)             
