@@ -5,4 +5,5 @@ export 'src/persistor.dart';
 export 'src/store.dart';
 export 'src/store_tester.dart';
 export 'src/user_exception.dart';
+export 'src/wait.dart';
 export 'src/wait_action.dart';
