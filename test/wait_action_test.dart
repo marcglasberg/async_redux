@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 Store<AppState> store;
 
+///////////////////////////////////////////////////////////////////////////
+
 class AppState {
   final Wait wait;
 
@@ -13,6 +15,30 @@ class AppState {
   AppState copy({Wait wait}) => AppState(wait: wait);
 }
 
+///////////////////////////////////////////////////////////////////////////
+
+// This simulates using the Freezed package.
+class AppStateFreezed {
+  final Wait wait;
+
+  AppStateFreezed({this.wait});
+
+  AppStateFreezed copyWith({Wait wait}) => AppStateFreezed(wait: wait);
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+// This simulates using the BuiltValue package.
+class AppStateBuiltValue {
+  Wait wait;
+
+  AppStateBuiltValue({this.wait});
+
+  AppStateBuiltValue rebuild(dynamic func(dynamic state)) => func(AppStateBuiltValue(wait: Wait()));
+}
+
+///////////////////////////////////////////////////////////////////////////
+
 class MyAction {}
 
 ///////////////////////////////////////////////////////////////////////////
@@ -20,6 +46,63 @@ class MyAction {}
 void main() {
   setUp(() async {
     store = Store<AppState>(initialState: AppState(wait: Wait()));
+  });
+
+  ///////////////////////////////////////////////////////////////////////////
+
+  test("Test compatibility with the Freezed package.", () {
+    Store<AppStateFreezed> freezedStore;
+    freezedStore = Store<AppStateFreezed>(initialState: AppStateFreezed(wait: Wait()));
+
+    var action = MyAction();
+    expect(freezedStore.state.wait.isWaiting, false);
+    expect(freezedStore.state.wait.isWaitingFor(action), false);
+
+    freezedStore.dispatch(WaitAction.add(action));
+    expect(freezedStore.state.wait.isWaiting, true);
+    expect(freezedStore.state.wait.isWaitingFor(action), true);
+
+    freezedStore.dispatch(WaitAction.remove(action));
+    expect(freezedStore.state.wait.isWaiting, false);
+    expect(freezedStore.state.wait.isWaitingFor(action), false);
+  });
+
+  ///////////////////////////////////////////////////////////////////////////
+
+  test("Test compatibility with the BuiltValue package.", () {
+    Store<AppStateBuiltValue> builtValueStore;
+    builtValueStore = Store<AppStateBuiltValue>(initialState: AppStateBuiltValue(wait: Wait()));
+
+    var action = MyAction();
+    expect(builtValueStore.state.wait.isWaiting, false);
+    expect(builtValueStore.state.wait.isWaitingFor(action), false);
+
+    builtValueStore.dispatch(WaitAction.add(action));
+    expect(builtValueStore.state.wait.isWaiting, true);
+    expect(builtValueStore.state.wait.isWaitingFor(action), true);
+
+    builtValueStore.dispatch(WaitAction.remove(action));
+    expect(builtValueStore.state.wait.isWaiting, false);
+    expect(builtValueStore.state.wait.isWaitingFor(action), false);
+  });
+
+  ///////////////////////////////////////////////////////////////////////////
+
+  test("Test compatibility with the BuitValue package.", () {
+    Store<AppStateFreezed> freezedStore;
+    freezedStore = Store<AppStateFreezed>(initialState: AppStateFreezed(wait: Wait()));
+
+    var action = MyAction();
+    expect(freezedStore.state.wait.isWaiting, false);
+    expect(freezedStore.state.wait.isWaitingFor(action), false);
+
+    freezedStore.dispatch(WaitAction.add(action));
+    expect(freezedStore.state.wait.isWaiting, true);
+    expect(freezedStore.state.wait.isWaitingFor(action), true);
+
+    freezedStore.dispatch(WaitAction.remove(action));
+    expect(freezedStore.state.wait.isWaiting, false);
+    expect(freezedStore.state.wait.isWaitingFor(action), false);
   });
 
   ///////////////////////////////////////////////////////////////////////////

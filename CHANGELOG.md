@@ -1,3 +1,7 @@
+## [2.7.1] - 2020/04/15
+
+* WaitAction is now compatible with BuiltValue and Freezed packages.
+
 ## [2.7.0] - 2020/04/14
 
 * WaitAction (Search for Progress indicators in README.md).
