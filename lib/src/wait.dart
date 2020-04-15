@@ -5,6 +5,28 @@ import 'package:flutter/foundation.dart';
 
 enum WaitOperation { add, remove, clear }
 
+/// Immutable object to keep track of boolean flags that indicate if some
+/// process is in progress (the user is "waiting").
+///
+/// The flags and flag-references can be any immutable object.
+/// They must be immutable to make sure [Wait] is also immutable.
+///
+/// Use it in Redux store states, like this:
+/// * To add a flag: state.copy(wait: state.wait.add(flag: myFlag));
+/// * To remove a flag: state.copy(wait: state.wait.remove(flag: myFlag));
+/// * To clear all flags: state.copy(wait: state.wait.clear());
+///
+/// If can also use have a flag with a reference, like this:
+/// * To add a flag with reference: state.copy(wait: state.wait.add(flag: myFlag, ref:MyRef));
+/// * To remove a flag with reference: state.copy(wait: state.wait.remove(flag: myFlag, ref:MyRef));
+/// * To clear all references for a flag: state.copy(wait: state.wait.clear(flag: myFlag));
+///
+/// In the ViewModel, you can check the flags/references, like this:
+///
+/// * To check if there is any waiting: state.wait.isWaiting
+/// * To check if a specific flag is waiting: state.wait.isWaitingFor(myFlag);
+/// * To check if a specific flag/reference is waiting: state.wait.isWaitingFor(myFlag, ref: myRef);
+///
 @immutable
 class Wait {
   final Map<Object, Set<Object>> _flags;
