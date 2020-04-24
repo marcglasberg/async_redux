@@ -1,3 +1,7 @@
+## [2.7.2] - 2020/04/24
+
+* WaitAction now has dynamic generic type in TestInfo.type (compatible with the StoreTester).
+
 ## [2.7.1] - 2020/04/15
 
 * WaitAction is now compatible with BuiltValue and Freezed packages.

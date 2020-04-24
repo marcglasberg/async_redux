@@ -86,17 +86,15 @@ class ClearTextAction extends ReduxAction<AppState> {
 
 /// Actions that extend [BarrierAction] show a modal barrier while their async processes run.
 abstract class BarrierAction extends ReduxAction<AppState> {
-  void before() => dispatch(WaitAction(true));
+  void before() => dispatch(_WaitAction(true));
 
-  void after() => dispatch(WaitAction(false));
+  void after() => dispatch(_WaitAction(false));
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
-class WaitAction extends ReduxAction<AppState> {
+class _WaitAction extends ReduxAction<AppState> {
   final bool waiting;
 
-  WaitAction(this.waiting);
+  _WaitAction(this.waiting);
 
   @override
   AppState reduce() => state.copy(waiting: waiting);
