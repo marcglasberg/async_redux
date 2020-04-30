@@ -69,9 +69,7 @@ class TestInfo<St> {
     this.dispatchCount,
     this.reduceCount,
     this.errors,
-  )   : assert(state != null),
-        assert(action != null),
-        assert(ini != null);
+  ) : assert(state != null);
 
   @override
   String toString() => 'D:$dispatchCount R:$reduceCount = $action ${ini ? "INI" : "END"}\n';
