@@ -47,10 +47,12 @@ class LocalPersist {
 
   final String dbName, dbSubDir;
 
+  final List<String> subDirs;
+
   File _file;
 
   /// Saves to `appDocsDir/db/${dbName}.db`
-  /// (except in tests it saves to the system temp dir).
+  /// (except, in tests it saves to the system temp dir, not appDocsDir).
   ///
   /// If [dbName] is a String, it will be used as such.
   /// If [dbName] is an enum, it will use only the enum value itself.
@@ -59,10 +61,19 @@ class LocalPersist {
   /// If [dbName] is another object type, a toString() will be done,
   /// and then the text after the last dot will be used.
   ///
-  LocalPersist(Object dbName, {String dbSubDir})
+  /// The default database directory [defaultDbSubDir] is `db`.
+  /// You can change this variable to globally change the directory,
+  /// or provide [dbSubDir] in the constructor.
+  ///
+  /// You can also provide other [subDirs].
+  /// Example: `LocalPersist("photos", subDirs: ["article", "images"])`
+  /// saves to `appDocsDir/db/article/images/photos.db`
+  ///
+  LocalPersist(Object dbName, {String dbSubDir, List<String> subDirs})
       : assert(dbName != null),
         dbName = _getDbName(dbName),
         dbSubDir = dbSubDir,
+        subDirs = subDirs,
         _file = null;
 
   /// Saves to the given file.
@@ -70,6 +81,7 @@ class LocalPersist {
       : assert(file != null),
         dbName = null,
         dbSubDir = null,
+        subDirs = null,
         _file = file;
 
   /// Saves the given simple objects.
@@ -173,7 +185,7 @@ class LocalPersist {
       return _file;
     else {
       if (_appDocDir == null) await _findAppDocDir();
-      String pathNameStr = pathName(dbName, dbSubDir: dbSubDir);
+      String pathNameStr = pathName(dbName, dbSubDir: dbSubDir, subDirs: subDirs);
       _file = File(pathNameStr);
       return _file;
     }
@@ -183,13 +195,21 @@ class LocalPersist {
       ? simpleObjs
       : simpleObjs.map((obj) => "$obj (${obj.runtimeType})").join("\n");
 
-  static String pathName(String dbName, {String dbSubDir}) => p.join(LocalPersist._appDocDir.path,
-      dbSubDir ?? LocalPersist.defaultDbSubDir, "$dbName${LocalPersist.defaultTermination}");
-
-  static String _getDbName(Object dbName) {
-    var split = dbName.toString().split(".");
-    return split.last;
+  static String pathName(
+    String dbName, {
+    String dbSubDir,
+    List<String> subDirs,
+  }) {
+    return p.joinAll([
+      LocalPersist._appDocDir.path,
+      dbSubDir ?? LocalPersist.defaultDbSubDir ?? "",
+      if (subDirs != null) ...subDirs,
+      "$dbName${LocalPersist.defaultTermination}"
+    ]);
   }
+
+  static String _getDbName(Object dbName) =>
+      (dbName is String) ? dbName : dbName.toString().split(".").last;
 
   /// If running from Flutter, this will get the application's documents directory.
   /// If running from tests, it will use the system's temp directory.

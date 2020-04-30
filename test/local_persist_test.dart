@@ -98,6 +98,73 @@ void main() {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  test('Test dbDir and subDirs.', () async {
+    //
+    File file = await LocalPersist("xyz").file();
+    expect(file.path.endsWith("\\xyz.db") || file.path.endsWith("/xyz.db"), isTrue);
+
+    file = await LocalPersist("xyz", dbSubDir: "kkk").file();
+    expect(file.path.endsWith("\\kkk\\xyz.db") || file.path.endsWith("/kkk/xyz.db"), isTrue);
+
+    file = await LocalPersist("xyz", dbSubDir: "kkk", subDirs: ["mno"]).file();
+    expect(
+        file.path.endsWith("\\kkk\\mno\\xyz.db") || file.path.endsWith("/kkk/mno/xyz.db"), isTrue);
+
+    file = await LocalPersist("xyz", dbSubDir: "kkk", subDirs: ["m", "n", "o"]).file();
+    expect(file.path.endsWith("\\kkk\\m\\n\\o\\xyz.db") || file.path.endsWith("/kkk/m/n/o/xyz.db"),
+        isTrue);
+
+    file = await LocalPersist("xyz", subDirs: ["mno"]).file();
+    expect(file.path.endsWith("\\db\\mno\\xyz.db") || file.path.endsWith("/db/mno/xyz.db"), isTrue);
+
+    file = await LocalPersist("xyz", subDirs: ["m", "n", "o"]).file();
+    expect(file.path.endsWith("\\db\\m\\n\\o\\xyz.db") || file.path.endsWith("/db/m/n/o/xyz.db"),
+        isTrue);
+
+    String saveDefaultDbSubDir = LocalPersist.defaultDbSubDir;
+
+    LocalPersist.defaultDbSubDir = "myDir";
+
+    file = await LocalPersist("xyz", subDirs: ["mno"]).file();
+    expect(file.path.endsWith("\\myDir\\mno\\xyz.db") || file.path.endsWith("/myDir/mno/xyz.db"),
+        isTrue);
+
+    file = await LocalPersist("xyz", subDirs: ["m", "n", "o"]).file();
+    expect(
+        file.path.endsWith("\\myDir\\m\\n\\o\\xyz.db") || file.path.endsWith("/myDir/m/n/o/xyz.db"),
+        isTrue);
+
+    LocalPersist.defaultDbSubDir = "";
+
+    file = await LocalPersist("xyz", subDirs: ["mno"]).file();
+    expect(file.path.endsWith("\\mno\\xyz.db") || file.path.endsWith("/mno/xyz.db"), isTrue);
+    expect(
+        file.path.endsWith("\\db\\mno\\xyz.db") || file.path.endsWith("/db/mno/xyz.db"), isFalse);
+
+    print('file.path = ${file.path}');
+    file = await LocalPersist("xyz", subDirs: ["m", "n", "o"]).file();
+    expect(file.path.endsWith("\\m\\n\\o\\xyz.db") || file.path.endsWith("/m/n/o/xyz.db"), isTrue);
+    expect(file.path.endsWith("\\db\\m\\n\\o\\xyz.db") || file.path.endsWith("/db/m/n/o/xyz.db"),
+        isFalse);
+
+    LocalPersist.defaultDbSubDir = null;
+
+    file = await LocalPersist("xyz", subDirs: ["mno"]).file();
+    expect(file.path.endsWith("\\mno\\xyz.db") || file.path.endsWith("/mno/xyz.db"), isTrue);
+    expect(
+        file.path.endsWith("\\db\\mno\\xyz.db") || file.path.endsWith("/db/mno/xyz.db"), isFalse);
+
+    print('file.path = ${file.path}');
+    file = await LocalPersist("xyz", subDirs: ["m", "n", "o"]).file();
+    expect(file.path.endsWith("\\m\\n\\o\\xyz.db") || file.path.endsWith("/m/n/o/xyz.db"), isTrue);
+    expect(file.path.endsWith("\\db\\m\\n\\o\\xyz.db") || file.path.endsWith("/db/m/n/o/xyz.db"),
+        isFalse);
+
+    LocalPersist.defaultDbSubDir = saveDefaultDbSubDir;
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
   test('Add objects to save, and load from file name.', () async {
     //
     // User random numbers to make sure it's not checking already saved files.

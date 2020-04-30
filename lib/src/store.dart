@@ -68,9 +68,8 @@ class TestInfo<St> {
     this.processedError,
     this.dispatchCount,
     this.reduceCount,
-    Queue<UserException> errors,
-  )   : errors = Queue<UserException>.of(errors),
-        assert(state != null),
+    this.errors,
+  )   : assert(state != null),
         assert(action != null),
         assert(ini != null);
 
@@ -375,11 +374,13 @@ class Store<St> {
 
     if (_testInfoController != null || testInfoPrinter != null) {
       var reduceInfo = TestInfo<St>(
-          state, ini, action, error, processedError, dispatchCount, reduceCount, _errors);
+          state, ini, action, error, processedError, dispatchCount, reduceCount, errors);
       if (_testInfoController != null) _testInfoController.add(reduceInfo);
       if (testInfoPrinter != null) testInfoPrinter(reduceInfo);
     }
   }
+
+  Queue get errors => Queue<UserException>.of(_errors);
 
   /// We check the return type of methods `before` and `reduce` to decide if the
   /// reducer is synchronous or asynchronous. It's important to run the reducer

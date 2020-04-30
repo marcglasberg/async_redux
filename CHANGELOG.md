@@ -1,3 +1,17 @@
+## [2.8.0] - 2020/04/30
+
+* StoreTester.waitCondition now accepts a parameter called testImmediately.
+When testImmediately is true (now the default), it will test the condition immediately when 
+the method is called. If the condition is true, the method will return immediately,
+without waiting for any actions to be dispatched. 
+When testImmediately is false (the old behavior), it will only test the condition 
+once an action is dispatched.
+
+## [2.7.3] - 2020/04/30
+
+* Fix: When dbName is a String, LocalPersist doesn't break it in the dot anymore.
+* LocalPersist subDirs.
+
 ## [2.7.2] - 2020/04/24
 
 * WaitAction now has dynamic generic type in TestInfo.type (compatible with the StoreTester).

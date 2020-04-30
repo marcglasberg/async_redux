@@ -106,11 +106,12 @@ class StoreTester<St> {
   ///
   Future<TestInfo<St>> waitConditionGetLast(
     StateCondition<St> condition, {
+    bool testImmediately = true,
     bool ignoreIni = true,
     int timeoutInSeconds = defaultTimeout,
   }) async {
-    var infoList =
-        await waitCondition(condition, ignoreIni: ignoreIni, timeoutInSeconds: timeoutInSeconds);
+    var infoList = await waitCondition(condition,
+        testImmediately: testImmediately, ignoreIni: ignoreIni, timeoutInSeconds: timeoutInSeconds);
 
     return infoList.last;
   }
@@ -123,12 +124,22 @@ class StoreTester<St> {
   ///
   Future<TestInfoList<St>> waitCondition(
     StateCondition<St> condition, {
+    bool testImmediately = true,
     bool ignoreIni = true,
     int timeoutInSeconds = defaultTimeout,
   }) async {
     assert(condition != null);
 
     TestInfoList<St> infoList = TestInfoList<St>();
+
+    if (testImmediately) {
+      var testInfo = TestInfo<St>(
+          state, null, null, null, null, store.dispatchCount, store.reduceCount, store.errors);
+      if (condition(testInfo)) {
+        infoList._add(testInfo);
+        return infoList;
+      }
+    }
 
     TestInfo<St> testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
 
