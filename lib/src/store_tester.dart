@@ -137,6 +137,7 @@ class StoreTester<St> {
           state, null, null, null, null, store.dispatchCount, store.reduceCount, store.errors);
       if (condition(testInfo)) {
         infoList._add(testInfo);
+        lastInfo = infoList.last;
         return infoList;
       }
     }
@@ -156,7 +157,6 @@ class StoreTester<St> {
     }
 
     lastInfo = infoList.last;
-
     return infoList;
   }
 

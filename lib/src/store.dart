@@ -315,6 +315,18 @@ class Store<St> {
   /// Beware: Changes the state directly. Use only for TESTS.
   void defineState(St state) => _state = state;
 
+  /// Returns a future which will complete when the given [condition] is true.
+  /// The condition can access the state. You may also provide a
+  /// [timeoutInSeconds], which by default is null (never times out).
+  Future<void> waitCondition(bool Function(St) condition, {int timeoutInSeconds}) async {
+    var conditionTester = StoreTester.from(this);
+    await conditionTester.waitCondition(
+      (TestInfo<St> info) => condition(info.state),
+      timeoutInSeconds: timeoutInSeconds,
+    );
+    await conditionTester.cancel();
+  }
+
   /// Adds an error at the end of the error queue.
   void _addError(UserException error) => _errors.addLast(error);
 
