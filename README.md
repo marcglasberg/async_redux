@@ -1688,7 +1688,7 @@ Another thing you may do is creating more specialized **abstract** actions, that
 For example:
 
 ```dart
-abstract class TodoAction extends ReduxAction<AppState> {
+abstract class TodoAction extends BaseAction {
   
   TodoState reduceTodoState();
       
