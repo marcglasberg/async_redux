@@ -78,6 +78,7 @@ class StoreTester<St> {
             testInfoPrinter: testInfoPrinter,
             ignore: ignore);
 
+  /// Create a StoreTester from a store that already exists.
   StoreTester.from(
     Store<St> store, {
     TestInfoPrinter testInfoPrinter,
@@ -85,8 +86,20 @@ class StoreTester<St> {
   })  : assert(store != null),
         _ignore = ignore ?? const [],
         _store = store {
-    _listen(testInfoPrinter);
+    if (testInfoPrinter != null)
+      _store.initTestInfoPrinter(testInfoPrinter);
+    else if (_store.testInfoPrinter == null) _store.initTestInfoPrinter(defaultTestInfoPrinter);
+
+    _listen();
     defaultNewStorePrinter();
+  }
+
+  /// Create a StoreTester from a store that already exists,
+  /// but don't print anything to the console.
+  StoreTester.simple(this._store)
+      : assert(_store != null),
+        _ignore = const [] {
+    _listen();
   }
 
   void dispatch(ReduxAction<St> action) => store.dispatch(action);
@@ -101,6 +114,12 @@ class StoreTester<St> {
   /// Runs until the predicate function [condition] returns true.
   /// This function will receive each testInfo, from where it can
   /// access the state, action, errors etc.
+  /// When [testImmediately] is true (the default), it will test the condition
+  /// immediately when the method is called. If the condition is true, the
+  /// method will return immediately, without waiting for any actions to be
+  /// dispatched.
+  /// When [testImmediately] is false, it will only test
+  /// the condition once an action is dispatched.
   /// Only END states will be received, unless you pass [ignoreIni] as false.
   /// Returns the info after the condition is met.
   ///
@@ -119,12 +138,18 @@ class StoreTester<St> {
   /// Runs until the predicate function [condition] returns true.
   /// This function will receive each testInfo, from where it can
   /// access the state, action, errors etc.
+  /// When [testImmediately] is true (the default), it will test the condition
+  /// immediately when the method is called. If the condition is true, the
+  /// method will return immediately, without waiting for any actions to be
+  /// dispatched.
+  /// When [testImmediately] is false, it will only test
+  /// the condition once an action is dispatched.
   /// Only END states will be received, unless you pass [ignoreIni] as false.
   /// Returns a list with all info until the condition is met.
   ///
   Future<TestInfoList<St>> waitCondition(
     StateCondition<St> condition, {
-    bool testImmediately = true,
+    bool testImmediately = false,
     bool ignoreIni = true,
     int timeoutInSeconds = defaultTimeout,
   }) async {
@@ -134,7 +159,7 @@ class StoreTester<St> {
 
     if (testImmediately) {
       var testInfo = TestInfo<St>(
-          state, null, null, null, null, store.dispatchCount, store.reduceCount, store.errors);
+          state, false, null, null, null, store.dispatchCount, store.reduceCount, store.errors);
       if (condition(testInfo)) {
         infoList._add(testInfo);
         lastInfo = infoList.last;
@@ -512,12 +537,7 @@ class StoreTester<St> {
     return infoList;
   }
 
-  void _listen(TestInfoPrinter testInfoPrinter) {
-    if (testInfoPrinter != null)
-      _store.initTestInfoPrinter(testInfoPrinter);
-    else if (_store.testInfoPrinter == null)
-      _store.initTestInfoPrinter(testInfoPrinter ?? defaultTestInfoPrinter);
-
+  void _listen() {
     _store.initTestInfoController();
     _subscription = _store.onReduce.listen(_completeFuture);
     _completer = Completer();

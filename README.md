@@ -952,17 +952,27 @@ Let's see all the available methods of the `StoreTester`:
 	it returns a list with the end info for each action.
 	To ignore some actions, pass them to the `ignore` list.
 
-8. `Future<TestInfoList<St>> waitCondition(StateCondition<St> condition, {bool ignoreIni = true})`
+8. `Future<TestInfoList<St>> waitCondition(StateCondition<St> condition, {bool testImmediately = true, bool ignoreIni = true})`
 
 	Runs until the predicate function `condition` returns true.
 	This function will receive each testInfo, from where it can access the state, action, errors etc.
+    When `testImmediately` is true (the default), 
+    it will test the condition immediately when the method is called. 
+    If the condition is true, the method will return immediately, 
+    without waiting for any actions to be dispatched.
+    When `testImmediately` is false, it will only test the condition once an action is dispatched.
 	Only END states will be received, unless you pass `ignoreIni` as false.
 	Returns a list with all info until the condition is met.
 
-9. `Future<TestInfo<St>> waitConditionGetLast(StateCondition<St> condition, {bool ignoreIni = true})`
+9. `Future<TestInfo<St>> waitConditionGetLast(StateCondition<St> condition, {bool testImmediately = true, bool ignoreIni = true})`
 
 	Runs until the predicate function `condition` returns true.
 	This function will receive each testInfo, from where it can access the state, action, errors etc.
+    When `testImmediately` is true (the default), 
+    it will test the condition immediately when the method is called. 
+    If the condition is true, the method will return immediately, 
+    without waiting for any actions to be dispatched.
+    When `testImmediately` is false, it will only test the condition once an action is dispatched.
 	Only END states will be received, unless you pass `ignoreIni` as false.
 	Returns the info after the condition is met.
 
@@ -1542,6 +1552,39 @@ return RefreshIndicator(
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_dispatch_future.dart">Dispatch Future Example</a>.
 
+
+## Waiting until the state meets a certain condition
+
+You can also create futures that complete when the store state meets a certain condition. 
+
+For example: 
+
+```dart
+class SaveAppointmentAction extends ReduxAction<AppState> {  
+  final Appointment appointment;
+  
+  SaveAppointmentAction(this.appointment);      
+
+  @override
+  Future<AppState> reduce() {    
+    dispatch(CreateCalendarAction());    
+    await waitCondition((state) => state.calendar != null);
+    return state.copy(calendar: state.calendar.add(appointment)));
+  }
+}
+```         
+
+The above action creates an appointment, but it can only do that if a calendar is already created.
+Suppose that creating a calendar is a complex process, which may take some time to complete.
+However, maybe the calendar already exists.
+ 
+The `reduce()` will wait until a calendar is present in the state, and only then will add the appointment
+to the calendar.
+
+This is an example using the `RefreshIndicator` widget:                                          
+
+Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_dispatch_future.dart">Dispatch Future Example</a>.
+
 ## State Declaration
 
 While your main state class, usually called `AppState`, may be simple and contain all of the state directly, 
@@ -1637,7 +1680,6 @@ static List<Todo> selectTodosForUser(AppState state, User user)
 Suppose you have the following `AddTodoAction` for the To-Do app:
 
 ```dart
-
 class AddTodoAction extends ReduxAction<AppState> {
   final Todo todo;
   AddTodoAction(this.todo);

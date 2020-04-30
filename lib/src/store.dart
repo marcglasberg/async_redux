@@ -319,7 +319,7 @@ class Store<St> {
   /// The condition can access the state. You may also provide a
   /// [timeoutInSeconds], which by default is null (never times out).
   Future<void> waitCondition(bool Function(St) condition, {int timeoutInSeconds}) async {
-    var conditionTester = StoreTester.from(this);
+    var conditionTester = StoreTester.simple(this);
     await conditionTester.waitCondition(
       (TestInfo<St> info) => condition(info.state),
       timeoutInSeconds: timeoutInSeconds,
