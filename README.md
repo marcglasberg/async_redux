@@ -1567,23 +1567,32 @@ class SaveAppointmentAction extends ReduxAction<AppState> {
 
   @override
   Future<AppState> reduce() {    
-    dispatch(CreateCalendarAction());    
-    await waitCondition((state) => state.calendar != null);
-    return state.copy(calendar: state.calendar.add(appointment)));
+    dispatch(CreateCalendarIfNecessaryAction());    
+    await store.waitCondition((state) => state.calendar != null);
+    return state.copy(calendar: state.calendar.copyAdding(appointment));
   }
 }
 ```         
 
-The above action creates an appointment, but it can only do that if a calendar is already created.
-Suppose that creating a calendar is a complex process, which may take some time to complete.
+The above action creates an appointment, 
+but suppose it can only do that if a calendar is already created.
+Also suppose that creating a calendar is a complex async process, which may take some time to complete.
 However, maybe the calendar already exists.
  
-The `reduce()` will wait until a calendar is present in the state, and only then will add the appointment
-to the calendar.
+After dispatching the action that creates the calendar, 
+the above `reduce()` method will use the `store.waitCondition()` method 
+to wait until a calendar is present in the state, 
+and only then it will add the appointment to the calendar. In detail:
 
-This is an example using the `RefreshIndicator` widget:                                          
-
-Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_dispatch_future.dart">Dispatch Future Example</a>.
+```dart
+/// Returns a future which will complete when the given condition is true.
+/// The condition can access the state. You may also provide a
+/// timeoutInSeconds, which by default is null (never times out).
+Future<void> waitCondition(
+   bool Function(St) condition, {
+   int timeoutInSeconds
+   })
+```
 
 ## State Declaration
 

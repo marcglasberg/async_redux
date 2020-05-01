@@ -125,13 +125,14 @@ class LocalPersist {
 
   /// Same as [load], but expects the file to be a Map<String, dynamic>
   /// representing a single object. Will fail if it's not a map,
-  /// or if contains more than one single object.
+  /// or if contains more than one single object. It may return null.
   Future<Map<String, dynamic>> loadAsObj() async {
     List<Object> simpleObjs = await load();
     if (simpleObjs == null) return null;
     if (simpleObjs.length != 1) throw PersistException("Not a single object.");
     var simpleObj = simpleObjs[0];
-    if (simpleObj is! Map<String, dynamic>) throw PersistException("Not an object.");
+    if ((simpleObj != null) && (simpleObj is! Map<String, dynamic>))
+      throw PersistException("Not an object.");
     return simpleObj;
   }
 
