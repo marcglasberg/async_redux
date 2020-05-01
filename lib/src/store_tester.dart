@@ -43,7 +43,12 @@ class StoreTester<St> {
 
   St get state => _store.state;
 
+  /// The last TestInfo read after some wait method.
   TestInfo<St> lastInfo;
+
+  /// The current TestInfo.
+  TestInfo<St> get currentTestInfo => _currentTestInfo;
+  TestInfo<St> _currentTestInfo;
 
   /// The [StoreTester] makes it easy to test both sync and async reducers.
   /// You may dispatch some action, wait for it to finish or wait until some
@@ -149,7 +154,7 @@ class StoreTester<St> {
   ///
   Future<TestInfoList<St>> waitCondition(
     StateCondition<St> condition, {
-    bool testImmediately = false,
+    bool testImmediately = true,
     bool ignoreIni = true,
     int timeoutInSeconds = defaultTimeout,
   }) async {
@@ -158,10 +163,8 @@ class StoreTester<St> {
     TestInfoList<St> infoList = TestInfoList<St>();
 
     if (testImmediately) {
-      var testInfo = TestInfo<St>(
-          state, false, null, null, null, store.dispatchCount, store.reduceCount, store.errors);
-      if (condition(testInfo)) {
-        infoList._add(testInfo);
+      if (condition(_currentTestInfo)) {
+        infoList._add(_currentTestInfo);
         lastInfo = infoList.last;
         return infoList;
       }
@@ -542,6 +545,9 @@ class StoreTester<St> {
     _subscription = _store.onReduce.listen(_completeFuture);
     _completer = Completer();
     _futures = Queue()..addLast(_completer.future);
+
+    _currentTestInfo = TestInfo<St>(
+        state, false, null, null, null, store.dispatchCount, store.reduceCount, store.errors);
   }
 
   Future<TestInfo<St>> _next({
@@ -554,12 +560,14 @@ class StoreTester<St> {
 
     var result = _futures.removeFirst();
 
-    return (timeoutInSeconds == null)
+    _currentTestInfo = await ((timeoutInSeconds == null)
         ? result
         : result.timeout(
             Duration(seconds: timeoutInSeconds),
             onTimeout: () => throw StoreExceptionTimeout(),
-          );
+          ));
+
+    return _currentTestInfo;
   }
 
   void _completeFuture(TestInfo<St> reduceInfo) {

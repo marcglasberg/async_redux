@@ -217,6 +217,7 @@ void main() {
     expect(infos.getIndex(1).state.text, "0,1,2,3,4");
     expect(infos.getIndex(1).ini, false);
   });
+
   ///////////////////////////////////////////////////////////////////////////////
 
   test(
@@ -1120,6 +1121,94 @@ void main() {
 
     // Same as expect(info1.ini, false);
     expect(storeTester.lastInfo.ini, false);
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test('Wait condition with testImmediately true/false.', () async {
+    // ---
+
+    // 1) If testImmediately=false, it should timeout, because it will wait until an Action
+    // is dispatched, and after that it's not "0" anymore.
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+    storeTester.dispatch(Action1());
+    storeTester.dispatch(Action2());
+    storeTester.dispatch(Action3());
+    storeTester.dispatch(Action4());
+
+    await storeTester
+        .waitConditionGetLast((info) => info.state.text == "0",
+            testImmediately: false, timeoutInSeconds: 1)
+        .then((_) => throw AssertionError(), onError: expectAsync1((Object error) {
+      expect(error, TypeMatcher<StoreException>());
+      expect(error.toString(), "Timeout.");
+    }));
+
+    expect(storeTester.state.text, "0,1,2,3,4");
+
+    // ---
+
+    // 2) If testImmediately=true, it should work, because it will test before any Action
+    // is dispatched, and that's already "0".
+    storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+    storeTester.dispatch(Action1());
+    storeTester.dispatch(Action2());
+    storeTester.dispatch(Action3());
+    storeTester.dispatch(Action4());
+
+    TestInfo<AppState> info = await storeTester
+        .waitConditionGetLast((info) => info.state.text == "0", timeoutInSeconds: 1);
+
+    expect(info.state.text, "0");
+    expect(storeTester.state.text, "0,1,2,3,4");
+
+    // ---
+
+    // 3) Let's see if the current testInfo is kept.
+    info = await storeTester.waitConditionGetLast((info) => info.state.text == "0,1,2,3,4",
+        timeoutInSeconds: 1);
+
+    expect(info.state.text, "0,1,2,3,4");
+    expect(storeTester.state.text, "0,1,2,3,4");
+
+    // ---
+
+    // 4) Let's see if the current testInfo is kept.
+    storeTester.dispatch(Action5());
+
+    info = await storeTester.waitConditionGetLast((info) => info.state.text == "0,1,2,3,4",
+        timeoutInSeconds: 1);
+
+    expect(info.state.text, "0,1,2,3,4");
+    expect(storeTester.state.text, "0,1,2,3,4,5");
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test('Two simultaneous store testers will receive the same state changes.', () async {
+    var storeTester1 = createStoreTester();
+    var storeTester2 = StoreTester.from(storeTester1.store);
+
+    expect(storeTester1.state.text, "0");
+    expect(storeTester2.state.text, "0");
+
+    storeTester1.dispatch(Action1());
+    storeTester1.dispatch(Action2());
+    storeTester1.dispatch(Action3());
+    storeTester1.dispatch(Action4());
+
+    TestInfo<AppState> info1 = await storeTester1
+        .waitConditionGetLast((info) => info.state.text == "0,1,2,3", timeoutInSeconds: 1);
+
+    TestInfo<AppState> info2 = await storeTester2
+        .waitConditionGetLast((info) => info.state.text == "0,1", timeoutInSeconds: 1);
+
+    expect(info1.state.text, "0,1,2,3");
+    expect(info2.state.text, "0,1");
+    expect(storeTester1.state.text, "0,1,2,3,4");
+    expect(storeTester2.state.text, "0,1,2,3,4");
   });
 
   ///////////////////////////////////////////////////////////////////////////////
