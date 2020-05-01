@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-
+import 'package:file/file.dart' hide File;
 import 'package:async_redux/async_redux.dart';
+import 'package:file/local.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -45,6 +46,8 @@ class LocalPersist {
   // which may contain many objects.
   static const maxJsonSize = 256 * 256;
 
+  static FileSystem _fileSystem = const LocalFileSystem();
+
   final String dbName, dbSubDir;
 
   final List<String> subDirs;
@@ -52,7 +55,6 @@ class LocalPersist {
   File _file;
 
   /// Saves to `appDocsDir/db/${dbName}.db`
-  /// (except, in tests it saves to the system temp dir, not appDocsDir).
   ///
   /// If [dbName] is a String, it will be used as such.
   /// If [dbName] is an enum, it will use only the enum value itself.
@@ -69,11 +71,17 @@ class LocalPersist {
   /// Example: `LocalPersist("photos", subDirs: ["article", "images"])`
   /// saves to `appDocsDir/db/article/images/photos.db`
   ///
+  /// Important:
+  /// — In tests, instead of using `appDocsDir` it will save to
+  /// the system temp dir.
+  /// — If you mock the file-system (see method `setFileSystem()`)
+  /// it will save to `fileSystem.systemTempDirectory`.
+  ///
   LocalPersist(Object dbName, {String dbSubDir, List<Object> subDirs})
       : assert(dbName != null),
         dbName = _getStringFromEnum(dbName),
         dbSubDir = dbSubDir,
-        subDirs = subDirs.map((s) => _getStringFromEnum(s)),
+        subDirs = subDirs?.map((s) => _getStringFromEnum(s))?.toList(),
         _file = null;
 
   /// Saves to the given file.
@@ -187,7 +195,7 @@ class LocalPersist {
     else {
       if (_appDocDir == null) await _findAppDocDir();
       String pathNameStr = pathName(dbName, dbSubDir: dbSubDir, subDirs: subDirs);
-      _file = File(pathNameStr);
+      _file = _fileSystem.file(pathNameStr);
       return _file;
     }
   }
@@ -215,13 +223,16 @@ class LocalPersist {
   /// If running from Flutter, this will get the application's documents directory.
   /// If running from tests, it will use the system's temp directory.
   static Future<void> _findAppDocDir() async {
-    if (_appDocDir == null) {
+    if (_appDocDir != null) return;
+
+    if (_fileSystem == const LocalFileSystem()) {
       try {
         _appDocDir = await getApplicationDocumentsDirectory();
       } on MissingPluginException catch (_) {
-        _appDocDir = Directory.systemTemp;
+        _appDocDir = const LocalFileSystem().systemTempDirectory;
       }
-    }
+    } else
+      _appDocDir = _fileSystem.systemTempDirectory;
   }
 
   static Uint8List encode(List<Object> simpleObjs) {
@@ -286,4 +297,19 @@ class LocalPersist {
     var jsonDecoder = JsonDecoder();
     return jsons.map((json) => jsonDecoder.convert(json));
   }
+
+  /// You can set a memory file-system in your tests. For example:
+  /// ```
+  /// final mfs = MemoryFileSystem();
+  /// setUpAll(() { LocalPersist.setFileSystem(mfs); });
+  /// tearDownAll(() { LocalPersist.resetFileSystem(); });
+  ///  ...
+  /// expect(mfs.file('myPic.jpg').readAsBytesSync(), List.filled(100, 0));
+  /// ```
+  static void setFileSystem(FileSystem fileSystem) {
+    assert(fileSystem != null);
+    _fileSystem = fileSystem;
+  }
+
+  static void resetFileSystem() => setFileSystem(const LocalFileSystem());
 }

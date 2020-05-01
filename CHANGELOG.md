@@ -1,3 +1,8 @@
+## [2.8.1] - 2020/05/01
+
+* A filesystem may be injected into LocalPersist (usually to be used with MemoryFileSystem).
+* Fix: LocalPersist.subDirs.
+
 ## [2.8.0] - 2020/04/30
 
 * Store.waitCondition() returns a future which will complete when the state meets a given condition.

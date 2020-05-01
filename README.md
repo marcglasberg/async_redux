@@ -31,7 +31,7 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [Giving better error messages](#giving-better-error-messages)
       * [User exceptions](#user-exceptions)
       * [Converting third-party errors into UserExceptions](#converting-third-party-errors-into-userexceptions)
-      * [UserExceptionAction](#user-exception-action)   
+      * [UserExceptionAction](#userexceptionaction)   
    * [Testing](#testing)
       * [Testing UserExceptions](#testing-userexceptions)
       * [Test files](#test-files)   

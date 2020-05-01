@@ -1,6 +1,6 @@
 name: async_redux
 description: A Redux version which is easy to learn, to use, to test, and has no boilerplate. Allows for both sync and async reducers. Tailored for Flutter.
-version: 2.8.0
+version: 2.8.1
 author: Marcelo Glasberg <marcglasberg@gmail.com>
 homepage: https://github.com/marcglasberg/async_redux
 
@@ -11,6 +11,7 @@ dependencies:
   logging: ^0.11.3+2
   path: ^1.6.4
   path_provider: ^1.4.4
+  file: ^5.1.0
   flutter:
     sdk: flutter
 
