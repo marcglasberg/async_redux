@@ -65,15 +65,15 @@ class LocalPersist {
   /// You can change this variable to globally change the directory,
   /// or provide [dbSubDir] in the constructor.
   ///
-  /// You can also provide other [subDirs].
+  /// You can also provide other [subDirs] as Strings or enums.
   /// Example: `LocalPersist("photos", subDirs: ["article", "images"])`
   /// saves to `appDocsDir/db/article/images/photos.db`
   ///
-  LocalPersist(Object dbName, {String dbSubDir, List<String> subDirs})
+  LocalPersist(Object dbName, {String dbSubDir, List<Object> subDirs})
       : assert(dbName != null),
-        dbName = _getDbName(dbName),
+        dbName = _getStringFromEnum(dbName),
         dbSubDir = dbSubDir,
-        subDirs = subDirs,
+        subDirs = subDirs.map((s) => _getStringFromEnum(s)),
         _file = null;
 
   /// Saves to the given file.
@@ -209,7 +209,7 @@ class LocalPersist {
     ]);
   }
 
-  static String _getDbName(Object dbName) =>
+  static String _getStringFromEnum(Object dbName) =>
       (dbName is String) ? dbName : dbName.toString().split(".").last;
 
   /// If running from Flutter, this will get the application's documents directory.

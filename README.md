@@ -1555,7 +1555,7 @@ Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/maste
 
 ## Waiting until the state meets a certain condition
 
-You can also create futures that complete when the store state meets a certain condition. 
+You can create futures that complete when the store state meets a certain condition. 
 
 For example: 
 
