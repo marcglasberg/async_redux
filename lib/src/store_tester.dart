@@ -163,8 +163,18 @@ class StoreTester<St> {
     TestInfoList<St> infoList = TestInfoList<St>();
 
     if (testImmediately) {
-      if (condition(_currentTestInfo)) {
-        infoList._add(_currentTestInfo);
+      var currentTestInfoWithoutAction = TestInfo<St>(
+        _currentTestInfo.state,
+        false,
+        null,
+        null,
+        null,
+        _currentTestInfo.dispatchCount,
+        _currentTestInfo.reduceCount,
+        _currentTestInfo.errors,
+      );
+      if (condition(currentTestInfoWithoutAction)) {
+        infoList._add(currentTestInfoWithoutAction);
         lastInfo = infoList.last;
         return infoList;
       }

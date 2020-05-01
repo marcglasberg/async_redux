@@ -1187,6 +1187,71 @@ void main() {
 
   ///////////////////////////////////////////////////////////////////////////////
 
+  test(
+      "Wait condition with testImmediately true "
+      "should not see the action of previous test-infos.", () async {
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+
+    storeTester.dispatch(Action1());
+
+    TestInfoList<AppState> infos = await storeTester.waitCondition(
+      (info) => info.state.text == "0,1",
+      testImmediately: true,
+    );
+
+    expect(infos[Action1].action, isA<Action1>());
+    expect(storeTester.currentTestInfo.action, isA<Action1>());
+
+    infos = await storeTester.waitCondition(
+      (info) {
+        if (info.action is Action1) throw AssertionError();
+        return true;
+      },
+      testImmediately: true,
+    );
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      "Wait condition with testImmediately true "
+      "should not see the action of previous test-infos (a more realistic test).", () async {
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+
+    storeTester.dispatch(Action1());
+
+    TestInfoList<AppState> infos = await storeTester.waitCondition(
+      (info) => info.state.text == "0,1",
+      testImmediately: true,
+    );
+
+    expect(infos, hasLength(1));
+    expect(infos[Action1].state.text, "0,1");
+    expect(storeTester.currentTestInfo.action, isA<Action1>());
+    expect(storeTester.currentTestInfo.state.text, "0,1");
+
+    storeTester.dispatch(Action2());
+    storeTester.dispatch(Action1());
+
+    bool hasDispatchedAction1 = false;
+
+    infos = await storeTester.waitCondition(
+      (info) {
+        if (info.action is Action1) hasDispatchedAction1 = true;
+        return hasDispatchedAction1 && info.state.text.contains(",2");
+      },
+      testImmediately: true,
+    );
+
+    expect(infos, hasLength(2));
+    expect(infos[Action2].state.text, "0,1,2");
+    expect(infos[Action1].state.text, "0,1,2,1");
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
   test('Two simultaneous store testers will receive the same state changes.', () async {
     var storeTester1 = createStoreTester();
     var storeTester2 = StoreTester.from(storeTester1.store);
