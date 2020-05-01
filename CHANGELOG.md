@@ -1,14 +1,13 @@
 ## [2.8.0] - 2020/04/30
 
-* Store.waitCondition() returns a future which will complete when the given condition is true.
-The condition can access the state. You may also provide a timeoutInSeconds.
+* Store.waitCondition() returns a future which will complete when the state meets a given condition.
    
-* StoreTester.waitCondition() now accepts a parameter called testImmediately.
+* Breaking change: StoreTester.waitCondition() now accepts a parameter called testImmediately.
 When testImmediately is true (now the default), it will test the condition immediately when 
 the method is called. If the condition is true, the method will return immediately,
 without waiting for any actions to be dispatched. 
-When testImmediately is false (the old behavior), it will only test the condition 
-once an action is dispatched.
+When testImmediately is false (the old behavior), it will only test the condition once an 
+action is dispatched.
 
 ## [2.7.3] - 2020/04/30
 

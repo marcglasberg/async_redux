@@ -42,6 +42,7 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [Advanced event features](#advanced-event-features)
    * [Progress indicators](#progress-indicators)
    * [Waiting until an Action is finished](#waiting-until-an-action-is-finished)
+   * [Waiting until the state meets a certain condition](#waiting-until-the-state-meets-a-certain-condition)
    * [State Declaration](#state-declaration)
       * [Selectors](#selectors)             
    * [Action Subclassing](#action-subclassing)
