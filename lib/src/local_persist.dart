@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:file/file.dart' hide File;
+import 'package:file/file.dart' as f;
 import 'package:async_redux/async_redux.dart';
 import 'package:file/local.dart';
 import 'package:flutter/services.dart';
@@ -46,7 +46,7 @@ class LocalPersist {
   // which may contain many objects.
   static const maxJsonSize = 256 * 256;
 
-  static FileSystem _fileSystem = const LocalFileSystem();
+  static f.FileSystem _fileSystem = const LocalFileSystem();
 
   final String dbName, dbSubDir;
 
@@ -306,7 +306,7 @@ class LocalPersist {
   ///  ...
   /// expect(mfs.file('myPic.jpg').readAsBytesSync(), List.filled(100, 0));
   /// ```
-  static void setFileSystem(FileSystem fileSystem) {
+  static void setFileSystem(f.FileSystem fileSystem) {
     assert(fileSystem != null);
     _fileSystem = fileSystem;
   }

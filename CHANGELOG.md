@@ -1,5 +1,6 @@
-## [2.8.3] - 2020/05/08
+## [2.8.4] - 2020/05/08
 
+* Fix LocalPersist imports.
 * Fix abortDispatch not getting the state.
 
 ## [2.8.1] - 2020/05/01
