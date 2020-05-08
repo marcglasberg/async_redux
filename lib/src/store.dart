@@ -346,6 +346,9 @@ class Store<St> {
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: store.dispatch is of type Dispatch.
   void dispatch(ReduxAction<St> action) {
+    // The action may access the store/state/dispatch as fields.
+    action.setStore(this);
+
     if (_shutdown || action.abortDispatch()) return;
 
     _dispatchCount++;
@@ -359,7 +362,10 @@ class Store<St> {
   }
 
   Future<void> dispatchFuture(ReduxAction<St> action) async {
-    if (_shutdown) return;
+    // The action may access the store/state/dispatch as fields.
+    action.setStore(this);
+
+    if (_shutdown || action.abortDispatch()) return;
 
     _dispatchCount++;
 
@@ -401,7 +407,7 @@ class Store<St> {
     createTestInfoSnapshot(state, action, null, null, ini: true);
 
     // The action may access the store/state/dispatch as fields.
-    action.setStore(this);
+    assert(action.store == this);
 
     var afterWasRun = _Flag<bool>(false);
 

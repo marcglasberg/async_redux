@@ -1,3 +1,7 @@
+## [2.8.2] - 2020/05/08
+
+* Fix abortDispatch not getting the state.
+
 ## [2.8.1] - 2020/05/01
 
 * A filesystem may be injected into LocalPersist (usually to be used with MemoryFileSystem).
