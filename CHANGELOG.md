@@ -1,4 +1,4 @@
-## [2.8.2] - 2020/05/08
+## [2.8.3] - 2020/05/08
 
 * Fix abortDispatch not getting the state.
 
