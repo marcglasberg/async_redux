@@ -320,11 +320,14 @@ class Store<St> {
   /// [timeoutInSeconds], which by default is null (never times out).
   Future<void> waitCondition(bool Function(St) condition, {int timeoutInSeconds}) async {
     var conditionTester = StoreTester.simple(this);
-    await conditionTester.waitCondition(
-      (TestInfo<St> info) => condition(info.state),
-      timeoutInSeconds: timeoutInSeconds,
-    );
-    await conditionTester.cancel();
+    try {
+      await conditionTester.waitCondition(
+        (TestInfo<St> info) => condition(info.state),
+        timeoutInSeconds: timeoutInSeconds,
+      );
+    } finally {
+      await conditionTester.cancel();
+    }
   }
 
   /// Adds an error at the end of the error queue.
@@ -565,7 +568,7 @@ class Store<St> {
 abstract class ReduxAction<St> {
   Store<St> _store;
 
-  void setStore(Store store) => _store = (store as Store<St>);
+  void setStore(Store<St> store) => _store = store;
 
   Store<St> get store => _store;
 

@@ -253,12 +253,12 @@ class StoreTester<St> {
   /// Expects **one action** of the given type to be dispatched, and waits until it finishes.
   /// Returns the info after the action finishes.
   /// Will fail with an exception if an unexpected action is seen.
-  Future<TestInfo> wait(Type actionType) async => waitAllGetLast([actionType]);
+  Future<TestInfo<St>> wait(Type actionType) async => waitAllGetLast([actionType]);
 
   /// Runs until an action of the given type is dispatched, and then waits until it finishes.
   /// Returns the info after the action finishes. **Ignores other** actions types.
   ///
-  Future<TestInfo> waitUntil(
+  Future<TestInfo<St>> waitUntil(
     Type actionType, {
     int timeoutInSeconds = defaultTimeout,
   }) async {
@@ -284,7 +284,7 @@ class StoreTester<St> {
   ///   storeTester.dispatch(action);
   ///   await storeTester.waitUntilAction(action);
   ///
-  Future<TestInfo> waitUntilAction(
+  Future<TestInfo<St>> waitUntilAction(
     ReduxAction<St> action, {
     int timeoutInSeconds = defaultTimeout,
   }) async {
@@ -317,7 +317,7 @@ class StoreTester<St> {
   /// [StoreTester] constructor, if any. If [ignore] is an empty list, it
   /// will disable that global ignore.
   ///
-  Future<TestInfo> waitAllGetLast(
+  Future<TestInfo<St>> waitAllGetLast(
     List<Type> actionTypes, {
     List<Type> ignore,
   }) async {
@@ -340,7 +340,7 @@ class StoreTester<St> {
   /// ignored actions and wait for them to finish, so that they don't "leak" to the next wait.
   /// An action type cannot exist in both [actionTypes] and [ignore] lists.
   ///
-  Future<TestInfo> waitAllUnorderedGetLast(
+  Future<TestInfo<St>> waitAllUnorderedGetLast(
     List<Type> actionTypes, {
     int timeoutInSeconds = defaultTimeout,
     List<Type> ignore,

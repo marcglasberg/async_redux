@@ -1,3 +1,7 @@
+## [2.8.5] - 2020/05/12
+
+* Small fixes: better generics; Better waitCondition stream close.
+
 ## [2.8.4] - 2020/05/08
 
 * Fix LocalPersist imports.
