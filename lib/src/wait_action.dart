@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 import '../async_redux.dart';
 
 // Developed by Marcelo Glasberg (Apr 2020).
@@ -48,7 +46,7 @@ class WaitAction<St> extends ReduxAction<St> {
   static WaitReducer reducer = _defaultReducer;
 
   /// The default is to choose a reducer that is compatible with your AppState class.
-  static WaitReducer _defaultReducer = (state, operation, flag, ref) {
+  static final WaitReducer _defaultReducer = (state, operation, flag, ref) {
     try {
       return _copyReducer(state, operation, flag, ref);
     } on NoSuchMethodError catch (_) {
@@ -65,14 +63,14 @@ class WaitAction<St> extends ReduxAction<St> {
   };
 
   /// For this to work, your state class must have a [copy] method.
-  static WaitReducer _copyReducer = (state, operation, flag, ref) {
+  static final WaitReducer _copyReducer = (state, operation, flag, ref) {
     Wait wait = (state as dynamic).wait ?? Wait();
     return (state as dynamic).copy(wait: wait.process(operation, flag: flag, ref: ref));
   };
 
   /// For this to work, your state class must have a suitable [rebuild] method.
   /// This happens automatically when you use the BuiltValue package.
-  static WaitReducer _builtValueReducer = (state, operation, flag, ref) {
+  static final WaitReducer _builtValueReducer = (state, operation, flag, ref) {
     Wait wait = (state as dynamic).wait ?? Wait();
     return (state as dynamic)
         .rebuild((state) => state..wait = wait.process(operation, flag: flag, ref: ref));
@@ -80,7 +78,7 @@ class WaitAction<St> extends ReduxAction<St> {
 
   /// For this to work, your state class must have a [copyWith] method.
   /// This happens automatically when you use the Freezed package.
-  static WaitReducer _freezedReducer = (state, operation, flag, ref) {
+  static final WaitReducer _freezedReducer = (state, operation, flag, ref) {
     Wait wait = (state as dynamic).wait ?? Wait();
     return (state as dynamic).copyWith(wait: wait.process(operation, flag: flag, ref: ref));
   };

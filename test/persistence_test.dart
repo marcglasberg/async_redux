@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import "package:async_redux/async_redux.dart";
+import 'package:flutter/foundation.dart';
 import "package:test/test.dart";
 
 void main() {
@@ -60,7 +61,7 @@ void main() {
   ///////////////////////////////////////////////////////////////////////////////
 
   test('Create some simple state and persist, with a 1 second throttle.', () async {
-    await setupPersistorAndLocalDb(throttle: Duration(seconds: 1));
+    await setupPersistorAndLocalDb(throttle: const Duration(seconds: 1));
 
     var storeTester = await createStoreTester();
     expect(storeTester.state.name, "John");
@@ -88,7 +89,7 @@ void main() {
     expect(await persistor.readState(), isNot(info3.state));
 
     // 4) Now lets wait until the save is done.
-    await Future.delayed(Duration(milliseconds: 1500));
+    await Future.delayed(const Duration(milliseconds: 1500));
     expect(localDb.get(db: "main", id: Id("name")), "Eve");
     expect(await persistor.readState(), storeTester.state);
   });
@@ -112,7 +113,7 @@ void main() {
     int count = 0;
     Completer completer = Completer();
 
-    Timer.periodic(Duration(milliseconds: 40), (timer) {
+    Timer.periodic(const Duration(milliseconds: 40), (timer) {
       storeTester.dispatch(ChangeNameAction(count.toString()));
       String result = writeStateAndDb(storeTester, localDb);
       results.add(result);
@@ -150,7 +151,7 @@ void main() {
     //
     List<String> results = [];
 
-    await setupPersistorAndLocalDb(throttle: Duration(milliseconds: 215));
+    await setupPersistorAndLocalDb(throttle: const Duration(milliseconds: 215));
     var storeTester = await createStoreTester();
 
     String result = writeStateAndDb(storeTester, localDb);
@@ -159,7 +160,7 @@ void main() {
     int count = 0;
     Completer completer = Completer();
 
-    Timer.periodic(Duration(milliseconds: 60), (timer) {
+    Timer.periodic(const Duration(milliseconds: 60), (timer) {
       storeTester.dispatch(ChangeNameAction(count.toString()));
       String result = writeStateAndDb(storeTester, localDb);
       results.add(result);
@@ -207,7 +208,7 @@ void main() {
 
     await setupPersistorAndLocalDb(
       throttle: null,
-      saveDuration: Duration(milliseconds: 215),
+      saveDuration: const Duration(milliseconds: 215),
     );
 
     var storeTester = await createStoreTester();
@@ -218,7 +219,7 @@ void main() {
     int count = 0;
     Completer completer = Completer();
 
-    Timer.periodic(Duration(milliseconds: 60), (timer) {
+    Timer.periodic(const Duration(milliseconds: 60), (timer) {
       storeTester.dispatch(ChangeNameAction(count.toString()));
 
       String result = writeStateAndDb(storeTester, localDb);
@@ -269,14 +270,14 @@ void main() {
     List<String> results = [];
 
     await setupPersistorAndLocalDb(
-      throttle: Duration(milliseconds: 300),
+      throttle: const Duration(milliseconds: 300),
       saveDuration: null,
     );
 
     var storeTester = await createStoreTester();
 
     /// Discard the time waiting for the saving of the initial state.
-    await Future.delayed(Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 300));
 
     // At 0 millis: (state:John, db: John)
     results.add(writeStateAndDb(storeTester, localDb));
@@ -286,7 +287,7 @@ void main() {
     results.add(writeStateAndDb(storeTester, localDb));
 
     // At 100 millis the state is initially unchanged (state:1st, db: 1st)
-    await Future.delayed(Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 100));
     results.add(writeStateAndDb(storeTester, localDb));
 
     // At 100 millis the state is changed and saved: (state:2nd, db: 1st)
@@ -294,15 +295,15 @@ void main() {
     results.add(writeStateAndDb(storeTester, localDb));
 
     // At 200 millis the state is unchanged: (state:2nd, db: 1st)
-    await Future.delayed(Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 100));
     results.add(writeStateAndDb(storeTester, localDb));
 
     // Right before 300 millis the state is unchanged: (state:2nd, db: 1st)
-    await Future.delayed(Duration(milliseconds: 80));
+    await Future.delayed(const Duration(milliseconds: 80));
     results.add(writeStateAndDb(storeTester, localDb));
 
     // Right after 300 millis the state is saved: (state:2nd, db: 2nd)
-    await Future.delayed(Duration(milliseconds: 40));
+    await Future.delayed(const Duration(milliseconds: 40));
     results.add(writeStateAndDb(storeTester, localDb));
 
     printResults(results);
@@ -332,13 +333,13 @@ void main() {
 
     await setupPersistorAndLocalDb(
       throttle: null,
-      saveDuration: Duration(milliseconds: 300),
+      saveDuration: const Duration(milliseconds: 300),
     );
 
     var storeTester = await createStoreTester();
 
     /// Discard the time waiting for the saving of the initial state.
-    await Future.delayed(Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 300));
 
     // At 0 millis: (state:John, db: John)
     results.add(writeStateAndDb(storeTester, localDb));
@@ -348,7 +349,7 @@ void main() {
     results.add(writeStateAndDb(storeTester, localDb));
 
     // At 100 millis the state is initially unchanged (state:1st, db: John)
-    await Future.delayed(Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 100));
     results.add(writeStateAndDb(storeTester, localDb));
 
     // At 100 millis the state is changed, but the previous save hasn't finished: (state:2nd, db: John)
@@ -356,24 +357,24 @@ void main() {
     results.add(writeStateAndDb(storeTester, localDb));
 
     // At 200 millis the state is unchanged: (state:2nd, db: John)
-    await Future.delayed(Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 100));
     results.add(writeStateAndDb(storeTester, localDb));
 
     // Right before 300 millis the state is unchanged: (state:2nd, db: John)
-    await Future.delayed(Duration(milliseconds: 80));
+    await Future.delayed(const Duration(milliseconds: 80));
     results.add(writeStateAndDb(storeTester, localDb));
 
     // Right after 300 millis the 1st state is saved: (state:2nd, db: 1st)
-    await Future.delayed(Duration(milliseconds: 40));
+    await Future.delayed(const Duration(milliseconds: 40));
     results.add(writeStateAndDb(storeTester, localDb));
 
     // It will take 300 millis more (until 600) to save the 2nd state.
     // So, at 580 millis we're still at (state:2nd, db: 1st)
-    await Future.delayed(Duration(milliseconds: 260));
+    await Future.delayed(const Duration(milliseconds: 260));
     results.add(writeStateAndDb(storeTester, localDb));
 
     // At 620 we're finally finished: (state:2nd, db: 2nd)
-    await Future.delayed(Duration(milliseconds: 40));
+    await Future.delayed(const Duration(milliseconds: 40));
     results.add(writeStateAndDb(storeTester, localDb));
 
     printResults(results);
@@ -403,14 +404,14 @@ void main() {
     List<String> results = [];
 
     await setupPersistorAndLocalDb(
-      throttle: Duration(milliseconds: 300),
+      throttle: const Duration(milliseconds: 300),
       saveDuration: null,
     );
 
     var storeTester = await createStoreTester();
 
     /// Discard the throttle period for the saving of the initial state.
-    await Future.delayed(Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 300));
 
     // At 0 millis: (state:John, db: John)
     results.add(writeStateAndDb(storeTester, localDb));
@@ -420,7 +421,7 @@ void main() {
     results.add(writeStateAndDb(storeTester, localDb));
 
     // At 100 millis the state is initially unchanged (state:1st, db: 1st)
-    await Future.delayed(Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 100));
     results.add(writeStateAndDb(storeTester, localDb));
 
     // At 100 millis the state is changed and saved: (state:2nd, db: 1st)
@@ -428,7 +429,7 @@ void main() {
     results.add(writeStateAndDb(storeTester, localDb));
 
     // At 150 millis the state is initially unchanged (state:2nd, db: 1st)
-    await Future.delayed(Duration(milliseconds: 50));
+    await Future.delayed(const Duration(milliseconds: 50));
     results.add(writeStateAndDb(storeTester, localDb));
 
     // At 150 millis the PersistAction is dispatched. The state is changed: (state:2nd, db: 2nd)
@@ -436,7 +437,7 @@ void main() {
     results.add(writeStateAndDb(storeTester, localDb));
 
     // At 400 millis the state is unchanged (state:2nd, db: 2nd)
-    await Future.delayed(Duration(milliseconds: 150));
+    await Future.delayed(const Duration(milliseconds: 150));
     results.add(writeStateAndDb(storeTester, localDb));
 
     printResults(results);
@@ -570,10 +571,6 @@ class SavedInfo {
   final Id id;
   final Object info;
 
-  const SavedInfo._()
-      : id = null,
-        info = null;
-
   SavedInfo(this.id, this.info) : assert(id != null);
 
   @override
@@ -600,6 +597,7 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
 
   /// Must be called right after instantiating the object.
   /// The databases will be created as List<SavedInfo>.
+  @override
   Future<void> init(Iterable<String> dbNames) async {
     super.init(dbNames);
 
@@ -618,9 +616,9 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
 
   @override
   Future<void> save({
-    String db,
-    Id id,
-    Object info,
+    @required String db,
+    @required Id id,
+    @required Object info,
   }) async {
     assert(db != null);
     assert(id != null);
@@ -636,8 +634,8 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
   /// Will return null if the saved value is null.
   @override
   Object get({
-    String db,
-    Id id,
+    @required String db,
+    @required Id id,
     Object orElse(),
     Object deserializer(Object obj),
   }) {
@@ -662,8 +660,8 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
   /// Will return null if the saved value is null.
   @override
   Object getOrThrow({
-    String db,
-    Id id,
+    @required String db,
+    @required Id id,
     Object deserializer(Object obj),
   }) {
     assert(db != null);
@@ -686,8 +684,8 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
 
 class MyPersistor implements Persistor<AppState> {
   //
-  Duration _throttle;
-  Duration _saveDuration;
+  final Duration _throttle;
+  final Duration _saveDuration;
 
   MyPersistor({
     Duration throttle,
@@ -695,6 +693,7 @@ class MyPersistor implements Persistor<AppState> {
   })  : _throttle = throttle,
         _saveDuration = saveDuration;
 
+  @override
   Duration get throttle => _throttle;
 
   Duration get saveDuration => _saveDuration;
@@ -710,6 +709,7 @@ class MyPersistor implements Persistor<AppState> {
     localDb.init(["main", "students"]);
   }
 
+  @override
   Future<void> saveInitialState(AppState state) async {
     if (localDb.isNotEmpty)
       throw PersistException("Store is already persisted.");
@@ -720,7 +720,7 @@ class MyPersistor implements Persistor<AppState> {
   @override
   Future<void> persistDifference({
     AppState lastPersistedState,
-    AppState newState,
+    @required AppState newState,
   }) async {
     assert(newState != null);
 
@@ -731,6 +731,7 @@ class MyPersistor implements Persistor<AppState> {
     }
   }
 
+  @override
   Future<AppState> readState() async {
     if (localDb.isEmpty)
       return null;
@@ -738,6 +739,7 @@ class MyPersistor implements Persistor<AppState> {
       return AppState(name: localDb.getOrThrow(db: "main", id: Id("name")));
   }
 
+  @override
   Future<void> deleteState() async {
     localDb.deleteDatabases();
   }

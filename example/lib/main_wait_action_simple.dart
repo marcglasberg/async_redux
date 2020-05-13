@@ -99,10 +99,12 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
 
   // The wait starts here. We add the action itself (`this`)
   // as a wait-flag reference.
+  @override
   void before() => dispatch(WaitAction.add(this));
 
   // The wait ends here. We remove the action from the
   // wait-flag references.
+  @override
   void after() => dispatch(WaitAction.remove(this));
 }
 
@@ -185,13 +187,18 @@ class MyHomePage extends StatelessWidget {
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(title: Text('Wait Action Example')),
+          appBar: AppBar(title: const Text('Wait Action Example')),
           body: Center(
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text('You have pushed the button this many times:'),
-            Text('$counter', style: TextStyle(fontSize: 30)),
-            Text(description, style: TextStyle(fontSize: 15), textAlign: TextAlign.center),
-          ])),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('You have pushed the button this many times:'),
+                Text('$counter', style: const TextStyle(fontSize: 30)),
+                Text(description,
+                    style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
+              ],
+            ),
+          ),
           floatingActionButton: FloatingActionButton(
             onPressed: onIncrement,
             child: Icon(Icons.add),

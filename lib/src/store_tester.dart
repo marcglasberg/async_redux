@@ -11,7 +11,7 @@ import '../async_redux.dart';
 
 /// Predicate used in [StoreTester.waitCondition].
 /// Return true to stop waiting, and get the last state.
-typedef bool StateCondition<St>(TestInfo<St> info);
+typedef StateCondition<St> = bool Function(TestInfo<St> info);
 
 /// Helps testing the store, actions, and sync/async reducers.
 ///
@@ -322,7 +322,7 @@ class StoreTester<St> {
     List<Type> ignore,
   }) async {
     assert(actionTypes != null && actionTypes.isNotEmpty);
-    if (ignore == null) ignore = _ignore;
+    ignore ??= _ignore;
 
     var infoList = await waitAll(actionTypes, ignore: ignore);
 
@@ -352,8 +352,11 @@ class StoreTester<St> {
       ))
           .last;
 
-  /// The same as `waitAllGetLast`, but instead of returning just the last info,
-  /// it returns a list with the end info for each action.
+  /// Runs until **all** given actions types are dispatched, **in order**.
+  /// Waits until all of them are finished.
+  /// Returns the info after all actions finish.
+  /// Will fail with an exception if an unexpected action is seen,
+  /// or if any of the expected actions are dispatched in the wrong order.
   ///
   /// If you pass action types to [ignore], they will be ignored (the test won't fail when
   /// encountering them, and won't collect testInfo for them). However, if an action type
@@ -365,89 +368,73 @@ class StoreTester<St> {
   /// [StoreTester] constructor, if any. If [ignore] is an empty list, it
   /// will disable that global ignore.
   ///
+  /// This method is the same as `waitAllGetLast`, but instead of returning
+  /// just the last info, it returns a list with the end info for each action.
+  ///
   Future<TestInfoList<St>> waitAll(List<Type> actionTypes, {List<Type> ignore}) async {
     assert(actionTypes != null && actionTypes.isNotEmpty);
-    if (ignore == null) ignore = _ignore;
+    ignore ??= _ignore;
 
     TestInfoList<St> infoList = TestInfoList<St>();
 
-    // Waits the end of all actions, in any order.
-    List<TestInfo<St>> endStates = [];
-
-    // Saves obtained expected actions INI.
-    // Note: This relies on Actions not overriding operator ==.
-    List<ReduxAction> obtainedActions = [];
-
-    // Saves ignored actions INI.
-    // Note: This relies on Actions not overriding operator ==.
-    List<ReduxAction> ignoredActions = [];
-
     TestInfo<St> testInfo;
 
-    testInfo = await _next();
+    Queue<Type> expectedActionTypesINI = Queue.from(actionTypes);
 
-    for (int i = 0; i < actionTypes.length; i++) {
-      var actionType = actionTypes[i];
+    // These are for better error messages only.
+    List<Type> obtainedIni = [];
+    List<Type> ignoredIni = [];
 
+    List<ReduxAction> expectedActionsEND = [];
+    List<ReduxAction> expectedActionsEND_Ignored = [];
+
+    while (expectedActionTypesINI.isNotEmpty ||
+        expectedActionsEND.isNotEmpty ||
+        expectedActionsEND_Ignored.isNotEmpty) {
+      //
+      testInfo = await _next();
+
+      // Action INI must all exist, in order.
       if (testInfo.isINI) {
-        // Ignores actions.
-        while (ignore.contains(testInfo.type) && (testInfo.type != actionType)) {
-          if (testInfo.isINI)
-            ignoredActions.add(testInfo.action);
-          else
-            ignoredActions.remove(testInfo.action);
+        //
+        bool isIgnored = ignore.contains(testInfo.type) &&
+            (expectedActionTypesINI.isEmpty || expectedActionTypesINI.first != testInfo.type);
 
-          testInfo = await _next();
+        /// Record this action, so that later we can wait until it ends.
+        if (isIgnored) {
+          expectedActionsEND_Ignored.add(testInfo.action);
+          ignoredIni.add(testInfo.type); // // For better error messages only.
         }
+        //
+        else {
+          expectedActionsEND.add(testInfo.action);
+          obtainedIni.add(testInfo.type); // For better error messages only.
 
-        obtainedActions.add(testInfo.action);
+          Type expectedActionTypeINI =
+              expectedActionTypesINI.isEmpty ? null : expectedActionTypesINI.removeFirst();
 
-        if (testInfo.type != actionType)
-          throw StoreException(
-              "Got this action: ${testInfo.type} ${testInfo.ini ? "INI" : "END"}.\n"
-              "Was expecting: $actionType INI.");
-
-        testInfo = await _next();
-      }
-
-      if (i < actionTypes.length - 1)
-        while (testInfo.isEND) {
-          var wasObtained = obtainedActions.remove(testInfo.action);
-          var wasIgnored = ignoredActions.remove(testInfo.action);
-
-          if (!wasObtained && !wasIgnored)
-            throw StoreException("Got this unexpected action: ${testInfo.type} END.");
-
-          if (wasObtained) endStates.add(testInfo);
-
-          testInfo = await _next();
+          if (testInfo.type != expectedActionTypeINI)
+            throw StoreException("Got this unexpected action: ${testInfo.type} INI.\n"
+                "Was expecting: $expectedActionTypeINI INI.\n"
+                "obtainedIni: $obtainedIni\n"
+                "ignoredIni: $ignoredIni");
         }
-    }
-
-    while (obtainedActions.isNotEmpty || ignoredActions.isNotEmpty) {
-      // Ignores actions.
-      while (ignore.contains(testInfo.type) && (testInfo.isINI)) {
-        ignoredActions.add(testInfo.action);
-        testInfo = await _next();
       }
+      //
+      // Action END must all exist, but the order doesn't matter.
+      else {
+        bool ifWasRemoved = expectedActionsEND.remove(testInfo.action);
 
-      var wasObtained = obtainedActions.remove(testInfo.action);
-      var wasIgnored = ignoredActions.remove(testInfo.action);
+        if (ifWasRemoved)
+          infoList._add(testInfo);
+        else
+          ifWasRemoved = expectedActionsEND_Ignored.remove(testInfo.action);
 
-      if (!testInfo.isEND || (!wasObtained && !wasIgnored))
-        throw StoreException(
-            "Got this unexpected action: ${testInfo.type} ${testInfo.ini ? "INI" : "END"}.\n\n"
-            "obtainedIni:$obtainedActions\n"
-            "ignoredIni:$ignoredActions\n"
-            "");
-
-      if (wasObtained) endStates.add(testInfo);
-
-      if (obtainedActions.isNotEmpty || ignoredActions.isNotEmpty) testInfo = await _next();
-    }
-
-    for (TestInfo<St> testInfo in endStates) {
-      infoList._add(testInfo);
+        if (!ifWasRemoved)
+          throw StoreException("Got this unexpected action: ${testInfo.type} END.\n"
+              "obtainedIni: $obtainedIni\n"
+              "ignoredIni: $ignoredIni");
+      }
     }
 
     lastInfo = infoList.last;
@@ -473,7 +460,7 @@ class StoreTester<St> {
     List<Type> ignore,
   }) async {
     assert(actionTypes != null && actionTypes.isNotEmpty);
-    if (ignore == null) ignore = _ignore;
+    ignore ??= _ignore;
 
     // Actions which are expected can't also be ignored.
     var intersection = ignore.toSet().intersection(actionTypes.toSet());
@@ -657,7 +644,7 @@ class TestInfoList<St> {
 class StoreExceptionTimeout extends StoreException {
   StoreExceptionTimeout() : super("Timeout.");
 
-  List<String> _details = <String>[];
+  final List<String> _details = <String>[];
 
   List<String> get details => _details;
 
@@ -689,6 +676,7 @@ class StoreExceptionTimeout extends StoreException {
 /// actually contains those errors.
 ///
 class TestErrorObserver<St> implements ErrorObserver<St> {
+  @override
   bool observe(Object error, ReduxAction<St> action, Store store) => true;
 }
 

@@ -86,17 +86,17 @@ class UserException implements Exception {
   static var joinExceptionMainAndCause = (Locale locale, String mainMsg, String causeMsg) =>
       "$mainMsg\n\n${_getReasonFromLocale(locale) ?? "Reason"}: $causeMsg";
 
-  static _getReasonFromLocale(Locale locale) {
+  static String _getReasonFromLocale(Locale locale) {
     if (locale == null)
       return null;
     else {
       var reason = _reason[locale.toString()];
-      if (reason == null) reason = _reason[locale.languageCode];
+      reason ??= _reason[locale.languageCode];
       return reason;
     }
   }
 
-  static const Map _reason = {
+  static const Map<String, String> _reason = {
     "en": "Reason", // English
     "es": "Razón", // Spanish
     "fr": "Raison", // French
@@ -245,7 +245,7 @@ class _Widget extends StatefulWidget {
           content: Text(userException.dialogContent()),
           actions: [
             CupertinoDialogAction(
-              child: Text("OK"),
+              child: const Text("OK"),
               onPressed: () => Navigator.of(context).pop(),
             )
           ],
@@ -259,7 +259,7 @@ class _Widget extends StatefulWidget {
           content: Text(userException.dialogContent()),
           actions: [
             FlatButton(
-              child: Text("OK"),
+              child: const Text("OK"),
               onPressed: () => Navigator.of(context).pop(),
             )
           ],

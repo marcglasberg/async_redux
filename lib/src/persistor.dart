@@ -53,7 +53,7 @@ abstract class Persistor<St> {
 /// ```
 ///
 class PersistorPrinterDecorator<T> extends Persistor<T> {
-  Persistor _persistor;
+  final Persistor _persistor;
 
   PersistorPrinterDecorator(this._persistor);
 

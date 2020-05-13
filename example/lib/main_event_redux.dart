@@ -86,8 +86,10 @@ class ClearTextAction extends ReduxAction<AppState> {
 
 /// Actions that extend [BarrierAction] show a modal barrier while their async processes run.
 abstract class BarrierAction extends ReduxAction<AppState> {
+  @override
   void before() => dispatch(_WaitAction(true));
 
+  @override
   void after() => dispatch(_WaitAction(false));
 }
 
@@ -220,17 +222,17 @@ class _MyHomePageState extends State<MyHomePage> {
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(title: Text('Event Example')),
+          appBar: AppBar(title: const Text('Event Example')),
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('This is a TextField. Click to edit it:'),
+                const Text('This is a TextField. Click to edit it:'),
                 TextField(controller: controller),
-                SizedBox(height: 20),
-                FloatingActionButton(onPressed: widget.onChange, child: Text("Change")),
-                SizedBox(height: 20),
-                FloatingActionButton(onPressed: widget.onClear, child: Text("Clear")),
+                const SizedBox(height: 20),
+                FloatingActionButton(onPressed: widget.onChange, child: const Text("Change")),
+                const SizedBox(height: 20),
+                FloatingActionButton(onPressed: widget.onClear, child: const Text("Clear")),
               ],
             ),
           ),

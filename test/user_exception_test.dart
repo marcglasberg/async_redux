@@ -47,19 +47,19 @@ class UserExceptionCode extends ExceptionCode {
 }
 
 void main() {
-  var localeEn = Locale('en', 'US');
-  var localePt = Locale('pt', 'BR');
+  var localeEn = const Locale('en', 'US');
+  var localePt = const Locale('pt', 'BR');
 
   ///////////////////////////////////////////////////////////////////////////////
   test('Get title and content from UserException.', () {
     // UserException with no given cause.
-    var exception = UserException("Some msg");
+    var exception = const UserException("Some msg");
     expect(exception.dialogTitle(), "");
     expect(exception.dialogContent(), "Some msg");
     expect(exception.toString(), "Some msg");
 
     // UserException with cause, and the cause is also an UserException.
-    exception = UserException("Some msg", cause: UserException("Other msg"));
+    exception = const UserException("Some msg", cause: UserException("Other msg"));
     expect(exception.dialogTitle(), "Some msg");
     expect(exception.dialogContent(), "Other msg");
     expect(exception.toString(), "Some msg\n\nReason: Other msg");
@@ -74,12 +74,12 @@ void main() {
     // ---
 
     // Nothing changes with Locale, since there is no code.
-    exception = UserException("Some msg");
+    exception = const UserException("Some msg");
     expect(exception.dialogTitle(localePt), "");
     expect(exception.dialogContent(localePt), "Some msg");
 
     // UserException with cause, and the cause is also an UserException.
-    exception = UserException("Some msg", cause: UserException("Other msg"));
+    exception = const UserException("Some msg", cause: const UserException("Other msg"));
     expect(exception.dialogTitle(localePt), "Some msg");
     expect(exception.dialogContent(localePt), "Other msg");
 
@@ -93,7 +93,7 @@ void main() {
 
   test('Get title and content from UserException with code, but no Locale.', () {
     // UserException with no given cause.
-    var exception = UserException(
+    var exception = const UserException(
       "Some msg",
       code: UserExceptionCode.errorInName,
     );
@@ -102,7 +102,7 @@ void main() {
     expect(exception.toString(), "Some msg");
 
     // UserException with cause, and the cause is also an UserException.
-    exception = UserException(
+    exception = const UserException(
       "Some msg",
       code: UserExceptionCode.errorInName,
       cause: UserException("Other msg"),
@@ -126,7 +126,7 @@ void main() {
 
   test('Get title and content from UserException with code and Locale.', () {
     // UserException with no given cause.
-    var exception = UserException(
+    var exception = const UserException(
       "Some msg",
       code: UserExceptionCode.errorInName,
     );
@@ -137,7 +137,7 @@ void main() {
     expect(exception.toString(), "Some msg");
 
     // UserException with cause, and the cause is also an UserException.
-    exception = UserException(
+    exception = const UserException(
       "Some msg",
       code: UserExceptionCode.errorInName,
       cause: UserException("Other msg"),
@@ -165,7 +165,7 @@ void main() {
 
   test('Get title and content from UserException with code, Locale, and cause with code.', () {
     // UserException with cause, and the cause is also an UserException.
-    var exception = UserException(
+    var exception = const UserException(
       "Some msg",
       code: UserExceptionCode.errorInName,
       cause: UserException("Other msg", code: UserExceptionCode.tryAgain),
@@ -180,7 +180,7 @@ void main() {
 
     // UserException with cause,
     // and the cause is also an UserException with another cause which is also an UserException.
-    exception = UserException(
+    exception = const UserException(
       "Some msg",
       code: UserExceptionCode.errorInName,
       cause: UserException(
@@ -203,19 +203,19 @@ void main() {
   test('If there is a code, but no translation, use the message.', () {
     //
     // Regular code with translation: uses the translation.
-    var exception = UserException("Some msg", code: UserExceptionCode.errorInName);
+    var exception = const UserException("Some msg", code: UserExceptionCode.errorInName);
     expect(exception.dialogContent(localeEn), "Please, type a valid name");
 
     // Code with no translation: uses the message.
-    exception = UserException("Some msg", code: UserExceptionCode.unknownError);
+    exception = const UserException("Some msg", code: UserExceptionCode.unknownError);
     expect(exception.dialogContent(localeEn), "Some msg");
 
     // Code with no translation and no message: uses the code id.
-    exception = UserException(null, code: UserExceptionCode.unknownError);
+    exception = const UserException(null, code: UserExceptionCode.unknownError);
     expect(exception.dialogContent(localeEn), "unknownError");
 
     // Again, code with no translation and no message: uses the code id.
-    exception = UserException("", code: UserExceptionCode.unknownError);
+    exception = const UserException("", code: UserExceptionCode.unknownError);
     expect(exception.dialogContent(localeEn), "unknownError");
   });
 
@@ -223,7 +223,7 @@ void main() {
 
   test('Message with a reason gets translated to the current locale.', () {
     //
-    var exception = UserException(
+    var exception = const UserException(
       "This is a message",
       cause: UserException(
         "This is a cause",
@@ -240,16 +240,17 @@ void main() {
     expect(exception.dialogContent(localePt), "This is a cause\n\nMotivo: Another cause");
 
     // Locale "en" (language only).
-    expect(exception.dialogTitle(Locale('en')), "This is a message");
-    expect(exception.dialogContent(Locale('en')), "This is a cause\n\nReason: Another cause");
+    expect(exception.dialogTitle(const Locale('en')), "This is a message");
+    expect(exception.dialogContent(const Locale('en')), "This is a cause\n\nReason: Another cause");
 
     // Locale "pt" (language only).
-    expect(exception.dialogTitle(Locale('pt')), "This is a message");
-    expect(exception.dialogContent(Locale('pt')), "This is a cause\n\nMotivo: Another cause");
+    expect(exception.dialogTitle(const Locale('pt')), "This is a message");
+    expect(exception.dialogContent(const Locale('pt')), "This is a cause\n\nMotivo: Another cause");
 
     // Unknown locale.
-    expect(exception.dialogTitle(Locale('unkwnow')), "This is a message");
-    expect(exception.dialogContent(Locale('unkwnow')), "This is a cause\n\nReason: Another cause");
+    expect(exception.dialogTitle(const Locale('unkwnow')), "This is a message");
+    expect(exception.dialogContent(const Locale('unkwnow')),
+        "This is a cause\n\nReason: Another cause");
 
     // ---
 
@@ -261,8 +262,9 @@ void main() {
     expect(exception.dialogContent(localeEn), "xyz en_US This is a cause Another cause");
 
     // Locale "en_US".
-    expect(exception.dialogTitle(Locale('unkwnow')), "This is a message");
-    expect(exception.dialogContent(Locale('unkwnow')), "xyz unkwnow This is a cause Another cause");
+    expect(exception.dialogTitle(const Locale('unknown')), "This is a message");
+    expect(exception.dialogContent(const Locale('unknown')),
+        "xyz unknown This is a cause Another cause");
   });
 
   ///////////////////////////////////////////////////////////////////////////////

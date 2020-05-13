@@ -205,7 +205,7 @@ class ActionB extends ReduxAction<String> {
   @override
   Future<String> reduce() async {
     info.add('B.reduce state="$state"');
-    await Future.delayed(Duration(milliseconds: 50));
+    await Future.delayed(const Duration(milliseconds: 50));
     info.add('B.reduce state="$state"');
     return state + 'B';
   }
@@ -242,7 +242,7 @@ class ActionD extends ReduxAction<String> {
   @override
   Future<void> before() async {
     info.add('D.before state="$state"');
-    await Future.delayed(Duration(milliseconds: 10));
+    await Future.delayed(const Duration(milliseconds: 10));
     info.add('D.before state="$state"');
   }
 
@@ -291,7 +291,7 @@ class ActionF extends ReduxAction<String> {
   @override
   Future<String> reduce() async {
     info.add('F.reduce state="$state"');
-    await Future.delayed(Duration(milliseconds: 10));
+    await Future.delayed(const Duration(milliseconds: 10));
     info.add('F.reduce state="$state"');
     return state + 'F';
   }

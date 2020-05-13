@@ -31,7 +31,7 @@ enum WaitOperation { add, remove, clear }
 class Wait {
   final Map<Object, Set<Object>> _flags;
 
-  static Wait _empty = Wait._({});
+  static final Wait _empty = Wait._({});
 
   factory Wait() => _empty;
 
@@ -107,7 +107,7 @@ class Wait {
     }
   }
 
-  clearWhere(bool Function(Object flag, Set<Object> refs) test) => _flags.removeWhere(test);
+  void clearWhere(bool Function(Object flag, Set<Object> refs) test) => _flags.removeWhere(test);
 
   Map<Object, Set<Object>> _deepCopy() {
     Map<Object, Set<Object>> newFlags = {};

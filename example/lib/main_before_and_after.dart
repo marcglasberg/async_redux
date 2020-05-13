@@ -89,11 +89,13 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
   }
 
   // This adds a modal barrier while the async process is running.
+  @override
   void before() => dispatch(BarrierAction(true));
 
   // This removes the modal barrier when the async process ends,
   // even if there was some error in the process.
   // You can test it by turning off the internet connection.
+  @override
   void after() => dispatch(BarrierAction(false));
 }
 
@@ -190,14 +192,14 @@ class MyHomePage extends StatelessWidget {
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(title: Text('Before and After Example')),
+          appBar: AppBar(title: const Text('Before and After Example')),
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('You have pushed the button this many times:'),
-                Text('$counter', style: TextStyle(fontSize: 30)),
-                Text(description, style: TextStyle(fontSize: 15), textAlign: TextAlign.center),
+                const Text('You have pushed the button this many times:'),
+                Text('$counter', style: const TextStyle(fontSize: 30)),
+                Text(description, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
               ],
             ),
           ),

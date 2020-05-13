@@ -1,3 +1,7 @@
+## [2.8.6] - 2020/05/13
+
+* Fixed corner case for StoreTester.waitAll.
+
 ## [2.8.5] - 2020/05/12
 
 * Small fixes: better generics; Better waitCondition stream close.

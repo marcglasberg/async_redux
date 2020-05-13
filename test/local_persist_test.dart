@@ -346,7 +346,7 @@ void main() {
     var persist = LocalPersist("obj");
     await persist.save(simpleObjs);
 
-    var error;
+    dynamic error;
     try {
       await persist.loadAsObj();
     } catch (_error) {

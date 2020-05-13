@@ -8,9 +8,9 @@ Store<AppState> store;
 final navigatorKey = GlobalKey<NavigatorState>();
 
 final routes = {
-  "/": (BuildContext context) => MyPage(Key("page1")),
-  "/page2": (BuildContext context) => MyPage(Key("page2")),
-  "/page3": (BuildContext context) => MyPage(Key("page3")),
+  "/": (BuildContext context) => MyPage(const Key("page1")),
+  "/page2": (BuildContext context) => MyPage(const Key("page2")),
+  "/page3": (BuildContext context) => MyPage(const Key("page3")),
 };
 
 class AppState {}
@@ -88,7 +88,7 @@ class _NavAction extends StatelessWidget {
 
         store.dispatch(_action);
       },
-      child: SizedBox(height: 10, width: 10),
+      child: const SizedBox(height: 10, width: 10),
     );
   }
 }
@@ -104,29 +104,29 @@ class MyPage extends StatelessWidget {
           Text("Current route: ${NavigateAction.getCurrentNavigatorRouteName(context)}"),
           //
           _NavAction(
-            Key("pushNamedPage2"),
+            const Key("pushNamedPage2"),
             route: "/page2",
             navigateType: NavigateType.pushNamed,
           ),
           _NavAction(
-            Key("pushNamedPage3"),
+            const Key("pushNamedPage3"),
             route: "/page3",
             navigateType: NavigateType.pushNamed,
           ),
           //
           _NavAction(
-            Key("pushNamedAndRemoveAllPage1"),
+            const Key("pushNamedAndRemoveAllPage1"),
             route: "/",
             navigateType: NavigateType.pushNamedAndRemoveAll,
           ),
           //
           _NavAction(
-            Key("pushReplacementNamedPage2"),
+            const Key("pushReplacementNamedPage2"),
             route: "/page2",
             navigateType: NavigateType.pushReplacementNamed,
           ),
           _NavAction(
-            Key("pushNamedAndRemoveUntilPage2"),
+            const Key("pushNamedAndRemoveUntilPage2"),
             route: "/page2",
             predicate: (Route<dynamic> route) {
               return route.settings.name == "/";
@@ -135,12 +135,12 @@ class MyPage extends StatelessWidget {
           ),
           //
           _NavAction(
-            Key("popUntilPage1"),
+            const Key("popUntilPage1"),
             route: "/",
             navigateType: NavigateType.popUntil,
           ),
           _NavAction(
-            Key("pop"),
+            const Key("pop"),
             navigateType: NavigateType.pop,
           ),
         ],
@@ -157,22 +157,23 @@ void main() {
     store = Store<AppState>(initialState: AppState());
   });
 
-  final Finder page1Finder = find.byKey(Key("page1"));
-  final Finder page1IncludeIfOffstageFinder = find.byKey(Key("page1"), skipOffstage: false);
-  final Finder pushAndRemoveAllPage1Finder = find.byKey(Key("pushNamedAndRemoveAllPage1"));
-  final Finder popUntilPage1Finder = find.byKey(Key("popUntilPage1"));
+  final Finder page1Finder = find.byKey(const Key("page1"));
+  final Finder page1IncludeIfOffstageFinder = find.byKey(const Key("page1"), skipOffstage: false);
+  final Finder pushAndRemoveAllPage1Finder = find.byKey(const Key("pushNamedAndRemoveAllPage1"));
+  final Finder popUntilPage1Finder = find.byKey(const Key("popUntilPage1"));
 
-  final Finder page2Finder = find.byKey(Key("page2"));
-  final Finder page2IncludeIfOffstageFinder = find.byKey(Key("page2"), skipOffstage: false);
-  final Finder pushPage2Finder = find.byKey(Key("pushNamedPage2"));
-  final Finder pushReplacementPage2Finder = find.byKey(Key("pushReplacementNamedPage2"));
-  final Finder pushNamedAndRemoveUntilPage2Finder = find.byKey(Key("pushNamedAndRemoveUntilPage2"));
+  final Finder page2Finder = find.byKey(const Key("page2"));
+  final Finder page2IncludeIfOffstageFinder = find.byKey(const Key("page2"), skipOffstage: false);
+  final Finder pushPage2Finder = find.byKey(const Key("pushNamedPage2"));
+  final Finder pushReplacementPage2Finder = find.byKey(const Key("pushReplacementNamedPage2"));
+  final Finder pushNamedAndRemoveUntilPage2Finder =
+      find.byKey(const Key("pushNamedAndRemoveUntilPage2"));
 
-  final Finder page3Finder = find.byKey(Key("page3"));
-  final Finder page3IncludeIfOffstageFinder = find.byKey(Key("page3"), skipOffstage: false);
-  final Finder pushPage3Finder = find.byKey(Key("pushNamedPage3"));
+  final Finder page3Finder = find.byKey(const Key("page3"));
+  final Finder page3IncludeIfOffstageFinder = find.byKey(const Key("page3"), skipOffstage: false);
+  final Finder pushPage3Finder = find.byKey(const Key("pushNamedPage3"));
 
-  final Finder popFinder = find.byKey(Key("pop"));
+  final Finder popFinder = find.byKey(const Key("pop"));
 
   /////////////////////////////////////////////////////////////////////////////
 

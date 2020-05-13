@@ -56,7 +56,7 @@ void main() {
     state = reducer();
     expect(state, "A");
 
-    await Future.delayed(Duration(milliseconds: 0));
+    await Future.delayed(const Duration(milliseconds: 0));
     expect(state, "B");
   });
 
@@ -83,7 +83,7 @@ void main() {
     });
     expect(state, "A");
 
-    await Future.delayed(Duration(milliseconds: 0));
+    await Future.delayed(const Duration(milliseconds: 0));
     expect(state, "B");
   });
 
@@ -116,7 +116,7 @@ void main() {
     expect(state, "A");
 
     // State 'B' is lost.
-    await Future.delayed(Duration(milliseconds: 0));
+    await Future.delayed(const Duration(milliseconds: 0));
     expect(state, "A");
   });
 
@@ -217,7 +217,7 @@ void main() {
 
   test(
       '7) Test 6 is fixed if the reducer executes an await '
-      '(here we try putting it in the beggining).', () async {
+      '(here we try putting it in the beginning).', () async {
     states = [];
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
@@ -245,7 +245,7 @@ void main() {
 
   test(
       '9) Test 6 is fixed if the reducer executes an await '
-      '(here we try putting one in the beggining and one in the end).', () async {
+      '(here we try putting one in the beginning and one in the end).', () async {
     states = [];
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
@@ -328,11 +328,11 @@ class Action4B extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     states.add(state);
-    await Future.delayed(Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 100));
     states.add(state);
     dispatch(Action4C());
     states.add(state);
-    await Future.delayed(Duration(milliseconds: 200));
+    await Future.delayed(const Duration(milliseconds: 200));
     states.add(state);
     return state.copy(state.text + 'B');
   }
@@ -341,7 +341,7 @@ class Action4B extends ReduxAction<AppState> {
 class Action4C extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    await Future.delayed(Duration(milliseconds: 50));
+    await Future.delayed(const Duration(milliseconds: 50));
     return state.copy(state.text + 'C');
   }
 }
@@ -352,11 +352,11 @@ class Action5B extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     states.add(state);
-    await Future.delayed(Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 100));
     states.add(state);
     dispatch(Action5C());
     states.add(state);
-    await Future.delayed(Duration(milliseconds: 50));
+    await Future.delayed(const Duration(milliseconds: 50));
     states.add(state);
     return state.copy(state.text + 'B');
   }
@@ -365,7 +365,7 @@ class Action5B extends ReduxAction<AppState> {
 class Action5C extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    await Future.delayed(Duration(milliseconds: 200));
+    await Future.delayed(const Duration(milliseconds: 200));
     return state.copy(state.text + 'C');
   }
 }

@@ -80,8 +80,10 @@ class LoadMoreAction extends ReduxAction<AppState> {
     return state.copy(numTrivias: list);
   }
 
+  @override
   void before() => dispatch(IsLoadingAction(true));
 
+  @override
   void after() => dispatch(IsLoadingAction(false));
 }
 
@@ -95,8 +97,10 @@ class RefreshAction extends ReduxAction<AppState> {
     return state.copy(numTrivias: list);
   }
 
+  @override
   void before() => dispatch(IsLoadingAction(true));
 
+  @override
   void after() => dispatch(IsLoadingAction(false));
 }
 
@@ -201,7 +205,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Dispatch Future Example')),
+      appBar: AppBar(title: const Text('Dispatch Future Example')),
       body: (widget.numTrivias == null || widget.numTrivias.isEmpty)
           ? Container()
           : RefreshIndicator(

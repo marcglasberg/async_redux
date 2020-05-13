@@ -77,10 +77,9 @@ class LocalPersist {
   /// — If you mock the file-system (see method `setFileSystem()`)
   /// it will save to `fileSystem.systemTempDirectory`.
   ///
-  LocalPersist(Object dbName, {String dbSubDir, List<Object> subDirs})
+  LocalPersist(Object dbName, {this.dbSubDir, List<Object> subDirs})
       : assert(dbName != null),
         dbName = _getStringFromEnum(dbName),
-        dbSubDir = dbSubDir,
         subDirs = subDirs?.map((s) => _getStringFromEnum(s))?.toList(),
         _file = null;
 
@@ -95,8 +94,8 @@ class LocalPersist {
   /// Saves the given simple objects.
   /// If [append] is false (the default), the file will be overwritten.
   /// If [append] is true, it will write to the end of the file.
-  Future<File> save(List<Object> simpleObjs, {bool append: false}) async {
-    File file = this._file ?? await this.file();
+  Future<File> save(List<Object> simpleObjs, {bool append = false}) async {
+    File file = _file ?? await this.file();
     await file.create(recursive: true);
 
     Uint8List encoded = LocalPersist.encode(simpleObjs);
@@ -112,7 +111,7 @@ class LocalPersist {
   /// If the file doesn't exist, returns null.
   /// If the file exists and is empty, returns an empty list.
   Future<List<Object>> load() async {
-    File file = this._file ?? await this.file();
+    File file = _file ?? await this.file();
 
     if (!file.existsSync())
       return null;
@@ -148,7 +147,7 @@ class LocalPersist {
   /// If the file was deleted, returns true.
   /// If the file did not exist, return false.
   Future<bool> delete() async {
-    File file = this._file ?? await this.file();
+    File file = _file ?? await this.file();
 
     if (!file.existsSync())
       return false;
@@ -167,7 +166,7 @@ class LocalPersist {
   /// Returns the file length.
   /// If the file doesn't exist, or exists and is empty, returns 0.
   Future<int> length() async {
-    File file = this._file ?? await this.file();
+    File file = _file ?? await this.file();
 
     if (!file.existsSync())
       return 0;
@@ -184,7 +183,7 @@ class LocalPersist {
 
   /// Returns true if the file exist. False, otherwise.
   Future<bool> exists() async {
-    File file = this._file ?? await this.file();
+    File file = _file ?? await this.file();
     return file.existsSync();
   }
 
@@ -243,7 +242,7 @@ class LocalPersist {
   }
 
   static Iterable<String> objsToJsons(List<Object> simpleObjs) {
-    var jsonEncoder = JsonEncoder();
+    var jsonEncoder = const JsonEncoder();
     return simpleObjs.map((j) => jsonEncoder.convert(j));
   }
 
@@ -251,7 +250,7 @@ class LocalPersist {
     List<Uint8List> chunks = [];
 
     for (String json in jsons) {
-      Utf8Encoder encoder = Utf8Encoder();
+      Utf8Encoder encoder = const Utf8Encoder();
       Uint8List bytes = encoder.convert(json);
       var size = bytes.length;
 
@@ -289,12 +288,12 @@ class LocalPersist {
   }
 
   static Iterable<String> uint8ListsToJsons(Iterable<Uint8List> chunks) {
-    var utf8Decoder = Utf8Decoder();
+    var utf8Decoder = const Utf8Decoder();
     return chunks.map((readChunks) => utf8Decoder.convert(readChunks));
   }
 
   static Iterable<Object> toSimpleObjs(Iterable<String> jsons) {
-    var jsonDecoder = JsonDecoder();
+    var jsonDecoder = const JsonDecoder();
     return jsons.map((json) => jsonDecoder.convert(json));
   }
 

@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
 class IncrementAction extends ReduxAction<int> {
   final int amount;
 
-  IncrementAction({this.amount}) : assert(amount != null);
+  IncrementAction({@required this.amount}) : assert(amount != null);
 
   @override
   int reduce() => state + amount;
@@ -102,14 +102,18 @@ class MyHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Static Factory ViewModel Example'),
+        title: const Text('Static Factory ViewModel Example'),
         backgroundColor: Colors.green,
       ),
       body: Center(
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Text('You have pushed the button this many times:'),
-        Text('$counter', style: TextStyle(fontSize: 30))
-      ])),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('You have pushed the button this many times:'),
+            Text('$counter', style: const TextStyle(fontSize: 30))
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: onIncrement,
         child: Icon(Icons.add),

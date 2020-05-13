@@ -88,6 +88,7 @@ class TestInfo<St> {
 /// `var store = Store(errorObserver:DevelopmentErrorObserver());`
 ///
 class DevelopmentErrorObserver<St> implements ErrorObserver<St> {
+  @override
   bool observe(Object error, ReduxAction<St> action, Store store) {
     if (error is UserException)
       return false;
@@ -105,6 +106,7 @@ class DevelopmentErrorObserver<St> implements ErrorObserver<St> {
 /// `var store = Store(errorObserver:SwallowErrorObserver());`
 ///
 class SwallowErrorObserver<St> implements ErrorObserver<St> {
+  @override
   bool observe(Object error, ReduxAction<St> action, Store store) {
     return false;
   }
@@ -155,7 +157,7 @@ class DefaultModelObserver<Model> implements ModelObserver<Model> {
 
     if (shouldObserve)
       print("Model D:$dispatchCount R:$reduceCount = "
-          "Rebuid:${isDistinct == null || isDistinct}, "
+          "Rebuild:${isDistinct == null || isDistinct}, "
           "${storeConnector.debug == null ? "" : "Connector:${storeConnector.debug.runtimeType}"}, "
           "Model:$modelCurrent.");
   }
@@ -340,7 +342,7 @@ class Store<St> {
 
   /// Call this method to shut down the store.
   /// It won't accept dispatches or change the state anymore.
-  shutdown() {
+  void shutdown() {
     _shutdown = true;
   }
 
@@ -769,10 +771,10 @@ class StoreProvider<St> extends InheritedWidget {
         super(key: key, child: child);
 
   static Store<St> of<St>(BuildContext context, Object debug) {
-    final type = _typeOf<StoreProvider<St>>();
-    final StoreProvider<St> provider = context.inheritFromWidgetOfExactType(type);
+    final StoreProvider<St> provider =
+        context.dependOnInheritedWidgetOfExactType<StoreProvider<St>>();
 
-    if (provider == null) throw StoreConnectorError(type, debug);
+    if (provider == null) throw StoreConnectorError(_typeOf<StoreProvider<St>>(), debug);
 
     return provider._store;
   }

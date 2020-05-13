@@ -73,7 +73,7 @@ class GetDescriptionAction extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     String description = await read("http://numbersapi.com/$index");
-    await Future.delayed(Duration(seconds: 2)); // Adds some more delay.
+    await Future.delayed(const Duration(seconds: 2)); // Adds some more delay.
 
     Map<int, String> newDescriptions = Map.of(state.descriptions);
     newDescriptions[index] = description;
@@ -82,9 +82,11 @@ class GetDescriptionAction extends ReduxAction<AppState> {
   }
 
   // The wait starts here. We use the index as a wait-flag reference.
+  @override
   void before() => dispatch(WaitAction.add("button-download", ref: index));
 
   // The wait ends here. We remove the index from the wait-flag references.
+  @override
   void after() => dispatch(WaitAction.remove("button-download", ref: index));
 }
 
@@ -205,12 +207,13 @@ class MyItem extends StatelessWidget {
 
   MaterialButton _button() => MaterialButton(
         color: Colors.blue,
-        child: Text("CLICK $index", style: TextStyle(fontSize: 15), textAlign: TextAlign.center),
+        child:
+            Text("CLICK $index", style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
         onPressed: () => onGetDescription(index),
       );
 
   Text _indexDescription() =>
-      Text(description, style: TextStyle(fontSize: 15), textAlign: TextAlign.center);
+      Text(description, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center);
 
   CircularProgressIndicator _progressIndicator() => CircularProgressIndicator(
         valueColor: AlwaysStoppedAnimation<Color>(Colors.red),

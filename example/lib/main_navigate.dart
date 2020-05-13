@@ -41,7 +41,7 @@ class Page extends StatelessWidget {
   final String text;
   final VoidCallback onChangePage;
 
-  Page({this.color, this.text, this.onChangePage}) : assert(onChangePage != null);
+  Page({this.color, this.text, @required this.onChangePage}) : assert(onChangePage != null);
 
   @override
   Widget build(BuildContext context) => RaisedButton(

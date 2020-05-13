@@ -153,13 +153,17 @@ class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Increment Example')),
+      appBar: AppBar(title: const Text('Increment Example')),
       body: Center(
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Text('You have pushed the button this many times:'),
-        Text('$counter', style: TextStyle(fontSize: 30)),
-        Text(description, style: TextStyle(fontSize: 15), textAlign: TextAlign.center),
-      ])),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('You have pushed the button this many times:'),
+            Text('$counter', style: const TextStyle(fontSize: 30)),
+            Text(description, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: onIncrement,
         child: Icon(Icons.add),

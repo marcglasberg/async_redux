@@ -61,7 +61,7 @@ class SaveUserAction extends ReduxAction<AppState> {
   @override
   AppState reduce() {
     print("Saving '$name'.");
-    if (name.length < 4) throw UserException("Name must have at least 4 letters.");
+    if (name.length < 4) throw const UserException("Name must have at least 4 letters.");
     return state.copy(name: name);
   }
 
@@ -137,12 +137,12 @@ class _MyHomePageState extends State<MyHomePage> {
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(title: Text('Show Error Dialog Example')),
+          appBar: AppBar(title: const Text('Show Error Dialog Example')),
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Type a name and save:\n(See error if less than 4 chars)',
+                const Text('Type a name and save:\n(See error if less than 4 chars)',
                     textAlign: TextAlign.center),
                 TextField(controller: controller, onSubmitted: widget.onSaveName),
                 Text('Current Name: ${widget.name}'),
@@ -151,7 +151,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           floatingActionButton: FloatingActionButton(
             onPressed: () => widget.onSaveName(controller.text),
-            child: Text("Save"),
+            child: const Text("Save"),
           ),
         ),
       ],
