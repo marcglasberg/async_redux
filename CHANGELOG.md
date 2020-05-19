@@ -1,4 +1,4 @@
-## [2.8.10] - 2020/05/19
+## [2.8.11] - 2020/05/19
 
 * <a href="https://pub.dev/packages/async_redux#reselectors">Reselectors</a>.
 
