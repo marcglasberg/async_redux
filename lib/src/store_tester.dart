@@ -677,7 +677,7 @@ class StoreExceptionTimeout extends StoreException {
 ///
 class TestErrorObserver<St> implements ErrorObserver<St> {
   @override
-  bool observe(Object error, ReduxAction<St> action, Store store) => true;
+  bool observe(Object error, StackTrace stackTrace, ReduxAction<St> action, Store store) => true;
 }
 
 // /////////////////////////////////////////////////////////////////////////////

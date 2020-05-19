@@ -89,7 +89,7 @@ class TestInfo<St> {
 ///
 class DevelopmentErrorObserver<St> implements ErrorObserver<St> {
   @override
-  bool observe(Object error, ReduxAction<St> action, Store store) {
+  bool observe(Object error, StackTrace stackTrace, ReduxAction<St> action, Store store) {
     if (error is UserException)
       return false;
     else {
@@ -107,7 +107,7 @@ class DevelopmentErrorObserver<St> implements ErrorObserver<St> {
 ///
 class SwallowErrorObserver<St> implements ErrorObserver<St> {
   @override
-  bool observe(Object error, ReduxAction<St> action, Store store) {
+  bool observe(Object error, StackTrace stackTrace, ReduxAction<St> action, Store store) {
     return false;
   }
 }
@@ -437,9 +437,9 @@ class Store<St> {
       result = _applyReducer(action);
       if (result is Future) await result;
       if (_shutdown) return;
-    } catch (error) {
+    } catch (error, stackTrace) {
       originalError = error;
-      processedError = _processError(error, action, afterWasRun);
+      processedError = _processError(error, stackTrace, action, afterWasRun);
       // Error is meant to be "swallowed".
       if (processedError == null)
         return;
@@ -496,7 +496,7 @@ class Store<St> {
   }
 
   /// Returns the processed error. Returns `null` if the error is meant to be "swallowed".
-  dynamic _processError(error, ReduxAction<St> action, _Flag<bool> afterWasRun) {
+  dynamic _processError(error, stackTrace, ReduxAction<St> action, _Flag<bool> afterWasRun) {
     try {
       error = action.wrapError(error);
     } catch (_error) {
@@ -507,7 +507,7 @@ class Store<St> {
 
     if (_wrapError != null) {
       try {
-        error = _wrapError.wrap(error) ?? error;
+        error = _wrapError.wrap(error, stackTrace) ?? error;
       } catch (_error) {
         // Swallows any errors thrown by the global wrapError.
         // WrapError should never throw. It should return an error.
@@ -532,7 +532,7 @@ class Store<St> {
     // If an errorObserver was defined, observe the error.
     // Then, if the observer returns true, return the error to be thrown.
     else {
-      if (_errorObserver.observe(error, action, this)) return error;
+      if (_errorObserver.observe(error, stackTrace, action, this)) return error;
     }
 
     return null;
@@ -665,6 +665,7 @@ abstract class StateObserver<St> {
 abstract class ErrorObserver<St> {
   bool observe(
     Object error,
+    StackTrace stackTrace,
     ReduxAction<St> action,
     Store<St> store,
   );
@@ -688,7 +689,7 @@ abstract class ErrorObserver<St> {
 /// you'd have to add it to all actions that use Firebase.
 ///
 abstract class WrapError<St> {
-  UserException wrap(Object error);
+  UserException wrap(Object error, [StackTrace stackTrace]);
 }
 
 /// This will be given all errors, including those of type UserException.
