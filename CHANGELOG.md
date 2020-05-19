@@ -1,3 +1,11 @@
+## [2.8.8] - 2020/05/19
+
+* <a href="https://pub.dev/packages/async_redux#reselectors">Reselectors</a>
+
+## [2.8.7] - 2020/05/15
+
+* Store.stateTimestamp now records the timestamp when the current state in the store was created.
+
 ## [2.8.6] - 2020/05/13
 
 * Fixed corner case for StoreTester.waitAll.

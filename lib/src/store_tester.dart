@@ -397,11 +397,11 @@ class StoreTester<St> {
       // Action INI must all exist, in order.
       if (testInfo.isINI) {
         //
-        bool isIgnored = ignore.contains(testInfo.type) &&
+        bool wasIgnored = ignore.contains(testInfo.type) &&
             (expectedActionTypesINI.isEmpty || expectedActionTypesINI.first != testInfo.type);
 
         /// Record this action, so that later we can wait until it ends.
-        if (isIgnored) {
+        if (wasIgnored) {
           expectedActionsEND_Ignored.add(testInfo.action);
           ignoredIni.add(testInfo.type); // // For better error messages only.
         }
@@ -423,14 +423,14 @@ class StoreTester<St> {
       //
       // Action END must all exist, but the order doesn't matter.
       else {
-        bool ifWasRemoved = expectedActionsEND.remove(testInfo.action);
+        bool wasRemoved = expectedActionsEND.remove(testInfo.action);
 
-        if (ifWasRemoved)
+        if (wasRemoved)
           infoList._add(testInfo);
         else
-          ifWasRemoved = expectedActionsEND_Ignored.remove(testInfo.action);
+          wasRemoved = expectedActionsEND_Ignored.remove(testInfo.action);
 
-        if (!ifWasRemoved)
+        if (!wasRemoved)
           throw StoreException("Got this unexpected action: ${testInfo.type} END.\n"
               "obtainedIni: $obtainedIni\n"
               "ignoredIni: $ignoredIni");

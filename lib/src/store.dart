@@ -226,6 +226,7 @@ class Store<St> {
     WrapError wrapError,
     bool defaultDistinct = true,
   })  : _state = initialState,
+        _stateTimestamp = DateTime.now().toUtc(),
         _changeController = StreamController.broadcast(sync: syncStream),
         _actionObservers = actionObservers,
         _stateObservers = stateObservers,
@@ -244,8 +245,13 @@ class Store<St> {
 
   St _state;
 
+  DateTime _stateTimestamp;
+
   /// The current state of the app.
   St get state => _state;
+
+  /// The timestamp of the current state in the store, in UTC.
+  DateTime get stateTimestamp => _stateTimestamp;
 
   int get dispatchCount => _dispatchCount;
 
@@ -315,7 +321,10 @@ class Store<St> {
       (_testInfoController != null) ? _testInfoController.stream : Stream<TestInfo<St>>.empty();
 
   /// Beware: Changes the state directly. Use only for TESTS.
-  void defineState(St state) => _state = state;
+  void defineState(St state) {
+    _state = state;
+    _stateTimestamp = DateTime.now().toUtc();
+  }
 
   /// Returns a future which will complete when the given [condition] is true.
   /// The condition can access the state. You may also provide a
@@ -473,6 +482,7 @@ class Store<St> {
     // when they don't want to change the state.
     if (state != null && !identical(_state, state)) {
       _state = state;
+      _stateTimestamp = DateTime.now().toUtc();
       _changeController.add(state);
     }
     St stateEnd = _state;
@@ -556,6 +566,7 @@ class Store<St> {
   /// For that purpose, view the onChange documentation.
   Future teardown() async {
     _state = null;
+    _stateTimestamp = DateTime.now().toUtc();
     return _changeController.close();
   }
 }
@@ -575,6 +586,8 @@ abstract class ReduxAction<St> {
   Store<St> get store => _store;
 
   St get state => _store.state;
+
+  DateTime get stateTimestamp => _store.stateTimestamp;
 
   Dispatch<St> get dispatch => _store.dispatch;
 
