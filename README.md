@@ -1687,10 +1687,10 @@ static List<Todo> selectTodosForUser(AppState state, User user)
    => state.todoState.todos.where((todo) => (todo.user == user)).toList();
 ```       
 
-###Reselectors
+### Reselectors
 
 Suppose you use a `ListView.builder` to display user names as list items. 
-In you `StoreConnector`, you could create a `ViewModel` that, given the item index, returns a user name:
+In your `StoreConnector`, you could create a `ViewModel` that, given the item index, returns a user name:
 
 ```dart
 state.users[index].name;
@@ -1700,7 +1700,7 @@ But now suppose you want to display only the users with names that start with th
 You could filter the user list to remove all other names, like this:
 
 ```dart
-state.users.where((user)=>user.startsWith("A")).toList()[index].name;
+state.users.where((user)=>user.name.startsWith("A")).toList()[index].name;
 ```                                                                                           
 
 This works, but will filter the list repeatedly, once for each index.
@@ -1712,8 +1712,8 @@ To that end, you can use the "reselect" functionality provided by AsyncRedux.
 First, create a selector that returns the information you need: 
 
 ```dart
-static List<Todo> selectUsersWithNamesStartingWith(AppState state, {String text})
-   => state.users.where((user)=>user.startsWith(text)).toList();
+static List<User> selectUsersWithNamesStartingWith(AppState state, {String text})
+   => state.users.where((user)=>user.name.startsWith(text)).toList();
 ```    
 
 And then use it in the ViewModel:
@@ -1730,13 +1730,13 @@ In this example, we have a single state and a single parameter,
 so we're going to use the `createSelector1_1` method:
 
 ```dart                                                    
-static List<Todo> selectUsersWithNamesStartingWith(AppState state, {String text})
+static List<User> selectUsersWithNamesStartingWith(AppState state, {String text})
    => _selectUsersWithNamesStartingWith(state)(text);
 
 static final _selectUsersWithNamesStartingWith = createSelector1_1(
         (AppState state) 
            => (String text) 
-              => state.users.where((user)=>user.startsWith(text)).toList());
+              => state.users.where((user)=>user.name.startsWith(text)).toList());
 ```  
 
 The above code will calculate the filtered list only once, 
@@ -1748,16 +1748,16 @@ We can further improve this by noting that we only need to recalculate the resul
 Since `state.users` is a subset of `state`, it will change less often. So a better selector would be this:
 
 ```dart
-static List<Todo> selectUsersWithNamesStartingWith(AppState state, {String text})
+static List<User> selectUsersWithNamesStartingWith(AppState state, {String text})
    => _selectUsersWithNamesStartingWith(state.users)(text);
  
 static final _selectUsersWithNamesStartingWith = createSelector1_1(
         (List<User> users) 
            => (String text) 
-              => users.where((user)=>user.startsWith(text)).toList());
+              => users.where((user)=>user.name.startsWith(text)).toList());
 ```  
     
-####Reselector syntax
+#### Reselector syntax
 
 For the moment, AsyncRedux provides these four methods that combine 1 or 2 states with 1 or 2 parameters:
 
@@ -1784,7 +1784,7 @@ that the state is no longer used in other parts of the program.
 In other words, AsyncRedux keeps the cached information in <a href="https://pub.dev/packages/weak_map">weak-map</a>, 
 so that the cache will not hold to old information and have a negative impact in memory usage.  
 
-####The reselect package
+#### The reselect package
 
 The reselect functionality explained above is provided out-of-the-box with AsyncRedux.
 However, AsyncRedux also works perfectly with the external <a href="https://pub.dev/packages/reselect">reselect</a> package.
