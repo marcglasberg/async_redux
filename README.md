@@ -1810,7 +1810,7 @@ class AddTodoAction extends ReduxAction<AppState> {
   @override
   AppState reduce() {
 	if (todo == null) return null;
-	else return state.copy(todoState: List.of(state.todoState.todos)..add(todo)));
+	else return state.copy(todoState: List.of(state.todoState.todos)..add(todo));
   }
 }
 
@@ -1858,9 +1858,10 @@ abstract class TodoAction extends BaseAction {
   TodoState reduceTodoState();
       
   @override
-  AppState reduce() {
-    TodoState todoState = reduceTodoState();  
-    return (todoState == null) ? null : state.copy(todoState: todoState);
+  FutureOr<AppState> reduce() {
+    FutureOr<TodoState> todoState = reduceTodoState();
+    if (todoState is Future) return todoState.then((_todoState) => state.copy(todoState: _todoState));   
+    else return (todoState == null) ? null : state.copy(todoState: todoState);
   }
 }
 ```
