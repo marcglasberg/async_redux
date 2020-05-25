@@ -84,21 +84,34 @@ class Event<T> {
     return 'Event(${state.toString()})';
   }
 
+  /// This is a convenience factory to create an event which is transformed by
+  /// some function that, usually, needs the store state. You must provide the
+  /// event and a map-function. The map-function must be able to deal with
+  /// the spent state (null or false, accordingly).
+  ///
+  /// For example, if `state.indexEvt = Event<int>(5)` and you must get
+  /// a user from it:
+  ///
+  /// ```
+  /// var mapFunction = (index) => index == null ? null : state.users[index];
+  /// Event<User> userEvt = MappedEvent<int, User>(state.indexEvt, mapFunction);
+  /// ```
+  factory Event.map(Event<dynamic> evt, T Function(dynamic) mapFunction) =>
+      MappedEvent<dynamic, T>(evt, mapFunction);
+
   /// This is a convenience method to create an event which consumes from more than one event.
   /// If the first event is not spent, it will be consumed, and the second will not.
   /// If the first event is spent, the second one will be consumed.
   /// So, if both events are NOT spent, the method will have to be called twice to consume both.
   /// If both are spent, returns null.
   ///
-  /// ```
   /// For example:
+  /// ```
   /// String getTypedMessageEvt() {
   ///    return Event.consumeFrom(setTypedMessageEvt, widget.setTypedMessageEvt);
   ///  }
   /// ```
-  factory Event.from(Event<T> evt1, Event<T> evt2) {
-    return EventMultiple(evt1, evt2);
-  }
+  factory Event.from(Event<T> evt1, Event<T> evt2) => EventMultiple(evt1, evt2);
 
   /// This is a convenience method to consume from more than one event.
   /// If the first event is not spent, it will be consumed, and the second will not.
@@ -220,3 +233,39 @@ class EventMultiple<T> extends Event<T> {
     return st;
   }
 }
+
+// /////////////////////////////////////////////////////////////////////////////
+
+/// A MappedEvent is useful when your event value must be transformed by
+/// some function that, usually, needs the store state. You must provide the
+/// event and a map-function. The map-function must be able to deal with
+/// the spent state (null or false, accordingly).
+///
+/// For example, if `state.indexEvt = Event<int>(5)` and you must get
+/// a user from it:
+///
+/// ```
+/// var mapFunction = (index) => index == null ? null : state.users[index];
+/// Event<User> userEvt = MappedEvent<int, User>(state.indexEvt, mapFunction);
+/// ```
+class MappedEvent<V, T> extends Event<T> {
+  Event<V> evt;
+  T Function(V) mapFunction;
+
+  MappedEvent(Event<V> evt, this.mapFunction)
+      : assert(mapFunction != null),
+        evt = evt ?? Event<V>.spent();
+
+  @override
+  bool get isSpent => evt.isSpent;
+
+  /// Returns the event state and consumes the event.
+  @override
+  T consume() => mapFunction(evt.consume());
+
+  /// Returns the event state.
+  @override
+  T get state => mapFunction(evt.state);
+}
+
+// /////////////////////////////////////////////////////////////////////////////

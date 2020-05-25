@@ -1,3 +1,7 @@
+## [2.8.12] - 2020/05/25
+
+* EventMultiple (Event.map).
+
 ## [2.8.11] - 2020/05/19
 
 * <a href="https://pub.dev/packages/async_redux#reselectors">Reselectors</a>.

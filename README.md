@@ -1369,35 +1369,47 @@ However, we can also give these guidelines:
 
 ### Advanced event features
 
-There are some advanced event features you probably won't need, but you should know they exist:
+There are some advanced event features you may not need, but you should know they exist:
 
 1. Methods `isSpent`, `isNotSpent` and `state`
 
 	Methods `isSpent` and `isNotSpent` tell you if an event is spent or not, without consuming the event.
 	Method `state` returns the event payload, without consuming the event.
 
-2. Method `Event.from(Event<T> evt1, Event<T> evt2)`
+2. Constructor `Event.map(Event<dynamic> evt, T Function(dynamic) mapFunction)`
+
+   This is a convenience factory to create an event which is transformed by
+   some function that, usually, needs the store state. You must provide the
+   event and a map-function. The map-function must be able to deal with
+   the spent state (`null` or `false`, accordingly).
+
+   For example, if `state.indexEvt = Event<int>(5)` and you must get a user from it:
+
+   ```dart
+   var mapFunction = (index) => index == null ? null : state.users[index];
+   Event<User> userEvt = MappedEvent<int, User>(state.indexEvt, mapFunction);
+   ```  
+
+3. Constructor `Event.from(Event<T> evt1, Event<T> evt2)`
 
 	This is a convenience factory method to create `EventMultiple`,
 	a special type of event which consumes from more than one event.
 	If the first event is not spent, it will be consumed, and the second will not.
 	If the first event is spent, the second one will be consumed.
 	So, if both events are NOT spent, the method will have to be called twice to consume both.
-	If both are spent, returns null.
+	If both are spent, returns `null`.
 
-3. Method `static T consumeFrom<T>(Event<T> evt1, Event<T> evt2)`
+4. Method `static T consumeFrom<T>(Event<T> evt1, Event<T> evt2)`
 
 	This is a convenience static method to consume from more than one event.
 	If the first event is not spent, it will be consumed, and the second will not.
 	If the first event is spent, the second one will be consumed.
 	So, if both events are NOT spent, the method will have to be called twice to consume both.
-	If both are spent, returns null. For example:
+	If both are spent, returns `null`. For example:
 
-```dart
-String getMessageEvt() {
-   return Event.consumeFrom(firstMsgEvt, secondMsgEvt);
- }
-```
+    ```dart
+    String getMessageEvt() => Event.consumeFrom(firstMsgEvt, secondMsgEvt);
+    ```
 
 ## Progress indicators
 

@@ -68,10 +68,11 @@ class AppState {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => StoreProvider<AppState>(
-      store: store,
-      child: MaterialApp(
-        home: MyHomePageConnector(),
-      ));
+        store: store,
+        child: MaterialApp(
+          home: MyHomePageConnector(),
+        ),
+      );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
