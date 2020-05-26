@@ -1,5 +1,6 @@
-## [2.8.12] - 2020/05/25
+## [2.9.0] - 2020/05/25
 
+* Stacktrace in WrapError.
 * EventMultiple (Event.map).
 
 ## [2.8.11] - 2020/05/19

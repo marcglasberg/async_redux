@@ -93,11 +93,11 @@ class Event<T> {
   /// a user from it:
   ///
   /// ```
-  /// var mapFunction = (index) => index == null ? null : state.users[index];
-  /// Event<User> userEvt = MappedEvent<int, User>(state.indexEvt, mapFunction);
+  /// var mapFunction = (int index) => index == null ? null : state.users[index];
+  /// Event<User> userEvt = Event.map(state.indexEvt, mapFunction);
   /// ```
-  factory Event.map(Event<dynamic> evt, T Function(dynamic) mapFunction) =>
-      MappedEvent<dynamic, T>(evt, mapFunction);
+  static Event<T> map<T, V>(Event<V> evt, T Function(V) mapFunction) =>
+      MappedEvent<V, T>(evt, mapFunction);
 
   /// This is a convenience method to create an event which consumes from more than one event.
   /// If the first event is not spent, it will be consumed, and the second will not.
