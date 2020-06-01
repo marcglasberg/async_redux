@@ -1,3 +1,9 @@
+## [2.10.0] - 2020/06/01
+
+* BaseModel now doesn't give direct access to the store, and doesn't read the 
+  state from the store anymore. The state is now copied and kept constant in 
+  the view-model, as it should.  
+
 ## [2.9.0] - 2020/05/25
 
 * Stacktrace in WrapError.

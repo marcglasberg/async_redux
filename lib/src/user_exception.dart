@@ -297,7 +297,7 @@ class _ViewModel extends BaseModel {
 
   @override
   _ViewModel fromStore() => _ViewModel.build(
-        error: Event(store.getAndRemoveFirstError()),
+        error: Event(getAndRemoveFirstError()),
       );
 
   /// Does not respect equals contract:

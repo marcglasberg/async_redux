@@ -345,9 +345,7 @@ class Store<St> {
   void _addError(UserException error) => _errors.addLast(error);
 
   /// Gets the first error from the error queue, and removes it from the queue.
-  UserException getAndRemoveFirstError() {
-    return (_errors.isEmpty) ? null : _errors.removeFirst();
-  }
+  UserException getAndRemoveFirstError() => (_errors.isEmpty) ? null : _errors.removeFirst();
 
   /// Call this method to shut down the store.
   /// It won't accept dispatches or change the state anymore.
@@ -735,7 +733,12 @@ abstract class BaseModel<St> {
     return true;
   }
 
-  void _setStore(Store store) => _store = store;
+  void _setStore(Store store) {
+    _state = store.state;
+    _dispatch = store.dispatch;
+    _dispatchFuture = store.dispatchFuture;
+    _getAndRemoveFirstError = store.getAndRemoveFirstError;
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -751,17 +754,20 @@ abstract class BaseModel<St> {
     return hashCode;
   }
 
-  Store<St> _store;
-
-  Store<St> get store => _store;
+  St _state;
+  Dispatch<St> _dispatch;
+  DispatchFuture<St> _dispatchFuture;
+  UserException Function() _getAndRemoveFirstError;
 
   BaseModel fromStore();
 
-  St get state => _store.state;
+  St get state => _state;
 
-  Dispatch<St> get dispatch => _store.dispatch;
+  Dispatch<St> get dispatch => _dispatch;
 
-  DispatchFuture<St> get dispatchFuture => _store.dispatchFuture;
+  DispatchFuture<St> get dispatchFuture => _dispatchFuture;
+
+  UserException Function() get getAndRemoveFirstError => _getAndRemoveFirstError;
 
   @override
   String toString() => '$runtimeType{${equals.join(', ')}}';

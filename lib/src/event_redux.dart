@@ -138,8 +138,8 @@ class Event<T> {
   ///
   /// And then, of course, you must implement equals and hashcode for the `ViewModel`.
   /// This can be done by typing **`ALT`+`INSERT`** in IntelliJ IDEA or Android Studio and
-  /// choosing **`==() and hashcode`**, but you can't forget to update this whenever new parameters
-  /// are added to the model.
+  /// choosing **`==() and hashcode`**, but you can't forget to update this whenever new
+  /// parameters are added to the model.
   /// The present events must also be part of that equals/hashcode, like so:
   ///
   /// 1) If the **new** ViewModel has an event which is **not spent**, then the ViewModel
@@ -147,7 +147,7 @@ class Event<T> {
   /// new event should fire.
   ///
   /// 2) If both the old and new ViewModels have events which **are spent**, then these events
-  /// should **MUST NOT** be considered distinct, since spent events are considered "empty" and
+  /// **MUST NOT** be considered distinct, since spent events are considered "empty" and
   /// should never fire.
   ///
   /// 3) If the **new** ViewModel has an event which is **not spent**,
@@ -159,14 +159,14 @@ class Event<T> {
   /// should NOT fire, and for that reason they **SHOULD NOT** be considered distinct.
   ///
   /// Note: To differentiate 3 and 4 we would actually be breaking the equals contract (which says
-  /// A==B should be the same as B==A). Besides, we would need to know if `flutter_redux` is
+  /// A==B should be the same as B==A). Besides, we would need to know if AsyncRedux is
   /// comparing newViewModel==oldViewModel or oldViewModel==newViewModel (and stays like this).
   /// A safer alternative is discard 4, and always consider events different if any of them is not
   /// spent. That will, however, fire some unnecessary rebuilds.
   ///
   /// In the near future, we may decide to break the equals contract (which is probably fine since
   /// the usage of [Event] is so specialized), and create unit tests to check it continues to work
-  /// and detect breaks if new versions of `flutter_redux` change the order of the comparison.
+  /// and detect breaks if new versions of AsyncRedux change the order of the comparison.
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
