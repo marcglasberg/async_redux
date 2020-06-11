@@ -357,7 +357,7 @@ class Store<St> {
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: store.dispatch is of type Dispatch.
-  void dispatch(ReduxAction<St> action) {
+  void dispatch(ReduxAction<St> action, {bool notify = true}) {
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 
@@ -370,10 +370,10 @@ class Store<St> {
         observer.observe(action, dispatchCount, ini: true);
       }
 
-    _processAction(action);
+    _processAction(action, notify:notify);
   }
 
-  Future<void> dispatchFuture(ReduxAction<St> action) async {
+  Future<void> dispatchFuture(ReduxAction<St> action, {bool notify = true}) async {
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 
@@ -386,7 +386,7 @@ class Store<St> {
         observer.observe(action, dispatchCount, ini: true);
       }
 
-    await _processAction(action);
+    await _processAction(action, notify: notify);
   }
 
   void createTestInfoSnapshot(
@@ -413,7 +413,7 @@ class Store<St> {
   /// We check the return type of methods `before` and `reduce` to decide if the
   /// reducer is synchronous or asynchronous. It's important to run the reducer
   /// synchronously, if possible.
-  Future<void> _processAction(ReduxAction<St> action) async {
+  Future<void> _processAction(ReduxAction<St> action, {bool notify = true}) async {
     //
     // Creates the "INI" test snapshot.
     createTestInfoSnapshot(state, action, null, null, ini: true);
@@ -432,7 +432,7 @@ class Store<St> {
       result = action.before();
       if (result is Future) await result;
       if (_shutdown) return;
-      result = _applyReducer(action);
+      result = _applyReducer(action, notify: notify);
       if (result is Future) await result;
       if (_shutdown) return;
     } catch (error, stackTrace) {
@@ -455,15 +455,15 @@ class Store<St> {
     }
   }
 
-  FutureOr<void> _applyReducer(ReduxAction<St> action) {
+  FutureOr<void> _applyReducer(ReduxAction<St> action, {bool notify = true}) {
     _reduceCount++;
 
     var result = action.reduce();
 
     if (result is Future<St>) {
-      return result.then((state) => _registerState(state, action));
+      return result.then((state) => _registerState(state, action, notify: notify));
     } else if (result is St || result == null) {
-      _registerState(result, action);
+      _registerState(result, action, notify: notify);
     } else
       throw AssertionError();
   }
@@ -471,7 +471,7 @@ class Store<St> {
   /// Adds the state to the changeController, but only if the `reduce` method
   /// did not returned null, and if it did not return the same identical state.
   /// Note: We compare the state using `identical` (which is fast).
-  void _registerState(St state, ReduxAction<St> action) {
+  void _registerState(St state, ReduxAction<St> action, {bool notify = true}) {
     if (_shutdown) return;
 
     St stateIni = _state;
@@ -481,7 +481,10 @@ class Store<St> {
     if (state != null && !identical(_state, state)) {
       _state = state;
       _stateTimestamp = DateTime.now().toUtc();
-      _changeController.add(state);
+
+      if (notify) {
+        _changeController.add(state);
+      }
     }
     St stateEnd = _state;
 

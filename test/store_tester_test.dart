@@ -157,6 +157,44 @@ void main() {
 
   ///////////////////////////////////////////////////////////////////////////////
 
+  test('Dispatch multiple actions but only issue a single change event.', () async {
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+
+    int invocations = 0;
+
+    storeTester.store.onChange.listen((event) {
+      invocations += 1;
+    });
+
+    await storeTester.dispatch(Action1());
+    await storeTester.dispatch(Action2());
+    await storeTester.dispatch(Action3());
+    await storeTester.dispatch(Action4());
+
+    expect(invocations, 4);
+    expect(storeTester.state.text, "0,1,2,3,4");
+
+    storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+
+    invocations = 0;
+
+    storeTester.store.onChange.listen((event) {
+      invocations += 1;
+    });
+
+    await storeTester.dispatch(Action1(), notify: false);
+    await storeTester.dispatch(Action2(), notify: false);
+    await storeTester.dispatch(Action3(), notify: false);
+    await storeTester.dispatch(Action4(), notify: true);
+
+    expect(invocations, 1);
+    expect(storeTester.state.text, "0,1,2,3,4");
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
   test(
       'Dispatch some actions and wait until some condition is met. '
       'Get the end state.', () async {
