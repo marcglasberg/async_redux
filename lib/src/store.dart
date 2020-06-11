@@ -14,9 +14,9 @@ import 'package:logging/logging.dart';
 
 // /////////////////////////////////////////////////////////////////////////////
 
-typedef Dispatch<St> = void Function(ReduxAction<St> action);
+typedef Dispatch<St> = void Function(ReduxAction<St> action, {bool notify});
 
-typedef DispatchFuture<St> = Future<void> Function(ReduxAction<St> action);
+typedef DispatchFuture<St> = Future<void> Function(ReduxAction<St> action, {bool notify});
 
 typedef TestInfoPrinter = void Function(TestInfo);
 
