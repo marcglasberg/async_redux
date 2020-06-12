@@ -1,7 +1,8 @@
-## [2.11.0] - 2020/06/12
+## [2.11.1] - 2020/06/12
 
+* Dispatch/DispatchFuture with notify:false will change the state but not rebuild widgets.
 * Added reselectors with 1 or 2 states and zero parameters.
-* Reselectors functions are now named cache1, cache1_1, cache1_2, cache2, cache2_1, and cache2_2. 
+* Breaking change: Reselectors functions are now named cache1, cache1_1, cache1_2, cache2, cache2_1, and cache2_2. 
 
 ## [2.10.0] - 2020/06/01
 

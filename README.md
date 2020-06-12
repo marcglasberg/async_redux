@@ -400,13 +400,17 @@ await dispatchFuture(MyAsyncAction1());
 await dispatchFuture(MyAsyncAction2());
 ```
 
+
 ## Connector
 
 As usual, in Redux you generally have two widgets, one called the "dumb-widget", which knows nothing
 about Redux and the store, and another one to "wire" the store with that dumb-widget.
 Vanilla Redux calls these wiring widgets "containers", but we consider this bad since Flutter's most common widget is already called a `Container`.
-So we call them "connectors", and they do their magic by using a `StoreConnector`
-and a `ViewModel`.
+So we call them "connectors", and they do their magic by using a `StoreConnector` and a `ViewModel`.
+
+In other words, when your action reducers change the store state,
+it will trigger all `StoreConnector`s in the screen.
+They will check if their view-models changed, and if so, they will rebuild. 
 
 For example:
 
@@ -596,6 +600,17 @@ static VoidCallback _onSave(Store<AppState>) {
       
    To see the `converter` parameter in action, please run 
    <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_static_view_model.dart">this example</a>.    
+
+#### Does changing the state always trigger the StoreConnectors?
+
+Usually yes, but if you want you can order some action not to trigger the `StoreConnector`,
+by providing a `notify: false` when dispatching:
+
+```dart
+dispatch(MyAction1(), notify: false); 
+dispatchFuture(MyAction2(), notify: false);
+```
+
 
 ## Alternatives to the Connector
 
