@@ -36,6 +36,7 @@ class StoreTester<St> {
   final Store<St> _store;
   final List<Type> _ignore;
   StreamSubscription _subscription;
+  StreamSubscription _onChange;
   Completer<TestInfo<St>> _completer;
   Queue<Future<TestInfo<St>>> _futures;
 
@@ -107,7 +108,7 @@ class StoreTester<St> {
     _listen();
   }
 
-  void dispatch(ReduxAction<St> action) => store.dispatch(action);
+  void dispatch(ReduxAction<St> action, {bool notify = true}) => store.dispatch(action, notify: notify);
 
   Future<void> dispatchFuture(ReduxAction<St> action) => store.dispatchFuture(action);
 
