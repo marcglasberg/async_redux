@@ -45,7 +45,7 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
    * [Waiting until the state meets a certain condition](#waiting-until-the-state-meets-a-certain-condition)
    * [State Declaration](#state-declaration)
       * [Selectors](#selectors)             
-      * [Reselectors](#reselectors)             
+      * [Cache (Reselectors)](#cache-reselectors)             
    * [Action Subclassing](#action-subclassing)
       * [Abstract Before and After](#abstract-before-and-after)
    * [IDE Navigation](#ide-navigation)
@@ -1699,7 +1699,7 @@ static List<Todo> selectTodosForUser(AppState state, User user)
    => state.todoState.todos.where((todo) => (todo.user == user)).toList();
 ```       
 
-### Reselectors
+### Cache (Reselectors)
 
 Suppose you use a `ListView.builder` to display user names as list items. 
 In your `StoreConnector`, you could create a `ViewModel` that, given the item index, returns a user name:
@@ -1735,17 +1735,17 @@ selectUsersWithNamesStartingWith(state, text: "A")[index].name;
 ```                                                                                           
 
 Next, we have to modify the selector so that it caches the filtered list.
-AsyncRedux provides a few global methods which you can use, depending on the 
+AsyncRedux provides a few global functions which you can use, depending on the 
 number of states, and the number of parameters your selector needs.
 
 In this example, we have a single state and a single parameter, 
-so we're going to use the `createSelector1_1` method:
+so we're going to use the `cache1_1` method:
 
 ```dart                                                    
 static List<User> selectUsersWithNamesStartingWith(AppState state, {String text})
    => _selectUsersWithNamesStartingWith(state)(text);
 
-static final _selectUsersWithNamesStartingWith = createSelector1_1(
+static final _selectUsersWithNamesStartingWith = cache1_1(
         (AppState state) 
            => (String text) 
               => state.users.where((user)=>user.name.startsWith(text)).toList());
@@ -1763,24 +1763,27 @@ Since `state.users` is a subset of `state`, it will change less often. So a bett
 static List<User> selectUsersWithNamesStartingWith(AppState state, {String text})
    => _selectUsersWithNamesStartingWith(state.users)(text);
  
-static final _selectUsersWithNamesStartingWith = createSelector1_1(
+static final _selectUsersWithNamesStartingWith = cache1_1(
         (List<User> users) 
            => (String text) 
               => users.where((user)=>user.name.startsWith(text)).toList());
 ```  
     
-#### Reselector syntax
+#### Cache syntax
 
-For the moment, AsyncRedux provides these four methods that combine 1 or 2 states with 1 or 2 parameters:
+For the moment, AsyncRedux provides these six methods that combine 1 or 2 states with 0, 1 or 2 parameters:
 
 ```dart
-createSelector1_1((state) => (parameter) => ...);
-createSelector1_2((state) => (parameter1, parameter2) => ...);
-createSelector2_1((state1, state2) => (parameter) => ...);
-createSelector2_2((state1, state2) => (parameter1, parameter2) => ...);
+cache1((state) => () => ...);
+cache1_1((state) => (parameter) => ...);
+cache1_2((state) => (parameter1, parameter2) => ...);
+
+cache2((state1, state2) => () => ...);
+cache2_1((state1, state2) => (parameter) => ...);
+cache2_2((state1, state2) => (parameter1, parameter2) => ...);
 ```    
 
-I have created only these four, because for my own usage I never required more than that. 
+I have created only those above, because for my own usage I never required more than that. 
 Please, open an <a href="https://github.com/marcglasberg/async_redux/issues">issue</a> 
 to ask for more variations in case you feel the need.
 
@@ -1803,7 +1806,7 @@ However, AsyncRedux also works perfectly with the external <a href="https://pub.
 
 Then, why did I care to reimplement a similar functionality? What are the differences?
  
-First, the AsyncRedux reselector can keep any number of cached results for each selector,
+First, the AsyncRedux caches can keep any number of cached results for each selector,
 one for each time the selector is called with the same states and different parameters.
 Meanwhile, the reselect package keeps a single cached result per selector.
 
