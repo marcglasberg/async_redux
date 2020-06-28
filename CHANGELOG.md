@@ -1,3 +1,8 @@
+## [2.12.0] - 2020/06/27
+
+* MockStore (still experimental, in `mock_store.dart`), lets you mock or disable actions/reducers during tests. 
+See section `Mocking actions and reducers` in README.md.
+
 ## [2.11.1] - 2020/06/12
 
 * Dispatch/DispatchFuture with notify:false will change the state but not rebuild widgets.
