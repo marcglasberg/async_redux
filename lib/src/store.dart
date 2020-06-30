@@ -193,6 +193,11 @@ class DefaultModelObserver<Model> implements ModelObserver<Model> {
 /// throws an error, this error will be "swallowed" and ignored. Avoid `after`
 /// methods which can throw errors.
 ///
+/// 4) `bool abortDispatch()` ➜ If this returns true, the action will not be
+/// dispatched: `before`, `reduce` and `after` will not be called, and the action
+/// will not be visible to the `StoreTester`. This is only useful under rare
+/// circumstances, and you should only use it if you know what you are doing.
+///
 /// 5) `Object wrapError(error)` ➜ If any error is thrown by `before` or `reduce`,
 /// you have the chance to further process it by using `wrapError`. Usually this
 /// is used to wrap the error inside of another that better describes the failed action.
@@ -515,7 +520,7 @@ class Store<St> {
 
     if (_wrapError != null) {
       try {
-        error = _wrapError.wrap(error, stackTrace) ?? error;
+        error = _wrapError.wrap(error, stackTrace, action) ?? error;
       } catch (_error) {
         // Swallows any errors thrown by the global wrapError.
         // WrapError should never throw. It should return an error.
@@ -673,6 +678,10 @@ abstract class ReduxAction<St> {
 
   /// Nest state reducers without dispatching another action.
   /// Example: return AddTaskAction(demoTask).reduceWithState(state);
+  /// This is deprecated and will be removed, because it's more difficult to
+  /// use than it seems. Unless you completely understand what you're doing,
+  /// you should only used it with sync reducers.
+  @deprecated
   FutureOr<St> reduceWithState(St state) {
     _store.defineState(state);
     return reduce();
@@ -727,7 +736,11 @@ abstract class ErrorObserver<St> {
 /// you'd have to add it to all actions that use Firebase.
 ///
 abstract class WrapError<St> {
-  UserException wrap(Object error, [StackTrace stackTrace]);
+  UserException wrap(
+    Object error,
+    StackTrace stackTrace,
+    ReduxAction<St> action,
+  );
 }
 
 /// This will be given all errors, including those of type UserException.

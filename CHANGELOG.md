@@ -1,5 +1,6 @@
-## [2.12.1] - 2020/06/30
+## [2.12.2] - 2020/06/30
 
+* Global WrapError now gets error, stackTrace, and action (none of them optional).
 * MockStore (still experimental, in `mock_store.dart`), lets you mock or disable actions/reducers during tests. 
   (See section `Mocking actions and reducers` in README.md).
 * ReduxAction.status and ReduxAction.hasFinished. (Search for "Action status" in README.md).

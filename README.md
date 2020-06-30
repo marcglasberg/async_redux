@@ -887,7 +887,7 @@ var store = Store<AppState>(
 
 class MyWrapError extends WrapError {
   @override
-  UserException wrap(Object error) {
+  UserException wrap(Object error, StackTrace stackTrace, ReduxAction<St> action) {
     if ((error is PlatformException) && (error.code == "Error performing get") &&
           (error.message == "Failed to get document because the client is offline.")) 
         return UserException("Check your internet connection.", cause: error);
