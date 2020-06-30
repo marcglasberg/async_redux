@@ -1,8 +1,12 @@
+## [2.11.2] - 2020/06/30
+
+* ReduxAction.status and ReduxAction.hasFinished. (Search for "Action status" in README.md) 
+
 ## [2.11.1] - 2020/06/12
 
-* Dispatch/DispatchFuture with notify:false will change the state but not rebuild widgets.
-* Added reselectors with 1 or 2 states and zero parameters.
-* Breaking change: Reselectors functions are now named cache1, cache1_1, cache1_2, cache2, cache2_1, and cache2_2. 
+* Added cache/reselector functions with 1 or 2 states and zero parameters: `cache1` and `cache2`.
+* Breaking change: Other cache/reselector functions are now named `cache1_1`, `cache1_2`, `cache2_1`, and `cache2_2`.
+* Breaking change: Dispatch/DispatchFuture with `notify: false` will change the state but not rebuild widgets. 
 
 ## [2.10.0] - 2020/06/01
 
@@ -67,7 +71,7 @@ action is dispatched.
 
 ## [2.7.0] - 2020/04/14
 
-* WaitAction (Search for Progress indicators in README.md).
+* WaitAction (Search for "Progress indicators" in README.md).
 * Example: main_wait_action_simple.dart
 * Example: main_wait_action_advanced_1.dart
 * Example: main_wait_action_advanced_2.dart
@@ -91,7 +95,7 @@ action is dispatched.
 
 ## [2.5.5] - 2020/02/18
 
-* StoreTester.lastInfo (Search for lastInfo in README.md).
+* StoreTester.lastInfo (Search for "lastInfo" in README.md).
 * PersistorPrinterDecorator: saveInitialState linked to the correct method.
 * Fix failing tests by ensuring initialization.
 

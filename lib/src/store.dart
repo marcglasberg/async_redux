@@ -370,7 +370,7 @@ class Store<St> {
         observer.observe(action, dispatchCount, ini: true);
       }
 
-    _processAction(action, notify:notify);
+    _processAction(action, notify: notify);
   }
 
   Future<void> dispatchFuture(ReduxAction<St> action, {bool notify = true}) async {
@@ -429,11 +429,14 @@ class Store<St> {
     dynamic processedError;
 
     try {
+      action._status = ActionStatus();
       result = action.before();
       if (result is Future) await result;
+      action._status._isBeforeDone = true;
       if (_shutdown) return;
       result = _applyReducer(action, notify: notify);
       if (result is Future) await result;
+      action._status._isReduceDone = true;
       if (_shutdown) return;
     } catch (error, stackTrace) {
       originalError = error;
@@ -539,8 +542,13 @@ class Store<St> {
     return null;
   }
 
-  void _finalize(Future result, ReduxAction<St> action, dynamic error, dynamic processedError,
-      _Flag<bool> afterWasRun) {
+  void _finalize(
+    Future result,
+    ReduxAction<St> action,
+    dynamic error,
+    dynamic processedError,
+    _Flag<bool> afterWasRun,
+  ) {
     if (!afterWasRun.value) _after(action);
 
     createTestInfoSnapshot(state, action, error, processedError, ini: false);
@@ -554,6 +562,7 @@ class Store<St> {
   Future<void> _after(ReduxAction<St> action) async {
     try {
       action.after();
+      action._status._isAfterDone = true;
     } catch (error) {
       // Swallows any errors thrown by the [after] method.
       // After should never throw.
@@ -574,6 +583,22 @@ class Store<St> {
 
 // /////////////////////////////////////////////////////////////////////////////
 
+class ActionStatus {
+  bool _isBeforeDone = false;
+  bool _isReduceDone = false;
+  bool _isAfterDone = false;
+
+  bool get isBeforeDone => _isBeforeDone;
+
+  bool get isReduceDone => _isReduceDone;
+
+  bool get isAfterDone => _isAfterDone;
+
+  bool get isFinished => _isBeforeDone && _isReduceDone && _isAfterDone;
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+
 /// Actions must extend this class.
 ///
 /// Important: Do NOT override operator == and hashCode. Actions must retain
@@ -581,12 +606,20 @@ class Store<St> {
 ///
 abstract class ReduxAction<St> {
   Store<St> _store;
+  ActionStatus _status;
 
   void setStore(Store<St> store) => _store = store;
 
   Store<St> get store => _store;
 
+  ActionStatus get status => _status;
+
   St get state => _store.state;
+
+  /// Returns true only if the action finished with no errors.
+  /// In other words, if the methods before, reduce and after all finished executing
+  /// without throwing any errors.
+  bool get hasFinished => _status.isFinished;
 
   DateTime get stateTimestamp => _store.stateTimestamp;
 

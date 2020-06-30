@@ -362,6 +362,23 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">Before and After Example</a>.
 
+#### Action status
+
+Although is unlikely you ever need it, 
+you can check if some action finished executing its methods `before`, `reduce` and `after`: 
+
+```dart       
+var action = MyAction();
+store.dispatch(action);
+print(action.status.isBeforeDone);
+print(action.status.isReduceDone);
+print(action.status.isAfterDone);
+print(action.hasFinished);
+```
+
+Method `hasFinished` returns `true` only if the action finished with no errors 
+(in other words, if methods `before`, `reduce` and `after` all finished executing without throwing any errors). 
+
 #### What's the order of execution of sync and async reducers?
 
 A reducer is only sync if both `reducer()` return `AppState` AND `before()` return `void`. 
