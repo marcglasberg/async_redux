@@ -358,6 +358,8 @@ class Store<St> {
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: store.dispatch is of type Dispatch.
   void dispatch(ReduxAction<St> action, {bool notify = true}) {
+    assert(action != null);
+
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 
@@ -374,6 +376,8 @@ class Store<St> {
   }
 
   Future<void> dispatchFuture(ReduxAction<St> action, {bool notify = true}) async {
+    assert(action != null);
+
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 

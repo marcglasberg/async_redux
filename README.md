@@ -33,6 +33,7 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [Converting third-party errors into UserExceptions](#converting-third-party-errors-into-userexceptions)
       * [UserExceptionAction](#userexceptionaction)   
    * [Testing](#testing)
+      * [Mocking actions and reducers](#mocking-actions-and-reducers)
       * [Testing UserExceptions](#testing-userexceptions)
       * [Test files](#test-files)   
    * [Route Navigation](#route-navigation)
@@ -67,6 +68,8 @@ For an overview, go to the <a href="https://medium.com/@marcglasberg/https-mediu
       * [Is AsyncRedux a minimalist or lightweight Redux version?](#is-asyncredux-a-minimalist-or-lightweight-redux-version)
       * [Is the AsyncRedux architecture useful for small projects?](#is-the-asyncredux-architecture-useful-for-small-projects)
 
+<br>
+
 ## What is Redux?
 
 A single **store** holds all the **state**, which is immutable.
@@ -74,6 +77,8 @@ When you need to modify some state you **dispatch** an **action**.
 Then a **reducer** creates a new copy of the state, with the desired changes.
 Your widgets are **connected** to the store (through **store-connectors** and **view-models**),
 so they know that the state changed, and rebuild as needed.
+
+<br>
 
 ## Why use this Redux version over others?
 
@@ -126,6 +131,8 @@ However, this state must be in the `ScrollController`, not the store.
 * It helps you show errors thrown by reducers to the user.
 * It's easy to add both logging and store persistence.
 
+<br>
+
 ## Store and State
 
 Declare your store and state, like this:
@@ -142,6 +149,7 @@ Note: _Your state can be any immutable object,
 but typically you create a class called `AppState` to help with the state creation and manipulation.
 I later give some [recommendations](#state-declaration) on how to create this class._ 
 
+<br>
 
 ## Actions
 
@@ -155,6 +163,8 @@ The reducer has direct access to:
  - The store state (which is a getter of the `Action` class).
  - The action state itself (the class fields, passed to the action when it was instantiated and dispatched).
  - The `dispatch` method, so that other actions may be dispatched from the reducer.
+
+<br>
 
 ### Sync Reducer
 
@@ -189,6 +199,8 @@ and to the action state (the field `amount`).
 We will show you later how to easily test sync reducers, using the **StoreTester**.
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main.dart">Increment Example</a>.
+
+<br>
 
 ### Async Reducer
 
@@ -252,6 +264,8 @@ If you don't follow this rule, AsyncRedux may seem to work ok, but will eventual
 If you're an advanced user interested in the details, check the 
 <a href="https://github.com/marcglasberg/async_redux/blob/master/test/sync_async_test.dart">sync/async tests</a>.   
 
+<br>
+
 ### Changing state is optional
 
 For both sync and async reducers, returning a new state is optional.
@@ -288,6 +302,8 @@ class IncrementAction extends ReduxAction<AppState> {
 
 Note the `reduce()` methods have direct access to `state` and `dispatch`. 
 There is no need to write `store.state` and `store.dispatch` (although you can, if you want). 
+
+<br>
 
 ### Before and After the Reducer 
 
@@ -417,6 +433,7 @@ await dispatchFuture(MyAsyncAction1());
 await dispatchFuture(MyAsyncAction2());
 ```
 
+<br>
 
 ## Connector
 
@@ -498,6 +515,8 @@ ViewModel.build({
 	  @required this.field2,
 }) : super(equals: [field1, field2]);
 ```      
+
+<br>
 
 ### How to provide the ViewModel to the StoreConnector
 
@@ -628,6 +647,7 @@ dispatch(MyAction1(), notify: false);
 dispatchFuture(MyAction2(), notify: false);
 ```
 
+<br>
 
 ## Alternatives to the Connector
 
@@ -649,6 +669,8 @@ StoreProvider.dispatchFuture<AppState>(context, MyAction());
 AppState state = StoreProvider.state<AppState>(context); 
 ```          
 
+<br>
+
 ### Provider
 
 Another good alternative to the `StoreConnector` is using the <a href="https://pub.dev/packages/provider">Provider</a> 
@@ -665,6 +687,7 @@ and want to access the store directly from inside a single widget.
 Please visit the <a href="https://pub.dev/packages/provider_for_redux">provider_for_redux</a> package for
 in-depth explanation and examples on how to use AsyncRedux and Provider together.
 
+<br>
 
 ## Processing errors thrown by Actions
 
@@ -716,6 +739,8 @@ bool errorObserver(Object error, ReduxAction action, Store store, Object state, 
 If your error observer returns `true`, the error will be rethrown after the `errorObserver` finishes.
 If it returns `false`, the error is considered dealt with, and will be "swallowed" (not rethrown).
 
+<br>
+
 ### Giving better error messages 
 
 If your reducer throws some error you probably want to collect as much information as possible.
@@ -740,6 +765,8 @@ class LogoutAction extends ReduxAction<AppState> {
 Note the `LogoutError` above gets the original error as cause, so no information is lost.
 
 In other words, the `wrapError(error)` method acts as the "catch" statement of the action.
+ 
+<br>
  
 ### User exceptions
 
@@ -822,6 +849,8 @@ UserExceptionDialog<AppState>(
 );
 ```                                             
 
+<br>
+
 ### Converting third-party errors into UserExceptions
 
 Third-party code may also throw errors which should not be considered bugs, 
@@ -874,6 +903,7 @@ Otherwise, it just returns `null`, so that the original exception will not be mo
 
 Note this wrapper is called **after** `ReduxAction.wrapError`, and **before** the `ErrorObserver`.
          
+<br>
 
 ### UserExceptionAction 
 
@@ -889,6 +919,7 @@ The `UserExceptionAction` is also useful even inside of actions,
 when you want to display an error dialog to the user 
 but you don't want to interrupt the action by throwing an exception.
 
+<br>
 
 ## Testing
 
@@ -1096,6 +1127,141 @@ await storeTester.wait(SaveNameAction);
 expect(storeTester.lastInfo.state.name, "Mark");
 ```       
 
+<br>
+
+### Mocking actions and reducers
+
+> Note: *As of async_redux version 2.11.2, this is an experimental feature*.
+
+To mock an action and its reducer, create a `MockStore` instead of a regular `Store`.
+
+The `MockStore` has a `mocks` parameter 
+which is a map where the keys are action types, and the values are the mocks.
+For example:   
+
+```dart
+var store = MockStore<AppState>(
+  initialState: initialState,  
+  mocks: {
+     MyAction1 : ...
+     MyAction2 : ...
+     ...
+  },
+);
+```       
+
+There are 5 different ways to define mocks:
+
+1. Use `null` to disable dispatching the action of a certain type:
+
+    ```dart
+    mocks: {
+       MyAction : null
+    }
+    ```       
+
+2. Use a `MockAction<St>` instance to dispatch this mock action instead,
+  and provide the **original action** as a getter to the mock action.
+
+    ```dart                        
+    class MyAction extends ReduxAction<AppState> {
+      String url;
+      MyAction(this.url);
+      FutureOr<AppState> reduce() => get(url);
+    }      
+
+    class MyMockAction extends MockAction<AppState> {  
+      FutureOr<AppState> reduce() {                  
+        String url = (action as MyAction).url;
+        if (url == 'http://example.com') return 123;
+        else if (url == 'http://flutter.io') return 345;
+        else return 678;
+      }
+    }
+    ```
+      
+    ```dart    
+    mocks: {
+       MyAction : MyMockAction()
+    }
+    ```       
+
+3. Use a `ReduxAction<St>` instance to dispatch this mock action instead.
+
+    ```dart                        
+    class MyAction extends ReduxAction<AppState> {
+      String url;            
+      MyAction(this.url);
+      FutureOr<AppState> reduce() => get(url);
+    }
+    
+    class MyMockAction extends ReduxAction<AppState> {  
+      FutureOr<AppState> reduce() => 123;
+    }
+    ```
+      
+    ```dart    
+    mocks: {
+       MyAction : MyMockAction()
+    }
+    ```       
+  
+4. Use a `ReduxAction<St> Function(ReduxAction<St>)` to create a mock from the original action.
+
+    ```dart                        
+    class MyAction extends ReduxAction<AppState> {
+      String url;        
+      MyAction(this.url);
+      FutureOr<AppState> reduce() => get(url);
+    }
+    
+    class MyMockAction extends MockAction<AppState> {
+      String url;
+      MyMockAction(this.url);  
+      FutureOr<AppState> reduce() {                     
+        if (url == 'http://example.com') return 123;
+        else if (url == 'http://flutter.io') return 345;
+        else return 678;
+      }
+    }
+    ```
+      
+    ```dart   
+    mocks: {
+       MyAction : (MyAction action) => MyMockAction(action.url)
+    }
+    ```       
+
+5. Use a `St Function(ReduxAction<St>, St)` to modify the state directly.
+
+    ```dart                        
+    class MyAction extends ReduxAction<AppState> {
+      String url;        
+      MyAction(this.url);
+      FutureOr<AppState> reduce() => get(url);
+    }
+    ```
+      
+    ```dart   
+    mocks: {
+       MyAction : (MyAction action) {
+          if (action.url == 'http://example.com') return 123;
+          else if (action.url == 'http://flutter.io') return 345;
+          else return 678;
+       }
+    }
+    ```       
+
+You can also change the mocks after a store is created, 
+by using the following methods of the `MockStore` and `StoreTester` classes:
+
+```dart
+MockStore<St> addMock(Type actionType, dynamic mock);
+MockStore<St> addMocks(Map<Type, dynamic> mocks);
+MockStore<St> clearMocks();
+```
+ 
+<br>
 
 ### Testing UserExceptions
 
@@ -1147,6 +1313,8 @@ TestInfo info = await storeTester.waitAllGetLast([MyAction]);
 expect(info.errors.removeFirst().msg, "You can't do this.");
 ```
   
+<br>
+
 ### Test files
 
 If you want your tests to be comprehensive
@@ -1188,6 +1356,8 @@ Then the corresponding connector-widget could be `MyWidgetConnector` in `my_widg
 The three corresponding test files could be named `my_widget_STATE_test.dart`,
 `my_widget_CONNECTOR_test.dart` and `my_widget_PRESENTATION_test.dart`.
 If you don't like this convention use your own, but just choose one early and stick to it.
+
+<br>
 
 ## Route Navigation
 
@@ -1238,6 +1408,8 @@ String routeName = NavigateAction.getCurrentNavigatorRouteName(context);
 ```
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_navigate.dart">Navigate Example</a>.
+
+<br>
 
 ## Events
 
@@ -1375,6 +1547,8 @@ void consumeEvents() {
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_event_redux.dart">Event Example</a>.
 
+<br>
+
 ### Can I put mutable events into the store state?
 
 Events are mutable, and store state is supposed to be immutable.
@@ -1387,6 +1561,8 @@ You can think of events as piggybacking in the Redux infrastructure,
 and not belonging to the store state.
 You should just remember **not to persist them** when you persist the store state.
 
+<br>
+
 ### When should I use events?
  
 The short answer is that you'll know it when you see it. When you want to do something and it's not obvious 
@@ -1398,6 +1574,8 @@ However, we can also give these guidelines:
 2. You may use events to change the internal state of stateful widgets, after they are built.
 3. You may use events to make one-off changes in controllers.
 4. You may use events to make one-off changes in other implicit state like the open state of dialogs or the keyboard.
+
+<br>
 
 ### Advanced event features
 
@@ -1442,6 +1620,8 @@ There are some advanced event features you may not need, but you should know the
     ```dart
     String getMessageEvt() => Event.consumeFrom(firstMsgEvt, secondMsgEvt);
     ```
+
+<br>
 
 ## Progress indicators
 
@@ -1577,6 +1757,7 @@ you can do so by injecting your custom reducer into `WaitAction.reducer`
 during your app's initialization.
 Refer to the `WaitAction` <a href="https://github.com/marcglasberg/async_redux/blob/master/lib/src/wait_action.dart">documentation</a> for more information.   
 
+<br>
 
 ## Waiting until an Action is finished
 
@@ -1598,6 +1779,7 @@ return RefreshIndicator(
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_dispatch_future.dart">Dispatch Future Example</a>.
 
+<br>
 
 ## Waiting until the state meets a certain condition
 
@@ -1640,6 +1822,7 @@ To that end, the action dispatches an action to create the calendar if necessary
 and then use the `store.waitCondition()` method to wait until a calendar is present in the state. 
 Only then it will add the appointment to the calendar. 
 
+<br>
 
 ## State Declaration
 
@@ -1719,6 +1902,8 @@ class TodoState {
 }
 ```
     
+<br>
+    
 ### Selectors
 
 Your connector-widgets usually have a view-model that goes into the store and selects the part of the store
@@ -1730,6 +1915,8 @@ For example, the `TodoState` class above could contain a selector to filter out 
 static List<Todo> selectTodosForUser(AppState state, User user)
    => state.todoState.todos.where((todo) => (todo.user == user)).toList();
 ```       
+
+<br>
 
 ### Cache (Reselectors)
 
@@ -1845,6 +2032,8 @@ Meanwhile, the reselect package keeps a single cached result per selector.
 And second, the AsyncRedux reselector discards the cached information when the state changes or is no longer used.
 Meanwhile, the reselect package will always keep the states and cached results in memory.
 
+<br>
+
 ## Action Subclassing
 
 Suppose you have the following `AddTodoAction` for the To-Do app:
@@ -1929,6 +2118,8 @@ class AddTodoAction extends TodoAction {
 }
 ```
  
+<br>
+ 
 ### Abstract Before and After
 
 Other useful abstract classes you may create provide already overridden `before()` and `after()` methods.
@@ -1959,6 +2150,8 @@ class ChangeTextAction extends BarrierAction {
 
 The above `BarrierAction` is demonstrated in <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_event_redux.dart">this example</a>.
 
+<br>
+
 ## IDE Navigation
 
 How does AsyncRedux solve the IDE navigation problem?
@@ -1969,6 +2162,7 @@ During development, if you need to see what some action does, you just tell your
 If you need to list all of your actions,
 you just go to the `ReduxAction` class declaration and ask the IDE to list all of its subclasses.
 
+<br>
 
 ## Persistence
 
@@ -2042,6 +2236,8 @@ store.dispatch(PersistAction());
 
 Have a look at the: <a href="https://github.com/marcglasberg/async_redux/blob/master/test/persistence_test.dart">Persistence tests</a>.
 
+<br>
+
 ### Saving and Loading
 
 You can choose any way you want to save the state difference to the local disk,
@@ -2098,6 +2294,7 @@ await persist.delete();
 
 Have a look at the: <a href="https://github.com/marcglasberg/async_redux/blob/master/test/local_persist_test.dart">Local Persist tests</a>.
  
+<br>
 
 ## Logging
 
@@ -2163,6 +2360,7 @@ Please note, unless the action reducer is synchronous,
 getting an END action observation doesn't mean that all of the action effects have finished, 
 because the action may have started async processes that may well last into the future. And these processes may later dispatch other actions that will change the store state. However, it does mean that the action can no longer change the state **directly**.
 
+<br>
 
 ## Observing rebuilds
 
@@ -2200,6 +2398,8 @@ The `ModelObserver` is also useful when you want to create tests
 to assert that rebuilds happen when and only when the appropriate parts of the state change.
 For an example, see the <a href="https://github.com/marcglasberg/async_redux/blob/master/test/model_observer_test.dart">Model Observer Test</a>.
 
+<br>
+
 ## How to interact with the database
 
 The following advice works for any Redux version, including AsyncRedux.
@@ -2226,6 +2426,8 @@ This rebuilds your widgets that depend on `something`, with its new value.
 The state now holds the new `something`,
 and the local store persistor may persist this value to the local file system, if that's what you want.
 
+<br>
+
 ## How to deal with Streams
 
 The following advice works for any Redux version, including AsyncRedux.
@@ -2240,6 +2442,8 @@ AsyncRedux plays well with Streams, as long as you know how to use them:
   They are not app state, and they should not be persisted to the local filesystem. 
   Instead, they are something that "generates state". 
   
+<br>
+
 ### So, how do you use streams? 
 
 Let's pretend you want to listen to changes to the user name, in a Firestore database.
@@ -2256,6 +2460,8 @@ and send down to the stateful dumb-widgets.
 
 - If the stream should run only when some actions demand it,
 their reducers may dispatch the actions to start and cancel as needed.
+
+<br>
 
 ### Where the stream subscriptions themselves are stored 
 
@@ -2281,6 +2487,8 @@ For example, `userNameStream` could be a static field of the `StartListenUserNam
 Or put them wherever you think makes sense.
 In all cases above, you can still inject them with mocks, for tests.
     
+<br>
+
 ### How do streams pass their information to the store and ultimately to the widgets?
   
 When you create the stream, define its callback so that it dispatches an appropriate action. 
@@ -2298,6 +2506,8 @@ streamSub = stream.listen((QuerySnapshot querySnapshot) {
   }, onError: ...);
 ```
 
+<br>
+
 ### To sum up:
 
 1. Put your stream subscriptions where they can be accessed by the reducers,
@@ -2308,6 +2518,8 @@ but NOT inside of the store state.
 3. Create actions to start and cancel streams, and call them when necessary.
 
 4. The stream callback should dispatch actions to put the snapshot data into the store state.
+
+<br>
 
 ## Recommended Directory Structure
 
@@ -2405,6 +2617,8 @@ Your final directory structure would then look something like this:
     └── pubspec.yaml
 ```
 
+<br>
+
 ## Where to put your business logic
 
 Widgets, Connectors and ViewModels are part of the client code. 
@@ -2423,6 +2637,8 @@ Rules of thumb:
 * Put your business logic in the Action reducers.
 * Put your business logic in the State classes.
  
+<br>
+
 ## Architectural discussion 
 
 Reading the following text is not important for the practical use of AsyncRedux,

@@ -73,12 +73,14 @@ class StoreTester<St> {
     bool syncStream = false,
     ErrorObserver errorObserver,
     bool shouldThrowUserExceptions = false,
+    Map<Type, dynamic> mocks,
   }) : this.from(
-            Store(
+            MockStore(
               initialState: initialState,
               syncStream: syncStream,
               errorObserver:
                   errorObserver ?? (shouldThrowUserExceptions ? TestErrorObserver() : null),
+              mocks: mocks,
             ),
             testInfoPrinter: testInfoPrinter,
             ignore: ignore);
@@ -105,6 +107,25 @@ class StoreTester<St> {
       : assert(_store != null),
         _ignore = const [] {
     _listen();
+  }
+
+  Map<Type, dynamic> get mocks => (store as MockStore).mocks;
+
+  set mocks(Map<Type, dynamic> _mocks) => (store as MockStore).mocks = _mocks;
+
+  MockStore<St> addMock(Type actionType, dynamic mock) {
+    (store as MockStore).addMock(actionType, mock);
+    return store;
+  }
+
+  MockStore<St> addMocks(Map<Type, dynamic> mocks) {
+    (store as MockStore).addMocks(mocks);
+    return store;
+  }
+
+  MockStore<St> clearMocks() {
+    (store as MockStore).clearMocks();
+    return store;
   }
 
   void dispatch(ReduxAction<St> action, {bool notify = true}) =>
