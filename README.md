@@ -1131,7 +1131,7 @@ expect(storeTester.lastInfo.state.name, "Mark");
 
 ### Mocking actions and reducers
 
-> Note: *As of async_redux version 2.11.2, this is an experimental feature*.
+> Note: *As of async_redux version 2.12.1, this is an experimental feature*.
 
 To mock an action and its reducer, create a `MockStore` instead of a regular `Store`.
 
