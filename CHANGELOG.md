@@ -4,6 +4,7 @@
 * MockStore (still experimental, in `mock_store.dart`), lets you mock or disable actions/reducers during tests. 
   (See section `Mocking actions and reducers` in README.md).
 * ReduxAction.status and ReduxAction.hasFinished. (Search for "Action status" in README.md).
+* ReduxAction.reduceWithState deprecated (will be removed).
 
 ## [2.11.1] - 2020/06/12
 

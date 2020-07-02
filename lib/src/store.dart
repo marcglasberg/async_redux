@@ -678,11 +678,13 @@ abstract class ReduxAction<St> {
 
   /// Nest state reducers without dispatching another action.
   /// Example: return AddTaskAction(demoTask).reduceWithState(state);
-  /// This is deprecated and will be removed, because it's more difficult to
-  /// use than it seems. Unless you completely understand what you're doing,
+  /// Don't use this!
+  /// This is deprecated and will be removed soon, because it's more difficult
+  /// to use than it seems. Unless you completely understand what you're doing,
   /// you should only used it with sync reducers.
   @deprecated
-  FutureOr<St> reduceWithState(St state) {
+  FutureOr<St> reduceWithState(Store<St> store, St state) {
+    setStore(store);
     _store.defineState(state);
     return reduce();
   }
