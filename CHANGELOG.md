@@ -1,3 +1,7 @@
+## [2.12.3] - 2020/07/08
+
+* Docs improvement.
+
 ## [2.12.2] - 2020/06/30
 
 * Global WrapError now gets error, stackTrace, and action (none of them optional).

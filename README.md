@@ -533,56 +533,67 @@ of which one but **only one** should be provided in the `StoreConnector` constru
    Also, AsyncRedux will automatically inject `state` and `dispatch` into your model instance, 
    so that boilerplate is reduced in your `fromStore` method. For example:
    
-```dart
-class ViewModel extends BaseModel<AppState> {
-   ViewModel();
- 
-   String name;
-   VoidCallback onSave;
-
-   ViewModel.build({
-     @required this.name,
-     @required this.onSave,
-   }) : super(equals: [name]);
-
-   @override
-   ViewModel fromStore() => ViewModel.build(
-       name: state.user.name,
-       onSave: () => dispatch(SaveUserAction()),
-   );
-}
-```
+    ```dart
+    class ViewModel extends BaseModel<AppState> {
+       ViewModel();
+     
+       String name;
+       VoidCallback onSave;
+    
+       ViewModel.build({
+         @required this.name,
+         @required this.onSave,
+       }) : super(equals: [name]);
+    
+       @override
+       ViewModel fromStore() => ViewModel.build(
+           name: state.user.name,
+           onSave: () => dispatch(SaveUserAction()),
+       );
+    }
+    ```
        
    With this architecture you may also create separate methods for helping construct your model, 
    without having to pass the `store` around. For example:
 
-```dart
-@override
-ViewModel fromStore() => ViewModel.build(
-    name: _name(),
-    onSave: _onSave,
-);
-
-String _name() => state.user.name;
-
-VoidCallback _onSave: () => dispatch(SaveUserAction()),
-```
-       
-   Another idea is to subclass `BaseModel` to provide additional features to your model.
-   For example, you could add extra getters to help you access state:
-
-```dart
-User user => state.user;
-
-@override
-ViewModel fromStore() => ViewModel.build(
-   name: user.name,
-   ...
-);
-```
+    ```dart
+    @override
+    ViewModel fromStore() => ViewModel.build(
+        name: _name(),
+        onSave: _onSave,
+    );
+    
+    String _name() => state.user.name;
+    
+    VoidCallback _onSave: () => dispatch(SaveUserAction()),
+    ```
+           
+    Another idea is to subclass `BaseModel` to provide additional features to your model.
+    For example, you could add extra getters to help you access state:
+    
+    ```dart
+    User user => state.user;
+    
+    @override
+    ViewModel fromStore() => ViewModel.build(
+       name: user.name,
+       ...
+    );
+    ```
         
    Most examples in the [example tab](https://pub.dartlang.org/packages/async_redux#-example-tab-) 
    use the `model` parameter.
+   
+   **Important:** If you take some time to study how the `BaseModel` class works, 
+   you will notice that AsyncRedux will actually instantiate its corresponding view-model object twice. 
+   The first time, so that it can call the `fromStore()` method, 
+   to instantiate it a second time by using the `ViewModel.build()` constructor. 
+   This double instantiation can be confusing for beginners. 
+   I'd recommend that unless you really want to take the time to understand how `BaseModel` works,
+   you should instead use the `converter` parameter described below. 
+   The `converter` parameter has more boilerplate, 
+   but it's easier to understand and more difficult to use it wrong.     
+  
 
 2. The `converter` parameter 
 
@@ -590,49 +601,49 @@ ViewModel fromStore() => ViewModel.build(
    It expects a static factory function that gets a `store` and returns the `ViewModel`.
    You probably should use this one if you are migrating from `flutter_redux`.
 
-```dart
-class ViewModel {
-   String name;
-   VoidCallback onSave;
-
-   ViewModel({
-      @required this.name,
-      @required this.onSave,
-   });
-
-   static ViewModel fromStore(Store<AppState> store) {
-      return ViewModel(
-         name: store.state,
-         onSave: () => store.dispatch(IncrementAction(amount: 1)),
-      );
-   }
-
-   @override
-   bool operator ==(Object other) =>
-       identical(this, other) ||
-       other is ViewModel && runtimeType == other.runtimeType && name == other.name;
-
-   @override
-   int get hashCode => name.hashCode;
-}
-```
+    ```dart
+    class ViewModel {
+       String name;
+       VoidCallback onSave;
+    
+       ViewModel({
+          @required this.name,
+          @required this.onSave,
+       });
+    
+       static ViewModel fromStore(Store<AppState> store) {
+          return ViewModel(
+             name: store.state,
+             onSave: () => store.dispatch(IncrementAction(amount: 1)),
+          );
+       }
+    
+       @override
+       bool operator ==(Object other) =>
+           identical(this, other) ||
+           other is ViewModel && runtimeType == other.runtimeType && name == other.name;
+    
+       @override
+       int get hashCode => name.hashCode;
+    }
+    ```
 
    With this architecture it's a bit more difficult to create separate methods for helping construct your model: 
 
-```dart
-static ViewModel fromStore(Store<AppState> store) {
-   return ViewModel(
-      name: _name(store),
-      onSave: _onSave(store),
-   );
-}
-
-static String _name(Store<AppState>) => store.state.user.name;
-
-static VoidCallback _onSave(Store<AppState>) { 
-   return () => store.dispatch(SaveUserAction());
-} 
-```
+    ```dart
+    static ViewModel fromStore(Store<AppState> store) {
+       return ViewModel(
+          name: _name(store),
+          onSave: _onSave(store),
+       );
+    }
+    
+    static String _name(Store<AppState>) => store.state.user.name;
+    
+    static VoidCallback _onSave(Store<AppState>) { 
+       return () => store.dispatch(SaveUserAction());
+    } 
+    ```
       
    To see the `converter` parameter in action, please run 
    <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_static_view_model.dart">this example</a>.    
@@ -727,13 +738,16 @@ For example:
 ```dart
 var store = Store<AppState>(
   initialState: AppState.initialState(),
-  errorObserver: errorObserver,
+  errorObserver: MyErrorObserver<AppState>(),
 );
 
-bool errorObserver(Object error, ReduxAction action, Store store, Object state, int dispatchCount) {
-  print("Error thrown during $action: $error");
-  return true;
-}
+class MyErrorObserver<St> implements ErrorObserver<St> {
+  @override
+  bool observe(Object error, StackTrace stackTrace, ReduxAction<St> action, Store store) {
+    print("Error thrown during $action: $error");
+    return true;
+  }
+}                                                                                               
 ```
 
 If your error observer returns `true`, the error will be rethrown after the `errorObserver` finishes.
