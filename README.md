@@ -378,6 +378,33 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">Before and After Example</a>.
 
+#### Wrapping the reducer
+
+You may wrap the reducer to allow for some pre or post-processing.
+For example, suppose you want to abort the reducer if the state changed since while the reducer was running:
+
+```dart
+Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
+   var oldState = state; // Remember: `state` is a getter for the current state.
+   AppState newState = await reduce(); // This may take some time, and meanwhile the state may change. 
+   return identical(oldState, state) ? newState : null;
+};
+```
+
+#### Aborting the dispatch
+
+You may override the action's `abortDispatch` to completely prevent the action to run if some condition is true;
+In more detail, if this method returns `true`, methods `before`, `reduce` and `after` will not be called, 
+and the action will not be visible to the `StoreTester`. 
+This is only useful under rare circumstances, and you should only use it if you know what you are doing.
+For example:
+
+```dart
+@override
+bool abortDispatch() => state.user.name == null;
+```
+
+
 #### Action status
 
 Although is unlikely you ever need it, 

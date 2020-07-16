@@ -1,3 +1,8 @@
+## [2.12.4] - 2020/07/16
+
+* typedef Reducer.
+* ReduxAction.wrapReduce().
+
 ## [2.12.3] - 2020/07/08
 
 * Docs improvement.

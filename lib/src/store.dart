@@ -470,7 +470,7 @@ class Store<St> {
   FutureOr<void> _applyReducer(ReduxAction<St> action, {bool notify = true}) {
     _reduceCount++;
 
-    var result = action.reduce();
+    var result = action.wrapReduce(action.reduce)();
 
     if (result is Future<St>) {
       return result.then((state) => _registerState(state, action, notify: notify));
@@ -661,6 +661,18 @@ abstract class ReduxAction<St> {
   /// a state which is both not `null` and different from the previous one
   /// (comparing by `identical`, not `equals`).
   FutureOr<St> reduce();
+
+  /// You may wrap the reducer to allow for some pre or post-processing.
+  /// For example, if you want to abort an async reducer if the state
+  /// changed since when the reducer started:
+  /// ```
+  /// Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
+  ///    var oldState = state;
+  ///    AppState newState = await reduce();
+  ///    return identical(oldState, state) ? newState : null;
+  /// };
+  /// ```
+  Reducer<St> wrapReduce(Reducer<St> reduce) => reduce;
 
   /// If any error is thrown by `reduce` or `before`, you have the chance
   /// to further process it by using `wrapError`. Usually this is used to wrap
@@ -876,6 +888,8 @@ class StoreProvider<St> extends InheritedWidget {
 }
 
 // /////////////////////////////////////////////////////////////////////////////
+
+typedef Reducer<St> = FutureOr<St> Function();
 
 /// Build a Widget using the [BuildContext] and [Model].
 /// The [Model] is derived from the [Store] using a [StoreConverter].
