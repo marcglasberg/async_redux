@@ -268,4 +268,53 @@ void main() {
   });
 
   ///////////////////////////////////////////////////////////////////////////////
+
+  test('UserException.pure() removes cause which is not UserException', () {
+    //
+    // No cause.
+    const exception1 = UserException("msg1");
+    expect(exception1.pure(), exception1);
+
+    // All causes are UserExceptions.
+    const exception2 = const UserException("msg2", cause: exception1);
+    expect(exception2.pure(), exception2);
+
+    // Some cause is not UserExceptions, so it's cut.
+    var exception3 = UserException("msg1", cause: AssertionError());
+    expect(exception3, isNot(exception1));
+    expect(exception3.pure(), isNot(exception3));
+    expect(exception3.pure(), exception1);
+
+    // Some cause is not UserExceptions, so it's cut.
+    var exception4 = UserException("msg2", cause: UserException("msg1", cause: AssertionError()));
+    expect(exception4, isNot(exception1));
+    expect(exception4, isNot(exception2));
+    expect(exception4.pure(), exception2);
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      'UserException.hardCause() Returns the first cause which, '
+      'recursively, is NOT a UserException', () {
+    //
+    // No cause.
+    const exception1 = UserException("msg1");
+    expect(exception1.hardCause(), null);
+
+    // All causes are UserExceptions.
+    const exception2 = const UserException("msg2", cause: exception1);
+    expect(exception2.hardCause(), null);
+
+    // Some cause is not UserException.
+    var cause = AssertionError();
+    var exception3 = UserException("msg1", cause: cause);
+    expect(exception3.hardCause(), cause);
+
+    // Some cause is not UserException.
+    var exception4 = UserException("msg2", cause: UserException("msg1", cause: cause));
+    expect(exception4.hardCause(), cause);
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
 }

@@ -1,4 +1,9 @@
-## [2.12.4] - 2020/07/16
+## [2.13.1] - 2020/07/17
+
+* WrapError may now convert to any error type.
+* UserException pure() and hardCause() methods.
+
+## [2.13.0] - 2020/07/16
 
 * typedef Reducer.
 * ReduxAction.wrapReduce().

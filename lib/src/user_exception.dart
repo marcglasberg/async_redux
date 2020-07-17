@@ -64,6 +64,22 @@ class UserException implements Exception {
 
   const UserException(this.msg, {this.cause, this.code});
 
+  /// Returns a deep copy of this exception, but stopping at, and not
+  /// including, the first [cause] which is not a UserException.
+  UserException pure() => UserException(
+        msg,
+        cause: (cause is UserException) ? (cause as UserException).pure() : null,
+      );
+
+  /// Returns the first cause which, recursively, is NOT a UserException.
+  /// If not found, returns null.
+  Object hardCause() {
+    if (cause is UserException)
+      return (cause as UserException).hardCause();
+    else
+      return cause;
+  }
+
   String dialogTitle([Locale locale]) =>
       (cause is UserException || cause is String) ? _codeAsTextOrMsg(locale) : "";
 

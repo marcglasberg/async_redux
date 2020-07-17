@@ -733,7 +733,7 @@ abstract class ErrorObserver<St> {
 }
 
 /// This will be given all errors (including of type UserException).
-/// * If it returns a [UserException], it will be used instead of the
+/// * If it returns something, it will be used instead of the
 ///   original exception.
 /// * Otherwise, just return null, so that the original exception will
 ///   not be modified.
@@ -741,8 +741,8 @@ abstract class ErrorObserver<St> {
 /// Note this wrapper is called AFTER [ReduxAction.wrapError],
 /// and BEFORE the [ErrorObserver].
 ///
-/// The use case for this is to have a global place to convert some exceptions
-/// into [UserException]s. For example, Firebase may throw some
+/// A common use case for this is to have a global place to convert some
+/// exceptions into [UserException]s. For example, Firebase may throw some
 /// PlatformExceptions in response to a bad connection to the server.
 /// In this case, you may want to show the user a dialog explaining that the
 /// connection is bad, which you can do by converting it to a [UserException].
@@ -750,7 +750,7 @@ abstract class ErrorObserver<St> {
 /// you'd have to add it to all actions that use Firebase.
 ///
 abstract class WrapError<St> {
-  UserException wrap(
+  Object wrap(
     Object error,
     StackTrace stackTrace,
     ReduxAction<St> action,
