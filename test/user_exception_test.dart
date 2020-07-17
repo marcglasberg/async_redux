@@ -273,23 +273,23 @@ void main() {
     //
     // No cause.
     const exception1 = UserException("msg1");
-    expect(exception1.pure(), exception1);
+    expect(exception1.withoutHardCause(), exception1);
 
     // All causes are UserExceptions.
     const exception2 = const UserException("msg2", cause: exception1);
-    expect(exception2.pure(), exception2);
+    expect(exception2.withoutHardCause(), exception2);
 
     // Some cause is not UserExceptions, so it's cut.
     var exception3 = UserException("msg1", cause: AssertionError());
     expect(exception3, isNot(exception1));
-    expect(exception3.pure(), isNot(exception3));
-    expect(exception3.pure(), exception1);
+    expect(exception3.withoutHardCause(), isNot(exception3));
+    expect(exception3.withoutHardCause(), exception1);
 
     // Some cause is not UserExceptions, so it's cut.
     var exception4 = UserException("msg2", cause: UserException("msg1", cause: AssertionError()));
     expect(exception4, isNot(exception1));
     expect(exception4, isNot(exception2));
-    expect(exception4.pure(), exception2);
+    expect(exception4.withoutHardCause(), exception2);
   });
 
   ///////////////////////////////////////////////////////////////////////////////

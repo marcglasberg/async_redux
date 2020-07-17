@@ -1,7 +1,7 @@
 ## [2.13.1] - 2020/07/17
 
 * WrapError may now convert to any error type.
-* UserException pure() and hardCause() methods.
+* UserException hardCause() and withoutHardCause() methods.
 
 ## [2.13.0] - 2020/07/16
 

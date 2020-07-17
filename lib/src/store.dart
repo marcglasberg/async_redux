@@ -749,6 +749,20 @@ abstract class ErrorObserver<St> {
 /// Note, this could also be done in the [ReduxAction.wrapError], but then
 /// you'd have to add it to all actions that use Firebase.
 ///
+/// Another use case is when you want to throw UserException causes which
+/// are not UserExceptions, but still show the original UserException
+/// in a dialog to the user:
+/// ```
+/// Object wrap(Object error, [StackTrace stackTrace, ReduxAction<St> action]) {
+///   if (error is UserException) {
+///     var hardCause = error.hardCause();
+///     if (hardCause != null) {
+///       Future.microtask(() =>
+///         Business.store.dispatch(UserExceptionAction.from(error.withoutHardCause())));
+///       return hardCause;
+///     }}
+///   return null; }
+/// ```
 abstract class WrapError<St> {
   Object wrap(
     Object error,
