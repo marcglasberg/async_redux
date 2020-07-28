@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
-
 import 'package:async_redux/async_redux.dart';
+import 'package:async_redux/src/local_persist.dart';
 import 'package:flutter/material.dart';
 import "package:test/test.dart";
 

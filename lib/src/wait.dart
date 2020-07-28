@@ -107,7 +107,13 @@ class Wait {
     }
   }
 
-  void clearWhere(bool Function(Object flag, Set<Object> refs) test) => _flags.removeWhere(test);
+  void clearWhere(
+          bool Function(
+    Object flag,
+    Set<Object> refs,
+  )
+              test) =>
+      _flags.removeWhere(test);
 
   Map<Object, Set<Object>> _deepCopy() {
     Map<Object, Set<Object>> newFlags = {};

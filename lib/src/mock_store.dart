@@ -79,7 +79,10 @@ class MockStore<St> extends Store<St> {
   }
 
   @override
-  Future<void> dispatchFuture(ReduxAction<St> action, {bool notify = true}) async {
+  Future<void> dispatchFuture(
+    ReduxAction<St> action, {
+    bool notify = true,
+  }) async {
     assert(action != null);
     action = _getMockedAction(action);
     if (action != null) return super.dispatchFuture(action, notify: notify);
@@ -123,7 +126,8 @@ class MockStore<St> extends Store<St> {
       //
       else
         throw StoreException("Action of type `${action.runtimeType}` "
-            "can't be mocked by a mock of type `${(mock as Object).runtimeType}`.\n"
+            "can't be mocked by a mock of type "
+            "`${(mock as Object).runtimeType}`.\n"
             "Valid mock types are:\n"
             "`null`\n"
             "`MockAction<St>`\n"

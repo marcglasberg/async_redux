@@ -1,3 +1,7 @@
+## [3.0.0] - 2020/07/27
+
+* Works for Web.
+
 ## [2.13.1] - 2020/07/17
 
 * WrapError may now convert to any error type.

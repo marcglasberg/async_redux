@@ -63,7 +63,10 @@ class ProcessPersistence<St> {
     newStateAvailable = false;
 
     persistor
-        .persistDifference(lastPersistedState: lastPersistedState, newState: newState)
+        .persistDifference(
+      lastPersistedState: lastPersistedState,
+      newState: newState,
+    )
         .whenComplete(() {
       lastPersistedState = newState;
       isPersisting = false;

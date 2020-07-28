@@ -6,7 +6,10 @@ import 'package:weak_map/weak_map.dart' as c;
 ///    () =>
 ///    stateNames.take(limit).toList());
 /// ```
-R Function() Function(S1) cache1<R, S1>(R Function() Function(S1) f) => c.cache1_0(f);
+R Function() Function(S1) cache1<R, S1>(
+  R Function() Function(S1) f,
+) =>
+    c.cache1_0(f);
 
 /// Example:
 /// ```
@@ -14,7 +17,10 @@ R Function() Function(S1) cache1<R, S1>(R Function() Function(S1) f) => c.cache1
 ///    (String startString) =>
 ///    state.where((str) => str.startsWith(startString)).toList());
 /// ```
-R Function(P1) Function(S1) cache1_1<R, S1, P1>(R Function(P1) Function(S1) f) => c.cache1_1(f);
+R Function(P1) Function(S1) cache1_1<R, S1, P1>(
+  R Function(P1) Function(S1) f,
+) =>
+    c.cache1_1(f);
 
 /// Example:
 /// ```
@@ -23,7 +29,9 @@ R Function(P1) Function(S1) cache1_1<R, S1, P1>(R Function(P1) Function(S1) f) =
 ///       .where((str) => str.startsWith(startString) && str.endsWith(endString)).toList();
 ///    });
 /// ```
-R Function(P1, P2) Function(S1) cache1_2<R, S1, P1, P2>(R Function(P1, P2) Function(S1) f) =>
+R Function(P1, P2) Function(S1) cache1_2<R, S1, P1, P2>(
+  R Function(P1, P2) Function(S1) f,
+) =>
     c.cache1_2(f);
 
 /// Example:
@@ -31,7 +39,10 @@ R Function(P1, P2) Function(S1) cache1_2<R, S1, P1, P2>(R Function(P1, P2) Funct
 /// var selector = cache2((List<String> names, int limit) =>
 ///        () => names.where((str) => str.startsWith("A")).take(limit).toList());
 /// ```
-R Function() Function(S1, S2) cache2<R, S1, S2>(R Function() Function(S1, S2) f) => c.cache2_0(f);
+R Function() Function(S1, S2) cache2<R, S1, S2>(
+  R Function() Function(S1, S2) f,
+) =>
+    c.cache2_0(f);
 
 /// Example:
 /// ```
@@ -39,7 +50,9 @@ R Function() Function(S1, S2) cache2<R, S1, S2>(R Function() Function(S1, S2) f)
 ///    return names.where((str) => str.startsWith(searchString)).take(limit).toList();
 ///    });
 /// ```
-R Function(P1) Function(S1, S2) cache2_1<R, S1, S2, P1>(R Function(P1) Function(S1, S2) f) =>
+R Function(P1) Function(S1, S2) cache2_1<R, S1, S2, P1>(
+  R Function(P1) Function(S1, S2) f,
+) =>
     c.cache2_1(f);
 
 /// Example:
@@ -52,5 +65,6 @@ R Function(P1) Function(S1, S2) cache2_1<R, S1, S2, P1>(R Function(P1) Function(
 ///    });
 /// ```
 R Function(P1, P2) Function(S1, S2) cache2_2<R, S1, S2, P1, P2>(
-        R Function(P1, P2) Function(S1, S2) f) =>
+  R Function(P1, P2) Function(S1, S2) f,
+) =>
     c.cache2_2(f);

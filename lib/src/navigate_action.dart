@@ -41,9 +41,15 @@ class NavigateAction<St> extends ReduxAction<St> {
   final RoutePredicate predicate;
   final Object arguments;
 
-  NavigateAction(this.routeName, {@required this.navigateType, this.arguments, this.predicate})
-      : assert(navigateType != null),
-        assert((navigateType == NavigateType.pushNamedAndRemoveUntil && predicate != null) ||
+  NavigateAction(
+    this.routeName, {
+    @required this.navigateType,
+    this.arguments,
+    this.predicate,
+  })  : assert(navigateType != null),
+        assert((navigateType == NavigateType.pushNamedAndRemoveUntil //
+                &&
+                predicate != null) ||
             predicate == null),
         assert(navigateType == NavigateType.pop || routeName != null),
         route = null;
@@ -61,12 +67,20 @@ class NavigateAction<St> extends ReduxAction<St> {
   NavigateAction.pushNamed(
     String routeName, {
     Object arguments,
-  }) : this(routeName, navigateType: NavigateType.pushNamed, arguments: arguments);
+  }) : this(
+          routeName,
+          navigateType: NavigateType.pushNamed,
+          arguments: arguments,
+        );
 
   NavigateAction.pushReplacementNamed(
     String routeName, {
     Object arguments,
-  }) : this(routeName, navigateType: NavigateType.pushReplacementNamed, arguments: arguments);
+  }) : this(
+          routeName,
+          navigateType: NavigateType.pushReplacementNamed,
+          arguments: arguments,
+        );
 
   NavigateAction.pushNamedAndRemoveUntil(
     String routeName, {
@@ -80,9 +94,17 @@ class NavigateAction<St> extends ReduxAction<St> {
   NavigateAction.pushNamedAndRemoveAll(
     String routeName, {
     Object arguments,
-  }) : this(routeName, navigateType: NavigateType.pushNamedAndRemoveAll, arguments: arguments);
+  }) : this(
+          routeName,
+          navigateType: NavigateType.pushNamedAndRemoveAll,
+          arguments: arguments,
+        );
 
-  NavigateAction.popUntil(String routeName) : this(routeName, navigateType: NavigateType.popUntil);
+  NavigateAction.popUntil(String routeName)
+      : this(
+          routeName,
+          navigateType: NavigateType.popUntil,
+        );
 
   @override
   St reduce() {
@@ -98,11 +120,17 @@ class NavigateAction<St> extends ReduxAction<St> {
           break;
 
         case NavigateType.pushNamed:
-          _navigatorKey.currentState.pushNamed(routeName, arguments: arguments);
+          _navigatorKey.currentState.pushNamed(
+            routeName,
+            arguments: arguments,
+          );
           break;
 
         case NavigateType.pushReplacementNamed:
-          _navigatorKey.currentState.pushReplacementNamed(routeName, arguments: arguments);
+          _navigatorKey.currentState.pushReplacementNamed(
+            routeName,
+            arguments: arguments,
+          );
           break;
 
         case NavigateType.pushNamedAndRemoveAll:
@@ -112,8 +140,11 @@ class NavigateAction<St> extends ReduxAction<St> {
           break;
 
         case NavigateType.pushNamedAndRemoveUntil:
-          _navigatorKey.currentState
-              .pushNamedAndRemoveUntil(routeName, predicate, arguments: arguments);
+          _navigatorKey.currentState.pushNamedAndRemoveUntil(
+            routeName,
+            predicate,
+            arguments: arguments,
+          );
           break;
 
         case NavigateType.popUntil:

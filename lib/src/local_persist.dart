@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:file/file.dart' as f;
 import 'package:async_redux/async_redux.dart';
 import 'package:file/local.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
+import 'package:file/file.dart' as f;
 import 'package:path_provider/path_provider.dart';
 
 // Developed by Marcelo Glasberg (Nov 2019).
@@ -120,8 +120,8 @@ class LocalPersist {
       try {
         encoded = await file.readAsBytes();
       } catch (error) {
-        if ((error is FileSystemException) && error.message.contains("No such file or directory"))
-          return null;
+        if ((error is FileSystemException) && //
+            error.message.contains("No such file or directory")) return null;
         rethrow;
       }
 
@@ -156,8 +156,8 @@ class LocalPersist {
         await file.delete(recursive: true);
         return true;
       } catch (error) {
-        if ((error is FileSystemException) && error.message.contains("No such file or directory"))
-          return false;
+        if ((error is FileSystemException) && //
+            error.message.contains("No such file or directory")) return false;
         rethrow;
       }
     }
@@ -174,8 +174,8 @@ class LocalPersist {
       try {
         return file.length();
       } catch (error) {
-        if ((error is FileSystemException) && error.message.contains("No such file or directory"))
-          return 0;
+        if ((error is FileSystemException) && //
+            error.message.contains("No such file or directory")) return 0;
         rethrow;
       }
     }
@@ -193,15 +193,20 @@ class LocalPersist {
       return _file;
     else {
       if (_appDocDir == null) await _findAppDocDir();
-      String pathNameStr = pathName(dbName, dbSubDir: dbSubDir, subDirs: subDirs);
+      String pathNameStr = pathName(
+        dbName,
+        dbSubDir: dbSubDir,
+        subDirs: subDirs,
+      );
       _file = _fileSystem.file(pathNameStr);
       return _file;
     }
   }
 
-  static String simpleObjsToString(List<Object> simpleObjs) => simpleObjs == null
-      ? simpleObjs
-      : simpleObjs.map((obj) => "$obj (${obj.runtimeType})").join("\n");
+  static String simpleObjsToString(List<Object> simpleObjs) => //
+      simpleObjs == null
+          ? simpleObjs
+          : simpleObjs.map((obj) => "$obj (${obj.runtimeType})").join("\n");
 
   static String pathName(
     String dbName, {

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
@@ -77,11 +76,17 @@ class UserException implements Exception {
   /// including, the first [cause] which is not a UserException.
   UserException withoutHardCause() => UserException(
         msg,
-        cause: (cause is UserException) ? (cause as UserException).withoutHardCause() : null,
+        cause: (cause is UserException)
+            ? //
+            (cause as UserException).withoutHardCause()
+            : null,
       );
 
-  String dialogTitle([Locale locale]) =>
-      (cause is UserException || cause is String) ? _codeAsTextOrMsg(locale) : "";
+  String dialogTitle([Locale locale]) => //
+      (cause is UserException || cause is String)
+          ? //
+          _codeAsTextOrMsg(locale)
+          : "";
 
   String dialogContent([Locale locale]) {
     if (cause is UserException)
@@ -94,12 +99,19 @@ class UserException implements Exception {
 
   String _dialogTitleAndContent([Locale locale]) => (cause is UserException)
       ? joinExceptionMainAndCause(
-          locale, _codeAsTextOrMsg(locale), (cause as UserException)._codeAsTextOrMsg(locale))
+          locale,
+          _codeAsTextOrMsg(locale),
+          (cause as UserException)._codeAsTextOrMsg(locale),
+        )
       : _codeAsTextOrMsg(locale);
 
   /// Return the string that join the main message and the reason message.
   /// You can change this variable to inject another way to join them.
-  static var joinExceptionMainAndCause = (Locale locale, String mainMsg, String causeMsg) =>
+  static var joinExceptionMainAndCause = (
+    Locale locale,
+    String mainMsg,
+    String causeMsg,
+  ) =>
       "$mainMsg\n\n${_getReasonFromLocale(locale) ?? "Reason"}: $causeMsg";
 
   static String _getReasonFromLocale(Locale locale) {
@@ -247,13 +259,15 @@ class _Widget extends StatefulWidget {
     this.child,
     this.error,
     ShowUserExceptionDialog onShowUserExceptionDialog,
-  ) : onShowUserExceptionDialog = onShowUserExceptionDialog ?? _defaultUserExceptionDialog;
+  ) : onShowUserExceptionDialog = //
+            onShowUserExceptionDialog ?? _defaultUserExceptionDialog;
 
   static void _defaultUserExceptionDialog(
     BuildContext context,
     UserException userException,
   ) {
-    if (!kIsWeb && (Platform.isMacOS || Platform.isIOS)) {
+    defaultTargetPlatform;
+    if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS)) {
       showCupertinoDialog(
         context: context,
         builder: (BuildContext context) => CupertinoAlertDialog(
@@ -327,6 +341,9 @@ class _ViewModel extends BaseModel {
   int get hashCode => error.hashCode;
 }
 
-typedef ShowUserExceptionDialog = void Function(BuildContext context, UserException userException);
+typedef ShowUserExceptionDialog = void Function(
+  BuildContext context,
+  UserException userException,
+);
 
 // /////////////////////////////////////////////////////////////////////////////

@@ -78,8 +78,8 @@ class StoreTester<St> {
             MockStore(
               initialState: initialState,
               syncStream: syncStream,
-              errorObserver:
-                  errorObserver ?? (shouldThrowUserExceptions ? TestErrorObserver() : null),
+              errorObserver: errorObserver ?? //
+                  (shouldThrowUserExceptions ? TestErrorObserver() : null),
               mocks: mocks,
             ),
             testInfoPrinter: testInfoPrinter,
@@ -95,7 +95,8 @@ class StoreTester<St> {
         _store = store {
     if (testInfoPrinter != null)
       _store.initTestInfoPrinter(testInfoPrinter);
-    else if (_store.testInfoPrinter == null) _store.initTestInfoPrinter(defaultTestInfoPrinter);
+    else if (_store.testInfoPrinter == null) //
+      _store.initTestInfoPrinter(defaultTestInfoPrinter);
 
     _listen();
     defaultNewStorePrinter();
@@ -131,7 +132,8 @@ class StoreTester<St> {
   void dispatch(ReduxAction<St> action, {bool notify = true}) =>
       store.dispatch(action, notify: notify);
 
-  Future<void> dispatchFuture(ReduxAction<St> action) => store.dispatchFuture(action);
+  Future<void> dispatchFuture(ReduxAction<St> action) => //
+      store.dispatchFuture(action);
 
   void defineState(St state) => _store.defineState(state);
 
@@ -156,8 +158,12 @@ class StoreTester<St> {
     bool ignoreIni = true,
     int timeoutInSeconds = defaultTimeout,
   }) async {
-    var infoList = await waitCondition(condition,
-        testImmediately: testImmediately, ignoreIni: ignoreIni, timeoutInSeconds: timeoutInSeconds);
+    var infoList = await waitCondition(
+      condition,
+      testImmediately: testImmediately,
+      ignoreIni: ignoreIni,
+      timeoutInSeconds: timeoutInSeconds,
+    );
 
     return infoList.last;
   }
@@ -206,7 +212,10 @@ class StoreTester<St> {
 
     while (true) {
       if (ignoreIni)
-        while (testInfo.ini) testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
+        while (testInfo.ini)
+          testInfo = await _next(
+            timeoutInSeconds: timeoutInSeconds,
+          );
 
       infoList._add(testInfo);
 
@@ -235,7 +244,10 @@ class StoreTester<St> {
     int timeoutInSeconds = defaultTimeout,
   }) async {
     var infoList = await waitUntilError(
-        error: error, processedError: processedError, timeoutInSeconds: timeoutInSeconds);
+      error: error,
+      processedError: processedError,
+      timeoutInSeconds: timeoutInSeconds,
+    );
 
     return infoList.last;
   }
@@ -261,11 +273,16 @@ class StoreTester<St> {
             (error is Type && info.error.runtimeType == error) ||
             (error is! Type && info.error == error)) &&
         (processedError == null ||
-            (processedError is Type && info.processedError.runtimeType == processedError) ||
-            (processedError is! Type && info.processedError == processedError));
+            (processedError is Type && //
+                info.processedError.runtimeType == processedError) ||
+            (processedError is! Type && //
+                info.processedError == processedError));
 
-    var infoList =
-        await waitCondition(condition, ignoreIni: true, timeoutInSeconds: timeoutInSeconds);
+    var infoList = await waitCondition(
+      condition,
+      ignoreIni: true,
+      timeoutInSeconds: timeoutInSeconds,
+    );
 
     lastInfo = infoList.last;
 
@@ -275,7 +292,8 @@ class StoreTester<St> {
   /// Expects **one action** of the given type to be dispatched, and waits until it finishes.
   /// Returns the info after the action finishes.
   /// Will fail with an exception if an unexpected action is seen.
-  Future<TestInfo<St>> wait(Type actionType) async => waitAllGetLast([actionType]);
+  Future<TestInfo<St>> wait(Type actionType) async => //
+      waitAllGetLast([actionType]);
 
   /// Runs until an action of the given type is dispatched, and then waits until it finishes.
   /// Returns the info after the action finishes. **Ignores other** actions types.
@@ -393,7 +411,10 @@ class StoreTester<St> {
   /// This method is the same as `waitAllGetLast`, but instead of returning
   /// just the last info, it returns a list with the end info for each action.
   ///
-  Future<TestInfoList<St>> waitAll(List<Type> actionTypes, {List<Type> ignore}) async {
+  Future<TestInfoList<St>> waitAll(
+    List<Type> actionTypes, {
+    List<Type> ignore,
+  }) async {
     assert(actionTypes != null && actionTypes.isNotEmpty);
     ignore ??= _ignore;
 
@@ -408,11 +429,11 @@ class StoreTester<St> {
     List<Type> ignoredIni = [];
 
     List<ReduxAction> expectedActionsEND = [];
-    List<ReduxAction> expectedActionsEND_Ignored = [];
+    List<ReduxAction> expectedActionsENDIgnored = [];
 
     while (expectedActionTypesINI.isNotEmpty ||
         expectedActionsEND.isNotEmpty ||
-        expectedActionsEND_Ignored.isNotEmpty) {
+        expectedActionsENDIgnored.isNotEmpty) {
       //
       testInfo = await _next();
 
@@ -420,11 +441,12 @@ class StoreTester<St> {
       if (testInfo.isINI) {
         //
         bool wasIgnored = ignore.contains(testInfo.type) &&
-            (expectedActionTypesINI.isEmpty || expectedActionTypesINI.first != testInfo.type);
+            (expectedActionTypesINI.isEmpty || //
+                expectedActionTypesINI.first != testInfo.type);
 
         /// Record this action, so that later we can wait until it ends.
         if (wasIgnored) {
-          expectedActionsEND_Ignored.add(testInfo.action);
+          expectedActionsENDIgnored.add(testInfo.action);
           ignoredIni.add(testInfo.type); // // For better error messages only.
         }
         //
@@ -432,11 +454,14 @@ class StoreTester<St> {
           expectedActionsEND.add(testInfo.action);
           obtainedIni.add(testInfo.type); // For better error messages only.
 
-          Type expectedActionTypeINI =
-              expectedActionTypesINI.isEmpty ? null : expectedActionTypesINI.removeFirst();
+          Type expectedActionTypeINI = expectedActionTypesINI.isEmpty
+              ? //
+              null
+              : expectedActionTypesINI.removeFirst();
 
           if (testInfo.type != expectedActionTypeINI)
-            throw StoreException("Got this unexpected action: ${testInfo.type} INI.\n"
+            throw StoreException("Got this unexpected action: "
+                "${testInfo.type} INI.\n"
                 "Was expecting: $expectedActionTypeINI INI.\n"
                 "obtainedIni: $obtainedIni\n"
                 "ignoredIni: $ignoredIni");
@@ -450,10 +475,11 @@ class StoreTester<St> {
         if (wasRemoved)
           infoList._add(testInfo);
         else
-          wasRemoved = expectedActionsEND_Ignored.remove(testInfo.action);
+          wasRemoved = expectedActionsENDIgnored.remove(testInfo.action);
 
         if (!wasRemoved)
-          throw StoreException("Got this unexpected action: ${testInfo.type} END.\n"
+          throw StoreException("Got this unexpected action: "
+              "${testInfo.type} END.\n"
               "obtainedIni: $obtainedIni\n"
               "ignoredIni: $ignoredIni");
       }
@@ -487,7 +513,8 @@ class StoreTester<St> {
     // Actions which are expected can't also be ignored.
     var intersection = ignore.toSet().intersection(actionTypes.toSet());
     if (intersection.isNotEmpty)
-      throw StoreException("Actions $intersection should not be expected and ignored.");
+      throw StoreException("Actions $intersection "
+          "should not be expected and ignored.");
 
     TestInfoList<St> infoList = TestInfoList<St>();
     List<Type> actionsIni = List.from(actionTypes);
@@ -516,8 +543,10 @@ class StoreTester<St> {
           testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
         }
       } on StoreExceptionTimeout catch (error) {
-        error.addDetail("These actions were not dispatched: $actionsIni INI.");
-        error.addDetail("These actions haven't finished: $actionsEnd END.");
+        error.addDetail("These actions were not dispatched: "
+            "$actionsIni INI.");
+        error.addDetail("These actions haven't finished: "
+            "$actionsEnd END.");
         rethrow;
       }
 
@@ -525,10 +554,12 @@ class StoreTester<St> {
 
       if (testInfo.isINI) {
         if (!actionsIni.remove(action))
-          throw StoreException("Unexpected action was dispatched: $action INI.");
+          throw StoreException("Unexpected action was dispatched: "
+              "$action INI.");
       } else {
         if (!actionsEnd.remove(action))
-          throw StoreException("Unexpected action was dispatched: $action END.");
+          throw StoreException("Unexpected action was dispatched: "
+              "$action END.");
 
         // Only save the END states.
         infoList._add(testInfo);
@@ -550,8 +581,8 @@ class StoreTester<St> {
       }
 
       if (!testInfo.isEND || !wasIgnored)
-        throw StoreException(
-            "Got this unexpected action: ${testInfo.type} ${testInfo.ini ? "INI" : "END"}.");
+        throw StoreException("Got this unexpected action: "
+            "${testInfo.type} ${testInfo.ini ? "INI" : "END"}.");
     }
 
     lastInfo = infoList.last;
@@ -566,7 +597,15 @@ class StoreTester<St> {
     _futures = Queue()..addLast(_completer.future);
 
     _currentTestInfo = TestInfo<St>(
-        state, false, null, null, null, store.dispatchCount, store.reduceCount, store.errors);
+      state,
+      false,
+      null,
+      null,
+      null,
+      store.dispatchCount,
+      store.reduceCount,
+      store.errors,
+    );
   }
 
   Future<TestInfo<St>> _next({
@@ -616,7 +655,10 @@ class TestInfoList<St> {
 
   /// Returns the first info corresponding to the end of the given action type.
   TestInfo<St> operator [](Type actionType) {
-    return _info.firstWhere((info) => info.type == actionType, orElse: () => null);
+    return _info.firstWhere(
+      (info) => info.type == actionType,
+      orElse: () => null,
+    );
   }
 
   /// Returns the n-th info corresponding to the end of the given action type
@@ -637,20 +679,36 @@ class TestInfoList<St> {
 
   void forEach(void action(TestInfo<St> element)) => _info.forEach(action);
 
-  TestInfo<St> firstWhere(bool test(TestInfo<St> element), {TestInfo<St> orElse()}) =>
+  TestInfo<St> firstWhere(
+    bool test(TestInfo<St> element), {
+    TestInfo<St> orElse(),
+  }) =>
       _info.firstWhere(test, orElse: orElse);
 
-  TestInfo<St> lastWhere(bool test(TestInfo<St> element), {TestInfo<St> orElse()}) =>
+  TestInfo<St> lastWhere(
+    bool test(TestInfo<St> element), {
+    TestInfo<St> orElse(),
+  }) =>
       _info.lastWhere(test, orElse: orElse);
 
-  TestInfo<St> singleWhere(bool test(TestInfo<St> element), {TestInfo<St> orElse()}) =>
+  TestInfo<St> singleWhere(
+    bool test(TestInfo<St> element), {
+    TestInfo<St> orElse(),
+  }) =>
       _info.singleWhere(test, orElse: orElse);
 
-  Iterable<TestInfo<St>> where(bool test(TestInfo<St> element)) => _info.where(test);
+  Iterable<TestInfo<St>> where(
+          bool test(
+    TestInfo<St> element,
+  )) =>
+      _info.where(test);
 
   Iterable<T> map<T>(T f(TestInfo<St> element)) => _info.map(f);
 
-  List<TestInfo<St>> toList({bool growable = true}) => _info.toList(growable: growable);
+  List<TestInfo<St>> toList({
+    bool growable = true,
+  }) =>
+      _info.toList(growable: growable);
 
   Set<TestInfo<St>> toSet() => _info.toSet();
 
@@ -673,12 +731,15 @@ class StoreExceptionTimeout extends StoreException {
   void addDetail(String detail) => _details.add(detail);
 
   @override
-  String toString() =>
-      (details.isEmpty) ? msg : msg + "\nDetails:\n" + details.map((d) => "- $d").join("\n");
+  String toString() => (details.isEmpty)
+      ? msg
+      : //
+      msg + "\nDetails:\n" + details.map((d) => "- $d").join("\n");
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) || other is StoreExceptionTimeout && runtimeType == other.runtimeType;
+      identical(this, other) || //
+      other is StoreExceptionTimeout && runtimeType == other.runtimeType;
 
   @override
   int get hashCode => 0;
@@ -699,7 +760,13 @@ class StoreExceptionTimeout extends StoreException {
 ///
 class TestErrorObserver<St> implements ErrorObserver<St> {
   @override
-  bool observe(Object error, StackTrace stackTrace, ReduxAction<St> action, Store store) => true;
+  bool observe(
+    Object error,
+    StackTrace stackTrace,
+    ReduxAction<St> action,
+    Store store,
+  ) =>
+      true;
 }
 
 // /////////////////////////////////////////////////////////////////////////////

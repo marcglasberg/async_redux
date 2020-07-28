@@ -14,9 +14,15 @@ import 'package:logging/logging.dart';
 
 // /////////////////////////////////////////////////////////////////////////////
 
-typedef Dispatch<St> = void Function(ReduxAction<St> action, {bool notify});
+typedef Dispatch<St> = void Function(
+  ReduxAction<St> action, {
+  bool notify,
+});
 
-typedef DispatchFuture<St> = Future<void> Function(ReduxAction<St> action, {bool notify});
+typedef DispatchFuture<St> = Future<void> Function(
+  ReduxAction<St> action, {
+  bool notify,
+});
 
 typedef TestInfoPrinter = void Function(TestInfo);
 
@@ -47,14 +53,17 @@ class TestInfo<St> {
     // NavigateAction and PersistAction.
     // For example UserExceptionAction<AppState> becomes UserExceptionAction<dynamic>.
     if (action is UserExceptionAction) {
-      if (action.runtimeType.toString().split('<')[0] == 'UserExceptionAction')
+      if (action.runtimeType.toString().split('<')[0] == 'UserExceptionAction') //
         return UserExceptionAction;
     } else if (action is WaitAction) {
-      if (action.runtimeType.toString().split('<')[0] == 'WaitAction') return WaitAction;
+      if (action.runtimeType.toString().split('<')[0] == 'WaitAction') //
+        return WaitAction;
     } else if (action is NavigateAction) {
-      if (action.runtimeType.toString().split('<')[0] == 'NavigateAction') return NavigateAction;
+      if (action.runtimeType.toString().split('<')[0] == 'NavigateAction') //
+        return NavigateAction;
     } else if (action is PersistAction) {
-      if (action.runtimeType.toString().split('<')[0] == 'PersistAction') return PersistAction;
+      if (action.runtimeType.toString().split('<')[0] == 'PersistAction') //
+        return PersistAction;
     }
 
     return action.runtimeType;
@@ -72,7 +81,9 @@ class TestInfo<St> {
   ) : assert(state != null);
 
   @override
-  String toString() => 'D:$dispatchCount R:$reduceCount = $action ${ini ? "INI" : "END"}\n';
+  String toString() => 'D:$dispatchCount '
+      'R:$reduceCount '
+      '= $action ${ini ? "INI" : "END"}\n';
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -89,11 +100,19 @@ class TestInfo<St> {
 ///
 class DevelopmentErrorObserver<St> implements ErrorObserver<St> {
   @override
-  bool observe(Object error, StackTrace stackTrace, ReduxAction<St> action, Store store) {
+  bool observe(
+    Object error,
+    StackTrace stackTrace,
+    ReduxAction<St> action,
+    Store store,
+  ) {
     if (error is UserException)
       return false;
     else {
-      UserException errorAsUserException = UserException(error.toString(), cause: error);
+      UserException errorAsUserException = UserException(
+        error.toString(),
+        cause: error,
+      );
       store._addError(errorAsUserException);
       store._changeController.add(store.state);
       return true;
@@ -107,7 +126,12 @@ class DevelopmentErrorObserver<St> implements ErrorObserver<St> {
 ///
 class SwallowErrorObserver<St> implements ErrorObserver<St> {
   @override
-  bool observe(Object error, StackTrace stackTrace, ReduxAction<St> action, Store store) {
+  bool observe(
+    Object error,
+    StackTrace stackTrace,
+    ReduxAction<St> action,
+    Store store,
+  ) {
     return false;
   }
 }
@@ -152,13 +176,15 @@ class DefaultModelObserver<Model> implements ModelObserver<Model> {
     _previous = modelPrevious;
     _current = modelCurrent;
 
-    var shouldObserve = (_storeConnectorTypes == null || _storeConnectorTypes.isEmpty) ||
+    var shouldObserve = (_storeConnectorTypes == null || //
+            _storeConnectorTypes.isEmpty) ||
         _storeConnectorTypes.contains(storeConnector.debug?.runtimeType);
 
     if (shouldObserve)
       print("Model D:$dispatchCount R:$reduceCount = "
           "Rebuild:${isDistinct == null || isDistinct}, "
-          "${storeConnector.debug == null ? "" : "Connector:${storeConnector.debug.runtimeType}"}, "
+          "${storeConnector.debug == null ? "" : //
+              "Connector:${storeConnector.debug.runtimeType}"}, "
           "Model:$modelCurrent.");
   }
 }
@@ -235,7 +261,10 @@ class Store<St> {
         _changeController = StreamController.broadcast(sync: syncStream),
         _actionObservers = actionObservers,
         _stateObservers = stateObservers,
-        _processPersistence = persistor == null ? null : ProcessPersistence(persistor),
+        _processPersistence = persistor == null
+            ? //
+            null
+            : ProcessPersistence(persistor),
         _modelObserver = modelObserver,
         _errorObserver = errorObserver,
         _wrapError = wrapError,
@@ -245,8 +274,10 @@ class Store<St> {
         _reduceCount = 0,
         _shutdown = false,
         _testInfoPrinter = testInfoPrinter,
-        _testInfoController =
-            (testInfoPrinter == null) ? null : StreamController.broadcast(sync: syncStream);
+        _testInfoController = (testInfoPrinter == null)
+            ? //
+            null
+            : StreamController.broadcast(sync: syncStream);
 
   St _state;
 
@@ -322,8 +353,10 @@ class Store<St> {
   Stream<St> get onChange => _changeController.stream;
 
   /// Used by the storeTester.
-  Stream<TestInfo<St>> get onReduce =>
-      (_testInfoController != null) ? _testInfoController.stream : Stream<TestInfo<St>>.empty();
+  Stream<TestInfo<St>> get onReduce => (_testInfoController != null)
+      ? //
+      _testInfoController.stream
+      : Stream<TestInfo<St>>.empty();
 
   /// Beware: Changes the state directly. Use only for TESTS.
   void defineState(St state) {
@@ -334,7 +367,10 @@ class Store<St> {
   /// Returns a future which will complete when the given [condition] is true.
   /// The condition can access the state. You may also provide a
   /// [timeoutInSeconds], which by default is null (never times out).
-  Future<void> waitCondition(bool Function(St) condition, {int timeoutInSeconds}) async {
+  Future<void> waitCondition(
+    bool Function(St) condition, {
+    int timeoutInSeconds,
+  }) async {
     var conditionTester = StoreTester.simple(this);
     try {
       await conditionTester.waitCondition(
@@ -350,7 +386,10 @@ class Store<St> {
   void _addError(UserException error) => _errors.addLast(error);
 
   /// Gets the first error from the error queue, and removes it from the queue.
-  UserException getAndRemoveFirstError() => (_errors.isEmpty) ? null : _errors.removeFirst();
+  UserException getAndRemoveFirstError() => (_errors.isEmpty)
+      ? //
+      null
+      : _errors.removeFirst();
 
   /// Call this method to shut down the store.
   /// It won't accept dispatches or change the state anymore.
@@ -380,7 +419,10 @@ class Store<St> {
     _processAction(action, notify: notify);
   }
 
-  Future<void> dispatchFuture(ReduxAction<St> action, {bool notify = true}) async {
+  Future<void> dispatchFuture(
+    ReduxAction<St> action, {
+    bool notify = true,
+  }) async {
     assert(action != null);
 
     // The action may access the store/state/dispatch as fields.
@@ -411,7 +453,15 @@ class Store<St> {
 
     if (_testInfoController != null || testInfoPrinter != null) {
       var reduceInfo = TestInfo<St>(
-          state, ini, action, error, processedError, dispatchCount, reduceCount, errors);
+        state,
+        ini,
+        action,
+        error,
+        processedError,
+        dispatchCount,
+        reduceCount,
+        errors,
+      );
       if (_testInfoController != null) _testInfoController.add(reduceInfo);
       if (testInfoPrinter != null) testInfoPrinter(reduceInfo);
     }
@@ -422,7 +472,10 @@ class Store<St> {
   /// We check the return type of methods `before` and `reduce` to decide if the
   /// reducer is synchronous or asynchronous. It's important to run the reducer
   /// synchronously, if possible.
-  Future<void> _processAction(ReduxAction<St> action, {bool notify = true}) async {
+  Future<void> _processAction(
+    ReduxAction<St> action, {
+    bool notify = true,
+  }) async {
     //
     // Creates the "INI" test snapshot.
     createTestInfoSnapshot(state, action, null, null, ini: true);
@@ -473,7 +526,11 @@ class Store<St> {
     var result = action.wrapReduce(action.reduce)();
 
     if (result is Future<St>) {
-      return result.then((state) => _registerState(state, action, notify: notify));
+      return result.then((state) => _registerState(
+            state,
+            action,
+            notify: notify,
+          ));
     } else if (result is St || result == null) {
       _registerState(result, action, notify: notify);
     } else
@@ -483,7 +540,11 @@ class Store<St> {
   /// Adds the state to the changeController, but only if the `reduce` method
   /// did not returned null, and if it did not return the same identical state.
   /// Note: We compare the state using `identical` (which is fast).
-  void _registerState(St state, ReduxAction<St> action, {bool notify = true}) {
+  void _registerState(
+    St state,
+    ReduxAction<St> action, {
+    bool notify = true,
+  }) {
     if (_shutdown) return;
 
     St stateIni = _state;
@@ -505,17 +566,27 @@ class Store<St> {
         observer.observe(action, stateIni, stateEnd, dispatchCount);
       }
 
-    if (_processPersistence != null) _processPersistence.process(action, stateEnd);
+    if (_processPersistence != null)
+      _processPersistence.process(
+        action,
+        stateEnd,
+      );
   }
 
   /// Returns the processed error. Returns `null` if the error is meant to be "swallowed".
-  dynamic _processError(error, stackTrace, ReduxAction<St> action, _Flag<bool> afterWasRun) {
+  dynamic _processError(
+    error,
+    stackTrace,
+    ReduxAction<St> action,
+    _Flag<bool> afterWasRun,
+  ) {
     try {
       error = action.wrapError(error);
     } catch (_error) {
       // Swallows any errors thrown by the action's wrapError.
       // WrapError should never throw. It should return an error.
-      print("Method '${action.runtimeType}.wrapError()' has thrown an error: '$_error'.");
+      print("Method '${action.runtimeType}.wrapError()' "
+          "has thrown an error: '$_error'.");
     }
 
     if (_wrapError != null) {
@@ -545,7 +616,8 @@ class Store<St> {
     // If an errorObserver was defined, observe the error.
     // Then, if the observer returns true, return the error to be thrown.
     else {
-      if (_errorObserver.observe(error, stackTrace, action, this)) return error;
+      if (_errorObserver.observe(error, stackTrace, action, this)) //
+        return error;
     }
 
     return null;
@@ -575,7 +647,8 @@ class Store<St> {
     } catch (error) {
       // Swallows any errors thrown by the [after] method.
       // After should never throw.
-      print("Method '${action.runtimeType}.after()' has thrown an error: '$error'.");
+      print("Method '${action.runtimeType}.after()' "
+          "has thrown an error: '$error'.");
     }
   }
 
@@ -710,11 +783,20 @@ abstract class ReduxAction<St> {
 abstract class ActionObserver<St> {
   /// If `ini==true` this is right before the action is dispatched.
   /// If `ini==false` this is right after the action finishes.
-  void observe(ReduxAction<St> action, int dispatchCount, {@required bool ini});
+  void observe(
+    ReduxAction<St> action,
+    int dispatchCount, {
+    @required bool ini,
+  });
 }
 
 abstract class StateObserver<St> {
-  void observe(ReduxAction<St> action, St stateIni, St stateEnd, int dispatchCount);
+  void observe(
+    ReduxAction<St> action,
+    St stateIni,
+    St stateEnd,
+    int dispatchCount,
+  );
 }
 
 /// This will be given all errors, including those of type [UserException].
@@ -808,7 +890,8 @@ abstract class BaseModel<St> {
   static bool _onlyContainFieldsOfAllowedTypes(List equals) {
     equals.forEach((Object field) {
       if (field is Function)
-        throw StoreException("ViewModel equals has an invalid field of type ${field.runtimeType}.");
+        throw StoreException("ViewModel equals "
+            "has an invalid field of type ${field.runtimeType}.");
     });
 
     return true;
@@ -824,7 +907,12 @@ abstract class BaseModel<St> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is BaseModel && runtimeType == other.runtimeType && listEquals(equals, other.equals);
+      other is BaseModel &&
+          runtimeType == other.runtimeType &&
+          listEquals(
+            equals,
+            other.equals,
+          );
 
   @override
   int get hashCode => runtimeType.hashCode ^ _propsHashCode;
@@ -848,7 +936,8 @@ abstract class BaseModel<St> {
 
   DispatchFuture<St> get dispatchFuture => _dispatchFuture;
 
-  UserException Function() get getAndRemoveFirstError => _getAndRemoveFirstError;
+  UserException Function() get getAndRemoveFirstError => //
+      _getAndRemoveFirstError;
 
   @override
   String toString() => '$runtimeType{${equals.join(', ')}}';
@@ -875,30 +964,43 @@ class StoreProvider<St> extends InheritedWidget {
     final StoreProvider<St> provider =
         context.dependOnInheritedWidgetOfExactType<StoreProvider<St>>();
 
-    if (provider == null) throw StoreConnectorError(_typeOf<StoreProvider<St>>(), debug);
+    if (provider == null)
+      throw StoreConnectorError(
+        _typeOf<StoreProvider<St>>(),
+        debug,
+      );
 
     return provider._store;
   }
 
   /// Dispatch an action without a StoreConnector.
-  static void dispatch<St>(BuildContext context, ReduxAction<St> action, {Object debug}) {
+  static void dispatch<St>(
+    BuildContext context,
+    ReduxAction<St> action, {
+    Object debug,
+  }) {
     of<St>(context, debug).dispatch(action);
   }
 
   /// Dispatch an action without a StoreConnector,
   /// and get a `Future<void>` which completes when the action is done.
-  static Future<void> dispatchFuture<St>(BuildContext context, ReduxAction<St> action,
-          {Object debug}) async =>
+  static Future<void> dispatchFuture<St>(
+    BuildContext context,
+    ReduxAction<St> action, {
+    Object debug,
+  }) async =>
       of<St>(context, debug).dispatchFuture(action);
 
   /// Get the state, without a StoreConnector.
-  static St state<St>(BuildContext context, {Object debug}) => of<St>(context, debug).state;
+  static St state<St>(BuildContext context, {Object debug}) => //
+      of<St>(context, debug).state;
 
   /// Workaround to capture generics.
   static Type _typeOf<T>() => T;
 
   @override
-  bool updateShouldNotify(StoreProvider<St> oldWidget) => _store != oldWidget._store;
+  bool updateShouldNotify(StoreProvider<St> oldWidget) => //
+      _store != oldWidget._store;
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -907,7 +1009,10 @@ typedef Reducer<St> = FutureOr<St> Function();
 
 /// Build a Widget using the [BuildContext] and [Model].
 /// The [Model] is derived from the [Store] using a [StoreConverter].
-typedef ViewModelBuilder<Model> = Widget Function(BuildContext context, Model vm);
+typedef ViewModelBuilder<Model> = Widget Function(
+  BuildContext context,
+  Model vm,
+);
 
 /// Convert the entire [Store] into a [Model]. The [Model] will
 /// be used to build a Widget using the [ViewModelBuilder].
@@ -1140,7 +1245,8 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
 
 // /////////////////////////////////////////////////////////////////////////////
 
-class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St, Model>> {
+class _StoreStreamListenerState<St, Model> //
+    extends State<_StoreStreamListener<St, Model>> {
   Stream<Model> stream;
   Model modelPrevious;
 
@@ -1192,7 +1298,9 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
 
     // If `widget.distinct` was passed, use it.
     // Otherwise, use the store default `store._distinct`.
-    bool distinct = (widget.distinct != null) ? widget.distinct : widget.store._defaultDistinct;
+    bool distinct = (widget.distinct != null) //
+        ? widget.distinct
+        : widget.store._defaultDistinct;
 
     // Don't use `Stream.distinct` since it can't capture the initial vm produced by the `converter`.
     if (distinct == true) {
@@ -1212,7 +1320,10 @@ class _StoreStreamListenerState<St, Model> extends State<_StoreStreamListener<St
     // After each Model is emitted from the Stream, we update the
     // latestValue. Important: This must be done after all other optional
     // transformations, such as shouldUpdateModel.
-    stream = stream.transform(StreamTransformer.fromHandlers(handleData: (modelCurrent, sink) {
+    stream = stream.transform(StreamTransformer.fromHandlers(handleData: (
+      modelCurrent,
+      sink,
+    ) {
       //
       if (distinct == false)
         _observeWithTheModelObserver(
@@ -1361,7 +1472,9 @@ class Log<St> implements ActionObserver<St> {
     MessageFormatter<St> formatter = singleLineFormatter,
   }) {
     final log = Log(logger: logger, level: level, formatter: formatter);
-    log.logger.onRecord.where((record) => record.loggerName == log.logger.name).listen(print);
+    log.logger.onRecord //
+        .where((record) => record.loggerName == log.logger.name)
+        .listen(print);
     return log;
   }
 
@@ -1403,7 +1516,10 @@ class Log<St> implements ActionObserver<St> {
 
   @override
   void observe(ReduxAction<St> action, int dispatchCount, {bool ini}) {
-    logger.log(level, formatter(null, action, ini, dispatchCount, new DateTime.now()));
+    logger.log(
+      level,
+      formatter(null, action, ini, dispatchCount, new DateTime.now()),
+    );
   }
 }
 
@@ -1456,7 +1572,9 @@ class StoreException implements Exception {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is StoreException && runtimeType == other.runtimeType && msg == other.msg;
+      other is StoreException && //
+          runtimeType == other.runtimeType &&
+          msg == other.msg;
 
   @override
   int get hashCode => msg.hashCode;
