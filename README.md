@@ -3,6 +3,8 @@
 
 # async_redux
 
+_**Note: Async Redux supports the web platform, even though it doesn't show the WEB tag in pub dev.**_
+
 **Async Redux** is a special version of Redux which:
 
 1. Is easy to learn
@@ -2284,8 +2286,16 @@ Have a look at the: <a href="https://github.com/marcglasberg/async_redux/blob/ma
 You can choose any way you want to save the state difference to the local disk,
 but one way is using the provided `LocalPersist` class,
 which is very easy to use.
+
+Note: At the moment it only works for Android/iOS, not for the web.
  
-First you need to convert yourself your objects to a list of **simple objects** 
+First, import it:
+
+```dart 
+import 'package:async_redux/local_persist.dart';
+```
+ 
+You need to convert yourself your objects to a list of **simple objects** 
 composed only of numbers, booleans, strings, lists and maps (you can nest lists and maps).    
 
 For example, this is a list of simple objects:
