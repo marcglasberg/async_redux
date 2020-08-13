@@ -1,4 +1,8 @@
-## [3.0.2] - 2020/08/11
+## [3.0.4] - 2020/08/13
+
+* Fix: withoutHardCause was removing the code field.
+
+## [3.0.3] - 2020/08/11
 
 * cache3.
 * LocalPersist is exported separately.

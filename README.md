@@ -3,8 +3,6 @@
 
 # async_redux
 
-_**Note: Async Redux supports the web platform, even though it doesn't show the WEB tag in pub dev.**_
-
 **Async Redux** is a special version of Redux which:
 
 1. Is easy to learn

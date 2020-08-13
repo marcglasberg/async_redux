@@ -80,6 +80,7 @@ class UserException implements Exception {
             ? //
             (cause as UserException).withoutHardCause()
             : null,
+        code: code,
       );
 
   String dialogTitle([Locale locale]) => //

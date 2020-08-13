@@ -272,21 +272,36 @@ void main() {
   test('UserException.pure() removes cause which is not UserException', () {
     //
     // No cause.
-    const exception1 = UserException("msg1");
+    const exception1 = UserException(
+      "msg1",
+      code: UserExceptionCode.errorInName,
+    );
     expect(exception1.withoutHardCause(), exception1);
 
     // All causes are UserExceptions.
-    const exception2 = const UserException("msg2", cause: exception1);
+    const exception2 = UserException(
+      "msg2",
+      cause: exception1,
+      code: UserExceptionCode.errorInName,
+    );
     expect(exception2.withoutHardCause(), exception2);
 
     // Some cause is not UserExceptions, so it's cut.
-    var exception3 = UserException("msg1", cause: AssertionError());
+    var exception3 = UserException(
+      "msg1",
+      cause: AssertionError(),
+      code: UserExceptionCode.errorInName,
+    );
     expect(exception3, isNot(exception1));
     expect(exception3.withoutHardCause(), isNot(exception3));
     expect(exception3.withoutHardCause(), exception1);
 
     // Some cause is not UserExceptions, so it's cut.
-    var exception4 = UserException("msg2", cause: UserException("msg1", cause: AssertionError()));
+    var exception4 = UserException(
+      "msg2",
+      cause: UserException("msg1", cause: AssertionError(), code: UserExceptionCode.errorInName),
+      code: UserExceptionCode.errorInName,
+    );
     expect(exception4, isNot(exception1));
     expect(exception4, isNot(exception2));
     expect(exception4.withoutHardCause(), exception2);
