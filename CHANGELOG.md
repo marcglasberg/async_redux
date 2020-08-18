@@ -1,3 +1,7 @@
+## [3.0.5] - 2020/08/18
+
+* Action.after() will now throw the error asynchronously (instead of swallowing it).
+
 ## [3.0.4] - 2020/08/13
 
 * Fix: withoutHardCause was removing the code field.

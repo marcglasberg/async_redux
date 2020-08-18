@@ -51,6 +51,7 @@ void main() {
   var localePt = const Locale('pt', 'BR');
 
   ///////////////////////////////////////////////////////////////////////////////
+
   test('Get title and content from UserException.', () {
     // UserException with no given cause.
     var exception = const UserException("Some msg");

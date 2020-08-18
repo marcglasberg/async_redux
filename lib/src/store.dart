@@ -640,16 +640,31 @@ class Store<St> {
       }
   }
 
-  Future<void> _after(ReduxAction<St> action) async {
+  void _after(ReduxAction<St> action) {
     try {
       action.after();
       action._status._isAfterDone = true;
     } catch (error) {
-      // Swallows any errors thrown by the [after] method.
       // After should never throw.
+      // However, if it does:
+
+      // 1) Prints this information to the console,
       print("Method '${action.runtimeType}.after()' "
           "has thrown an error: '$error'.");
+
+      // 2) Throws the error after an asynchronous gap.
+      // Note: Loses stacktrace due to Dart architecture.
+      // See: https://groups.google.com/a/dartlang.org/forum/#!topic/misc/O1OKnYTUcoo
+      // See: https://github.com/dart-lang/sdk/issues/10297
+      // This should be fixed when this issue is solved: https://github.com/dart-lang/sdk/issues/30741
+      _throws(error);
     }
+  }
+
+  void _throws(error) {
+    Future(() {
+      throw error;
+    });
   }
 
   /// Closes down the store so it will no longer be operational.
