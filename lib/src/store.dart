@@ -53,7 +53,8 @@ class TestInfo<St> {
     // NavigateAction and PersistAction.
     // For example UserExceptionAction<AppState> becomes UserExceptionAction<dynamic>.
     if (action is UserExceptionAction) {
-      if (action.runtimeType.toString().split('<')[0] == 'UserExceptionAction') //
+      if (action.runtimeType.toString().split('<')[0] ==
+          'UserExceptionAction') //
         return UserExceptionAction;
     } else if (action is WaitAction) {
       if (action.runtimeType.toString().split('<')[0] == 'WaitAction') //
@@ -872,6 +873,7 @@ abstract class ModelObserver<Model> {
 
 // /////////////////////////////////////////////////////////////////////////////
 
+/// Don't use, this is deprecated. Please, use the recommended [Vm] class.
 /// This should only be used for IMMUTABLE classes.
 /// Lets you implement equals/hashcode without having to override these methods.
 abstract class BaseModel<St> {
@@ -941,6 +943,144 @@ abstract class BaseModel<St> {
 
   @override
   String toString() => '$runtimeType{${equals.join(', ')}}';
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+
+/// [Vm] is a base class for your view-models.
+///
+/// A view-model is a helper object to a [StoreConnector] widget. It holds the
+/// part of the Store state the corresponding dumb-widget needs, and may also
+/// convert this state part into a more convenient format for the dumb-widget
+/// to work with.
+///
+/// Each time the state changes, all [StoreConnector]s in the widget tree will
+/// create a view-model, and compare it with the view-model they created with
+/// the previous state. Only if the view-model changed, the [StoreConnector]
+/// will rebuild. For this to work, you must implement equals/hashcode for the
+/// view-model class. Otherwise, the [StoreConnector] will think the view-model
+/// changed everytime, and thus will rebuild everytime. This won't create any
+/// visible problems to your app, but is inefficient and may be slow.
+///
+/// Using the [Vm] class you can implement equals/hashcode without having to
+/// override these methods. Instead, simply list all fields (which are not
+/// immutable, like functions) to the [equals] parameter in the constructor.
+/// For example:
+///
+/// ```
+/// ViewModel({this.counter, this.onIncrement}) : super(equals: [counter]);
+/// ```
+///
+@immutable
+abstract class Vm {
+  /// The List of properties which will be used to determine whether two BaseModels are equal.
+  final List<Object> equals;
+
+  /// The constructor takes an optional List of fields which will be used
+  /// to determine whether two [BaseModel] are equal.
+  Vm({this.equals = const []})
+      : assert(_onlyContainFieldsOfAllowedTypes(equals));
+
+  /// Fields should not contain functions.
+  static bool _onlyContainFieldsOfAllowedTypes(List equals) {
+    equals.forEach((Object field) {
+      if (field is Function)
+        throw StoreException("ViewModel equals "
+            "has an invalid field of type ${field.runtimeType}.");
+    });
+
+    return true;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BaseModel &&
+          runtimeType == other.runtimeType &&
+          listEquals(
+            equals,
+            other.equals,
+          );
+
+  @override
+  int get hashCode => runtimeType.hashCode ^ _propsHashCode;
+
+  int get _propsHashCode {
+    int hashCode = 0;
+    equals.forEach((Object prop) => hashCode = hashCode ^ prop.hashCode);
+    return hashCode;
+  }
+
+  @override
+  String toString() => '$runtimeType{${equals.join(', ')}}';
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+
+/// Factory that creates a view-model of type [Vm], for the [StoreConnector]:
+///
+/// ```
+/// return StoreConnector<AppState, _ViewModel>(
+///      vm: _Factory(),
+///      builder: ...
+/// ```
+///
+/// You must override the [fromStore] method:
+///
+/// ```
+/// class _Factory extends VmFactory {
+///    _ViewModel fromStore() => _ViewModel(
+///        counter: state,
+///        onIncrement: () => dispatch(IncrementAction(amount: 1)));
+/// }
+/// ```
+///
+/// If necessary, you can pass the [StoreConnector] widget to the factory:
+///
+/// ```
+/// return StoreConnector<AppState, _ViewModel>(
+///      vm: _Factory(this),
+///      builder: ...
+///
+/// ...
+/// class _Factory extends VmFactory<AppState, MyHomePageConnector> {
+///    _Factory(widget) : super(widget);
+///    _ViewModel fromStore() => _ViewModel(
+///        counter: state,
+///        onIncrement: () => dispatch(IncrementAction(amount: widget.amount)));
+/// }
+/// ```
+///
+abstract class VmFactory<St, T> {
+  /// You can pass the connector widget, in case the view-model needs any info from it.
+  final T widget;
+
+  /// The constructor takes an optional List of fields which will be used
+  /// to determine whether two [BaseModel] are equal.
+  VmFactory([this.widget]);
+
+  Vm fromStore();
+
+  void _setStore(Store store) {
+    _state = store.state;
+    _dispatch = store.dispatch;
+    _dispatchFuture = store.dispatchFuture;
+    _getAndRemoveFirstError = store.getAndRemoveFirstError;
+  }
+
+  St _state;
+  Dispatch<St> _dispatch;
+  DispatchFuture<St> _dispatchFuture;
+  UserException Function() _getAndRemoveFirstError;
+
+  St get state => _state;
+
+  Dispatch<St> get dispatch => _dispatch;
+
+  DispatchFuture<St> get dispatchFuture => _dispatchFuture;
+
+  UserException Function() get getAndRemoveFirstError => //
+      _getAndRemoveFirstError;
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -1028,17 +1168,17 @@ typedef OnInitCallback<St> = void Function(Store<St> store);
 /// This can be useful for dispatching actions that remove stale data from your State tree.
 typedef OnDisposeCallback<St> = void Function(Store<St> store);
 
-/// A test of whether or not your `converter` function should run in response
-/// to a State change. For advanced use only.
+/// A test of whether or not your `converter` or `vm` function should run in
+/// response to a State change. For advanced use only.
 /// Some changes to the State of your application will mean your `converter`
-/// function can't produce a useful Model. In these cases, such as when
+/// or `vm` function can't produce a useful Model. In these cases, such as when
 /// performing exit animations on data that has been removed from your Store,
 /// it can be best to ignore the State change while your animation completes.
 /// To ignore a change, provide a function that returns true or false. If the
 /// returned value is false, the change will be ignored.
 /// If you ignore a change, and the framework needs to rebuild the Widget, the
 /// `builder` function will be called with the latest Model produced
-/// by your `converter` or `model` functions.
+/// by your `converter` or `vm` functions.
 typedef ShouldUpdateModel<St> = bool Function(St state);
 
 /// A function that will be run on state change, before the build method.
@@ -1082,14 +1222,21 @@ class StoreConnector<St, Model> extends StatelessWidget {
 
   /// Convert the [Store] into a [Model]. The resulting [Model] will be
   /// passed to the [builder] function.
+  final VmFactory vm;
+
+  /// Convert the [Store] into a [Model]. The resulting [Model] will be
+  /// passed to the [builder] function.
   final StoreConverter<St, Model> converter;
 
+  /// Don't use, this is deprecated. Please, use the recommended
+  /// `vm` parameter (of type [VmFactory]) or `converter`.
+  /// Convert the [Store] into a [Model]. The resulting [Model] will be
+  /// passed to the [builder] function.
   final BaseModel model;
 
-  /// As a performance optimization, the Widget can be rebuilt only when the
-  /// [Model] changes. In order for this to work correctly, you must
-  /// implement [==] and [hashCode] for the [Model], and set the [distinct]
-  /// option to true when creating your StoreConnector.
+  /// When [distinct] is true (the default), the Widget is rebuilt only
+  /// when the [Model] changes. In order for this to work correctly, you
+  /// must implement [==] and [hashCode] for the [Model].
   final bool distinct;
 
   /// A function that will be run when the StoreConnector is initially created.
@@ -1136,9 +1283,9 @@ class StoreConnector<St, Model> extends StatelessWidget {
   final OnDidChangeCallback<Model> onDidChange;
 
   /// A function that will be run after the Widget is built the first time.
-  /// This function is passed the initial `Model` created by the [converter] function.
-  /// This can be useful for starting certain animations, such as showing
-  /// Snackbars, after the Widget is built the first time.
+  /// This function is passed the initial `Model` created by the `converter`
+  /// or `vm` function. This can be useful for starting certain animations,
+  /// such as showing snackbars, after the Widget is built the first time.
   final OnInitialBuildCallback<Model> onInitialBuild;
 
   /// Pass the parameter `debug: this` to get a more detailed error message.
@@ -1148,8 +1295,9 @@ class StoreConnector<St, Model> extends StatelessWidget {
     Key key,
     @required this.builder,
     this.distinct,
-    this.converter,
-    this.model,
+    this.vm, // Recommended.
+    this.converter, // Can be used instead of `vm`.
+    this.model, // Deprecated.
     this.debug,
     this.onInit,
     this.onDispose,
@@ -1159,8 +1307,14 @@ class StoreConnector<St, Model> extends StatelessWidget {
     this.onDidChange,
     this.onInitialBuild,
   })  : assert(builder != null),
-        assert(converter != null || model != null),
-        assert(converter == null || model == null),
+        assert(converter != null || vm != null || model != null,
+            "You should provide the `converter` or the `vm` parameter."),
+        assert(converter == null || vm == null,
+            "You can't provide both the `converter` and the `vm` parameters."),
+        assert(converter == null || model == null,
+            "You can't provide both the `converter` and the `model` parameters."),
+        assert(vm == null || model == null,
+            "You can't provide both the `vm` and the `model` parameters."),
         super(key: key);
 
   @override
@@ -1170,6 +1324,7 @@ class StoreConnector<St, Model> extends StatelessWidget {
       storeConnector: this,
       builder: builder,
       converter: converter,
+      vm: vm,
       model: model,
       distinct: distinct,
       onInit: onInit,
@@ -1185,16 +1340,18 @@ class StoreConnector<St, Model> extends StatelessWidget {
   /// This is not used directly by the store, but may be used in tests.
   /// If you have a store and a StoreConnector, and you want its associated
   /// ViewModel, you can do:
-  ///
-  /// `BaseModel viewModel = storeConnector.getLatestValue(store);`
+  /// `Model viewModel = storeConnector.getLatestValue(store);`
   ///
   /// And if you want to build the widget:
-  ///
   /// `var widget = (storeConnector as dynamic).builder(context, viewModel);`
+  ///
   Model getLatestValue(Store store) {
     if (converter != null)
       return converter(store);
-    else if (model != null) {
+    else if (vm != null) {
+      vm._setStore(store);
+      return vm.fromStore() as Model;
+    } else if (model != null) {
       model._setStore(store);
       return model.fromStore() as Model;
     } else
@@ -1208,7 +1365,8 @@ class StoreConnector<St, Model> extends StatelessWidget {
 class _StoreStreamListener<St, Model> extends StatefulWidget {
   final ViewModelBuilder<Model> builder;
   final StoreConverter<St, Model> converter;
-  final BaseModel model;
+  final VmFactory vm;
+  final BaseModel model; // Deprecated.
   final Store<St> store;
   final StoreConnector storeConnector;
   final bool rebuildOnChange;
@@ -1225,7 +1383,8 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
     @required this.builder,
     @required this.store,
     @required this.converter,
-    @required this.model,
+    @required this.vm,
+    @required this.model, // Deprecated.
     @required this.storeConnector,
     this.distinct,
     this.onInit,
@@ -1373,13 +1532,16 @@ class _StoreStreamListenerState<St, Model> //
     }
   }
 
-  /// The StoreConnector needs the converter or model parameter (only one of them):
+  /// The StoreConnector needs the converter or vm parameter (only one of them):
   /// 1) Converter gets a store.
-  /// 2) Model gets state and dispatch, so it's easier to use.
+  /// 2) Vm gets `state` and `dispatch`, so it's easier to use.
   Model getLatestValue() {
     if (widget.converter != null)
       return widget.converter(widget.store);
-    else if (widget.model != null) {
+    else if (widget.vm != null) {
+      widget.vm._setStore(widget.store);
+      return widget.vm.fromStore() as Model;
+    } else if (widget.model != null) {
       widget.model._setStore(widget.store);
       return widget.model.fromStore() as Model;
     } else

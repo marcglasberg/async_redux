@@ -96,14 +96,14 @@ class IncrementAction extends ReduxAction<AppState> {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-/// This widget connects the dumb-widget (`MyHomePage`) with the store.
+/// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
   MyHomePageConnector({Key key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ViewModel>(
-      model: ViewModel(),
+      vm: Factory(this),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         counter: vm.counter,
         description: vm.description,
@@ -113,27 +113,29 @@ class MyHomePageConnector extends StatelessWidget {
   }
 }
 
-/// Helper class to the connector widget. Holds the part of the State the widget needs,
-/// and may perform conversions to the type of data the widget can conveniently work with.
-class ViewModel extends BaseModel<AppState> {
-  ViewModel();
-
-  int counter;
-  String description;
-  VoidCallback onIncrement;
-
-  ViewModel.build({
-    @required this.counter,
-    @required this.description,
-    @required this.onIncrement,
-  }) : super(equals: [counter, description]);
+/// Factory that creates a view-model for the StoreConnector.
+class Factory extends VmFactory<AppState, MyHomePageConnector> {
+  Factory(widget) : super(widget);
 
   @override
-  ViewModel fromStore() => ViewModel.build(
+  ViewModel fromStore() => ViewModel(
         counter: state.counter,
         description: state.description,
         onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
       );
+}
+
+/// The view-model holds the part of the Store state the dumb-widget needs.
+class ViewModel extends Vm {
+  final int counter;
+  final String description;
+  final VoidCallback onIncrement;
+
+  ViewModel({
+    @required this.counter,
+    @required this.description,
+    @required this.onIncrement,
+  }) : super(equals: [counter, description]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -160,13 +162,15 @@ class MyHomePage extends StatelessWidget {
           children: [
             const Text('You have pushed the button this many times:'),
             Text('$counter', style: const TextStyle(fontSize: 30)),
-            Text(description, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
+            Text(description,
+                style: const TextStyle(fontSize: 15),
+                textAlign: TextAlign.center),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: onIncrement,
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     );
   }

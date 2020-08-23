@@ -10,11 +10,12 @@ import 'package:http/http.dart';
 Store<AppState> store;
 
 /// This example shows a text-field, and two buttons.
-/// When the first button is tapped, an async process downloads some text from the internet
-/// and puts it in the text-field.
+/// When the first button is tapped, an async process downloads
+/// some text from the internet and puts it in the text-field.
 /// When the second button is tapped, the text-field is cleared.
 ///
-/// This is meant to demonstrate the use of "events" to change a controller state.
+/// This is meant to demonstrate the use of "events" to change
+/// a controller state.
 ///
 /// It also demonstrates the use of an abstract class [BarrierAction]
 /// to override the action's before() and after() methods.
@@ -34,9 +35,18 @@ class AppState {
   final Event clearTextEvt;
   final Event<String> changeTextEvt;
 
-  AppState({this.counter, this.waiting, this.clearTextEvt, this.changeTextEvt});
+  AppState({
+    this.counter,
+    this.waiting,
+    this.clearTextEvt,
+    this.changeTextEvt,
+  });
 
-  AppState copy({int counter, bool waiting, Event clearTextEvt, Event<String> changeTextEvt}) =>
+  AppState copy(
+          {int counter,
+          bool waiting,
+          Event clearTextEvt,
+          Event<String> changeTextEvt}) =>
       AppState(
         counter: counter ?? this.counter,
         waiting: waiting ?? this.waiting,
@@ -120,14 +130,14 @@ class ChangeTextAction extends BarrierAction {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-/// This widget connects the dumb-widget (`MyHomePage`) with the store.
+/// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
   MyHomePageConnector({Key key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ViewModel>(
-      model: ViewModel(),
+      vm: Factory(this),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         waiting: vm.waiting,
         clearTextEvt: vm.clearTextEvt,
@@ -139,33 +149,35 @@ class MyHomePageConnector extends StatelessWidget {
   }
 }
 
-/// Helper class to the connector widget. Holds the part of the State the widget needs,
-/// and may perform conversions to the type of data the widget can conveniently work with.
-class ViewModel extends BaseModel<AppState> {
-  ViewModel();
-
-  bool waiting;
-  Event clearTextEvt;
-  Event<String> changeTextEvt;
-  VoidCallback onClear;
-  VoidCallback onChange;
-
-  ViewModel.build({
-    @required this.waiting,
-    @required this.clearTextEvt,
-    @required this.changeTextEvt,
-    @required this.onClear,
-    @required this.onChange,
-  }) : super(equals: [waiting, clearTextEvt, changeTextEvt]);
+/// Factory that creates a view-model for the StoreConnector.
+class Factory extends VmFactory<AppState, MyHomePageConnector> {
+  Factory(widget) : super(widget);
 
   @override
-  ViewModel fromStore() => ViewModel.build(
+  ViewModel fromStore() => ViewModel(
         waiting: state.waiting,
         clearTextEvt: state.clearTextEvt,
         changeTextEvt: state.changeTextEvt,
         onClear: () => dispatch(ClearTextAction()),
         onChange: () => dispatch(ChangeTextAction()),
       );
+}
+
+/// The view-model holds the part of the Store state the dumb-widget needs.
+class ViewModel extends Vm {
+  final bool waiting;
+  final Event clearTextEvt;
+  final Event<String> changeTextEvt;
+  final VoidCallback onClear;
+  final VoidCallback onChange;
+
+  ViewModel({
+    @required this.waiting,
+    @required this.clearTextEvt,
+    @required this.changeTextEvt,
+    @required this.onClear,
+    @required this.onChange,
+  }) : super(equals: [waiting, clearTextEvt, changeTextEvt]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -214,7 +226,8 @@ class _MyHomePageState extends State<MyHomePage> {
     String newText = widget.changeTextEvt.consume();
     if (newText != null)
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) controller.value = controller.value.copyWith(text: newText);
+        if (mounted)
+          controller.value = controller.value.copyWith(text: newText);
       });
   }
 
@@ -231,9 +244,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 const Text('This is a TextField. Click to edit it:'),
                 TextField(controller: controller),
                 const SizedBox(height: 20),
-                FloatingActionButton(onPressed: widget.onChange, child: const Text("Change")),
+                FloatingActionButton(
+                    onPressed: widget.onChange, child: const Text("Change")),
                 const SizedBox(height: 20),
-                FloatingActionButton(onPressed: widget.onClear, child: const Text("Clear")),
+                FloatingActionButton(
+                    onPressed: widget.onClear, child: const Text("Clear")),
               ],
             ),
           ),

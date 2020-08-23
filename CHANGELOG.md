@@ -1,3 +1,7 @@
+## [4.0.0] - 2020/08/23
+
+* Vm and VmFactory. BaseModel deprecated.
+
 ## [3.0.0] - 2020/07/27
 
 * Works for Web.

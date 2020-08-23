@@ -464,14 +464,25 @@ await dispatchFuture(MyAsyncAction2());
 
 ## Connector
 
-As usual, in Redux you generally have two widgets, one called the "dumb-widget", which knows nothing
-about Redux and the store, and another one to "wire" the store with that dumb-widget.
-Vanilla Redux calls these wiring widgets "containers", but we consider this bad since Flutter's most common widget is already called a `Container`.
-So we call them "connectors", and they do their magic by using a `StoreConnector` and a `ViewModel`.
+In Redux, you generally have two widgets, one called the "dumb-widget", 
+which knows nothing about Redux and the store, 
+and another one to "wire" the store with that dumb-widget.
 
-In other words, when your action reducers change the store state,
-it will trigger all `StoreConnector`s in the screen.
-They will check if their view-models changed, and if so, they will rebuild. 
+While Vanilla Redux traditionally calls these wiring widgets "containers", 
+Flutter's most common widget is already called a `Container`, which can be confusing.
+So I prefer calling them "connectors". 
+
+They do their magic by using a `StoreConnector` and a `ViewModel`.
+
+A view-model is a helper object to a `StoreConnector` widget. It holds the
+part of the Store state the corresponding dumb-widget needs, and may also
+convert this state part into a more convenient format for the dumb-widget
+to work with.
+
+In more detail: Each time some action reducer changes the store state,
+all `StoreConnector`s in the screen will use that state to create a new view-model, 
+and then compare it with the previous view-model created with the previous state.
+Only if the view-model changed, the connector rebuilds.
 
 For example:
 
@@ -480,51 +491,42 @@ class MyHomePageConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 	return StoreConnector<AppState, ViewModel>(
-	  model: ViewModel(),
+	  vm: Factory(this),
 	  builder: (BuildContext context, ViewModel vm) => MyHomePage(
 		counter: vm.counter,
 		description: vm.description,
 		onIncrement: vm.onIncrement,
 	  ));
-  }
+  }}
+
+class Factory extends VmFactory<AppState, MyHomePageConnector> {
+  Factory(widget) : super(widget);
+  @override
+  ViewModel fromStore() => ViewModel(
+      counter: state.counter,
+      description: state.description,
+      onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
+      );
 }
 
-// Helper class to the connector widget. Holds the part of the State the widget needs,
-// and may perform conversions to the type of data the widget can conveniently work with.
-class ViewModel extends BaseModel<AppState> {
-  ViewModel();
-
-  int counter;
-  String description;
-  VoidCallback onIncrement;
-
-  ViewModel.build({
-	@required this.counter,
-	@required this.description,
-	@required this.onIncrement,
+class ViewModel extends Vm {  
+  final int counter;
+  final String description;
+  final VoidCallback onIncrement;
+  ViewModel({
+       @required this.counter,
+       @required this.description,
+       @required this.onIncrement,
   }) : super(equals: [counter, description]);
-
-  @override
-  ViewModel fromStore() => ViewModel.build(
-		counter: state.counter,
-		description: state.description,
-		onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
-	  );
 }
 ```
 
-The `StoreConnector` has a `distinct` parameter.
-As a performance optimization, `distinct:true` allows the widget to be rebuilt only when the
-ViewModel changes. If this is not done, then the widget will be rebuilt every time any state
-in the store is changed.
+For the view-model comparison to work, your ViewModel class must implement equals/hashcode.
+Otherwise, the `StoreConnector` will think the view-model changes everytime,
+and thus will rebuild everytime. This won't create any visible problems
+to your app, but is inefficient and may be slow.
 
-This `distinct` parameter is `true` by default, but this can be changed when creating the store,
-by passing it `defaultDistinct:false`.
-
-If `distinct` is `true`, you must implement equals and hashcode for the `ViewModel`,
-otherwise there is no way to know if the ViewModel changed.
-
-This can be done in three ways:
+The equals/hashcode can be done in three ways:
 
 * By typing `ALT`+`INSERT` in IntelliJ IDEA and choosing `==() and hashcode`.
 You can't forget to update this whenever new parameters are added to the model.
@@ -532,12 +534,13 @@ You can't forget to update this whenever new parameters are added to the model.
 * You can use the <a href="https://pub.dev/packages/built_value">built_value</a> package
 to ensure they are kept correct, without you having to update them manually.
 
-* Just add all the fields you want to the `equals` parameter to the `ViewModel`'s `build` constructor.
+* Just add all the fields you want (which are not callbacks) to the `equals` parameter 
+to the `ViewModel`'s `build` constructor.
 This will allow the ViewModel to automatically create its own `operator ==` and `hashcode` implicitly.
 For example:
 
 ```dart
-ViewModel.build({
+ViewModel({
 	  @required this.field1,
 	  @required this.field2,
 }) : super(equals: [field1, field2]);
@@ -548,90 +551,112 @@ ViewModel.build({
 ### How to provide the ViewModel to the StoreConnector
 
 The `StoreConnector` actually accepts two parameters for the `ViewModel`, 
-of which one but **only one** should be provided in the `StoreConnector` constructor: 
-`model` or `converter`. 
+of which **only one** should be provided in the `StoreConnector` constructor: 
+`vm` or `converter`. 
 
-1. the `model` parameter 
+1. the `vm` parameter 
 
-   It expects a `ViewModel` that extends `BaseModel`.
-   This allows your model class to use the `equals` parameter, as already explained above, 
-   so that you don't need to implement `operator ==` and `hashcode` by hand.
+   The `vm` parameter expects a `Factory` object that extends `ViewModelFactory`.
+   This class should implement a method `fromStore` that returns a `ViewModel` that extends `Vm`:
+   
+   ```dart
+   @override
+     Widget build(BuildContext context) {
+       return StoreConnector<int, ViewModel>(
+         vm: Factory(),
+         builder: (BuildContext context, ViewModel vm) => MyWidget(...),
+       );
+     }
+   ```   
     
-   Also, AsyncRedux will automatically inject `state` and `dispatch` into your model instance, 
+   AsyncRedux will automatically inject `state` and `dispatch` into your model instance, 
    so that boilerplate is reduced in your `fromStore` method. For example:
    
-    ```dart
-    class ViewModel extends BaseModel<AppState> {
-       ViewModel();
-     
-       String name;
-       VoidCallback onSave;
-    
-       ViewModel.build({
-         @required this.name,
-         @required this.onSave,
-       }) : super(equals: [name]);
-    
-       @override
-       ViewModel fromStore() => ViewModel.build(
-           name: state.user.name,
-           onSave: () => dispatch(SaveUserAction()),
-       );
-    }
-    ```
+   ```dart
+   class Factory extends VmFactory<AppState, MyHomePageConnector> {           
+        @override
+        ViewModel fromStore() => ViewModel(
+            counter: state.counter,
+            description: state.description,
+            onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
+            );
+   }
+   ```      
+   
+   **Note:** If you need it, you may pass the connector widget to the factory's constructor, like this:
+   
+   ```dart    
+   vm: Factory(this),
+   
+   ...
+   
+   class Factory extends VmFactory<AppState, MyHomePageConnector> {
+      Factory(widget) : super(widget);
+   
+      @override
+         ViewModel fromStore() => ViewModel(
+             name: state.names[widget.user],             
+             );
+      }
+   ```
        
-   With this architecture you may also create separate methods for helping construct your model, 
+   The `vm` parameter's architecture lets you create separate methods for helping construct your model, 
    without having to pass the `store` around. For example:
 
-    ```dart
-    @override
-    ViewModel fromStore() => ViewModel.build(
-        name: _name(),
-        onSave: _onSave,
-    );
+   ```dart
+   @override
+   ViewModel fromStore() => ViewModel(
+       name: _name(),
+       onSave: _onSave,
+   );
     
-    String _name() => state.user.name;
+   String _name() => state.user.name;
     
-    VoidCallback _onSave: () => dispatch(SaveUserAction()),
-    ```
+   VoidCallback _onSave: () => dispatch(SaveUserAction()),
+   ```
            
-    Another idea is to subclass `BaseModel` to provide additional features to your model.
-    For example, you could add extra getters to help you access state:
+   Another idea is to subclass `Vm` to provide additional features to your model.
+   For example, you could add extra getters to help you access state:
     
-    ```dart
-    User user => state.user;
+    ```dart       
+    class BaseViewModel extends Vm {
+       User user => state.user;        
+    }
     
-    @override
-    ViewModel fromStore() => ViewModel.build(
-       name: user.name,
-       ...
-    );
+   class ViewModel extends BaseViewModel { 
+       @override
+       ViewModel fromStore() => ViewModel.build(
+          name: user.name,       
+       );                                    
+   }
     ```
         
    Most examples in the [example tab](https://pub.dartlang.org/packages/async_redux#-example-tab-) 
-   use the `model` parameter.
-   
-   **Important:** If you take some time to study how the `BaseModel` class works, 
-   you will notice that AsyncRedux will actually instantiate its corresponding view-model object twice. 
-   The first time, so that it can call the `fromStore()` method, 
-   to instantiate it a second time by using the `ViewModel.build()` constructor. 
-   This double instantiation can be confusing for beginners. 
-   I'd recommend that unless you really want to take the time to understand how `BaseModel` works,
-   you should instead use the `converter` parameter described below. 
-   The `converter` parameter has more boilerplate, 
-   but it's easier to understand and more difficult to use it wrong.     
+   use the `vm` parameter.
   
 
 2. The `converter` parameter 
 
-   This is the good old one from `flutter_redux`. 
+   If you are migrating from `flutter_redux` to `async_redux`, 
+   you can keep using `flutter_redux`'s good old `converter` parameter:
+   
+   ```dart
+   @override
+     Widget build(BuildContext context) {
+       return StoreConnector<int, ViewModel>(
+         converter: (store) => ViewModel.fromStore(store),
+         builder: (BuildContext context, ViewModel vm) => MyWidget(...),
+       );
+     }
+   ```
+      
    It expects a static factory function that gets a `store` and returns the `ViewModel`.
-   You probably should use this one if you are migrating from `flutter_redux`.
+   
 
     ```dart
     class ViewModel {
-       String name;
-       VoidCallback onSave;
+       final String name;
+       final VoidCallback onSave;
     
        ViewModel({
           @required this.name,
@@ -653,9 +678,32 @@ of which one but **only one** should be provided in the `StoreConnector` constru
        @override
        int get hashCode => name.hashCode;
     }
-    ```
+    ```                     
+   
+   However, the `converter` parameter can also make use of the `Vm` class 
+   to avoid having to create `operator ==` and `hashcode` manually: 
 
-   With this architecture it's a bit more difficult to create separate methods for helping construct your model: 
+    ```dart
+    class ViewModel extends Vm {
+       final String name;
+       final VoidCallback onSave;
+    
+       ViewModel({
+          @required this.name,
+          @required this.onSave,
+       }) : super(equals: [name]);
+    
+       static ViewModel fromStore(Store<AppState> store) {
+          return ViewModel(
+             name: store.state,
+             onSave: () => store.dispatch(IncrementAction(amount: 1)),
+          );
+       }    
+    }
+    ```                     
+
+   When using the `converter` parameter, 
+   it's a bit more difficult to create separate methods for helping construct your view-model: 
 
     ```dart
     static ViewModel fromStore(Store<AppState> store) {
@@ -675,7 +723,8 @@ of which one but **only one** should be provided in the `StoreConnector` constru
    To see the `converter` parameter in action, please run 
    <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_static_view_model.dart">this example</a>.    
 
-#### Does changing the state always trigger the StoreConnectors?
+
+#### Will a state change always trigger the StoreConnectors?
 
 Usually yes, but if you want you can order some action not to trigger the `StoreConnector`,
 by providing a `notify: false` when dispatching:

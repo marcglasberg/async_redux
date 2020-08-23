@@ -31,28 +31,31 @@ void main() {
 ///////////////////////////////////////////////////////////////////////////////
 
 class AppState {
-  final List<String> numTrivias;
+  final List<String> numTrivia;
   final bool isLoading;
 
-  AppState({this.numTrivias, this.isLoading});
+  AppState({this.numTrivia, this.isLoading});
 
-  AppState copy({List<String> numTrivias, bool isLoading}) => AppState(
-        numTrivias: numTrivias ?? this.numTrivias,
+  AppState copy({List<String> numTrivia, bool isLoading}) => AppState(
+        numTrivia: numTrivia ?? this.numTrivia,
         isLoading: isLoading ?? this.isLoading,
       );
 
-  static AppState initialState() => AppState(numTrivias: <String>[], isLoading: false);
+  static AppState initialState() => AppState(
+        numTrivia: <String>[],
+        isLoading: false,
+      );
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is AppState &&
           runtimeType == other.runtimeType &&
-          numTrivias == other.numTrivias &&
+          numTrivia == other.numTrivia &&
           isLoading == other.isLoading;
 
   @override
-  int get hashCode => numTrivias.hashCode ^ isLoading.hashCode;
+  int get hashCode => numTrivia.hashCode ^ isLoading.hashCode;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -72,12 +75,15 @@ class MyApp extends StatelessWidget {
 class LoadMoreAction extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    Response response = await get(
-        'http://numbersapi.com/${state.numTrivias.length}..${state.numTrivias.length + 19}');
-    List<String> list = state.numTrivias;
+    Response response = await get('http://numbersapi.com/'
+        '${state.numTrivia.length}'
+        '..'
+        '${state.numTrivia.length + 19}');
+
+    List<String> list = state.numTrivia;
     Map<String, dynamic> map = jsonDecode(response.body);
     map.forEach((String v, e) => list.add(e.toString()));
-    return state.copy(numTrivias: list);
+    return state.copy(numTrivia: list);
   }
 
   @override
@@ -94,7 +100,7 @@ class RefreshAction extends ReduxAction<AppState> {
     List<String> list = [];
     Map<String, dynamic> map = jsonDecode(response.body);
     map.forEach((String v, e) => list.add(e.toString()));
-    return state.copy(numTrivias: list);
+    return state.copy(numTrivia: list);
   }
 
   @override
@@ -122,10 +128,10 @@ class MyHomePageConnector extends StatelessWidget {
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ViewModel>(
       debug: this,
-      model: ViewModel(),
+      vm: Factory(this),
       onInit: (st) => st.dispatch(RefreshAction()),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
-        numTrivias: vm.numTrivias,
+        numTrivia: vm.numTrivia,
         isLoading: vm.isLoading,
         loadMore: vm.loadMore,
         onRefresh: vm.onRefresh,
@@ -134,44 +140,48 @@ class MyHomePageConnector extends StatelessWidget {
   }
 }
 
-class ViewModel extends BaseModel<AppState> {
-  ViewModel();
-
-  List<String> numTrivias;
-  bool isLoading;
-  VoidCallback loadMore;
-  Future<void> Function() onRefresh;
-
-  ViewModel.build({
-    @required this.numTrivias,
-    @required this.isLoading,
-    @required this.loadMore,
-    @required this.onRefresh,
-  }) : super(equals: [
-          numTrivias,
-          isLoading,
-        ]);
+/// Factory that creates a view-model for the StoreConnector.
+class Factory extends VmFactory<AppState, MyHomePageConnector> {
+  Factory(widget) : super(widget);
 
   @override
-  ViewModel fromStore() => ViewModel.build(
-        numTrivias: state.numTrivias,
+  ViewModel fromStore() => ViewModel(
+        numTrivia: state.numTrivia,
         isLoading: state.isLoading,
         loadMore: () => dispatch(LoadMoreAction()),
         onRefresh: () => dispatchFuture(RefreshAction()),
       );
 }
 
+/// The view-model holds the part of the Store state the dumb-widget needs.
+class ViewModel extends Vm {
+  final List<String> numTrivia;
+  final bool isLoading;
+  final VoidCallback loadMore;
+  final Future<void> Function() onRefresh;
+
+  ViewModel({
+    @required this.numTrivia,
+    @required this.isLoading,
+    @required this.loadMore,
+    @required this.onRefresh,
+  }) : super(equals: [
+          numTrivia,
+          isLoading,
+        ]);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatefulWidget {
-  final List<String> numTrivias;
+  final List<String> numTrivia;
   final bool isLoading;
   final VoidCallback loadMore;
   final Future<void> Function() onRefresh;
 
   MyHomePage({
     Key key,
-    this.numTrivias,
+    this.numTrivia,
     this.isLoading,
     this.loadMore,
     this.onRefresh,
@@ -189,7 +199,8 @@ class _MyHomePageState extends State<MyHomePage> {
     _controller = ScrollController()
       ..addListener(() {
         if (!widget.isLoading &&
-            _controller.position.maxScrollExtent == _controller.position.pixels) {
+            _controller.position.maxScrollExtent ==
+                _controller.position.pixels) {
           widget.loadMore();
         }
       });
@@ -206,16 +217,16 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Dispatch Future Example')),
-      body: (widget.numTrivias == null || widget.numTrivias.isEmpty)
+      body: (widget.numTrivia == null || widget.numTrivia.isEmpty)
           ? Container()
           : RefreshIndicator(
               onRefresh: widget.onRefresh,
               child: ListView.builder(
                 controller: _controller,
-                itemCount: widget.numTrivias.length,
+                itemCount: widget.numTrivia.length,
                 itemBuilder: (context, index) => ListTile(
                   leading: CircleAvatar(child: Text(index.toString())),
-                  title: Text(widget.numTrivias[index]),
+                  title: Text(widget.numTrivia[index]),
                 ),
               ),
             ),

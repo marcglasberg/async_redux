@@ -34,7 +34,8 @@ class AppState {
   AppState({this.descriptions, this.wait});
 
   /// The copy method has a named [wait] parameter of type [Wait].
-  AppState copy({int counter, Map<int, String> descriptions, Wait wait}) => AppState(
+  AppState copy({int counter, Map<int, String> descriptions, Wait wait}) =>
+      AppState(
         descriptions: descriptions ?? this.descriptions,
         wait: wait ?? this.wait,
       );
@@ -97,14 +98,14 @@ class GetDescriptionAction extends ReduxAction<AppState> {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-/// This widget connects the dumb-widget (`MyHomePage`) with the store.
+/// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
   MyHomePageConnector({Key key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, PageViewModel>(
-      model: PageViewModel(),
+      vm: PageViewModelFactory(this),
       builder: (BuildContext context, PageViewModel vm) => MyHomePage(
         onGetDescription: vm.onGetDescription,
         waiting: vm.waiting,
@@ -113,19 +114,12 @@ class MyHomePageConnector extends StatelessWidget {
   }
 }
 
-class PageViewModel extends BaseModel<AppState> {
-  PageViewModel();
-
-  bool waiting;
-  void Function(int) onGetDescription;
-
-  PageViewModel.build({
-    @required this.waiting,
-    @required this.onGetDescription,
-  }) : super(equals: [waiting]);
+/// Factory that creates a view-model for the StoreConnector.
+class PageViewModelFactory extends VmFactory<AppState, MyHomePageConnector> {
+  PageViewModelFactory(widget) : super(widget);
 
   @override
-  PageViewModel fromStore() => PageViewModel.build(
+  PageViewModel fromStore() => PageViewModel(
         /// If there is any waiting, `state.wait.isWaiting` will return true.
         waiting: state.wait.isWaiting,
 
@@ -133,9 +127,19 @@ class PageViewModel extends BaseModel<AppState> {
       );
 }
 
+class PageViewModel extends Vm {
+  final bool waiting;
+  final void Function(int) onGetDescription;
+
+  PageViewModel({
+    @required this.waiting,
+    @required this.onGetDescription,
+  }) : super(equals: [waiting]);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
-/// This widget connects the dumb-widget (`MyHomePage`) with the store.
+/// This widget is a connector. It connects the store to "dumb-widget".
 class MyItemConnector extends StatelessWidget {
   final int index;
   final void Function(int) onGetDescription;
@@ -149,7 +153,7 @@ class MyItemConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ItemViewModel>(
-      model: ItemViewModel(index: index),
+      vm: ItemViewModelFactory(this),
       builder: (BuildContext context, ItemViewModel vm) => MyItem(
         description: vm.description,
         waiting: vm.waiting,
@@ -160,25 +164,27 @@ class MyItemConnector extends StatelessWidget {
   }
 }
 
-class ItemViewModel extends BaseModel<AppState> {
-  ItemViewModel({this.index});
+/// Factory that creates a view-model for the StoreConnector.
+class ItemViewModelFactory extends VmFactory<AppState, MyItemConnector> {
+  ItemViewModelFactory(widget) : super(widget);
 
-  int index;
-  String description;
-  bool waiting;
+  @override
+  ItemViewModel fromStore() => ItemViewModel(
+        description: state.descriptions[widget.index],
 
-  ItemViewModel.build({
+        /// If index is waiting, `state.wait.isWaitingFor(index)` returns true.
+        waiting: state.wait.isWaitingFor(widget.index),
+      );
+}
+
+class ItemViewModel extends Vm {
+  final String description;
+  final bool waiting;
+
+  ItemViewModel({
     @required this.description,
     @required this.waiting,
   }) : super(equals: [description, waiting]);
-
-  @override
-  ItemViewModel fromStore() => ItemViewModel.build(
-        description: state.descriptions[index],
-
-        /// If index is waiting, `state.wait.isWaitingFor(index)` returns true.
-        waiting: state.wait.isWaitingFor(index),
-      );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -212,15 +218,16 @@ class MyItem extends StatelessWidget {
 
   MaterialButton _button() => MaterialButton(
         color: Colors.blue,
-        child:
-            Text("CLICK $index", style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
+        child: Text("CLICK $index",
+            style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
         onPressed: () => onGetDescription(index),
       );
 
-  Text _indexDescription() =>
-      Text(description, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center);
+  Text _indexDescription() => Text(description,
+      style: const TextStyle(fontSize: 15), textAlign: TextAlign.center);
 
-  CircularProgressIndicator _progressIndicator() => CircularProgressIndicator(
+  CircularProgressIndicator _progressIndicator() =>
+      const CircularProgressIndicator(
         valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
       );
 }
@@ -242,7 +249,10 @@ class MyHomePage extends StatelessWidget {
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(title: Text(waiting ? "Downloading..." : "Advanced WaitAction Example 1")),
+          appBar: AppBar(
+              title: Text(waiting
+                  ? "Downloading..."
+                  : "Advanced WaitAction Example 1")),
           body: ListView.builder(
             itemCount: 10,
             itemBuilder: (context, index) => MyItemConnector(

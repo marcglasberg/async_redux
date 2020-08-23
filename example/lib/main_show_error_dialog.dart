@@ -30,7 +30,9 @@ class AppState {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is AppState && runtimeType == other.runtimeType && name == other.name;
+      other is AppState &&
+          runtimeType == other.runtimeType &&
+          name == other.name;
 
   @override
   int get hashCode => name.hashCode;
@@ -61,7 +63,8 @@ class SaveUserAction extends ReduxAction<AppState> {
   @override
   AppState reduce() {
     print("Saving '$name'.");
-    if (name.length < 4) throw const UserException("Name must have at least 4 letters.");
+    if (name.length < 4)
+      throw const UserException("Name must have at least 4 letters.");
     return state.copy(name: name);
   }
 
@@ -71,14 +74,14 @@ class SaveUserAction extends ReduxAction<AppState> {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-/// This widget connects the dumb-widget (`MyHomePage`) with the store.
+/// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
   MyHomePageConnector({Key key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ViewModel>(
-      model: ViewModel(),
+      vm: Factory(this),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         name: vm.name,
         onSaveName: vm.onSaveName,
@@ -87,24 +90,26 @@ class MyHomePageConnector extends StatelessWidget {
   }
 }
 
-/// Helper class to the connector widget. Holds the part of the State the widget needs,
-/// and may perform conversions to the type of data the widget can conveniently work with.
-class ViewModel extends BaseModel<AppState> {
-  ViewModel();
-
-  String name;
-  ValueChanged<String> onSaveName;
-
-  ViewModel.build({
-    @required this.name,
-    @required this.onSaveName,
-  }) : super(equals: [name]);
+/// Factory that creates a view-model for the StoreConnector.
+class Factory extends VmFactory<AppState, MyHomePageConnector> {
+  Factory(widget) : super(widget);
 
   @override
-  ViewModel fromStore() => ViewModel.build(
+  ViewModel fromStore() => ViewModel(
         name: state.name,
         onSaveName: (String name) => dispatch(SaveUserAction(name)),
       );
+}
+
+/// The view-model holds the part of the Store state the dumb-widget needs.
+class ViewModel extends Vm {
+  final String name;
+  final ValueChanged<String> onSaveName;
+
+  ViewModel({
+    @required this.name,
+    @required this.onSaveName,
+  }) : super(equals: [name]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -142,9 +147,11 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Type a name and save:\n(See error if less than 4 chars)',
+                const Text(
+                    'Type a name and save:\n(See error if less than 4 chars)',
                     textAlign: TextAlign.center),
-                TextField(controller: controller, onSubmitted: widget.onSaveName),
+                TextField(
+                    controller: controller, onSubmitted: widget.onSaveName),
                 Text('Current Name: ${widget.name}'),
               ],
             ),

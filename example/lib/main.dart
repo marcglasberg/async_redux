@@ -40,14 +40,18 @@ class IncrementAction extends ReduxAction<int> {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-/// This widget connects the dumb-widget (`MyHomePage`) with the store.
+/// This widget is a connector.
+/// It connects the store to [MyHomePage] (the dumb-widget).
+/// Each time the state changes, it creates a view-model, and compares it
+/// with the view-model created with the previous state.
+/// Only if the view-model changed, the connector rebuilds.
 class MyHomePageConnector extends StatelessWidget {
   MyHomePageConnector({Key key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return StoreConnector<int, ViewModel>(
-      model: ViewModel(),
+      vm: Factory(this),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         counter: vm.counter,
         onIncrement: vm.onIncrement,
@@ -56,28 +60,47 @@ class MyHomePageConnector extends StatelessWidget {
   }
 }
 
-/// Helper class to the connector widget. Holds the part of the State the widget needs,
-/// and may perform conversions to the type of data the widget can conveniently work with.
-class ViewModel extends BaseModel<int> {
-  ViewModel();
-
-  int counter;
-  VoidCallback onIncrement;
-
-  ViewModel.build({
-    @required this.counter,
-    @required this.onIncrement,
-  }) : super(equals: [counter]);
+/// Factory that creates a view-model for the StoreConnector.
+class Factory extends VmFactory<int, MyHomePageConnector> {
+  Factory(widget) : super(widget);
 
   @override
-  ViewModel fromStore() => ViewModel.build(
+  ViewModel fromStore() => ViewModel(
         counter: state,
         onIncrement: () => dispatch(IncrementAction(amount: 1)),
       );
 }
 
+/// A view-model is a helper object to a [StoreConnector] widget. It holds the
+/// part of the Store state the corresponding dumb-widget needs, and may also
+/// convert this state part into a more convenient format for the dumb-widget
+/// to work with.
+///
+/// You must implement equals/hashcode for the view-model class to work.
+/// Otherwise, the [StoreConnector] will think the view-model changed everytime,
+/// and thus will rebuild everytime. This won't create any visible problems
+/// to your app, but is inefficient and may be slow.
+///
+/// By extending the [Vm] class you can implement equals/hashcode without
+/// having to override these methods. Instead, simply list all fields
+/// (which are not immutable, like functions) to the [equals] parameter
+/// in the constructor.
+///
+class ViewModel extends Vm {
+  final int counter;
+  final VoidCallback onIncrement;
+
+  ViewModel({
+    @required this.counter,
+    @required this.onIncrement,
+  }) : super(equals: [counter]);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
+/// This is the "dumb-widget". It has no notion of the store, the state, the
+/// connector or the view-model. It just gets the parameters it needs to display
+/// itself, and callbacks it should call when reacting to the user interface.
 class MyHomePage extends StatelessWidget {
   final int counter;
   final VoidCallback onIncrement;
@@ -103,7 +126,7 @@ class MyHomePage extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: onIncrement,
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     );
   }
