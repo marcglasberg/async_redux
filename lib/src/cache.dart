@@ -68,3 +68,13 @@ R Function(P1, P2) Function(S1, S2) cache2_2<R, S1, S2, P1, P2>(
   R Function(P1, P2) Function(S1, S2) f,
 ) =>
     c.cache2_2(f);
+
+/// Example:
+/// ```
+/// var selector = cache3((List<String> names, int limit, String prefix) =>
+///        () => names.where((str) => str.startsWith(prefix)).take(limit).toList());
+/// ```
+R Function() Function(S1, S2, S3) cache3<R, S1, S2, S3>(
+  R Function() Function(S1, S2, S3) f,
+) =>
+    c.cache3_0(f);

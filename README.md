@@ -347,10 +347,14 @@ Note: If this method runs asynchronously, then `reduce()` will also be async,
 since it must wait for this one to finish.
 
 The `after()` method runs after `reduce()`, even if an error was thrown by `before()` or `reduce()`
-(akin to a "finally" block). If the `after()` method itself throws an error,
-then this error will be "swallowed" and ignored. Avoid `after()` methods which can throw errors.
+(akin to a "finally" block). 
 
-This method can also dispatch actions, so it can be used to turn off some modal barrier
+Avoid `after()` methods which can throw errors.
+If the `after()` method throws an error, 
+then this error will be thrown *asynchronously* (after the "asynchronous gap")
+so that it doesn't interfere with the action. Also, this error will be missing the original stacktrace.  
+
+The `after()` method can also dispatch actions, so it can be used to turn off some modal barrier
 when the reducer ends, even if there was some error in the process:
 
 ```dart
@@ -2333,8 +2337,16 @@ Have a look at the: <a href="https://github.com/marcglasberg/async_redux/blob/ma
 You can choose any way you want to save the state difference to the local disk,
 but one way is using the provided `LocalPersist` class,
 which is very easy to use.
+
+Note: At the moment it only works for Android/iOS, not for the web.
  
-First you need to convert yourself your objects to a list of **simple objects** 
+First, import it:
+
+```dart 
+import 'package:async_redux/local_persist.dart';
+```
+ 
+You need to convert yourself your objects to a list of **simple objects** 
 composed only of numbers, booleans, strings, lists and maps (you can nest lists and maps).    
 
 For example, this is a list of simple objects:

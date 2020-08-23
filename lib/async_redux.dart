@@ -1,5 +1,4 @@
 export 'src/cache.dart';
-export 'src/dummy.dart' if (dart.library.io) 'src/local_persist.dart';
 export 'src/event_redux.dart';
 export 'src/mock_store.dart';
 export 'src/navigate_action.dart';

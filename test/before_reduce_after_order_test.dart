@@ -38,8 +38,8 @@ void main() {
     expect(store.state, "B");
     expect(info, [
       'B.before state=""',
-      'B.reduce state=""',
-      'B.reduce state=""',
+      'B.reduce1 state=""',
+      'B.reduce2 state=""',
       'B.after state="B"',
     ]);
   });
@@ -61,11 +61,11 @@ void main() {
     expect(store.state, "AB");
     expect(info, [
       'B.before state=""',
-      'B.reduce state=""',
+      'B.reduce1 state=""',
       'A.before state=""',
       'A.reduce state=""',
       'A.after state="A"',
-      'B.reduce state="A"',
+      'B.reduce2 state="A"',
       'B.after state="AB"'
     ]);
   });
@@ -112,11 +112,11 @@ void main() {
     await Future.wait([f1, f2]);
     expect(store.state, "AD");
     expect(info, [
-      'D.before state=""',
+      'D.before1 state=""',
       'A.before state=""',
       'A.reduce state=""',
       'A.after state="A"',
-      'D.before state="A"',
+      'D.before2 state="A"',
       'D.reduce state="A"',
       'D.after state="AD"'
     ]);
@@ -137,11 +137,11 @@ void main() {
     expect(info, [
       'E.before state=""',
       'E.reduce state=""',
-      'E.after state="E"',
+      'E.after1 state="E"',
       'A.before state="E"',
       'A.reduce state="E"',
       'A.after state="EA"',
-      'E.after state="EA"'
+      'E.after2 state="EA"'
     ]);
   });
 
@@ -159,13 +159,13 @@ void main() {
     expect(store.state, "FA");
     expect(info, [
       'F.before state=""',
-      'F.reduce state=""',
-      'F.reduce state=""',
-      'F.after state="F"',
+      'F.reduce1 state=""',
+      'F.reduce2 state=""',
+      'F.after1 state="F"',
       'A.before state="F"',
       'A.reduce state="F"',
       'A.after state="FA"',
-      'F.after state="FA"'
+      'F.after2 state="FA"'
     ]);
   });
 
@@ -204,9 +204,9 @@ class ActionB extends ReduxAction<String> {
 
   @override
   Future<String> reduce() async {
-    info.add('B.reduce state="$state"');
+    info.add('B.reduce1 state="$state"');
     await Future.delayed(const Duration(milliseconds: 50));
-    info.add('B.reduce state="$state"');
+    info.add('B.reduce2 state="$state"');
     return state + 'B';
   }
 
@@ -241,9 +241,9 @@ class ActionC extends ReduxAction<String> {
 class ActionD extends ReduxAction<String> {
   @override
   Future<void> before() async {
-    info.add('D.before state="$state"');
+    info.add('D.before1 state="$state"');
     await Future.delayed(const Duration(milliseconds: 10));
-    info.add('D.before state="$state"');
+    info.add('D.before2 state="$state"');
   }
 
   @override
@@ -274,9 +274,9 @@ class ActionE extends ReduxAction<String> {
 
   @override
   void after() {
-    info.add('E.after state="$state"');
+    info.add('E.after1 state="$state"');
     store.dispatch(ActionA());
-    info.add('E.after state="$state"');
+    info.add('E.after2 state="$state"');
   }
 }
 
@@ -290,17 +290,17 @@ class ActionF extends ReduxAction<String> {
 
   @override
   Future<String> reduce() async {
-    info.add('F.reduce state="$state"');
+    info.add('F.reduce1 state="$state"');
     await Future.delayed(const Duration(milliseconds: 10));
-    info.add('F.reduce state="$state"');
+    info.add('F.reduce2 state="$state"');
     return state + 'F';
   }
 
   @override
   void after() {
-    info.add('F.after state="$state"');
+    info.add('F.after1 state="$state"');
     store.dispatch(ActionA());
-    info.add('F.after state="$state"');
+    info.add('F.after2 state="$state"');
   }
 }
 

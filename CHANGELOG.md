@@ -2,6 +2,19 @@
 
 * Vm and VmFactory. BaseModel deprecated.
 
+## [3.0.5] - 2020/08/18
+
+* Action.after() will now throw the error asynchronously (instead of swallowing it).
+
+## [3.0.4] - 2020/08/13
+
+* Fix: withoutHardCause was removing the code field.
+
+## [3.0.3] - 2020/08/11
+
+* cache3.
+* LocalPersist is exported separately.
+
 ## [3.0.0] - 2020/07/27
 
 * Works for Web.
