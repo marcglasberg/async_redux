@@ -53,8 +53,7 @@ class TestInfo<St> {
     // NavigateAction and PersistAction.
     // For example UserExceptionAction<AppState> becomes UserExceptionAction<dynamic>.
     if (action is UserExceptionAction) {
-      if (action.runtimeType.toString().split('<')[0] ==
-          'UserExceptionAction') //
+      if (action.runtimeType.toString().split('<')[0] == 'UserExceptionAction') //
         return UserExceptionAction;
     } else if (action is WaitAction) {
       if (action.runtimeType.toString().split('<')[0] == 'WaitAction') //
@@ -992,9 +991,8 @@ abstract class Vm {
   final List<Object> equals;
 
   /// The constructor takes an optional List of fields which will be used
-  /// to determine whether two [BaseModel] are equal.
-  Vm({this.equals = const []})
-      : assert(_onlyContainFieldsOfAllowedTypes(equals));
+  /// to determine whether two [Vm] are equal.
+  Vm({this.equals = const []}) : assert(_onlyContainFieldsOfAllowedTypes(equals));
 
   /// Fields should not contain functions.
   static bool _onlyContainFieldsOfAllowedTypes(List equals) {
@@ -1067,11 +1065,10 @@ abstract class Vm {
 /// ```
 ///
 abstract class VmFactory<St, T> {
-  /// You can pass the connector widget, in case the view-model needs any info from it.
+  /// A reference to the connector widget that will instantiate the view-model.
   final T widget;
 
-  /// The constructor takes an optional List of fields which will be used
-  /// to determine whether two [BaseModel] are equal.
+  /// You need to pass the connector widget only if the view-model needs any info from it.
   VmFactory([this.widget]);
 
   Vm fromStore();
