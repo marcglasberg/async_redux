@@ -778,11 +778,10 @@ abstract class ReduxAction<St> {
 
   /// Nest state reducers without dispatching another action.
   /// Example: return AddTaskAction(demoTask).reduceWithState(state);
-  /// Don't use this!
-  /// This is deprecated and will be removed soon, because it's more difficult
-  /// to use than it seems. Unless you completely understand what you're doing,
-  /// you should only used it with sync reducers.
-  @deprecated
+  @Deprecated("This is deprecated and will be removed soon, "
+      "because it's more difficult to use than it seems. "
+      "Unless you completely understand what you're doing,"
+      "you should only used it with sync reducers.")
   FutureOr<St> reduceWithState(Store<St> store, St state) {
     setStore(store);
     _store.defineState(state);
@@ -973,8 +972,8 @@ abstract class BaseModel<St> {
 /// the previous state. Only if the view-model changed, the [StoreConnector]
 /// will rebuild. For this to work, you must implement equals/hashcode for the
 /// view-model class. Otherwise, the [StoreConnector] will think the view-model
-/// changed everytime, and thus will rebuild everytime. This won't create any
-/// visible problems to your app, but is inefficient and may be slow.
+/// changed everytime, and thus will rebuild everytime. This wouldn't create any
+/// visible problems to your app, but would be inefficient and maybe slow.
 ///
 /// Using the [Vm] class you can implement equals/hashcode without having to
 /// override these methods. Instead, simply list all fields (which are not
@@ -984,6 +983,10 @@ abstract class BaseModel<St> {
 /// ```
 /// ViewModel({this.counter, this.onIncrement}) : super(equals: [counter]);
 /// ```
+///
+/// Each listed state will be compared by equality (==), unless it is of type
+/// [VmEquals], when it will be compared by the [VmEquals.vmEquals] method,
+/// which by default is a comparison by identity (but can be overridden).
 ///
 @immutable
 abstract class Vm {
@@ -1006,14 +1009,33 @@ abstract class Vm {
   }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is BaseModel &&
-          runtimeType == other.runtimeType &&
-          listEquals(
-            equals,
-            other.equals,
-          );
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is Vm &&
+            runtimeType == other.runtimeType &&
+            _listEquals(
+              equals,
+              other.equals,
+            );
+  }
+
+  bool _listEquals<T>(List<T> list1, List<T> list2) {
+    if (list1 == null) return list2 == null;
+    if (list2 == null || list1.length != list2.length) return false;
+    if (identical(list1, list2)) return true;
+    for (int index = 0; index < list1.length; index++) {
+      var item1 = list1[index];
+      var item2 = list2[index];
+
+      if ((item1 is VmEquals<T>) &&
+          (item2 is VmEquals<T>) //
+          &&
+          !item1.vmEquals(item2)) return false;
+
+      if (item1 != item2) return false;
+    }
+    return true;
+  }
 
   @override
   int get hashCode => runtimeType.hashCode ^ _propsHashCode;
@@ -1026,6 +1048,12 @@ abstract class Vm {
 
   @override
   String toString() => '$runtimeType{${equals.join(', ')}}';
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+
+abstract class VmEquals<T> {
+  bool vmEquals(T other) => identical(this, other);
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -1242,8 +1270,8 @@ class StoreConnector<St, Model> extends StatelessWidget {
 
   /// Don't use, this is deprecated. Please, use the recommended
   /// `vm` parameter (of type [VmFactory]) or `converter`.
-  /// Convert the [Store] into a [Model]. The resulting [Model] will be
-  /// passed to the [builder] function.
+  @Deprecated("Please, use `vm` parameter. "
+      "See classes `VmFactory` and `Vm`.")
   final BaseModel model;
 
   /// When [distinct] is true (the default), the Widget is rebuilt only
