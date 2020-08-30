@@ -129,7 +129,7 @@ class _MyAction extends ReduxAction<_StateTest> {
   _MyAction(this.text, this.number);
 
   @override
-  FutureOr<_StateTest> reduce() => _StateTest(text, number);
+  _StateTest reduce() => _StateTest(text, number);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -753,7 +753,7 @@ class ChangeNameAction extends ReduxAction<AppState> {
   ChangeNameAction(this.name);
 
   @override
-  FutureOr<AppState> reduce() => state.copy(name: name);
+  AppState reduce() => state.copy(name: name);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

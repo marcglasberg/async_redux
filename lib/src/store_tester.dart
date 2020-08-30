@@ -132,8 +132,8 @@ class StoreTester<St> {
   void dispatch(ReduxAction<St> action, {bool notify = true}) =>
       store.dispatch(action, notify: notify);
 
-  Future<void> dispatchFuture(ReduxAction<St> action) => //
-      store.dispatchFuture(action);
+  Future<void> dispatchFuture(ReduxAction<St> action, {bool notify = true}) =>
+      store.dispatchFuture(action, notify: notify);
 
   void defineState(St state) => _store.defineState(state);
 

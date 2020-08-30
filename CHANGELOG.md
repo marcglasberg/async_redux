@@ -64,6 +64,32 @@ are compared by identity, while all other object types are, as usual, compared
 by equality. You may then override the `VmEquals.vmEquals()` method to provide 
 your custom comparisons.                  
 
+* Breaking Change:
+
+The abstract `ReduxAction.reduce()` method signature has a return type of `FutureOr<AppState>`,
+but your concrete reducers must return one or the other: `AppState` or `Future<AppState>`.
+  
+That's necessary because AsyncRedux knows if a reducer is sync or async not by checking the returned type,
+but by checking your `reducer()` method signature. 
+If it is `FutureOr<AppState>`, AsyncRedux can't know if it's sync or async, 
+and will throw a StoreException:
+
+```
+Reducer should return `St` or `Future<St>`. Do not return `FutureOr<St>`.
+```
+ 
+* Breaking Change:
+ 
+While the `reduce()` method of a *sync* reducer continues to run synchronously with the dispatch, 
+the `reduce()` method of an *async* reducer will now not be called immediately, 
+but will be scheduled in a later task.
+
+Previously to version 4.0.0 the async reducer would have at least started synchronously with the dispatch
+(and would run synchronously until the first `await`).
+
+Previously, you would also have to make sure to never return a completed future
+for an async reducer, but this is no longer necessary in version 4.0.0.     
+
 
 ## [3.0.5] - 2020/08/18
 

@@ -523,19 +523,55 @@ class Store<St> {
   FutureOr<void> _applyReducer(ReduxAction<St> action, {bool notify = true}) {
     _reduceCount++;
 
-    var result = action.wrapReduce(action.reduce)();
+    var reducer = action.wrapReduce(action.reduce);
 
-    if (result is Future<St>) {
+    // Sync reducer.
+    if (reducer is St Function()) {
+      St result = reducer();
+      _registerState(result, action, notify: notify);
+    }
+    //
+    // Async reducer.
+    else if (reducer is Future<St> Function()) {
+      // Make sure it's NOT a completed future.
+      Future<St> result = (() async {
+        await Future.microtask(() {});
+        return reducer();
+      })();
+
+      // The "then callback" will be applied synchronously,
+      // immediately after we get the result,
+      // only because we're sure the future is NOT completed.
       return result.then((state) => _registerState(
             state,
             action,
             notify: notify,
           ));
-    } else if (result is St || result == null) {
-      _registerState(result, action, notify: notify);
-    } else
-      throw AssertionError();
+    }
+    // Not defined.
+    else if (reducer is FutureOr<St> Function()) {
+      throw StoreException("Reducer should return `St` or `Future<St>`. "
+          "Do not return `FutureOr<St>`.");
+    }
   }
+
+  // Old code:
+  // FutureOr<void> _applyReducer(ReduxAction<St> action, {bool notify = true}) {
+  //   _reduceCount++;
+  //
+  //   var result = action.wrapReduce(action.reduce)();
+  //
+  //   if (result is Future<St>) {
+  //     return result.then((state) => _registerState(
+  //           state,
+  //           action,
+  //           notify: notify,
+  //         ));
+  //   } else if (result is St || result == null) {
+  //     _registerState(result, action, notify: notify);
+  //   } else
+  //     throw AssertionError();
+  // }
 
   /// Adds the state to the changeController, but only if the `reduce` method
   /// did not returned null, and if it did not return the same identical state.

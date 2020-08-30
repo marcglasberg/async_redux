@@ -207,7 +207,8 @@ Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/maste
 If you want to do some asynchronous work, simply declare the reducer to return `Future<AppState>`
 then change the state and return it. There is no need of any "middleware", like for other Redux versions.
 
-Note: In IntelliJ, to convert the reducer from sync to async, press `Alt+ENTER` and select `Convert to async function body`.
+Note: In IntelliJ, to convert the reducer from sync to async, 
+press `Alt+ENTER` and select `Convert to async function body`.
 
 As an example, suppose you want to increment a counter by a value you get from the database.
 The database access is async, so you must use an async reducer:
@@ -229,40 +230,27 @@ This action is dispatched like this:
 store.dispatch(QueryAndIncrementAction());
 ```
 
+Please note: While the `reduce()` method of a *sync* reducer runs synchronously with the dispatch, 
+the `reduce()` method of an *async* reducer will not be called immediately, 
+but will be scheduled in a later task. 
+
 We will show you later how to easily test async reducers, using the **StoreTester**.
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_increment_async.dart">Increment Async Example</a>.
 
 #### One important rule
 
-When your reducer returns `Future<AppState>` you must make sure you **do not return a completed future**.
-In other words, all execution paths of the reducer must pass through at least one `await` keyword.
+The abstract `ReduxAction.reduce()` method signature has a return type of `FutureOr<AppState>`,
+but your concrete reducers must return one or the other: `AppState` or `Future<AppState>`.
 
-If your reducer has no `await`s, you must return `AppState` instead of `Future<AppState>`, 
-or simply add something like `await Future.sync(() {});`.   
+That's necessary because AsyncRedux knows if a reducer is sync or async not by checking the returned type,
+but by checking your `reducer()` method signature. 
+If it is `FutureOr<AppState>`, AsyncRedux can't know if it's sync or async, 
+and will throw a StoreException:
 
-Example:
-
-```dart 
-// These are right:
-AppState reduce() { return state; }
-AppState reduce() { someFunc(); return state; }
-Future<AppState> reduce() async { await someFuture(); return state; }
-Future<AppState> reduce() async { await Future.value(null); return state; }
-
-// But these are wrong:
-Future<AppState> reduce() async { return state; }
-Future<AppState> reduce() async { someFunc(); return state; }
-Future<AppState> reduce() async { if (state.someBool) await someFuture(); return state; }
 ```
-
-Dart doesn't let AsyncRedux detect if a future is completed or not 
-(the information is there, but in a private field), so we can't help you with that.
-One day we'll have an IDE plugin to warn you if you make this mistake, but until then, please pay attention.
-
-If you don't follow this rule, AsyncRedux may seem to work ok, but will eventually misbehave.
-If you're an advanced user interested in the details, check the 
-<a href="https://github.com/marcglasberg/async_redux/blob/master/test/sync_async_test.dart">sync/async tests</a>.   
+Reducer should return `St` or `Future<St>`. Do not return `FutureOr<St>`.
+```
 
 <br>
 
@@ -271,7 +259,8 @@ If you're an advanced user interested in the details, check the
 For both sync and async reducers, returning a new state is optional.
 If you don't plan on changing the state, simply return `null`. This is the same as returning the state unchanged.
 
-Why is this useful?  Because some actions may simply start other async processes, or dispatch other actions.
+Why is this useful?
+Because some actions may simply start other async processes, or dispatch other actions.
 
 For example, suppose you want to have two separate actions, one for querying some value from the database,
 and another action to change the state:
@@ -1259,11 +1248,11 @@ There are 5 different ways to define mocks:
     class MyAction extends ReduxAction<AppState> {
       String url;
       MyAction(this.url);
-      FutureOr<AppState> reduce() => get(url);
+      Future<AppState> reduce() => get(url);
     }      
 
     class MyMockAction extends MockAction<AppState> {  
-      FutureOr<AppState> reduce() {                  
+      Future<AppState> reduce() async {                  
         String url = (action as MyAction).url;
         if (url == 'http://example.com') return 123;
         else if (url == 'http://flutter.io') return 345;
@@ -1284,11 +1273,11 @@ There are 5 different ways to define mocks:
     class MyAction extends ReduxAction<AppState> {
       String url;            
       MyAction(this.url);
-      FutureOr<AppState> reduce() => get(url);
+      Future<AppState> reduce() => get(url);
     }
     
     class MyMockAction extends ReduxAction<AppState> {  
-      FutureOr<AppState> reduce() => 123;
+      Future<AppState> reduce() async => 123;
     }
     ```
       
@@ -1304,13 +1293,13 @@ There are 5 different ways to define mocks:
     class MyAction extends ReduxAction<AppState> {
       String url;        
       MyAction(this.url);
-      FutureOr<AppState> reduce() => get(url);
+      Future<AppState> reduce() => get(url);
     }
     
     class MyMockAction extends MockAction<AppState> {
       String url;
       MyMockAction(this.url);  
-      FutureOr<AppState> reduce() {                     
+      Future<AppState> reduce() async {                     
         if (url == 'http://example.com') return 123;
         else if (url == 'http://flutter.io') return 345;
         else return 678;
@@ -1324,19 +1313,21 @@ There are 5 different ways to define mocks:
     }
     ```       
 
-5. Use a `St Function(ReduxAction<St>, St)` to modify the state directly.
+5. Use a `St Function(ReduxAction<St>, St)` 
+or `Future<St> Function(ReduxAction<St>, St)` 
+to modify the state directly.
 
     ```dart                        
     class MyAction extends ReduxAction<AppState> {
       String url;        
       MyAction(this.url);
-      FutureOr<AppState> reduce() => get(url);
+      Future<AppState> reduce() => get(url);
     }
     ```
       
     ```dart   
     mocks: {
-       MyAction : (MyAction action) {
+       MyAction : (MyAction action, AppState state) async {
           if (action.url == 'http://example.com') return 123;
           else if (action.url == 'http://flutter.io') return 345;
           else return 678;
@@ -2186,16 +2177,16 @@ abstract class TodoAction extends BaseAction {
   TodoState reduceTodoState();
       
   @override
-  FutureOr<AppState> reduce() {
-    FutureOr<TodoState> todoState = reduceTodoState();
+  Future<AppState> reduce() {
+    Future<TodoState> todoState = reduceTodoState();
     if (todoState is Future) return todoState.then((_todoState) => state.copy(todoState: _todoState));   
     else return (todoState == null) ? null : state.copy(todoState: todoState);
   }
 }
 ```
     
-If you declare those specialized abstract actions, you can have specialized reducers that only need to return 
-that part of the state that changed:
+If you declare those specialized abstract actions, 
+you can have specialized reducers that only need to return that part of the state that changed:
 
 ```dart
 class AddTodoAction extends TodoAction {

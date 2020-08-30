@@ -9,7 +9,7 @@ class _MyAction extends ReduxAction<num> {
   _MyAction(this.number);
 
   @override
-  FutureOr<num> reduce() => number;
+  num reduce() => number;
 }
 
 class _MyAsyncAction extends ReduxAction<num> {
@@ -18,7 +18,7 @@ class _MyAsyncAction extends ReduxAction<num> {
   _MyAsyncAction(this.number);
 
   @override
-  FutureOr<num> reduce() async{
+  Future<num> reduce() async{
     await Future.sync((){});
     return number;
   }

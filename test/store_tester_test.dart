@@ -14,22 +14,22 @@ class AppState {
 
 class Action1 extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() => AppState.add(state, "1");
+  AppState reduce() => AppState.add(state, "1");
 }
 
 class Action2 extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() => AppState.add(state, "2");
+  AppState reduce() => AppState.add(state, "2");
 }
 
 class Action3 extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() => AppState.add(state, "3");
+  AppState reduce() => AppState.add(state, "3");
 }
 
 class Action3b extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() {
+  AppState reduce() {
     dispatch(Action4());
     return AppState.add(state, "3b");
   }
@@ -37,17 +37,17 @@ class Action3b extends ReduxAction<AppState> {
 
 class Action4 extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() => AppState.add(state, "4");
+  AppState reduce() => AppState.add(state, "4");
 }
 
 class Action5 extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() => AppState.add(state, "5");
+  AppState reduce() => AppState.add(state, "5");
 }
 
 class Action6 extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() {
+  AppState reduce() {
     dispatch(Action1());
     dispatch(Action2());
     dispatch(Action3());
@@ -57,7 +57,7 @@ class Action6 extends ReduxAction<AppState> {
 
 class Action6b extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() async {
+  Future<AppState> reduce() async {
     dispatch(Action1());
     await Future.delayed(const Duration(milliseconds: 10));
     dispatch(Action2());
@@ -68,7 +68,7 @@ class Action6b extends ReduxAction<AppState> {
 
 class Action6c extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() {
+  AppState reduce() {
     dispatch(Action1());
     dispatch(Action2());
     dispatch(Action3b());
@@ -78,7 +78,7 @@ class Action6c extends ReduxAction<AppState> {
 
 class Action7 extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() async {
+  Future<AppState> reduce() async {
     dispatch(Action4());
     dispatch(Action6());
     dispatch(Action2());
@@ -89,7 +89,7 @@ class Action7 extends ReduxAction<AppState> {
 
 class Action7b extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() async {
+  Future<AppState> reduce() async {
     dispatch(Action4());
     dispatch(Action6b());
     dispatch(Action2());
@@ -100,7 +100,7 @@ class Action7b extends ReduxAction<AppState> {
 
 class Action8 extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() async {
+  Future<AppState> reduce() async {
     await Future.delayed(const Duration(milliseconds: 50));
     dispatch(Action2());
     return AppState.add(state, "8");
@@ -109,7 +109,7 @@ class Action8 extends ReduxAction<AppState> {
 
 class Action9 extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() async {
+  Future<AppState> reduce() async {
     await Future.delayed(const Duration(milliseconds: 100));
     return AppState.add(state, "9");
   }
@@ -117,7 +117,7 @@ class Action9 extends ReduxAction<AppState> {
 
 class Action10 extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() async {
+  Future<AppState> reduce() async {
     dispatch(Action1());
     dispatch(Action2());
     dispatch(Action11());
@@ -128,7 +128,7 @@ class Action10 extends ReduxAction<AppState> {
 
 class Action11 extends ReduxAction<AppState> {
   @override
-  FutureOr<AppState> reduce() async {
+  Future<AppState> reduce() async {
     throw const UserException("Hello!");
   }
 }
@@ -167,10 +167,10 @@ void main() {
       invocations += 1;
     });
 
-    await storeTester.dispatch(Action1());
-    await storeTester.dispatch(Action2());
-    await storeTester.dispatch(Action3());
-    await storeTester.dispatch(Action4());
+    await storeTester.dispatchFuture(Action1());
+    await storeTester.dispatchFuture(Action2());
+    await storeTester.dispatchFuture(Action3());
+    await storeTester.dispatchFuture(Action4());
 
     expect(invocations, 4);
     expect(storeTester.state.text, "0,1,2,3,4");
@@ -184,10 +184,10 @@ void main() {
       invocations += 1;
     });
 
-    await storeTester.dispatch(Action1(), notify: false);
-    await storeTester.dispatch(Action2(), notify: false);
-    await storeTester.dispatch(Action3(), notify: false);
-    await storeTester.dispatch(Action4(), notify: true);
+    await storeTester.dispatchFuture(Action1(), notify: false);
+    await storeTester.dispatchFuture(Action2(), notify: false);
+    await storeTester.dispatchFuture(Action3(), notify: false);
+    await storeTester.dispatchFuture(Action4(), notify: true);
 
     expect(invocations, 1);
     expect(storeTester.state.text, "0,1,2,3,4");

@@ -50,7 +50,8 @@ class MockStore<St> extends Store<St> {
   /// 4) `ReduxAction<St> Function(ReduxAction<St>)` to create a mock
   /// from the original action.
   ///
-  /// 5) `St Function(ReduxAction<St>, St)` to modify the state directly.
+  /// 5) `St Function(ReduxAction<St>, St)` or
+  /// `Future<St> Function(ReduxAction<St>, St)` to modify the state directly.
   ///
   Map<Type, dynamic> mocks;
 
@@ -117,9 +118,14 @@ class MockStore<St> extends Store<St> {
         return mockAction;
       }
       //
-      // 5) `St Function(ReduxAction<St>, St)` to modify the state directly.
+      // 5) `St Function(ReduxAction<St>, St)` or
+      // `Future<St> Function(ReduxAction<St>, St)` to modify the state directly.
       else if (mock is St Function(ReduxAction<St>, St)) {
-        MockAction<St> mockAction = _GeneralAction(mock);
+        MockAction<St> mockAction = _GeneralActionSync(mock);
+        mockAction._setAction(action);
+        return mockAction;
+      } else if (mock is Future<St> Function(ReduxAction<St>, St)) {
+        MockAction<St> mockAction = _GeneralActionAsync(mock);
         mockAction._setAction(action);
         return mockAction;
       }
@@ -152,13 +158,24 @@ abstract class MockAction<St> extends ReduxAction<St> {
 
 // /////////////////////////////////////////////////////////////////////////////
 
-class _GeneralAction<St> extends MockAction<St> {
+class _GeneralActionSync<St> extends MockAction<St> {
   final St Function(ReduxAction<St> action, St state) _reducer;
 
-  _GeneralAction(this._reducer);
+  _GeneralActionSync(this._reducer);
 
   @override
-  FutureOr<St> reduce() => _reducer(action, state);
+  St reduce() => _reducer(action, state);
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+
+class _GeneralActionAsync<St> extends MockAction<St> {
+  final Future<St> Function(ReduxAction<St> action, St state) _reducer;
+
+  _GeneralActionAsync(this._reducer);
+
+  @override
+  Future<St> reduce() => _reducer(action, state);
 }
 
 // /////////////////////////////////////////////////////////////////////////////

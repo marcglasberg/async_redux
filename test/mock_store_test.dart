@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:async_redux/async_redux.dart';
 import "package:test/test.dart";
 
@@ -15,7 +14,7 @@ class MyAction extends ReduxAction<AppState> {
   MyAction(this.value);
 
   @override
-  FutureOr<AppState> reduce() => AppState(state.text + value.toString());
+  AppState reduce() => AppState(state.text + value.toString());
 }
 
 class MyAction1 extends MyAction {
@@ -40,8 +39,7 @@ class MyAction5 extends MyAction {
 
 class MyMockAction extends MockAction<AppState> {
   @override
-  FutureOr<AppState> reduce() =>
-      AppState(state.text + '[' + (action as MyAction).value.toString() + ']');
+  AppState reduce() => AppState(state.text + '[' + (action as MyAction).value.toString() + ']');
 }
 
 void main() {
@@ -52,7 +50,7 @@ void main() {
 
   ///////////////////////////////////////////////////////////////////////////////
 
-  test('Store: mock a single sync actions.', () async {
+  test('Store: mock a single sync action.', () async {
     var store = MockStore<AppState>(initialState: AppState("0"));
     expect(store.state.text, "0");
     store.dispatch(MyAction1());
@@ -62,14 +60,16 @@ void main() {
     store = MockStore<AppState>(initialState: AppState("0"));
     expect(store.state.text, "0");
     store.addMock(
-        MyAction1, (ReduxAction<AppState> action, AppState state) => AppState(state.text + 'A'));
+      MyAction1,
+      (ReduxAction<AppState> action, AppState state) => AppState(state.text + 'A'),
+    );
     store.dispatch(MyAction1());
     expect(store.state.text, "0A");
   });
 
   ///////////////////////////////////////////////////////////////////////////////
 
-  test('StoreTester: mock a single sync actions.', () async {
+  test('StoreTester: mock a single sync action.', () async {
     // Without mock:
     var storeTester = createMockStoreTester();
     expect(storeTester.state.text, "0");
