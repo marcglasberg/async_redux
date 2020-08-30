@@ -246,7 +246,7 @@ but your concrete reducers must return one or the other: `AppState` or `Future<A
 That's necessary because AsyncRedux knows if a reducer is sync or async not by checking the returned type,
 but by checking your `reducer()` method signature. 
 If it is `FutureOr<AppState>`, AsyncRedux can't know if it's sync or async, 
-and will throw a StoreException:
+and will throw a `StoreException`:
 
 ```
 Reducer should return `St` or `Future<St>`. Do not return `FutureOr<St>`.

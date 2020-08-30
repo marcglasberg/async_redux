@@ -1,5 +1,36 @@
 ## [4.0.0-Dev] - 2020/08/23
 
+* Breaking Change:
+
+The abstract `ReduxAction.reduce()` method signature has a return type of `FutureOr<AppState>`,
+but your concrete reducers must return one or the other: `AppState` or `Future<AppState>`.
+  
+That's necessary because AsyncRedux knows if a reducer is sync or async not by checking the returned type,
+but by checking your `reducer()` method signature. 
+If it is `FutureOr<AppState>`, AsyncRedux can't know if it's sync or async, 
+and will throw a `StoreException`:
+
+```
+Reducer should return `St` or `Future<St>`. Do not return `FutureOr<St>`.
+```
+ 
+* Breaking Change:
+
+Previously to version 4.0.0, 
+your *async* reducers would have to make sure never to return completed futures.
+This is no longer necessary in version 4.0.0.     
+ 
+Now, while *sync* reducers continue to run synchronously with the dispatch, 
+the *async* reducers will not be called immediately, but will be scheduled in a later task.
+
+Why is this a breaking change? 
+Previously to version 4.0.0, the async reducers would have at least started synchronously with the dispatch,
+and would run synchronously until the first `await`.
+You probably shouldn't be counting on the executing order of the beginning of async reducers anyway,
+so your code is unlikely to break after upgrading to version 4.0.0. 
+But, please run your tests in this new version 
+and open an issue if it has created any problems for you that you think would make it difficult to migrate.  
+
 * Deprecated: 
 
 `StoreConnector`'s `model` parameter is now deprecated. It expects a `BaseModel`
@@ -63,32 +94,6 @@ implement the `VmEquals` interface. As a default, objects of type `VmEquals`
 are compared by identity, while all other object types are, as usual, compared 
 by equality. You may then override the `VmEquals.vmEquals()` method to provide 
 your custom comparisons.                  
-
-* Breaking Change:
-
-The abstract `ReduxAction.reduce()` method signature has a return type of `FutureOr<AppState>`,
-but your concrete reducers must return one or the other: `AppState` or `Future<AppState>`.
-  
-That's necessary because AsyncRedux knows if a reducer is sync or async not by checking the returned type,
-but by checking your `reducer()` method signature. 
-If it is `FutureOr<AppState>`, AsyncRedux can't know if it's sync or async, 
-and will throw a StoreException:
-
-```
-Reducer should return `St` or `Future<St>`. Do not return `FutureOr<St>`.
-```
- 
-* Breaking Change:
- 
-While the `reduce()` method of a *sync* reducer continues to run synchronously with the dispatch, 
-the `reduce()` method of an *async* reducer will now not be called immediately, 
-but will be scheduled in a later task.
-
-Previously to version 4.0.0 the async reducer would have at least started synchronously with the dispatch
-(and would run synchronously until the first `await`).
-
-Previously, you would also have to make sure to never return a completed future
-for an async reducer, but this is no longer necessary in version 4.0.0.     
 
 
 ## [3.0.5] - 2020/08/18

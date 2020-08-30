@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:async_redux/async_redux.dart';
 import "package:test/test.dart";
 
@@ -43,17 +45,29 @@ void main() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  test('Test detecting that the AFTER method of an action threw an error.', () async {
+  test(
+      "Test detecting that the AFTER method of an action threw an error. "
+      "An AFTER method shouldn't throw. But if it does, the error will be "
+      "thrown asynchronously (after the async gap).", () async {
     //
     info = [];
     Store<String> store = Store<String>(initialState: "");
 
-    var actionA = MyAction(whenToThrow: When.after);
-    store.dispatch(actionA);
-    expect(actionA.status.isBeforeDone, true);
-    expect(actionA.status.isReduceDone, true);
-    expect(actionA.status.isAfterDone, false);
-    expect(actionA.hasFinished, false);
+    var hasThrown = false;
+    runZoned(() {
+      var actionA = MyAction(whenToThrow: When.after);
+      store.dispatch(actionA);
+      expect(actionA.status.isBeforeDone, true);
+      expect(actionA.status.isReduceDone, true);
+      expect(actionA.status.isAfterDone, false);
+      expect(actionA.hasFinished, false);
+    }, onError: (error, stackTrace) {
+      hasThrown = true;
+      expect(error, const UserException("During after"));
+    });
+
+    await Future.delayed(const Duration(milliseconds: 10));
+    expect(hasThrown, isTrue);
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -100,28 +114,5 @@ class MyAction extends ReduxAction<String> {
     info.add('3');
   }
 }
-
-// ----------------------------------------------
-
-//class ActionB extends ReduxAction<String> {
-//  @override
-//  bool abortDispatch() => state.length >= 2;
-//
-//  @override
-//  void before() {
-//    info.add('1');
-//  }
-//
-//  @override
-//  String reduce() {
-//    info.add('2');
-//    return state + 'X';
-//  }
-//
-//  @override
-//  void after() {
-//    info.add('3');
-//  }
-//}
 
 // ----------------------------------------------
