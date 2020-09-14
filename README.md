@@ -2814,6 +2814,7 @@ Reducers as methods of action classes were shown to me by Scott Stoll and Simon 
 * <a href="https://pub.dev/packages/i18n_extension">i18n_extension</a>
 * <a href="https://pub.dev/packages/align_positioned">align_positioned</a>
 * <a href="https://pub.dev/packages/network_to_file_image">network_to_file_image</a>
+* <a href="https://pub.dev/packages/image_pixels">image_pixels</a>
 * <a href="https://pub.dev/packages/matrix4_transform">matrix4_transform</a> 
 * <a href="https://pub.dev/packages/back_button_interceptor">back_button_interceptor</a>
 * <a href="https://pub.dev/packages/indexed_list_view">indexed_list_view</a> 
