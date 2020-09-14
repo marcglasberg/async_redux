@@ -618,20 +618,29 @@ class Store<St> {
   ) {
     try {
       error = action.wrapError(error);
-    } catch (_error) {
-      // Swallows any errors thrown by the action's wrapError.
+    } catch (_error, stackTrace) {
+      // Errors thrown by the action's wrapError.
       // WrapError should never throw. It should return an error.
-      print("Method '${action.runtimeType}.wrapError()' "
-          "has thrown an error: '$_error'.");
+      _throws(
+        "Method '${action.runtimeType}.wrapError()' "
+        "has thrown an error:\n '$_error'.",
+        error,
+        stackTrace,
+      );
     }
 
     if (_wrapError != null) {
       try {
         error = _wrapError.wrap(error, stackTrace, action) ?? error;
       } catch (_error) {
-        // Swallows any errors thrown by the global wrapError.
+        // Errors thrown by the global wrapError.
         // WrapError should never throw. It should return an error.
-        print("Method 'WrapError.wrap()' has thrown an error: '$_error'.");
+        _throws(
+          "Method 'WrapError.wrap()' "
+          "has thrown an error:\n '$_error'.",
+          error,
+          stackTrace,
+        );
       }
     }
 
@@ -680,27 +689,17 @@ class Store<St> {
     try {
       action.after();
       action._status._isAfterDone = true;
-    } catch (error) {
+    } catch (error, stackTrace) {
       // After should never throw.
-      // However, if it does:
-
-      // 1) Prints this information to the console,
-      print("Method '${action.runtimeType}.after()' "
-          "has thrown an error: '$error'.");
-
-      // 2) Throws the error after an asynchronous gap.
-      // Note: Loses stacktrace due to Dart architecture.
-      // See: https://groups.google.com/a/dartlang.org/forum/#!topic/misc/O1OKnYTUcoo
-      // See: https://github.com/dart-lang/sdk/issues/10297
-      // This should be fixed when this issue is solved: https://github.com/dart-lang/sdk/issues/30741
-      _throws(error);
+      // However, if it does, prints the error information to the console,
+      // then throw the error after an asynchronous gap.
+      _throws(
+        "Method '${action.runtimeType}.after()' "
+        "has thrown an error:\n '$error'.",
+        error,
+        stackTrace,
+      );
     }
-  }
-
-  void _throws(error) {
-    Future(() {
-      throw error;
-    });
   }
 
   /// Closes down the store so it will no longer be operational.
@@ -1515,6 +1514,7 @@ class _StoreStreamListenerState<St, Model> //
       widget.onInit(widget.store);
     }
 
+    // Gets the initial view-model (for the widget's initState).
     modelPrevious = getLatestValue();
 
     if (widget.onInitialBuild != null) {
@@ -1555,32 +1555,45 @@ class _StoreStreamListenerState<St, Model> //
     // After each Model is emitted from the Stream, we update the
     // latestValue. Important: This must be done after all other optional
     // transformations, such as shouldUpdateModel.
-    stream = stream.transform(StreamTransformer.fromHandlers(handleData: (
-      modelCurrent,
-      sink,
-    ) {
-      //
-      if (distinct == false)
-        _observeWithTheModelObserver(
-          modelPrevious: modelPrevious,
-          modelCurrent: modelCurrent,
-          isDistinct: null,
-        );
+    stream = stream.transform(
+      StreamTransformer.fromHandlers(
+        //
+        handleData: (modelCurrent, sink) {
+          //
+          if (distinct == false)
+            _observeWithTheModelObserver(
+              modelPrevious: modelPrevious,
+              modelCurrent: modelCurrent,
+              isDistinct: null,
+            );
 
-      modelPrevious = modelCurrent;
+          modelPrevious = modelCurrent;
 
-      if (widget.onWillChange != null) {
-        widget.onWillChange(modelPrevious);
-      }
+          if (widget.onWillChange != null) {
+            widget.onWillChange(modelPrevious);
+          }
 
-      if (widget.onDidChange != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          widget.onDidChange(modelPrevious);
-        });
-      }
+          if (widget.onDidChange != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              widget.onDidChange(modelPrevious);
+            });
+          }
 
-      sink.add(modelCurrent);
-    }));
+          sink.add(modelCurrent);
+        },
+        //
+        handleError: (Object error, StackTrace stackTrace, EventSink sink) {
+          // If the view-model construction failed, prints the error information
+          // to the console, then throw the error after an asynchronous gap.
+          _throws(
+            "View-model has thrown an error:\n '$error'.",
+            error,
+            stackTrace,
+          );
+          // throw error;
+        },
+      ),
+    );
   }
 
   // If there is a ModelObserver, observe.
@@ -1601,9 +1614,12 @@ class _StoreStreamListenerState<St, Model> //
           reduceCount: widget.store.reduceCount,
           dispatchCount: widget.store.dispatchCount,
         );
-      } catch (error) {
-        // Swallows any errors thrown by the model observer.
-        print("Model observer has thrown an error: '$error'.");
+      } catch (error, stackTrace) {
+        _throws(
+          "Model observer has thrown an error:\n '$error'.",
+          error,
+          stackTrace,
+        );
       }
     }
   }
@@ -1816,6 +1832,28 @@ class StoreException implements Exception {
 
   @override
   int get hashCode => msg.hashCode;
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+
+/// Prints the error/stacktrace information to the console,
+/// then throws the error after an asynchronous gap.
+/// Note: We print the stacktrace because the rethrow loses
+/// the stacktrace due to Dart architecture.
+///  See: https://groups.google.com/a/dartlang.org/forum/#!topic/misc/O1OKnYTUcoo
+///  See: https://github.com/dart-lang/sdk/issues/10297
+///  This should be fixed when this issue is solved: https://github.com/dart-lang/sdk/issues/30741
+///
+void _throws(errorMsg, error, StackTrace stackTrace) {
+  if (errorMsg != null) print(errorMsg);
+  if (stackTrace != null) {
+    print("\nStackTrace:\n$stackTrace");
+    print("--- End of the StackTrace\n\n");
+  }
+
+  Future(() {
+    throw error;
+  });
 }
 
 // /////////////////////////////////////////////////////////////////////////////
