@@ -1,10 +1,16 @@
-# [4.0.0] - 2020/10/02
+# [4.0.2] - 2020/10/07
 
-### Flutter 1.22 compatibility
+* VmEquals const constructor.
+
+# [4.0.1] - 2020/10/02
+
+## Flutter 1.22 compatibility
 
 Bumping _file: ^6.0.0-nullsafety.2_
 
-### Breaking Change
+<br>
+
+## Breaking Change
 
 The abstract `ReduxAction.reduce()` method signature has a return type of `FutureOr<AppState>`,
 but your concrete reducers must return one or the other: `AppState` or `Future<AppState>`.
@@ -17,8 +23,10 @@ and will throw a `StoreException`:
 ```
 Reducer should return `St` or `Future<St>`. Do not return `FutureOr<St>`.
 ```
+
+<br>
  
-### Breaking Change
+## Breaking Change
 
 Previously to version 4.0.0, 
 your *async* reducers would have to make sure never to return completed futures.
@@ -35,7 +43,9 @@ so your code is unlikely to break after upgrading to version 4.0.0.
 But, please run your tests in this new version 
 and open an issue if it has created any problems for you that you think would make it difficult to migrate.  
 
-### Deprecated 
+<br>
+
+## Deprecated 
 
 `StoreConnector`'s `model` parameter is now deprecated. It expects a `BaseModel`
 object, which is also deprecated. AsyncRedux run the `BaseModel.fromStore()` 
@@ -88,7 +98,9 @@ class ViewModel extends Vm {
 
 Please note, `StoreConnector`'s `converter` parameter still works and will NOT be deprecated.
 
-### View-model equality
+<br>
+
+## View-model equality
 
 Just as before, if you provide the `Vm.equals` field in the constructor, it will
 automatically create equals/hashcode for you, so that the connector can know
@@ -99,6 +111,8 @@ are compared by identity, while all other object types are, as usual, compared
 by equality. You may then override the `VmEquals.vmEquals()` method to provide 
 your custom comparisons.                  
 
+<br>
+<br>
 <br>
 
 ## [3.0.5] - 2020/08/18
