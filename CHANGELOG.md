@@ -1,3 +1,8 @@
+# [4.0.3] - 2020/10/19
+
+* Better performance: Less unnecessary view-model calculations.
+* StoreConnector.shouldUpdateModel fix.
+
 # [4.0.2] - 2020/10/07
 
 * VmEquals const constructor.
