@@ -1088,8 +1088,6 @@ abstract class Vm {
 // /////////////////////////////////////////////////////////////////////////////
 
 abstract class VmEquals<T> {
-  const VmEquals();
-
   bool vmEquals(T other) => identical(this, other);
 }
 
