@@ -255,7 +255,7 @@ class Store<St> {
     ModelObserver modelObserver,
     ErrorObserver errorObserver,
     WrapError wrapError,
-    bool defaultDistinct = true,
+    bool defaultDistinct,
   })  : _state = initialState,
         _stateTimestamp = DateTime.now().toUtc(),
         _changeController = StreamController.broadcast(sync: syncStream),
@@ -268,7 +268,7 @@ class Store<St> {
         _modelObserver = modelObserver,
         _errorObserver = errorObserver,
         _wrapError = wrapError,
-        _defaultDistinct = defaultDistinct,
+        _defaultDistinct = defaultDistinct ?? true,
         _errors = Queue<UserException>(),
         _dispatchCount = 0,
         _reduceCount = 0,
@@ -1259,8 +1259,13 @@ typedef ShouldUpdateModel<St> = bool Function(St state);
 /// A function that will be run on state change, before the build method.
 /// This function is passed the `Model`, and if `distinct` is `true`,
 /// it will only be called if the `Model` changes.
-/// This can be useful for imperative calls to things like Navigator, TabController, etc
-typedef OnWillChangeCallback<Model> = void Function(Model viewModel);
+/// This is useful for making calls to other classes, such as a
+/// `Navigator` or `TabController`, in response to state changes.
+/// It can also be used to trigger an action based on the previous state.
+typedef OnWillChangeCallback<Model> = void Function(
+  Model previousViewModel,
+  Model newViewModel,
+);
 
 /// A function that will be run on State change, after the build method.
 ///
@@ -1396,6 +1401,7 @@ class StoreConnector<St, Model> extends StatelessWidget {
   Widget build(BuildContext context) {
     return _StoreStreamListener<St, Model>(
       store: StoreProvider.of<St>(context, debug),
+      debug: debug,
       storeConnector: this,
       builder: builder,
       converter: converter,
@@ -1443,6 +1449,7 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
   final VmFactory vm;
   final BaseModel model; // Deprecated.
   final Store<St> store;
+  final Object debug;
   final StoreConnector storeConnector;
   final bool rebuildOnChange;
   final bool distinct;
@@ -1457,6 +1464,7 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
     Key key,
     @required this.builder,
     @required this.store,
+    @required this.debug,
     @required this.converter,
     @required this.vm,
     @required this.model, // Deprecated.
@@ -1479,33 +1487,39 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
 
 // /////////////////////////////////////////////////////////////////////////////
 
+/// If the StoreConnector throws an error.
+class ConverterError extends Error {
+  final Object debug;
+
+  /// The error thrown while running the [StoreConnector.converter] function.
+  final Object error;
+
+  /// The stacktrace that accompanies the [error]
+  @override
+  final StackTrace stackTrace;
+
+  /// Creates a ConverterError with the relevant error and stacktrace.
+  ConverterError(this.error, this.stackTrace, this.debug);
+
+  @override
+  String toString() {
+    return "Error creating the view model"
+        "${debug == null ? '' : ' (${debug.runtimeType})'}: "
+        "$error\n\n"
+        "$stackTrace\n\n";
+  }
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+
 class _StoreStreamListenerState<St, Model> //
     extends State<_StoreStreamListener<St, Model>> {
-  Stream<Model> stream;
-  Model latestModel;
+  Stream<Model> _stream;
+  Model _latestModel;
+  ConverterError _latestError;
 
-  @override
-  void initState() {
-    _init();
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    if (widget.onDispose != null) {
-      widget.onDispose(widget.store);
-    }
-    super.dispose();
-  }
-
-  @override
-  void didUpdateWidget(_StoreStreamListener<St, Model> oldWidget) {
-    if (widget.store != oldWidget.store) {
-      _init();
-    }
-
-    super.didUpdateWidget(oldWidget);
-  }
+  // If `widget.distinct` was passed, use it. Otherwise, use the store default.
+  bool get _distinct => widget.distinct ?? widget.store._defaultDistinct;
 
   /// Reference to the last state.
   /// We need this so that we only recalculate the view-model if the state changed.
@@ -1517,131 +1531,167 @@ class _StoreStreamListenerState<St, Model> //
   /// when we need to use it we put it into [forceLastValidStreamState].
   St mostRecentValidState, forceLastValidStreamState;
 
-  void _init() {
+  @override
+  void initState() {
     if (widget.onInit != null) {
       widget.onInit(widget.store);
     }
 
-    // Gets the initial view-model (for the widget's initState).
-    latestModel = getLatestModel(widget.store.state);
+    _computeLatestModel();
 
     if (widget.onInitialBuild != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onInitialBuild(latestModel);
+        widget.onInitialBuild(_latestModel);
       });
     }
 
-    Stream<St> _stream = widget.store.onChange;
+    _createStream();
 
-    // If `shouldUpdateModel` is provided, it will calculate if the STORE state contains
-    // a valid state which may be used to calculate the view-model. If this is not the
-    // case, we revert to the last known valid state, which may be a STORE state or a
-    // STREAM state. Note the view-model is always calculated from the STORE state,
-    // which is always the same or more recent than the STREAM state. We could greatly
-    // simplify all of this if the view-model used the STREAM state. However, this would
-    // mean some small delay in the UI, and there is also the problem that the converter
-    // parameter uses the STORE.
-    if (widget.shouldUpdateModel != null) {
-      _stream = _stream.where((state) {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    if (widget.onDispose != null) {
+      widget.onDispose(widget.store);
+    }
+
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(_StoreStreamListener<St, Model> oldWidget) {
+    _computeLatestModel();
+
+    if (widget.store != oldWidget.store) {
+      _createStream();
+    }
+
+    super.didUpdateWidget(oldWidget);
+  }
+
+  void _computeLatestModel() {
+    try {
+      _latestError = null;
+      _latestModel = getLatestModel(widget.store.state);
+    } catch (error, stacktrace) {
+      _latestModel = null;
+      _latestError = ConverterError(error, stacktrace, widget.debug);
+    }
+  }
+
+  void _createStream() {
+    _stream = widget.store.onChange
+        .where(_stateChanged)
+        .where(_shouldUpdateModel)
+        .map(_mapConverter)
+        // Don't use `Stream.distinct` because it cannot capture the initial
+        // ViewModel produced by the `converter`.
+        .where(_whereDistinct)
+        // After each ViewModel is emitted from the Stream, we update the
+        // latestValue. Important: This must be done after all other optional
+        // transformations, such as ignoreChange.
+        .transform(StreamTransformer.fromHandlers(
+          handleData: _handleData,
+          handleError: _handleError,
+        ));
+  }
+
+  // This prevents unnecessary calculations of the view-model.
+  bool _stateChanged(St state) {
+    return !identical(previousState, widget.store.state);
+  }
+
+  // If `shouldUpdateModel` is provided, it will calculate if the STORE state contains
+  // a valid state which may be used to calculate the view-model. If this is not the
+  // case, we revert to the last known valid state, which may be a STORE state or a
+  // STREAM state. Note the view-model is always calculated from the STORE state,
+  // which is always the same or more recent than the STREAM state. We could greatly
+  // simplify all of this if the view-model used the STREAM state. However, this would
+  // mean some small delay in the UI, and there is also the problem that the converter
+  // parameter uses the STORE.
+  bool _shouldUpdateModel(St state) {
+    if (widget.shouldUpdateModel == null)
+      return true;
+    else {
+      forceLastValidStreamState = null;
+      bool ifStoreHasValidModel = widget.shouldUpdateModel(widget.store.state);
+      if (ifStoreHasValidModel) {
+        mostRecentValidState = widget.store.state;
+        return true;
+      }
+      //
+      else {
         //
-        forceLastValidStreamState = null;
-        bool ifStoreHasValidModel = widget.shouldUpdateModel(widget.store.state);
-        if (ifStoreHasValidModel) {
-          mostRecentValidState = widget.store.state;
-          return true;
-        }
-        //
-        else {
-          //
-          bool ifStreamHasValidModel = widget.shouldUpdateModel(state);
-          if (ifStreamHasValidModel) {
-            mostRecentValidState = state;
-            return false;
-          } else {
-            if (identical(state, widget.store.state)) {
-              forceLastValidStreamState = mostRecentValidState;
-            }
+        bool ifStreamHasValidModel = widget.shouldUpdateModel(state);
+        if (ifStreamHasValidModel) {
+          mostRecentValidState = state;
+          return false;
+        } else {
+          if (identical(state, widget.store.state)) {
+            forceLastValidStreamState = mostRecentValidState;
           }
         }
+      }
 
-        return (forceLastValidStreamState != null);
+      return (forceLastValidStreamState != null);
+    }
+  }
+
+  Model _mapConverter(St state) => getLatestModel(widget.store.state);
+
+  // Don't use `Stream.distinct` since it can't capture the initial vm.
+  bool _whereDistinct(Model vm) {
+    if (_distinct) {
+      bool isDistinct = vm != _latestModel;
+
+      _observeWithTheModelObserver(
+        modelPrevious: _latestModel,
+        modelCurrent: vm,
+        isDistinct: isDistinct,
+      );
+
+      return isDistinct;
+    }
+
+    return true;
+  }
+
+  void _handleData(Model vm, EventSink<Model> sink) {
+    //
+    if (!_distinct)
+      _observeWithTheModelObserver(
+        modelPrevious: _latestModel,
+        modelCurrent: vm,
+        isDistinct: null,
+      );
+
+    _latestError = null;
+
+    if (widget.onWillChange != null) {
+      widget.onWillChange(_latestModel, vm);
+    }
+
+    _latestModel = vm;
+
+    if (widget.onDidChange != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onDidChange(_latestModel);
       });
     }
 
-    stream = _stream
-        // This prevents unnecessary calculations of the view-model.
-        .where((_) => !identical(previousState, widget.store.state))
-        // Calculate the view-model from the store state (not the stream state).
-        .map(
-      (_) {
-        previousState = widget.store.state;
-        return getLatestModel(forceLastValidStreamState ?? widget.store.state);
-      },
-    );
+    sink.add(vm);
+  }
 
-    // If `widget.distinct` was passed, use it.
-    // Otherwise, use the store default `store._distinct`.
-    bool distinct = (widget.distinct != null) //
-        ? widget.distinct
-        : widget.store._defaultDistinct;
-
-    // Don't use `Stream.distinct` since it can't capture the initial vm produced by the `converter`.
-    if (distinct == true) {
-      stream = stream.where((modelCurrent) {
-        bool isDistinct = modelCurrent != latestModel;
-
-        _observeWithTheModelObserver(
-          modelPrevious: latestModel,
-          modelCurrent: modelCurrent,
-          isDistinct: isDistinct,
-        );
-
-        return isDistinct;
-      });
-    }
-
-    // After each Model is emitted from the Stream, we update the latest model.
-    // Important: This must be done after all other optional transformations,
-    // such as shouldUpdateModel.
-    stream = stream.transform(
-      StreamTransformer.fromHandlers(
-        //
-        handleData: (modelCurrent, sink) {
-          //
-          if (distinct == false)
-            _observeWithTheModelObserver(
-              modelPrevious: latestModel,
-              modelCurrent: modelCurrent,
-              isDistinct: null,
-            );
-
-          latestModel = modelCurrent;
-
-          if (widget.onWillChange != null) {
-            widget.onWillChange(latestModel);
-          }
-
-          if (widget.onDidChange != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              widget.onDidChange(latestModel);
-            });
-          }
-
-          sink.add(modelCurrent);
-        },
-        //
-        handleError: (Object error, StackTrace stackTrace, EventSink sink) {
-          // If the view-model construction failed, print the error information
-          // to the console, then throw the error after an asynchronous gap.
-          _throws(
-            "View-model has thrown an error:\n '$error'.",
-            error,
-            stackTrace,
-          );
-          // throw error;
-        },
-      ),
-    );
+  // If the view-model construction failed.
+  void _handleError(
+    Object error,
+    StackTrace stackTrace,
+    EventSink<Model> sink,
+  ) {
+    _latestModel = null;
+    _latestError = ConverterError(error, stackTrace, widget.debug);
+    sink.addError(error, stackTrace);
   }
 
   // If there is a ModelObserver, observe.
@@ -1694,12 +1744,16 @@ class _StoreStreamListenerState<St, Model> //
   Widget build(BuildContext context) {
     return widget.rebuildOnChange
         ? StreamBuilder<Model>(
-            stream: stream,
+            stream: _stream,
             builder: (context, snapshot) {
-              return widget.builder(context, latestModel);
+              if (_latestError != null) throw _latestError;
+
+              return widget.builder(context, _latestModel);
             },
           )
-        : widget.builder(context, latestModel);
+        : _latestError != null
+            ? throw _latestError
+            : widget.builder(context, _latestModel);
   }
 }
 
@@ -1850,7 +1904,7 @@ class StoreConnectorError extends Error {
 
   @override
   String toString() {
-    return '''Error: No $type found. (debug info: ${debug.runtimeType.toString()})    
+    return '''Error: No $type found. (debug info: ${debug.runtimeType})    
     
     To fix, please try:
           

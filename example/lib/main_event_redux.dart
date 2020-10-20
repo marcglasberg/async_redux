@@ -42,11 +42,12 @@ class AppState {
     this.changeTextEvt,
   });
 
-  AppState copy(
-          {int counter,
-          bool waiting,
-          Event clearTextEvt,
-          Event<String> changeTextEvt}) =>
+  AppState copy({
+    int counter,
+    bool waiting,
+    Event clearTextEvt,
+    Event<String> changeTextEvt,
+  }) =>
       AppState(
         counter: counter ?? this.counter,
         waiting: waiting ?? this.waiting,
@@ -226,8 +227,7 @@ class _MyHomePageState extends State<MyHomePage> {
     String newText = widget.changeTextEvt.consume();
     if (newText != null)
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted)
-          controller.value = controller.value.copyWith(text: newText);
+        if (mounted) controller.value = controller.value.copyWith(text: newText);
       });
   }
 
@@ -244,11 +244,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 const Text('This is a TextField. Click to edit it:'),
                 TextField(controller: controller),
                 const SizedBox(height: 20),
-                FloatingActionButton(
-                    onPressed: widget.onChange, child: const Text("Change")),
+                FloatingActionButton(onPressed: widget.onChange, child: const Text("Change")),
                 const SizedBox(height: 20),
-                FloatingActionButton(
-                    onPressed: widget.onClear, child: const Text("Clear")),
+                FloatingActionButton(onPressed: widget.onClear, child: const Text("Clear")),
               ],
             ),
           ),

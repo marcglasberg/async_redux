@@ -145,12 +145,14 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
   Factory(widget) : super(widget);
 
   @override
-  ViewModel fromStore() => ViewModel(
-        numTrivia: state.numTrivia,
-        isLoading: state.isLoading,
-        loadMore: () => dispatch(LoadMoreAction()),
-        onRefresh: () => dispatchFuture(RefreshAction()),
-      );
+  ViewModel fromStore() {
+    return ViewModel(
+      numTrivia: state.numTrivia,
+      isLoading: state.isLoading,
+      loadMore: () => dispatch(LoadMoreAction()),
+      onRefresh: () => dispatchFuture(RefreshAction()),
+    );
+  }
 }
 
 /// The view-model holds the part of the Store state the dumb-widget needs.
@@ -199,8 +201,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _controller = ScrollController()
       ..addListener(() {
         if (!widget.isLoading &&
-            _controller.position.maxScrollExtent ==
-                _controller.position.pixels) {
+            _controller.position.maxScrollExtent == _controller.position.pixels) {
           widget.loadMore();
         }
       });
