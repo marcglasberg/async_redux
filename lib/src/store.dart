@@ -1580,22 +1580,23 @@ class _StoreStreamListenerState<St, Model> //
     }
   }
 
-  void _createStream() {
-    _stream = widget.store.onChange
-        .where(_stateChanged)
-        .where(_shouldUpdateModel)
-        .map(_mapConverter)
-        // Don't use `Stream.distinct` because it cannot capture the initial
-        // ViewModel produced by the `converter`.
-        .where(_whereDistinct)
-        // After each ViewModel is emitted from the Stream, we update the
-        // latestValue. Important: This must be done after all other optional
-        // transformations, such as shouldUpdateModel.
-        .transform(StreamTransformer.fromHandlers(
-          handleData: _handleData,
-          handleError: _handleError,
-        ));
-  }
+  void _createStream() => _stream = widget.store.onChange
+      // This prevents unnecessary calculations of the view-model.
+      .where(_stateChanged)
+      // Discards invalid states.
+      .where(_shouldUpdateModel)
+      // Calculates the view-model using the `vm` or `converter` functions.
+      .map(_calculateModel)
+      // Don't use `Stream.distinct` because it cannot capture the initial
+      // ViewModel produced by the `converter`.
+      .where(_whereDistinct)
+      // Updates the latest-model with the calculated vm.
+      // Important: This must be done after all other optional
+      // transformations, such as shouldUpdateModel.
+      .transform(StreamTransformer.fromHandlers(
+        handleData: _handleData,
+        handleError: _handleError,
+      ));
 
   // This prevents unnecessary calculations of the view-model.
   bool _stateChanged(St state) {
@@ -1638,7 +1639,8 @@ class _StoreStreamListenerState<St, Model> //
     }
   }
 
-  Model _mapConverter(St state) => getLatestModel(_forceLastValidStreamState ?? widget.store.state);
+  Model _calculateModel(St state) =>
+      getLatestModel(_forceLastValidStreamState ?? widget.store.state);
 
   // Don't use `Stream.distinct` since it can't capture the initial vm.
   bool _whereDistinct(Model vm) {
