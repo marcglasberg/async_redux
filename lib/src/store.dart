@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:collection';
-
+import 'package:meta/meta.dart';
+import 'package:collection/collection.dart';
 import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/src/process_persistence.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:logging/logging.dart';
 
 // Developed by Marcelo Glasberg (Aug 2019).
 // Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
@@ -169,7 +167,7 @@ class DefaultModelObserver<Model> implements ModelObserver<Model> {
     Model modelPrevious,
     Model modelCurrent,
     bool isDistinct,
-    StoreConnector storeConnector,
+    StoreConnectorInterface storeConnector,
     int reduceCount,
     int dispatchCount,
   }) {
@@ -288,6 +286,10 @@ class Store<St> {
 
   /// The timestamp of the current state in the store, in UTC.
   DateTime get stateTimestamp => _stateTimestamp;
+
+  bool get defaultDistinct => _defaultDistinct;
+
+  ModelObserver get modelObserver => _modelObserver;
 
   int get dispatchCount => _dispatchCount;
 
@@ -913,7 +915,7 @@ abstract class ModelObserver<Model> {
     Model modelPrevious,
     Model modelCurrent,
     bool isDistinct,
-    StoreConnector storeConnector,
+    StoreConnectorInterface storeConnector,
     int reduceCount,
     int dispatchCount,
   });
@@ -921,76 +923,65 @@ abstract class ModelObserver<Model> {
 
 // /////////////////////////////////////////////////////////////////////////////
 
-/// Don't use, this is deprecated. Please, use the recommended [Vm] class.
-/// This should only be used for IMMUTABLE classes.
-/// Lets you implement equals/hashcode without having to override these methods.
-abstract class BaseModel<St> {
-  /// The List of properties which will be used to determine whether two BaseModels are equal.
-  final List<Object> equals;
+class _Flag<T> {
+  T value;
 
-  /// You can pass the connector widget, in case the view-model needs any info from it.
-  final Widget widget;
+  _Flag(this.value);
 
-  /// The constructor takes an optional List of fields which will be used
-  /// to determine whether two [BaseModel] are equal.
-  BaseModel({this.equals = const [], this.widget})
-      : assert(_onlyContainFieldsOfAllowedTypes(equals));
+  @override
+  bool operator ==(Object other) => true;
 
-  /// Fields should not contain functions.
-  static bool _onlyContainFieldsOfAllowedTypes(List equals) {
-    equals.forEach((Object field) {
-      if (field is Function)
-        throw StoreException("ViewModel equals "
-            "has an invalid field of type ${field.runtimeType}.");
-    });
+  @override
+  int get hashCode => 0;
+}
 
-    return true;
-  }
+// /////////////////////////////////////////////////////////////////////////////
 
-  void _setStore(St state, Store store) {
-    _state = state;
-    _dispatch = store.dispatch;
-    _dispatchFuture = store.dispatchFuture;
-    _getAndRemoveFirstError = store.getAndRemoveFirstError;
-  }
+class StoreException implements Exception {
+  final String msg;
+
+  StoreException(this.msg);
+
+  @override
+  String toString() => msg;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is BaseModel &&
+      other is StoreException && //
           runtimeType == other.runtimeType &&
-          listEquals(
-            equals,
-            other.equals,
-          );
+          msg == other.msg;
 
   @override
-  int get hashCode => runtimeType.hashCode ^ _propsHashCode;
+  int get hashCode => msg.hashCode;
+}
 
-  int get _propsHashCode {
-    int hashCode = 0;
-    equals.forEach((Object prop) => hashCode = hashCode ^ prop.hashCode);
-    return hashCode;
+// /////////////////////////////////////////////////////////////////////////////
+
+/// Prints the error/stacktrace information to the console,
+/// then throws the error after an asynchronous gap.
+/// Note: We print the stacktrace because the rethrow loses
+/// the stacktrace due to Dart architecture.
+///  See: https://groups.google.com/a/dartlang.org/forum/#!topic/misc/O1OKnYTUcoo
+///  See: https://github.com/dart-lang/sdk/issues/10297
+///  This should be fixed when this issue is solved: https://github.com/dart-lang/sdk/issues/30741
+///
+void _throws(errorMsg, error, StackTrace stackTrace) {
+  if (errorMsg != null) print(errorMsg);
+  if (stackTrace != null) {
+    print("\nStackTrace:\n$stackTrace");
+    print("--- End of the StackTrace\n\n");
   }
 
-  St _state;
-  Dispatch<St> _dispatch;
-  DispatchFuture<St> _dispatchFuture;
-  UserException Function() _getAndRemoveFirstError;
+  Future(() {
+    throw error;
+  });
+}
 
-  BaseModel fromStore();
+// /////////////////////////////////////////////////////////////////////////////
 
-  St get state => _state;
-
-  Dispatch<St> get dispatch => _dispatch;
-
-  DispatchFuture<St> get dispatchFuture => _dispatchFuture;
-
-  UserException Function() get getAndRemoveFirstError => //
-      _getAndRemoveFirstError;
-
-  @override
-  String toString() => '$runtimeType{${equals.join(', ')}}';
+abstract class VmEquals<T> {
+  bool vmEquals(T other) => identical(this, other);
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -1087,12 +1078,6 @@ abstract class Vm {
 
 // /////////////////////////////////////////////////////////////////////////////
 
-abstract class VmEquals<T> {
-  bool vmEquals(T other) => identical(this, other);
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-
 /// Factory that creates a view-model of type [Vm], for the [StoreConnector]:
 ///
 /// ```
@@ -1158,76 +1143,93 @@ abstract class VmFactory<St, T> {
       _getAndRemoveFirstError;
 }
 
+/// For internal use only. Please don't use this.
+void internalsVmFactoryInject<St>(VmFactory vmFactory, St state, Store store) {
+  vmFactory._setStore(state, store);
+}
+
 // /////////////////////////////////////////////////////////////////////////////
 
-/// Provides a Redux [Store] to all ancestors of this Widget.
-/// This should generally be a root widget in your App.
-/// Connect to the Store provided by this Widget using a [StoreConnector].
-class StoreProvider<St> extends InheritedWidget {
-  final Store<St> _store;
+/// Don't use, this is deprecated. Please, use the recommended [Vm] class.
+/// This should only be used for IMMUTABLE classes.
+/// Lets you implement equals/hashcode without having to override these methods.
+abstract class BaseModel<St> {
+  /// The List of properties which will be used to determine whether two BaseModels are equal.
+  final List<Object> equals;
 
-  const StoreProvider({
-    Key key,
-    @required Store<St> store,
-    @required Widget child,
-  })  : assert(store != null),
-        assert(child != null),
-        _store = store,
-        super(key: key, child: child);
+  /// You can pass the connector widget, in case the view-model needs any info from it.
+  final Object widget;
 
-  static Store<St> of<St>(BuildContext context, Object debug) {
-    final StoreProvider<St> provider =
-        context.dependOnInheritedWidgetOfExactType<StoreProvider<St>>();
+  /// The constructor takes an optional List of fields which will be used
+  /// to determine whether two [BaseModel] are equal.
+  BaseModel({this.equals = const [], this.widget})
+      : assert(_onlyContainFieldsOfAllowedTypes(equals));
 
-    if (provider == null)
-      throw StoreConnectorError(
-        _typeOf<StoreProvider<St>>(),
-        debug,
-      );
+  /// Fields should not contain functions.
+  static bool _onlyContainFieldsOfAllowedTypes(List equals) {
+    equals.forEach((Object field) {
+      if (field is Function)
+        throw StoreException("ViewModel equals "
+            "has an invalid field of type ${field.runtimeType}.");
+    });
 
-    return provider._store;
+    return true;
   }
 
-  /// Dispatch an action without a StoreConnector.
-  static void dispatch<St>(
-    BuildContext context,
-    ReduxAction<St> action, {
-    Object debug,
-  }) {
-    of<St>(context, debug).dispatch(action);
+  void _setStore(St state, Store store) {
+    _state = state;
+    _dispatch = store.dispatch;
+    _dispatchFuture = store.dispatchFuture;
+    _getAndRemoveFirstError = store.getAndRemoveFirstError;
   }
-
-  /// Dispatch an action without a StoreConnector,
-  /// and get a `Future<void>` which completes when the action is done.
-  static Future<void> dispatchFuture<St>(
-    BuildContext context,
-    ReduxAction<St> action, {
-    Object debug,
-  }) async =>
-      of<St>(context, debug).dispatchFuture(action);
-
-  /// Get the state, without a StoreConnector.
-  static St state<St>(BuildContext context, {Object debug}) => //
-      of<St>(context, debug).state;
-
-  /// Workaround to capture generics.
-  static Type _typeOf<T>() => T;
 
   @override
-  bool updateShouldNotify(StoreProvider<St> oldWidget) => //
-      _store != oldWidget._store;
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BaseModel &&
+          runtimeType == other.runtimeType &&
+          const ListEquality<Object>().equals(
+            equals,
+            other.equals,
+          );
+
+  @override
+  int get hashCode => runtimeType.hashCode ^ _propsHashCode;
+
+  int get _propsHashCode {
+    int hashCode = 0;
+    equals.forEach((Object prop) => hashCode = hashCode ^ prop.hashCode);
+    return hashCode;
+  }
+
+  St _state;
+  Dispatch<St> _dispatch;
+  DispatchFuture<St> _dispatchFuture;
+  UserException Function() _getAndRemoveFirstError;
+
+  BaseModel fromStore();
+
+  St get state => _state;
+
+  Dispatch<St> get dispatch => _dispatch;
+
+  DispatchFuture<St> get dispatchFuture => _dispatchFuture;
+
+  UserException Function() get getAndRemoveFirstError => //
+      _getAndRemoveFirstError;
+
+  @override
+  String toString() => '$runtimeType{${equals.join(', ')}}';
+}
+
+/// For internal use only. Please don't use this.
+void internalsBaseModelInject<St>(BaseModel baseModel, St state, Store store) {
+  baseModel._setStore(state, store);
 }
 
 // /////////////////////////////////////////////////////////////////////////////
 
 typedef Reducer<St> = FutureOr<St> Function();
-
-/// Build a Widget using the [BuildContext] and [Model].
-/// The [Model] is derived from the [Store] using a [StoreConverter].
-typedef ViewModelBuilder<Model> = Widget Function(
-  BuildContext context,
-  Model vm,
-);
 
 /// Convert the entire [Store] into a [Model]. The [Model] will
 /// be used to build a Widget using the [ViewModelBuilder].
@@ -1285,680 +1287,30 @@ typedef OnInitialBuildCallback<Model> = void Function(Model viewModel);
 
 // /////////////////////////////////////////////////////////////////////////////
 
-/// Build a widget based on the state of the [Store].
-///
-/// Before the [builder] is run, the [converter] will convert the store into a
-/// more specific `Model` tailored to the Widget being built.
-///
-/// Every time the store changes, the Widget will be rebuilt. As a performance
-/// optimization, the Widget can be rebuilt only when the [Model] changes.
-/// In order for this to work correctly, you must implement [==] and [hashCode] for
-/// the [Model], and set the [distinct] option to true when creating your StoreConnector.
-class StoreConnector<St, Model> extends StatelessWidget {
-  //
-  /// Build a Widget using the [BuildContext] and [Model]. The [Model]
-  /// is created by the [converter] or [model] functions.
-  final ViewModelBuilder<Model> builder;
+abstract class StoreConnectorInterface<St, Model> {
+  VmFactory get vm;
 
-  /// Convert the [Store] into a [Model]. The resulting [Model] will be
-  /// passed to the [builder] function.
-  final VmFactory vm;
+  StoreConverter<St, Model> get converter;
 
-  /// Convert the [Store] into a [Model]. The resulting [Model] will be
-  /// passed to the [builder] function.
-  final StoreConverter<St, Model> converter;
+  BaseModel get model;
 
-  /// Don't use, this is deprecated. Please, use the recommended
-  /// `vm` parameter (of type [VmFactory]) or `converter`.
-  @Deprecated("Please, use `vm` parameter. "
-      "See classes `VmFactory` and `Vm`.")
-  final BaseModel model;
+  bool get distinct;
 
-  /// When [distinct] is true (the default), the Widget is rebuilt only
-  /// when the [Model] changes. In order for this to work correctly, you
-  /// must implement [==] and [hashCode] for the [Model].
-  final bool distinct;
+  OnInitCallback<St> get onInit;
 
-  /// A function that will be run when the StoreConnector is initially created.
-  /// It is run in the [State.initState] method.
-  /// This can be useful for dispatching actions that fetch data for your Widget
-  /// when it is first displayed.
-  final OnInitCallback<St> onInit;
+  OnDisposeCallback<St> get onDispose;
 
-  /// A function that will be run when the StoreConnector is removed from the
-  /// Widget Tree. It is run in the [State.dispose] method.
-  /// This can be useful for dispatching actions that remove stale data from your State tree.
-  final OnDisposeCallback<St> onDispose;
+  bool get rebuildOnChange;
 
-  /// Determines whether the Widget should be rebuilt when the Store emits an onChange event.
-  final bool rebuildOnChange;
+  ShouldUpdateModel<St> get shouldUpdateModel;
 
-  /// A test of whether or not your [vm] or [converter] function should run in
-  /// response to a State change. For advanced use only.
-  /// Some changes to the State of your application will mean your [vm] or
-  /// [converter] function can't produce a useful Model. In these cases, such as
-  /// when performing exit animations on data that has been removed from your Store,
-  /// it can be best to ignore the State change while your animation completes.
-  /// To ignore a change, provide a function that returns true or false.
-  /// If the returned value is true, the change will be applied.
-  /// If the returned value is false, the change will be ignored.
-  /// If you ignore a change, and the framework needs to rebuild the Widget,
-  /// the [builder] function will be called with the latest [Model] produced
-  /// by your [vm] or [converter] function.
-  final ShouldUpdateModel<St> shouldUpdateModel;
+  OnWillChangeCallback<Model> get onWillChange;
 
-  /// A function that will be run on State change, before the Widget is built.
-  /// This function is passed the `Model`, and if `distinct` is `true`,
-  /// it will only be called if the `Model` changes.
-  /// This can be useful for imperative calls to things like Navigator, TabController, etc
-  final OnWillChangeCallback<Model> onWillChange;
+  OnDidChangeCallback<Model> get onDidChange;
 
-  /// A function that will be run on State change, after the Widget is built.
-  /// This function is passed the `Model`, and if `distinct` is `true`,
-  /// it will only be called if the `Model` changes.
-  /// This can be useful for running certain animations after the build is complete.
-  /// Note: Using a [BuildContext] inside this callback can cause problems if
-  /// the callback performs navigation. For navigation purposes, please use
-  /// [onWillChange].
-  final OnDidChangeCallback<Model> onDidChange;
+  OnInitialBuildCallback<Model> get onInitialBuild;
 
-  /// A function that will be run after the Widget is built the first time.
-  /// This function is passed the initial `Model` created by the `converter`
-  /// or `vm` function. This can be useful for starting certain animations,
-  /// such as showing snackbars, after the Widget is built the first time.
-  final OnInitialBuildCallback<Model> onInitialBuild;
-
-  /// Pass the parameter `debug: this` to get a more detailed error message.
-  final Object debug;
-
-  const StoreConnector({
-    Key key,
-    @required this.builder,
-    this.distinct,
-    this.vm, // Recommended.
-    this.converter, // Can be used instead of `vm`.
-    this.model, // Deprecated.
-    this.debug,
-    this.onInit,
-    this.onDispose,
-    this.rebuildOnChange = true,
-    this.shouldUpdateModel,
-    this.onWillChange,
-    this.onDidChange,
-    this.onInitialBuild,
-  })  : assert(builder != null),
-        assert(converter != null || vm != null || model != null,
-            "You should provide the `converter` or the `vm` parameter."),
-        assert(converter == null || vm == null,
-            "You can't provide both the `converter` and the `vm` parameters."),
-        assert(converter == null || model == null,
-            "You can't provide both the `converter` and the `model` parameters."),
-        assert(vm == null || model == null,
-            "You can't provide both the `vm` and the `model` parameters."),
-        super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return _StoreStreamListener<St, Model>(
-      store: StoreProvider.of<St>(context, debug),
-      debug: debug,
-      storeConnector: this,
-      builder: builder,
-      converter: converter,
-      vm: vm,
-      model: model,
-      distinct: distinct,
-      onInit: onInit,
-      onDispose: onDispose,
-      rebuildOnChange: rebuildOnChange,
-      shouldUpdateModel: shouldUpdateModel,
-      onWillChange: onWillChange,
-      onDidChange: onDidChange,
-      onInitialBuild: onInitialBuild,
-    );
-  }
-
-  /// This is not used directly by the store, but may be used in tests.
-  /// If you have a store and a StoreConnector, and you want its associated
-  /// ViewModel, you can do:
-  /// `Model viewModel = storeConnector.getLatestModel(store);`
-  ///
-  /// And if you want to build the widget:
-  /// `var widget = (storeConnector as dynamic).builder(context, viewModel);`
-  ///
-  Model getLatestModel(Store store) {
-    if (converter != null)
-      return converter(store);
-    else if (vm != null) {
-      vm._setStore(store.state, store);
-      return vm.fromStore() as Model;
-    } else if (model != null) {
-      model._setStore(store.state, store);
-      return model.fromStore() as Model;
-    } else
-      throw AssertionError();
-  }
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-
-/// Listens to the store and calls builder whenever the store changes.
-class _StoreStreamListener<St, Model> extends StatefulWidget {
-  final ViewModelBuilder<Model> builder;
-  final StoreConverter<St, Model> converter;
-  final VmFactory vm;
-  final BaseModel model; // Deprecated.
-  final Store<St> store;
-  final Object debug;
-  final StoreConnector storeConnector;
-  final bool rebuildOnChange;
-  final bool distinct;
-  final OnInitCallback<St> onInit;
-  final OnDisposeCallback<St> onDispose;
-  final ShouldUpdateModel<St> shouldUpdateModel;
-  final OnWillChangeCallback<Model> onWillChange;
-  final OnDidChangeCallback<Model> onDidChange;
-  final OnInitialBuildCallback<Model> onInitialBuild;
-
-  const _StoreStreamListener({
-    Key key,
-    @required this.builder,
-    @required this.store,
-    @required this.debug,
-    @required this.converter,
-    @required this.vm,
-    @required this.model, // Deprecated.
-    @required this.storeConnector,
-    this.distinct,
-    this.onInit,
-    this.onDispose,
-    this.rebuildOnChange = true,
-    this.onWillChange,
-    this.onDidChange,
-    this.onInitialBuild,
-    this.shouldUpdateModel,
-  }) : super(key: key);
-
-  @override
-  State<StatefulWidget> createState() {
-    return _StoreStreamListenerState<St, Model>();
-  }
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-
-/// If the StoreConnector throws an error.
-class ConverterError extends Error {
-  final Object debug;
-
-  /// The error thrown while running the [StoreConnector.converter] function.
-  final Object error;
-
-  /// The stacktrace that accompanies the [error]
-  @override
-  final StackTrace stackTrace;
-
-  /// Creates a ConverterError with the relevant error and stacktrace.
-  ConverterError(this.error, this.stackTrace, this.debug);
-
-  @override
-  String toString() {
-    return "Error creating the view model"
-        "${debug == null ? '' : ' (${debug.runtimeType})'}: "
-        "$error\n\n"
-        "$stackTrace\n\n";
-  }
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-
-class _StoreStreamListenerState<St, Model> //
-    extends State<_StoreStreamListener<St, Model>> {
-  Stream<Model> _stream;
-  Model _latestModel;
-  ConverterError _latestError;
-
-  // If `widget.distinct` was passed, use it. Otherwise, use the store default.
-  bool get _distinct => widget.distinct ?? widget.store._defaultDistinct;
-
-  /// Reference to the last state.
-  /// We need this so that we only recalculate the view-model if the state changed.
-  St _previousState;
-
-  /// if [StoreConnector.shouldUpdateModel] returns false, we need to know the
-  /// most recent VALID state (it was valid when [StoreConnector.shouldUpdateModel]
-  /// returned true). We save all valid states into [_mostRecentValidState], and
-  /// when we need to use it we put it into [_forceLastValidStreamState].
-  St _mostRecentValidState, _forceLastValidStreamState;
-
-  @override
-  void initState() {
-    if (widget.onInit != null) {
-      widget.onInit(widget.store);
-    }
-
-    _computeLatestModel();
-
-    if (widget.onInitialBuild != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onInitialBuild(_latestModel);
-      });
-    }
-
-    _createStream();
-
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    if (widget.onDispose != null) {
-      widget.onDispose(widget.store);
-    }
-
-    super.dispose();
-  }
-
-  @override
-  void didUpdateWidget(_StoreStreamListener<St, Model> oldWidget) {
-    _computeLatestModel();
-
-    if (widget.store != oldWidget.store) {
-      _createStream();
-    }
-
-    super.didUpdateWidget(oldWidget);
-  }
-
-  void _computeLatestModel() {
-    try {
-      _latestError = null;
-      _latestModel = getLatestModel(widget.store.state);
-    } catch (error, stacktrace) {
-      _latestModel = null;
-      _latestError = ConverterError(error, stacktrace, widget.debug);
-    }
-  }
-
-  void _createStream() => _stream = widget.store.onChange
-      // This prevents unnecessary calculations of the view-model.
-      .where(_stateChanged)
-      // Discards invalid states.
-      .where(_shouldUpdateModel)
-      // Calculates the view-model using the `vm` or `converter` functions.
-      .map(_calculateModel)
-      // Don't use `Stream.distinct` because it cannot capture the initial
-      // ViewModel produced by the `converter`.
-      .where(_whereDistinct)
-      // Updates the latest-model with the calculated vm.
-      // Important: This must be done after all other optional
-      // transformations, such as shouldUpdateModel.
-      .transform(StreamTransformer.fromHandlers(
-        handleData: _handleData,
-        handleError: _handleError,
-      ));
-
-  // This prevents unnecessary calculations of the view-model.
-  bool _stateChanged(St state) {
-    return !identical(_previousState, widget.store.state);
-  }
-
-  // If `shouldUpdateModel` is provided, it will calculate if the STORE state contains
-  // a valid state which may be used to calculate the view-model. If this is not the
-  // case, we revert to the last known valid state, which may be a STORE state or a
-  // STREAM state. Note the view-model is always calculated from the STORE state,
-  // which is always the same or more recent than the STREAM state. We could greatly
-  // simplify all of this if the view-model used the STREAM state. However, this would
-  // mean some small delay in the UI, and there is also the problem that the converter
-  // parameter uses the STORE.
-  bool _shouldUpdateModel(St state) {
-    if (widget.shouldUpdateModel == null)
-      return true;
-    else {
-      _forceLastValidStreamState = null;
-      bool ifStoreHasValidModel = widget.shouldUpdateModel(widget.store.state);
-      if (ifStoreHasValidModel) {
-        _mostRecentValidState = widget.store.state;
-        return true;
-      }
-      //
-      else {
-        //
-        bool ifStreamHasValidModel = widget.shouldUpdateModel(state);
-        if (ifStreamHasValidModel) {
-          _mostRecentValidState = state;
-          return false;
-        } else {
-          if (identical(state, widget.store.state)) {
-            _forceLastValidStreamState = _mostRecentValidState;
-          }
-        }
-      }
-
-      return (_forceLastValidStreamState != null);
-    }
-  }
-
-  Model _calculateModel(St state) =>
-      getLatestModel(_forceLastValidStreamState ?? widget.store.state);
-
-  // Don't use `Stream.distinct` since it can't capture the initial vm.
-  bool _whereDistinct(Model vm) {
-    if (_distinct) {
-      bool isDistinct = vm != _latestModel;
-
-      _observeWithTheModelObserver(
-        modelPrevious: _latestModel,
-        modelCurrent: vm,
-        isDistinct: isDistinct,
-      );
-
-      return isDistinct;
-    }
-
-    return true;
-  }
-
-  void _handleData(Model vm, EventSink<Model> sink) {
-    //
-    if (!_distinct)
-      _observeWithTheModelObserver(
-        modelPrevious: _latestModel,
-        modelCurrent: vm,
-        isDistinct: null,
-      );
-
-    _latestError = null;
-
-    if (widget.onWillChange != null) {
-      widget.onWillChange(_latestModel, vm);
-    }
-
-    _latestModel = vm;
-
-    if (widget.onDidChange != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onDidChange(_latestModel);
-      });
-    }
-
-    sink.add(vm);
-  }
-
-  // If the view-model construction failed.
-  void _handleError(
-    Object error,
-    StackTrace stackTrace,
-    EventSink<Model> sink,
-  ) {
-    _latestModel = null;
-    _latestError = ConverterError(error, stackTrace, widget.debug);
-    sink.addError(error, stackTrace);
-  }
-
-  // If there is a ModelObserver, observe.
-  // Note: This observer is only useful for tests.
-  void _observeWithTheModelObserver({
-    @required modelPrevious,
-    @required modelCurrent,
-    @required bool isDistinct,
-  }) {
-    ModelObserver modelObserver = widget.store._modelObserver;
-    if (modelObserver != null) {
-      try {
-        modelObserver.observe(
-          modelPrevious: modelPrevious,
-          modelCurrent: modelCurrent,
-          isDistinct: isDistinct,
-          storeConnector: widget.storeConnector,
-          reduceCount: widget.store.reduceCount,
-          dispatchCount: widget.store.dispatchCount,
-        );
-      } catch (error, stackTrace) {
-        _throws(
-          "Model observer has thrown an error:\n '$error'.",
-          error,
-          stackTrace,
-        );
-      }
-    }
-  }
-
-  /// The StoreConnector needs the converter or vm parameter (only one of them):
-  /// 1) Converter gets the `store`.
-  /// 2) Vm gets `state` and `dispatch`, so it's easier to use.
-  ///
-  Model getLatestModel(St state) {
-    //
-    if (widget.converter != null)
-      return widget.converter(widget.store);
-    else if (widget.vm != null) {
-      widget.vm._setStore(state, widget.store);
-      return widget.vm.fromStore() as Model;
-    } else if (widget.model != null) {
-      widget.model._setStore(state, widget.store);
-      return widget.model.fromStore() as Model;
-    } else
-      throw AssertionError();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return widget.rebuildOnChange
-        ? StreamBuilder<Model>(
-            stream: _stream,
-            builder: (context, snapshot) {
-              if (_latestError != null) throw _latestError;
-
-              return widget.builder(context, _latestModel);
-            },
-          )
-        : _latestError != null
-            ? throw _latestError
-            : widget.builder(context, _latestModel);
-  }
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-
-/// A function that formats the message that will be logged:
-///
-///   final log = Log(formatter: onlyLogActionFormatter);
-///   var store = new Store(initialState: 0, actionObservers:[log], stateObservers: [...]);
-///
-typedef MessageFormatter<St> = String Function(
-  St state,
-  ReduxAction<St> action,
-  bool ini,
-  int dispatchCount,
-  DateTime timestamp,
-);
-
-/// Connects a [Logger] to the Redux Store.
-/// Every action that is dispatched will be logged to the Logger, along with the new State
-/// that was created as a result of the action reaching your Store's reducer.
-///
-/// By default, this class does not print anything to your console or to a web
-/// service, such as Fabric or Sentry. It simply logs entries to a Logger instance.
-/// You can then listen to the [Logger.onRecord] Stream, and print to the
-/// console or send these actions to a web service.
-///
-/// Example: To print actions to the console as they are dispatched:
-///
-///     var store = Store(
-///       initialValue: 0,
-///       actionObservers: [Log.printer()]);
-///
-/// Example: If you only want to log actions to a Logger, use the default constructor.
-///
-///     // Create your own Logger and pass it to the Observer.
-///     final logger = new Logger("Redux Logger");
-///     final stateObserver = Log(logger: logger);
-///
-///     final store = new Store<int>(
-///       initialState: 0,
-///       stateObserver: [stateObserver]);
-///
-///     // Note: One quirk about listening to a logger instance is that you're
-///     // actually listening to the Singleton instance of *all* loggers.
-///     logger.onRecord
-///       // Filter down to [LogRecord]s sent to your logger instance
-///       .where((record) => record.loggerName == logger.name)
-///       // Print them out (or do something more interesting!)
-///       .listen((LogRecord) => print(LogRecord));
-///
-class Log<St> implements ActionObserver<St> {
-  //
-  final Logger logger;
-
-  /// The log Level at which the actions will be recorded
-  final Level level;
-
-  /// A function that formats the String for printing
-  final MessageFormatter<St> formatter;
-
-  /// Logs actions to the given Logger, and does not print anything to the console.
-  Log({
-    Logger logger,
-    this.level = Level.INFO,
-    this.formatter = singleLineFormatter,
-  }) : logger = logger ?? Logger("Log");
-
-  /// Logs actions to the console.
-  factory Log.printer({
-    Logger logger,
-    Level level = Level.INFO,
-    MessageFormatter<St> formatter = singleLineFormatter,
-  }) {
-    final log = Log(logger: logger, level: level, formatter: formatter);
-    log.logger.onRecord //
-        .where((record) => record.loggerName == log.logger.name)
-        .listen(print);
-    return log;
-  }
-
-  /// A very simple formatter that writes only the action.
-  static String verySimpleFormatter(
-    dynamic state,
-    ReduxAction action,
-    bool ini,
-    int dispatchCount,
-    DateTime timestamp,
-  ) =>
-      "$action ${ini ? 'INI' : 'END'}";
-
-  /// A simple formatter that puts all data on one line.
-  static String singleLineFormatter(
-    dynamic state,
-    ReduxAction action,
-    bool ini,
-    int dispatchCount,
-    DateTime timestamp,
-  ) {
-    return "{$action, St: $state, ts: ${new DateTime.now()}}";
-  }
-
-  /// A formatter that puts each attribute on it's own line.
-  static String multiLineFormatter(
-    dynamic state,
-    ReduxAction action,
-    bool ini,
-    int dispatchCount,
-    DateTime timestamp,
-  ) {
-    return "{\n"
-        "  $dispatchCount) $action,\n"
-        "  St: $state,\n"
-        "  Timestamp: ${new DateTime.now()}\n"
-        "}";
-  }
-
-  @override
-  void observe(ReduxAction<St> action, int dispatchCount, {bool ini}) {
-    logger.log(
-      level,
-      formatter(null, action, ini, dispatchCount, new DateTime.now()),
-    );
-  }
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-
-class _Flag<T> {
-  T value;
-
-  _Flag(this.value);
-
-  @override
-  bool operator ==(Object other) => true;
-
-  @override
-  int get hashCode => 0;
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-
-class StoreConnectorError extends Error {
-  final Type type;
-  final Object debug;
-
-  StoreConnectorError(this.type, this.debug);
-
-  @override
-  String toString() {
-    return '''Error: No $type found. (debug info: ${debug.runtimeType})    
-    
-    To fix, please try:
-          
-  * Dart 2 (required) 
-  * Wrapping your MaterialApp with the StoreProvider<St>, rather than an individual Route
-  * Providing full type information to your Store<St>, StoreProvider<St> and StoreConnector<St, Model>
-  * Ensure you are using consistent and complete imports. E.g. always use `import 'package:my_app/app_state.dart';
-      ''';
-  }
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-
-class StoreException implements Exception {
-  final String msg;
-
-  StoreException(this.msg);
-
-  @override
-  String toString() => msg;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is StoreException && //
-          runtimeType == other.runtimeType &&
-          msg == other.msg;
-
-  @override
-  int get hashCode => msg.hashCode;
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-
-/// Prints the error/stacktrace information to the console,
-/// then throws the error after an asynchronous gap.
-/// Note: We print the stacktrace because the rethrow loses
-/// the stacktrace due to Dart architecture.
-///  See: https://groups.google.com/a/dartlang.org/forum/#!topic/misc/O1OKnYTUcoo
-///  See: https://github.com/dart-lang/sdk/issues/10297
-///  This should be fixed when this issue is solved: https://github.com/dart-lang/sdk/issues/30741
-///
-void _throws(errorMsg, error, StackTrace stackTrace) {
-  if (errorMsg != null) print(errorMsg);
-  if (stackTrace != null) {
-    print("\nStackTrace:\n$stackTrace");
-    print("--- End of the StackTrace\n\n");
-  }
-
-  Future(() {
-    throw error;
-  });
+  Object get debug;
 }
 
 // /////////////////////////////////////////////////////////////////////////////

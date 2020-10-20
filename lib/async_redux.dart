@@ -1,9 +1,12 @@
 export 'src/cache.dart';
 export 'src/event_redux.dart';
+export 'src/log.dart';
 export 'src/mock_store.dart';
 export 'src/navigate_action.dart';
 export 'src/persistor.dart';
 export 'src/store.dart';
+export 'src/store_connector.dart';
+export 'src/store_provider.dart';
 export 'src/store_tester.dart';
 export 'src/user_exception.dart';
 export 'src/wait.dart';
