@@ -1523,13 +1523,13 @@ class _StoreStreamListenerState<St, Model> //
 
   /// Reference to the last state.
   /// We need this so that we only recalculate the view-model if the state changed.
-  St previousState;
+  St _previousState;
 
   /// if [StoreConnector.shouldUpdateModel] returns false, we need to know the
   /// most recent VALID state (it was valid when [StoreConnector.shouldUpdateModel]
-  /// returned true). We save all valid states into [mostRecentValidState], and
-  /// when we need to use it we put it into [forceLastValidStreamState].
-  St mostRecentValidState, forceLastValidStreamState;
+  /// returned true). We save all valid states into [_mostRecentValidState], and
+  /// when we need to use it we put it into [_forceLastValidStreamState].
+  St _mostRecentValidState, _forceLastValidStreamState;
 
   @override
   void initState() {
@@ -1590,7 +1590,7 @@ class _StoreStreamListenerState<St, Model> //
         .where(_whereDistinct)
         // After each ViewModel is emitted from the Stream, we update the
         // latestValue. Important: This must be done after all other optional
-        // transformations, such as ignoreChange.
+        // transformations, such as shouldUpdateModel.
         .transform(StreamTransformer.fromHandlers(
           handleData: _handleData,
           handleError: _handleError,
@@ -1599,7 +1599,7 @@ class _StoreStreamListenerState<St, Model> //
 
   // This prevents unnecessary calculations of the view-model.
   bool _stateChanged(St state) {
-    return !identical(previousState, widget.store.state);
+    return !identical(_previousState, widget.store.state);
   }
 
   // If `shouldUpdateModel` is provided, it will calculate if the STORE state contains
@@ -1614,10 +1614,10 @@ class _StoreStreamListenerState<St, Model> //
     if (widget.shouldUpdateModel == null)
       return true;
     else {
-      forceLastValidStreamState = null;
+      _forceLastValidStreamState = null;
       bool ifStoreHasValidModel = widget.shouldUpdateModel(widget.store.state);
       if (ifStoreHasValidModel) {
-        mostRecentValidState = widget.store.state;
+        _mostRecentValidState = widget.store.state;
         return true;
       }
       //
@@ -1625,20 +1625,20 @@ class _StoreStreamListenerState<St, Model> //
         //
         bool ifStreamHasValidModel = widget.shouldUpdateModel(state);
         if (ifStreamHasValidModel) {
-          mostRecentValidState = state;
+          _mostRecentValidState = state;
           return false;
         } else {
           if (identical(state, widget.store.state)) {
-            forceLastValidStreamState = mostRecentValidState;
+            _forceLastValidStreamState = _mostRecentValidState;
           }
         }
       }
 
-      return (forceLastValidStreamState != null);
+      return (_forceLastValidStreamState != null);
     }
   }
 
-  Model _mapConverter(St state) => getLatestModel(widget.store.state);
+  Model _mapConverter(St state) => getLatestModel(_forceLastValidStreamState ?? widget.store.state);
 
   // Don't use `Stream.distinct` since it can't capture the initial vm.
   bool _whereDistinct(Model vm) {
