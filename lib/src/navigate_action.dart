@@ -76,19 +76,19 @@ abstract class NavigateAction<St> extends ReduxAction<St> {
   ) =>
       _NavigateAction_PushAndRemoveUntil(route, predicate);
 
-  factory NavigateAction.replace(
+  factory NavigateAction.replace({
     Route oldRoute,
     Route newRoute,
-  ) =>
+  }) =>
       _NavigateAction_Replace(
         oldRoute: oldRoute,
         newRoute: newRoute,
       );
 
-  factory NavigateAction.replaceRouteBelow(
+  factory NavigateAction.replaceRouteBelow({
     Route anchorRoute,
     Route newRoute,
-  ) =>
+  }) =>
       _NavigateAction_ReplaceRouteBelow(
         anchorRoute: anchorRoute,
         newRoute: newRoute,
