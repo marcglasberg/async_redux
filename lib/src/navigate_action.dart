@@ -131,6 +131,10 @@ class NavigateAction<St> extends ReduxAction<St> {
   NavigateAction.popUntilRoute(
     Route route,
   ) : this(_NavigateAction_PopUntil(((_route) => _route == route)));
+
+  /// This is useful for tests only.
+  /// You can test that some dispatched NavigateAction was of a certain type.
+  NavigateType get type => navigatorCallback.type;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -144,6 +148,9 @@ class _NavigateAction_Push implements NavigatorCallback {
   void navigate() {
     NavigateAction._navigatorKey?.currentState?.push(route);
   }
+
+  @override
+  NavigateType get type => NavigateType.push;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -157,6 +164,9 @@ class _NavigateAction_Pop implements NavigatorCallback {
   void navigate() {
     NavigateAction._navigatorKey?.currentState?.pop(result);
   }
+
+  @override
+  NavigateType get type => NavigateType.pop;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -180,6 +190,9 @@ class _NavigateAction_PopAndPushNamed implements NavigatorCallback {
       arguments: arguments,
     );
   }
+
+  @override
+  NavigateType get type => NavigateType.popAndPushNamed;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -197,6 +210,9 @@ class _NavigateAction_PushNamed implements NavigatorCallback {
   void navigate() {
     NavigateAction._navigatorKey?.currentState?.pushNamed(routeName, arguments: arguments);
   }
+
+  @override
+  NavigateType get type => NavigateType.pushNamed;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -215,6 +231,9 @@ class _NavigateAction_PushReplacementNamed implements NavigatorCallback {
     NavigateAction._navigatorKey?.currentState
         ?.pushReplacementNamed(routeName, arguments: arguments);
   }
+
+  @override
+  NavigateType get type => NavigateType.pushReplacementNamed;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -235,6 +254,9 @@ class _NavigateAction_PushNamedAndRemoveUntil implements NavigatorCallback {
     NavigateAction._navigatorKey?.currentState
         ?.pushNamedAndRemoveUntil(newRouteName, predicate, arguments: arguments);
   }
+
+  @override
+  NavigateType get type => NavigateType.pushNamedAndRemoveUntil;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -252,6 +274,9 @@ class _NavigateAction_PushReplacement implements NavigatorCallback {
   void navigate() {
     NavigateAction._navigatorKey?.currentState?.pushReplacement(route, result: result);
   }
+
+  @override
+  NavigateType get type => NavigateType.pushReplacement;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -269,6 +294,9 @@ class _NavigateAction_PushAndRemoveUntil implements NavigatorCallback {
   void navigate() {
     NavigateAction._navigatorKey?.currentState?.pushAndRemoveUntil(route, predicate);
   }
+
+  @override
+  NavigateType get type => NavigateType.pushAndRemoveUntil;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -289,6 +317,9 @@ class _NavigateAction_Replace implements NavigatorCallback {
       newRoute: newRoute,
     );
   }
+
+  @override
+  NavigateType get type => NavigateType.replace;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -309,6 +340,9 @@ class _NavigateAction_ReplaceRouteBelow implements NavigatorCallback {
       newRoute: newRoute,
     );
   }
+
+  @override
+  NavigateType get type => NavigateType.replaceRouteBelow;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -322,6 +356,9 @@ class _NavigateAction_PopUntil implements NavigatorCallback {
   void navigate() {
     NavigateAction._navigatorKey?.currentState?.popUntil(predicate);
   }
+
+  @override
+  NavigateType get type => NavigateType.popUntil;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -335,6 +372,9 @@ class _NavigateAction_RemoveRoute implements NavigatorCallback {
   void navigate() {
     NavigateAction._navigatorKey?.currentState?.removeRoute(route);
   }
+
+  @override
+  NavigateType get type => NavigateType.removeRoute;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -348,12 +388,36 @@ class _NavigateAction_RemoveRouteBelow implements NavigatorCallback {
   void navigate() {
     NavigateAction._navigatorKey?.currentState?.removeRouteBelow(anchorRoute);
   }
+
+  @override
+  NavigateType get type => NavigateType.removeRouteBelow;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
 
 abstract class NavigatorCallback {
   void navigate();
+
+  NavigateType get type;
 }
 
 // ////////////////////////////////////////////////////////////////////////////
+
+enum NavigateType {
+  push,
+  pop,
+  popAndPushNamed,
+  pushNamed,
+  pushReplacement,
+  pushAndRemoveUntil,
+  replace,
+  replaceRouteBelow,
+  pushReplacementNamed,
+  pushNamedAndRemoveUntil,
+  pushNamedAndRemoveAll,
+  popUntil,
+  removeRoute,
+  removeRouteBelow,
+  popUntilRouteName,
+  popUntilRoute,
+}
