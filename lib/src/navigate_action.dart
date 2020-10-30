@@ -23,7 +23,7 @@ import '../async_redux.dart';
 /// `NavigateAction.popUntilRouteName()`,
 /// `NavigateAction.popUntilRoute()`,
 ///
-abstract class NavigateAction<St> extends ReduxAction<St> {
+class NavigateAction<St> extends ReduxAction<St> {
   static GlobalKey<NavigatorState> _navigatorKey;
 
   static GlobalKey<NavigatorState> get navigatorKey => _navigatorKey;
@@ -42,134 +42,126 @@ abstract class NavigateAction<St> extends ReduxAction<St> {
     return currentRoute.settings.name;
   }
 
-  NavigateAction();
+  NavigateAction(this.navigatorCallback);
 
-  factory NavigateAction.push(
+  final NavigatorCallback navigatorCallback;
+
+  @override
+  St reduce() {
+    navigatorCallback.navigate();
+    return null;
+  }
+
+  NavigateAction.push(
     Route route,
-  ) =>
-      _NavigateAction_Push(route);
+  ) : this(_NavigateAction_Push(route));
 
-  factory NavigateAction.pop([Object result]) => _NavigateAction_Pop(result);
+  NavigateAction.pop([Object result]) : this(_NavigateAction_Pop(result));
 
-  factory NavigateAction.popAndPushNamed(
+  NavigateAction.popAndPushNamed(
     String routeName, {
     Object result,
     Object arguments,
-  }) =>
-      _NavigateAction_PopAndPushNamed(routeName, result: result, arguments: arguments);
+  }) : this(_NavigateAction_PopAndPushNamed(routeName, result: result, arguments: arguments));
 
-  factory NavigateAction.pushNamed(
+  NavigateAction.pushNamed(
     String routeName, {
     Object arguments,
-  }) =>
-      _NavigateAction_PushNamed(routeName, arguments: arguments);
+  }) : this(_NavigateAction_PushNamed(routeName, arguments: arguments));
 
-  factory NavigateAction.pushReplacement(
+  NavigateAction.pushReplacement(
     Route route, {
     Object result,
-  }) =>
-      _NavigateAction_PushReplacement(route, result: result);
+  }) : this(_NavigateAction_PushReplacement(route, result: result));
 
-  factory NavigateAction.pushAndRemoveUntil(
+  NavigateAction.pushAndRemoveUntil(
     Route route,
     RoutePredicate predicate,
-  ) =>
-      _NavigateAction_PushAndRemoveUntil(route, predicate);
+  ) : this(_NavigateAction_PushAndRemoveUntil(route, predicate));
 
-  factory NavigateAction.replace({
+  NavigateAction.replace({
     Route oldRoute,
     Route newRoute,
-  }) =>
-      _NavigateAction_Replace(
-        oldRoute: oldRoute,
-        newRoute: newRoute,
-      );
+  }) : this(_NavigateAction_Replace(
+          oldRoute: oldRoute,
+          newRoute: newRoute,
+        ));
 
-  factory NavigateAction.replaceRouteBelow({
+  NavigateAction.replaceRouteBelow({
     Route anchorRoute,
     Route newRoute,
-  }) =>
-      _NavigateAction_ReplaceRouteBelow(
-        anchorRoute: anchorRoute,
-        newRoute: newRoute,
-      );
+  }) : this(_NavigateAction_ReplaceRouteBelow(
+          anchorRoute: anchorRoute,
+          newRoute: newRoute,
+        ));
 
-  factory NavigateAction.pushReplacementNamed(
+  NavigateAction.pushReplacementNamed(
     String routeName, {
     Object arguments,
-  }) =>
-      _NavigateAction_PushReplacementNamed(routeName, arguments: arguments);
+  }) : this(_NavigateAction_PushReplacementNamed(routeName, arguments: arguments));
 
-  factory NavigateAction.pushNamedAndRemoveUntil(
+  NavigateAction.pushNamedAndRemoveUntil(
     String newRouteName,
     RoutePredicate predicate, {
     Object arguments,
-  }) =>
-      _NavigateAction_PushNamedAndRemoveUntil(newRouteName, predicate, arguments: arguments);
+  }) : this(_NavigateAction_PushNamedAndRemoveUntil(newRouteName, predicate, arguments: arguments));
 
-  factory NavigateAction.pushNamedAndRemoveAll(
+  NavigateAction.pushNamedAndRemoveAll(
     String newRouteName, {
     Object arguments,
-  }) =>
-      _NavigateAction_PushNamedAndRemoveUntil(newRouteName, (_) => false, arguments: arguments);
+  }) : this(_NavigateAction_PushNamedAndRemoveUntil(newRouteName, (_) => false,
+            arguments: arguments));
 
-  factory NavigateAction.popUntil(
+  NavigateAction.popUntil(
     RoutePredicate predicate,
-  ) =>
-      _NavigateAction_PopUntil(predicate);
+  ) : this(_NavigateAction_PopUntil(predicate));
 
-  factory NavigateAction.removeRoute(
+  NavigateAction.removeRoute(
     Route route,
-  ) =>
-      _NavigateAction_RemoveRoute(route);
+  ) : this(_NavigateAction_RemoveRoute(route));
 
-  factory NavigateAction.removeRouteBelow(
+  NavigateAction.removeRouteBelow(
     Route anchorRoute,
-  ) =>
-      _NavigateAction_RemoveRouteBelow(anchorRoute);
+  ) : this(_NavigateAction_RemoveRouteBelow(anchorRoute));
 
-  factory NavigateAction.popUntilRouteName(
+  NavigateAction.popUntilRouteName(
     String routeName,
-  ) =>
-      _NavigateAction_PopUntil(((route) => route.settings.name == routeName));
+  ) : this(_NavigateAction_PopUntil(((route) => route.settings.name == routeName)));
 
-  factory NavigateAction.popUntilRoute(
+  NavigateAction.popUntilRoute(
     Route route,
-  ) =>
-      _NavigateAction_PopUntil(((_route) => _route == route));
+  ) : this(_NavigateAction_PopUntil(((_route) => _route == route)));
 }
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _NavigateAction_Push<St> extends NavigateAction<St> {
+class _NavigateAction_Push implements NavigatorCallback {
   final Route route;
 
   _NavigateAction_Push(this.route);
 
   @override
-  St reduce() {
+  void navigate() {
     NavigateAction._navigatorKey?.currentState?.push(route);
-    return null;
   }
 }
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _NavigateAction_Pop<St> extends NavigateAction<St> {
+class _NavigateAction_Pop implements NavigatorCallback {
   final Object result;
 
   _NavigateAction_Pop(this.result);
 
   @override
-  St reduce() {
+  void navigate() {
     NavigateAction._navigatorKey?.currentState?.pop(result);
-    return null;
   }
 }
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _NavigateAction_PopAndPushNamed<St> extends NavigateAction<St> {
+class _NavigateAction_PopAndPushNamed implements NavigatorCallback {
   final String routeName;
   final Object result;
   final Object arguments;
@@ -181,19 +173,18 @@ class _NavigateAction_PopAndPushNamed<St> extends NavigateAction<St> {
   });
 
   @override
-  St reduce() {
+  void navigate() {
     NavigateAction._navigatorKey?.currentState?.popAndPushNamed(
       routeName,
       result: result,
       arguments: arguments,
     );
-    return null;
   }
 }
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _NavigateAction_PushNamed<St> extends NavigateAction<St> {
+class _NavigateAction_PushNamed implements NavigatorCallback {
   final String routeName;
   final Object arguments;
 
@@ -203,15 +194,14 @@ class _NavigateAction_PushNamed<St> extends NavigateAction<St> {
   });
 
   @override
-  St reduce() {
+  void navigate() {
     NavigateAction._navigatorKey?.currentState?.pushNamed(routeName, arguments: arguments);
-    return null;
   }
 }
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _NavigateAction_PushReplacementNamed<St> extends NavigateAction<St> {
+class _NavigateAction_PushReplacementNamed implements NavigatorCallback {
   final String routeName;
   final Object arguments;
 
@@ -221,16 +211,15 @@ class _NavigateAction_PushReplacementNamed<St> extends NavigateAction<St> {
   });
 
   @override
-  St reduce() {
+  void navigate() {
     NavigateAction._navigatorKey?.currentState
         ?.pushReplacementNamed(routeName, arguments: arguments);
-    return null;
   }
 }
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _NavigateAction_PushNamedAndRemoveUntil<St> extends NavigateAction<St> {
+class _NavigateAction_PushNamedAndRemoveUntil implements NavigatorCallback {
   final String newRouteName;
   final Object arguments;
   final RoutePredicate predicate;
@@ -242,16 +231,15 @@ class _NavigateAction_PushNamedAndRemoveUntil<St> extends NavigateAction<St> {
   });
 
   @override
-  St reduce() {
+  void navigate() {
     NavigateAction._navigatorKey?.currentState
         ?.pushNamedAndRemoveUntil(newRouteName, predicate, arguments: arguments);
-    return null;
   }
 }
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _NavigateAction_PushReplacement<St> extends NavigateAction<St> {
+class _NavigateAction_PushReplacement implements NavigatorCallback {
   final Route route;
   final Object result;
 
@@ -261,15 +249,14 @@ class _NavigateAction_PushReplacement<St> extends NavigateAction<St> {
   });
 
   @override
-  St reduce() {
+  void navigate() {
     NavigateAction._navigatorKey?.currentState?.pushReplacement(route, result: result);
-    return null;
   }
 }
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _NavigateAction_PushAndRemoveUntil<St> extends NavigateAction<St> {
+class _NavigateAction_PushAndRemoveUntil implements NavigatorCallback {
   final Route route;
   final RoutePredicate predicate;
 
@@ -279,15 +266,14 @@ class _NavigateAction_PushAndRemoveUntil<St> extends NavigateAction<St> {
   );
 
   @override
-  St reduce() {
+  void navigate() {
     NavigateAction._navigatorKey?.currentState?.pushAndRemoveUntil(route, predicate);
-    return null;
   }
 }
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _NavigateAction_Replace<St> extends NavigateAction<St> {
+class _NavigateAction_Replace implements NavigatorCallback {
   final Route oldRoute;
   final Route newRoute;
 
@@ -297,18 +283,17 @@ class _NavigateAction_Replace<St> extends NavigateAction<St> {
   });
 
   @override
-  St reduce() {
+  void navigate() {
     NavigateAction._navigatorKey?.currentState?.replace(
       oldRoute: oldRoute,
       newRoute: newRoute,
     );
-    return null;
   }
 }
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _NavigateAction_ReplaceRouteBelow<St> extends NavigateAction<St> {
+class _NavigateAction_ReplaceRouteBelow implements NavigatorCallback {
   final Route anchorRoute;
   final Route newRoute;
 
@@ -318,55 +303,57 @@ class _NavigateAction_ReplaceRouteBelow<St> extends NavigateAction<St> {
   });
 
   @override
-  St reduce() {
+  void navigate() {
     NavigateAction._navigatorKey?.currentState?.replaceRouteBelow(
       anchorRoute: anchorRoute,
       newRoute: newRoute,
     );
-    return null;
   }
 }
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _NavigateAction_PopUntil<St> extends NavigateAction<St> {
+class _NavigateAction_PopUntil implements NavigatorCallback {
   final RoutePredicate predicate;
 
   _NavigateAction_PopUntil(this.predicate);
 
   @override
-  St reduce() {
+  void navigate() {
     NavigateAction._navigatorKey?.currentState?.popUntil(predicate);
-    return null;
   }
 }
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _NavigateAction_RemoveRoute<St> extends NavigateAction<St> {
+class _NavigateAction_RemoveRoute implements NavigatorCallback {
   final Route route;
 
   _NavigateAction_RemoveRoute(this.route);
 
   @override
-  St reduce() {
+  void navigate() {
     NavigateAction._navigatorKey?.currentState?.removeRoute(route);
-    return null;
   }
 }
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _NavigateAction_RemoveRouteBelow<St> extends NavigateAction<St> {
+class _NavigateAction_RemoveRouteBelow implements NavigatorCallback {
   final Route anchorRoute;
 
   _NavigateAction_RemoveRouteBelow(this.anchorRoute);
 
   @override
-  St reduce() {
+  void navigate() {
     NavigateAction._navigatorKey?.currentState?.removeRouteBelow(anchorRoute);
-    return null;
   }
+}
+
+// ////////////////////////////////////////////////////////////////////////////
+
+abstract class NavigatorCallback {
+  void navigate();
 }
 
 // ////////////////////////////////////////////////////////////////////////////
