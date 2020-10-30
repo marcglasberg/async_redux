@@ -62,7 +62,12 @@ class NavigateAction<St> extends ReduxAction<St> {
         predicate = null,
         arguments = null;
 
-  NavigateAction.pop() : this(null, navigateType: NavigateType.pop);
+  NavigateAction.pop([Object arguments])
+      : this(
+          null,
+          navigateType: NavigateType.pop,
+          arguments: arguments,
+        );
 
   NavigateAction.pushNamed(
     String routeName, {
@@ -116,7 +121,7 @@ class NavigateAction<St> extends ReduxAction<St> {
           break;
 
         case NavigateType.pop:
-          _navigatorKey.currentState.pop();
+          _navigatorKey.currentState.pop(arguments);
           break;
 
         case NavigateType.pushNamed:
