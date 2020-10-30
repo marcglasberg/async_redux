@@ -1314,7 +1314,8 @@ abstract class StoreConnectorInterface<St, Model> {
 
 // /////////////////////////////////////////////////////////////////////////////
 
-/// Equal lists have the same length and their elements at each index are equal.
+// For some reason pub dev complains if we add the collection package.
+// I got tired of this, and copied ListEquality here.
 class _ListEquality<E> implements _Equality<List<E>> {
   static const int _HASH_MASK = 0x7fffffff;
 
@@ -1338,7 +1339,6 @@ class _ListEquality<E> implements _Equality<List<E>> {
 
   @override
   int hash(List<E> list) {
-    // Jenkins's one-at-a-time hash function.
     if (list == null) return null.hashCode;
     var hash = 0;
     for (var i = 0; i < list.length; i++) {
