@@ -1,4 +1,4 @@
-# [6.0.0] - 2020/10/30
+# [6.0.1] - 2020/10/30
 
 * `NavigateAction` now closely follows the `Navigator` api:  `push()`,
   `pop()`, `popAndPushNamed()`, `pushNamed()`, `pushReplacement()`, `pushAndRemoveUntil()`, 

@@ -1478,15 +1478,30 @@ Then, use the action as needed:
 dispatch(NavigateAction.pushNamed("myRoute"));
 ```
 
-Note: Don't ever save the current route in the store. This will create all sorts of problems.
+Note: Don't ever save the current route in the store. 
+This will create all sorts of problems.
 If you need to know the route you're in, 
 you may use this static method provided by `NavigateAction`:
 
 ```dart
 String routeName = NavigateAction.getCurrentNavigatorRouteName(context);
-```
+```     
 
 Try running the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_navigate.dart">Navigate Example</a>.
+
+### Testing with `NavigateAction`
+
+You can test navigation by asserting navigation types, route names etc.
+This is useful for verifying app flow in unit tests, instead of widget or driver tests. 
+ 
+For example:
+
+```dart         
+var navigateAction = actions.get(NavigateAction).action as NavigateAction;
+expect(navigateAction.type, NavigateType.pushNamed);
+expect((navigateAction.details as NavigatorDetails_PushNamed).routeName, "myRoute");
+```
+
 
 <br>
 
