@@ -1,3 +1,15 @@
+# [6.0.0] - 2020/10/30
+
+* `NavigateAction` now closely follows the `Navigator` api:  `push()`,
+  `pop()`, `popAndPushNamed()`, `pushNamed()`, `pushReplacement()`, `pushAndRemoveUntil()`, 
+  `replace()`, `replaceRouteBelow()`, `pushReplacementNamed()`, `pushNamedAndRemoveUntil()`,
+  `pushNamedAndRemoveAll()`, `popUntil()`, `removeRoute()`, `removeRouteBelow()`,
+  `popUntilRouteName()` and `popUntilRoute()`.
+
+# [5.0.0] - 2020/10/19
+
+* Breaking change: OnWillChangeCallback now provides previousViewModel. 
+
 # [4.0.4] - 2020/10/19
 
 * Better performance: Less unnecessary view-model calculations.

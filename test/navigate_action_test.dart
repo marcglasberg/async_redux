@@ -29,70 +29,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class _NavAction extends StatelessWidget {
-  final String route;
-  final NavigateType navigateType;
-  final RoutePredicate predicate;
-
-  _NavAction(
-    Key key, {
-    this.route,
-    @required this.navigateType,
-    this.predicate,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        NavigateAction<AppState> _action;
-
-        switch (navigateType) {
-          case NavigateType.push:
-            {
-              // TODO: Test this one.
-            }
-            break;
-          case NavigateType.pushNamedAndRemoveAll:
-            {
-              _action = NavigateAction.pushNamedAndRemoveAll(route);
-            }
-            break;
-          case NavigateType.pushReplacementNamed:
-            {
-              _action = NavigateAction.pushReplacementNamed(route);
-            }
-            break;
-          case NavigateType.pushNamedAndRemoveUntil:
-            {
-              _action = NavigateAction.pushNamedAndRemoveUntil(route, predicate: predicate);
-            }
-            break;
-          case NavigateType.pushNamed:
-            {
-              _action = NavigateAction.pushNamed(route);
-            }
-            break;
-
-          case NavigateType.popUntil:
-            {
-              _action = NavigateAction.popUntil(route);
-            }
-            break;
-          case NavigateType.pop:
-            {
-              _action = NavigateAction.pop();
-            }
-            break;
-        }
-
-        store.dispatch(_action);
-      },
-      child: const SizedBox(height: 10, width: 10),
-    );
-  }
-}
-
 class MyPage extends StatelessWidget {
   MyPage(Key key) : super(key: key);
 
@@ -103,46 +39,38 @@ class MyPage extends StatelessWidget {
         children: <Widget>[
           Text("Current route: ${NavigateAction.getCurrentNavigatorRouteName(context)}"),
           //
-          _NavAction(
-            const Key("pushNamedPage2"),
-            route: "/page2",
-            navigateType: NavigateType.pushNamed,
-          ),
-          _NavAction(
-            const Key("pushNamedPage3"),
-            route: "/page3",
-            navigateType: NavigateType.pushNamed,
+          RawMaterialButton(
+              key: const Key("pushNamedPage2"),
+              onPressed: () => store.dispatch(NavigateAction.pushNamed("/page2"))),
+          //
+          RawMaterialButton(
+              key: const Key("pushNamedPage3"),
+              onPressed: () => store.dispatch(NavigateAction.pushNamed("/page3"))),
+          //
+          RawMaterialButton(
+              key: const Key("pushNamedAndRemoveAllPage1"),
+              onPressed: () => store.dispatch(NavigateAction.pushNamedAndRemoveAll("/"))),
+          //
+          RawMaterialButton(
+              key: const Key("pushReplacementNamedPage2"),
+              onPressed: () => store.dispatch(NavigateAction.pushReplacementNamed("/page2"))),
+          //
+          RawMaterialButton(
+              key: const Key("pushNamedAndRemoveUntilPage2"),
+              onPressed: () => store.dispatch(
+                      NavigateAction.pushNamedAndRemoveUntil("/page2", (Route<dynamic> route) {
+                    return route.settings.name == "/";
+                  }))),
+          //
+          RawMaterialButton(
+              key: const Key("popUntilPage1"),
+              onPressed: () => store.dispatch(NavigateAction.popUntilRouteName("/"))),
+          //
+          RawMaterialButton(
+            key: const Key("pop"),
+            onPressed: () => store.dispatch(NavigateAction.pop()),
           ),
           //
-          _NavAction(
-            const Key("pushNamedAndRemoveAllPage1"),
-            route: "/",
-            navigateType: NavigateType.pushNamedAndRemoveAll,
-          ),
-          //
-          _NavAction(
-            const Key("pushReplacementNamedPage2"),
-            route: "/page2",
-            navigateType: NavigateType.pushReplacementNamed,
-          ),
-          _NavAction(
-            const Key("pushNamedAndRemoveUntilPage2"),
-            route: "/page2",
-            predicate: (Route<dynamic> route) {
-              return route.settings.name == "/";
-            },
-            navigateType: NavigateType.pushNamedAndRemoveUntil,
-          ),
-          //
-          _NavAction(
-            const Key("popUntilPage1"),
-            route: "/",
-            navigateType: NavigateType.popUntil,
-          ),
-          _NavAction(
-            const Key("pop"),
-            navigateType: NavigateType.pop,
-          ),
         ],
       ),
     );
@@ -177,7 +105,7 @@ void main() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  testWidgets(NavigateType.pushNamed.toString(), (WidgetTester tester) async {
+  testWidgets("pushNamed", (WidgetTester tester) async {
     await tester.pumpWidget(MyApp());
     await tester.pumpAndSettle();
 
@@ -206,7 +134,7 @@ void main() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  testWidgets(NavigateType.pushNamedAndRemoveAll.toString(), (WidgetTester tester) async {
+  testWidgets("pushNamedAndRemoveAll", (WidgetTester tester) async {
     await tester.pumpWidget(MyApp());
     await tester.pumpAndSettle();
 
@@ -251,7 +179,7 @@ void main() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  testWidgets(NavigateType.pushReplacementNamed.toString(), (WidgetTester tester) async {
+  testWidgets("pushReplacementNamed", (WidgetTester tester) async {
     await tester.pumpWidget(MyApp());
     await tester.pumpAndSettle();
 
@@ -288,7 +216,7 @@ void main() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  testWidgets(NavigateType.pushNamedAndRemoveUntil.toString(), (WidgetTester tester) async {
+  testWidgets("pushNamedAndRemoveUntil", (WidgetTester tester) async {
     await tester.pumpWidget(MyApp());
     await tester.pumpAndSettle();
 
@@ -338,7 +266,7 @@ void main() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  testWidgets(NavigateType.pop.toString(), (WidgetTester tester) async {
+  testWidgets("pop", (WidgetTester tester) async {
     await tester.pumpWidget(MyApp());
     await tester.pumpAndSettle();
 
@@ -381,7 +309,7 @@ void main() {
     expect(page3IncludeIfOffstageFinder, findsNothing);
   });
   //
-  testWidgets(NavigateType.popUntil.toString(), (WidgetTester tester) async {
+  testWidgets("popUntil", (WidgetTester tester) async {
     await tester.pumpWidget(MyApp());
     await tester.pumpAndSettle();
 
