@@ -9,5 +9,6 @@ export 'src/store_connector.dart';
 export 'src/store_provider.dart';
 export 'src/store_tester.dart';
 export 'src/user_exception.dart';
+export 'src/user_exception_dialog.dart';
 export 'src/wait.dart';
 export 'src/wait_action.dart';

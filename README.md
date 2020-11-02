@@ -913,7 +913,7 @@ class SaveUserAction extends ReduxAction<AppState> {
 
 The special `UserException` error class represents "user errors" which are meant as warnings to the user,
 and not as code errors to be logged.
-By default (if you don't define your own `errorObserver`) only errors which are not `UserException` are thrown.
+By default (if you don't define your own `errorObserver`), only errors which are not `UserException` are thrown.
 And if you do define an `errorObserver`, you'd probably want to replicate this behavior.
 
 In any case, `UserException`s are put into a special error queue,
@@ -922,7 +922,8 @@ You may use `UserException` as is, or subclass it, returning title and message f
 
 As explained in the beginning of this section,
 if you use the build-in error handling you must wrap your home-page with `UserExceptionDialog`.
-There, you may pass the `onShowUserExceptionDialog` parameter to change the default dialog, show a toast, or some other suitable widget:
+There, you may pass the `onShowUserExceptionDialog` parameter to change the default dialog, 
+show a toast, or some other suitable widget:
 
 ```dart
 UserExceptionDialog<AppState>(
@@ -930,7 +931,18 @@ UserExceptionDialog<AppState>(
 	  onShowUserExceptionDialog:
 		  (BuildContext context, UserException userException) => showDialog(...),
 );
-```                                             
+``` 
+
+> Note: The `UserExceptionDialog` can display any error widget you want in front of all the others on the screen.
+If this is not what you want, 
+you can easily create your own `MyUserExceptionWidget` to intercept the errors and do whatever you want. 
+Start by copying `user_exception_dialog.dart` 
+(which contains `UserExceptionDialog` and its `_ViewModel`) into another file,
+and search for the `didUpdateWidget` method. 
+This method will be called each time an error is available, 
+and there you can record this information in the widget's own state. 
+You can then change the screen in any way you want, according to that saved state, 
+in this widget's `build` method.  
 
 <br>
 
