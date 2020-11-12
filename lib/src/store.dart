@@ -468,7 +468,7 @@ class Store<St> {
     }
   }
 
-  Queue get errors => Queue<UserException>.of(_errors);
+  Queue<UserException> get errors => Queue<UserException>.of(_errors);
 
   /// We check the return type of methods `before` and `reduce` to decide if the
   /// reducer is synchronous or asynchronous. It's important to run the reducer
