@@ -1138,8 +1138,7 @@ abstract class VmFactory<St, T> {
 
   DispatchFuture<St> get dispatchFuture => _dispatchFuture;
 
-  UserException Function() get getAndRemoveFirstError => //
-      _getAndRemoveFirstError;
+  UserException getAndRemoveFirstError() => _getAndRemoveFirstError();
 }
 
 /// For internal use only. Please don't use this.

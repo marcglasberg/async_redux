@@ -1,3 +1,7 @@
+# [6.0.2] - 2020/11/16
+
+* VmFactory.getAndRemoveFirstError().
+
 # [6.0.1] - 2020/10/30
 
 * `NavigateAction` now closely follows the `Navigator` api:  `push()`,
