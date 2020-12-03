@@ -1,3 +1,7 @@
+# [6.0.3] - 2020/12/03
+
+* StoreTester.dispatchState().
+
 # [6.0.2] - 2020/11/16
 
 * VmFactory.getAndRemoveFirstError().

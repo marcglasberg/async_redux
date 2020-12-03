@@ -1150,6 +1150,12 @@ Let's see all the available methods of the `StoreTester`:
     action's `wrapError()` method. 
     Returns the info after the condition is met.
 
+11. `Future<TestInfo<St>> dispatchState(St state)`
+
+    Dispatches an action that changes the current state to the one provided by you.
+    Then, runs until that action is dispatched and finished (ignoring other actions).
+    Returns the info after the action finishes, containing the given state.  
+
 Some of the methods above return a list of type `TestInfoList`, which contains the step
 by step information of all the actions. You can then query for the actions you want to inspect.
 For example, suppose an action named `IncrementAndGetDescriptionAction` calls another 3 actions.

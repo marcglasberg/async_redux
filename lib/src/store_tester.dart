@@ -137,6 +137,30 @@ class StoreTester<St> {
 
   void defineState(St state) => _store.defineState(state);
 
+  /// Dispatches an action that changes the current state to the one provided by you.
+  /// Then, runs until that action is dispatched and finished (ignoring other actions).
+  /// Returns the info after the action finishes, containing the given state.
+  ///
+  /// Example use:
+  ///
+  ///   var info = await storeTester.dispatchState(MyState(123));
+  ///   expect(info.state, MyState(123));
+  ///
+  Future<TestInfo<St>> dispatchState(St state) async {
+    var action = _NewStateAction(state);
+    dispatch(action);
+
+    TestInfo<St> testInfo;
+
+    while (testInfo == null || !identical(testInfo.action, action) || testInfo.isINI) {
+      testInfo = await _next();
+    }
+
+    lastInfo = testInfo;
+
+    return testInfo;
+  }
+
   /// Returns a mutable copy of the global ignore list.
   List<Type> get ignore => List.of(_ignore);
 
@@ -767,6 +791,17 @@ class TestErrorObserver<St> implements ErrorObserver<St> {
     Store store,
   ) =>
       true;
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+
+class _NewStateAction<St> extends ReduxAction<St> {
+  final St newState;
+
+  _NewStateAction(this.newState);
+
+  @override
+  St reduce() => newState;
 }
 
 // /////////////////////////////////////////////////////////////////////////////
