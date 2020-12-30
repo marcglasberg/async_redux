@@ -37,7 +37,7 @@ class StoreConnector<St, Model> extends StatelessWidget
   /// Convert the [Store] into a [Model]. The resulting [Model] will be
   /// passed to the [builder] function.
   @override
-  final VmFactory vm;
+  final VmFactory Function() vm;
 
   /// Convert the [Store] into a [Model]. The resulting [Model] will be
   /// passed to the [builder] function.
@@ -172,16 +172,28 @@ class StoreConnector<St, Model> extends StatelessWidget
   /// `var widget = (storeConnector as dynamic).builder(context, viewModel);`
   ///
   Model getLatestModel(Store store) {
-    if (converter != null)
+    //
+    // The `vm` parameter is recommended.
+    if (vm != null) {
+      var factory = vm();
+      internalsVmFactoryInject(factory, store.state, store);
+      return factory.fromStore() as Model;
+    }
+    //
+    // The `converter` parameter can be used instead of `vm`.
+    else if (converter != null) {
       return converter(store);
-    else if (vm != null) {
-      internalsVmFactoryInject(vm, store.state, store);
-      return vm.fromStore() as Model;
-    } else if (model != null) {
+    }
+    //
+    // The `model` parameter is deprecated.
+    else if (model != null) {
       internalsBaseModelInject(model, store.state, store);
       return model.fromStore() as Model;
-    } else
-      throw AssertionError();
+    }
+    //
+    else
+      throw AssertionError("View-model can't be created. "
+          "Please provide vm or converter parameter.");
   }
 }
 
@@ -191,7 +203,7 @@ class StoreConnector<St, Model> extends StatelessWidget
 class _StoreStreamListener<St, Model> extends StatefulWidget {
   final ViewModelBuilder<Model> builder;
   final StoreConverter<St, Model> converter;
-  final VmFactory vm;
+  final VmFactory Function() vm;
   final BaseModel model; // Deprecated.
   final Store<St> store;
   final Object debug;
@@ -466,16 +478,28 @@ class _StoreStreamListenerState<St, Model> //
   /// 2) Vm gets `state` and `dispatch`, so it's easier to use.
   ///
   Model getLatestModel(St state) {
-    if (widget.converter != null)
+    //
+    // The `vm` parameter is recommended.
+    if (widget.vm != null) {
+      var factory = widget.vm();
+      internalsVmFactoryInject(factory, state, widget.store);
+      return factory.fromStore() as Model;
+    }
+    //
+    // The `converter` parameter can be used instead of `vm`.
+    else if (widget.converter != null) {
       return widget.converter(widget.store);
-    else if (widget.vm != null) {
-      internalsVmFactoryInject(widget.vm, state, widget.store);
-      return widget.vm.fromStore() as Model;
-    } else if (widget.model != null) {
+    }
+    //
+    // The `model` parameter is deprecated.
+    else if (widget.model != null) {
       internalsBaseModelInject(widget.model, state, widget.store);
       return widget.model.fromStore() as Model;
-    } else
-      throw AssertionError();
+    }
+    //
+    else
+      throw AssertionError("View-model can't be created. "
+          "Please provide vm or converter parameter.");
   }
 
   @override

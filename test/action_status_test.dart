@@ -12,6 +12,9 @@ List<String> info;
 
 enum When { before, reduce, after }
 
+/// IMPORTANT:
+/// These tests may print errors to the console. This is normal.
+///
 void main() {
   /////////////////////////////////////////////////////////////////////////////
 

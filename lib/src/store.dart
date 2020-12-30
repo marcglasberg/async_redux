@@ -1121,6 +1121,7 @@ abstract class VmFactory<St, T> {
   Vm fromStore();
 
   void _setStore(St state, Store store) {
+    if (_state != null) throw AssertionError("State is final.");
     _state = state;
     _dispatch = store.dispatch;
     _dispatchFuture = store.dispatchFuture;
@@ -1286,7 +1287,7 @@ typedef OnInitialBuildCallback<Model> = void Function(Model viewModel);
 // /////////////////////////////////////////////////////////////////////////////
 
 abstract class StoreConnectorInterface<St, Model> {
-  VmFactory get vm;
+  VmFactory Function() get vm;
 
   StoreConverter<St, Model> get converter;
 

@@ -10,6 +10,9 @@ import "package:test/test.dart";
 
 List<String> info;
 
+/// IMPORTANT:
+/// These tests may print errors to the console. This is normal.
+///
 void main() {
   /////////////////////////////////////////////////////////////////////////////
 
