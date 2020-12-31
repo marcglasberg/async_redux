@@ -1122,6 +1122,7 @@ abstract class VmFactory<St, T> {
 
   void _setStore(St state, Store store) {
     if (_state != null) throw AssertionError("State is final.");
+    _store = store;
     _state = state;
     _dispatch = store.dispatch;
     _dispatchFuture = store.dispatchFuture;
