@@ -1128,12 +1128,19 @@ abstract class VmFactory<St, T> {
     _getAndRemoveFirstError = store.getAndRemoveFirstError;
   }
 
+  Store<St> _store;
   St _state;
   Dispatch<St> _dispatch;
   DispatchFuture<St> _dispatchFuture;
   UserException Function() _getAndRemoveFirstError;
 
+  /// The state the store was holding when the factory and the view-model were created.
+  /// This state is final inside of the factory.
   St get state => _state;
+
+  /// The current (most recent) store state.
+  /// This will return the current state the store holds at the time the method is called.
+  St currentState() => _store.state;
 
   Dispatch<St> get dispatch => _dispatch;
 

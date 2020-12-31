@@ -484,7 +484,7 @@ class MyHomePageConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 	return StoreConnector<AppState, ViewModel>(
-	  vm: Factory(this),
+	  vm: () => Factory(this),
 	  builder: (BuildContext context, ViewModel vm) => MyHomePage(
 		counter: vm.counter,
 		description: vm.description,
@@ -549,21 +549,23 @@ of which **only one** should be provided in the `StoreConnector` constructor:
 
 1. the `vm` parameter 
 
-   The `vm` parameter expects a `Factory` object that extends `ViewModelFactory`.
-   This class should implement a method `fromStore` that returns a `ViewModel` that extends `Vm`:
+   The `vm` parameter expects a function that creates a `Factory` object that extends 
+   `ViewModelFactory`. This class should implement a method `fromStore` that returns a `ViewModel` 
+   that extends `Vm`:
    
    ```dart
    @override
      Widget build(BuildContext context) {
        return StoreConnector<int, ViewModel>(
-         vm: Factory(),
+         vm: () => Factory(),
          builder: (BuildContext context, ViewModel vm) => MyWidget(...),
        );
      }
    ```   
     
-   AsyncRedux will automatically inject `state` and `dispatch` into your model instance, 
-   so that boilerplate is reduced in your `fromStore` method. For example:
+   AsyncRedux will automatically inject `state`, `currentState()`, `dispatch()` and 
+   `dispatchFuture()`  into your model instance, so that boilerplate is reduced in your `fromStore` 
+   method. For example:
    
    ```dart
    class Factory extends VmFactory<AppState, MyHomePageConnector> {           
@@ -574,12 +576,22 @@ of which **only one** should be provided in the `StoreConnector` constructor:
             onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
             );
    }
-   ```      
+   ```     
+
+   **Note:**
+
+   * `state` getter: The state the store was holding when the factory and the view-model were
+   created. This state is final inside of the factory.
+
+   * `currentState()` method: The current (most recent) store state. This will return the current
+   state the store holds at the time the method is called.                
    
-   **Note:** If you need it, you may pass the connector widget to the factory's constructor, like this:
+   <br>
+   
+   If you need it, you may pass the connector widget to the factory's constructor, like this:
    
    ```dart    
-   vm: Factory(this),
+   vm: () => Factory(this),
    
    ...
    

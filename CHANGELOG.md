@@ -1,10 +1,10 @@
 # [7.0.0] - 2020/12/30
 
-* Breaking change: 
-  
-  Now the `vm` parameter in the `StoreConnector` is a function that creates
-  a `VmFactory` (instead of a `VmFactory` object).  
-  
+* Breaking change:
+
+  Now the `vm` parameter in the `StoreConnector` is a function that creates a `VmFactory` (instead
+  of being a `VmFactory` object itself).
+
   So, to upgrade, you just need to provide this:
 
   ```
@@ -18,8 +18,16 @@
   vm: MyFactory(this), 
   ```
 
-  Note: Now the `StoreConnector` will create a `VmFactory` every time it needs a view-model. This
-  allows you to cache results in the factory, knowing that the state won't change.
+  Now the `StoreConnector` will create a `VmFactory` every time it needs a view-model. The Factory
+  will have access to:
+
+    1) `state` getter: The state the store was holding when the factory and the view-model were
+       created. This state is final inside of the factory.
+
+    2) `currentState()` method: The current (most recent) store state. This will return the current
+       state the store holds at the time the method is called.
+
+If the factory needs
 
 # [6.0.3] - 2020/12/03
 
@@ -110,7 +118,7 @@ class MyHomePageConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ViewModel>(
-        vm: Factory(this),
+        vm: () => Factory(this),
         builder: (BuildContext context, ViewModel vm) =>
             MyHomePage(
               counter: vm.counter,
