@@ -47,7 +47,7 @@ class MyHomePageConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<int, ViewModel>(
-      vm: Factory(this),
+      vm: () => Factory(this),
       //
       // Should update the view-model only when the counter is even.
       shouldUpdateModel: (int count) => count % 2 == 0,

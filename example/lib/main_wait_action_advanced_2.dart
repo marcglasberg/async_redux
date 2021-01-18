@@ -100,7 +100,7 @@ class MyHomePageConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, PageViewModel>(
-      vm: PageViewModelFactory(this),
+      vm: () => PageViewModelFactory(this),
       builder: (BuildContext context, PageViewModel vm) => MyHomePage(
         onGetDescription: vm.onGetDescription,
         waiting: vm.waiting,
@@ -148,7 +148,7 @@ class MyItemConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ItemViewModel>(
-      vm: ItemViewModelFactory(this),
+      vm: () => ItemViewModelFactory(this),
       builder: (BuildContext context, ItemViewModel vm) => MyItem(
         description: vm.description,
         waiting: vm.waiting,
