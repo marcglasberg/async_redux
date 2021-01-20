@@ -144,10 +144,14 @@ var store = Store<AppState>(
   initialState: state,
 );
 ```  
-
-Note: _Your state can be any immutable object, 
+                             
+Note: _Your state can be any **immutable** object, 
 but typically you create a class called `AppState` to help with the state creation and manipulation.
-I later give some [recommendations](#state-declaration) on how to create this class._ 
+I later give some [recommendations](#state-declaration) on how to create this class.
+In special, you can use the 
+<a href="https://pub.dev/packages/fast_immutable_collections">fast_immutable_collections</a> package 
+when you need immutable lists, sets, maps and multimaps._ 
+                             
 
 <br>
 

@@ -27,7 +27,8 @@
     2) `currentState()` method: The current (most recent) store state. This will return the current
        state the store holds at the time the method is called.
 
-If the factory needs
+* New store parameter `immutableCollectionEquality` lets you override the equality used for immutable collections
+from the <a href="https://pub.dev/packages/fast_immutable_collections">fast_immutable_collections</a> package. 
 
 # [6.0.3] - 2020/12/03
 

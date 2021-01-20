@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:async_redux/async_redux.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 
 // Developed by Marcelo Glasberg (Aug 2019).
@@ -37,7 +38,7 @@ class StoreConnector<St, Model> extends StatelessWidget
   /// Convert the [Store] into a [Model]. The resulting [Model] will be
   /// passed to the [builder] function.
   @override
-  final VmFactory Function() vm;
+  final VmFactory<St, dynamic> Function() vm;
 
   /// Convert the [Store] into a [Model]. The resulting [Model] will be
   /// passed to the [builder] function.
@@ -402,7 +403,7 @@ class _StoreStreamListenerState<St, Model> //
   // Don't use `Stream.distinct` since it can't capture the initial vm.
   bool _whereDistinct(Model vm) {
     if (_distinct) {
-      bool isDistinct = vm != _latestModel;
+      bool isDistinct = _isDistinct(vm);
 
       _observeWithTheModelObserver(
         modelPrevious: _latestModel,
@@ -411,9 +412,22 @@ class _StoreStreamListenerState<St, Model> //
       );
 
       return isDistinct;
-    }
+    } else
+      return true;
+  }
 
-    return true;
+  bool _isDistinct(Model vm) {
+    if ((vm is ImmutableCollection) &&
+        (_latestModel is ImmutableCollection) &&
+        widget.store.immutableCollectionEquality != null) {
+      if (widget.store.immutableCollectionEquality == CompareBy.byIdentity)
+        return areSameImmutableCollection(vm, _latestModel as ImmutableCollection);
+      if (widget.store.immutableCollectionEquality == CompareBy.byDeepEquals) {
+        return areImmutableCollectionsWithEqualItems(vm, _latestModel as ImmutableCollection);
+      } else
+        throw AssertionError(widget.store.immutableCollectionEquality);
+    } else
+      return vm != _latestModel;
   }
 
   void _handleData(Model vm, EventSink<Model> sink) {

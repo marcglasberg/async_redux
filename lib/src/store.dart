@@ -253,6 +253,7 @@ class Store<St> {
     ErrorObserver errorObserver,
     WrapError wrapError,
     bool defaultDistinct,
+    CompareBy immutableCollectionEquality,
   })  : _state = initialState,
         _stateTimestamp = DateTime.now().toUtc(),
         _changeController = StreamController.broadcast(sync: syncStream),
@@ -266,6 +267,7 @@ class Store<St> {
         _errorObserver = errorObserver,
         _wrapError = wrapError,
         _defaultDistinct = defaultDistinct ?? true,
+        _immutableCollectionEquality = immutableCollectionEquality,
         _errors = Queue<UserException>(),
         _dispatchCount = 0,
         _reduceCount = 0,
@@ -288,6 +290,20 @@ class Store<St> {
 
   bool get defaultDistinct => _defaultDistinct;
 
+  /// 1) If `null` (the default), view-models which are immutable collections will be compared
+  /// by their default equality.
+  ///
+  /// 2) If `CompareBy.byDeepEquals`, view-models which are immutable collections will be compared
+  /// by their items, one by one (potentially slow comparison).
+  ///
+  /// 3) If `CompareBy.byIdentity`, view-models which are immutable collections will be compared
+  /// by their internals being identical (very fast comparison).
+  ///
+  /// Note: This works with immutable collections `IList`, `ISet`, `IMap` and `IMapOfSets` from
+  /// the https://pub.dev/packages/fast_immutable_collections package.
+  ///
+  CompareBy get immutableCollectionEquality => _immutableCollectionEquality;
+
   ModelObserver get modelObserver => _modelObserver;
 
   int get dispatchCount => _dispatchCount;
@@ -309,6 +325,8 @@ class Store<St> {
   final WrapError _wrapError;
 
   final bool _defaultDistinct;
+
+  final CompareBy _immutableCollectionEquality;
 
   final Queue<UserException> _errors;
 
@@ -936,6 +954,10 @@ class _Flag<T> {
 
 // /////////////////////////////////////////////////////////////////////////////
 
+enum CompareBy { byDeepEquals, byIdentity }
+
+// /////////////////////////////////////////////////////////////////////////////
+
 class StoreException implements Exception {
   final String msg;
 
@@ -1295,7 +1317,7 @@ typedef OnInitialBuildCallback<Model> = void Function(Model viewModel);
 // /////////////////////////////////////////////////////////////////////////////
 
 abstract class StoreConnectorInterface<St, Model> {
-  VmFactory Function() get vm;
+  VmFactory<St, dynamic> Function() get vm;
 
   StoreConverter<St, Model> get converter;
 

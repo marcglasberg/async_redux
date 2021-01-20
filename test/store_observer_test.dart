@@ -56,7 +56,7 @@ void main() {
 
     storeTester.dispatch(_MyAction(1));
     var condition = (TestInfo<num> info) => info.state == 1;
-    TestInfo<num> info1 = await storeTester.waitConditionGetLast(condition);
+    await storeTester.waitConditionGetLast(condition);
     expect(observer.iniValue, 0);
     expect(observer.endValue, 1);
 
@@ -71,10 +71,9 @@ void main() {
 
     storeTester.dispatch(_MyAsyncAction(1));
     var condition = (TestInfo<num> info) => info.state == 1;
-    TestInfo<num> info2 = await storeTester.waitConditionGetLast(condition);
+    await storeTester.waitConditionGetLast(condition);
     expect(observer.iniValue, 0);
     expect(observer.endValue, 1);
-
   });
 
   ///////////////////////////////////////////////////////////////////////////////
