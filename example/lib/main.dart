@@ -51,7 +51,7 @@ class MyHomePageConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<int, ViewModel>(
-      vm: Factory(this),
+      vm: () => Factory(this),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         counter: vm.counter,
         onIncrement: vm.onIncrement,

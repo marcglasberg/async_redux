@@ -126,7 +126,7 @@ class MyHomePageConnector extends StatelessWidget {
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ViewModel>(
       debug: this,
-      vm: Factory(this),
+      vm: () => Factory(this),
       onInit: (st) => st.dispatch(RefreshAction()),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         numTrivia: vm.numTrivia,

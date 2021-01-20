@@ -138,7 +138,7 @@ class MyHomePageConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ViewModel>(
-      vm: Factory(this),
+      vm: () => Factory(this),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         waiting: vm.waiting,
         clearTextEvt: vm.clearTextEvt,

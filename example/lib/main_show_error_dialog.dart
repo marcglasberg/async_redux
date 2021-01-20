@@ -81,7 +81,7 @@ class MyHomePageConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ViewModel>(
-      vm: Factory(this),
+      vm: () => Factory(this),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         name: vm.name,
         onSaveName: vm.onSaveName,

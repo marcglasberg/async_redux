@@ -58,7 +58,7 @@ class Page1Connector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ViewModel1>(
-      vm: Factory1(),
+      vm: () => Factory1(),
       builder: (BuildContext context, ViewModel1 vm) => Page(
         color: Colors.red,
         text: "Tap me to push a new route!",
@@ -88,7 +88,7 @@ class Page2Connector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ViewModel2>(
-      vm: Factory2(),
+      vm: () => Factory2(),
       builder: (BuildContext context, ViewModel2 vm) => Page(
         color: Colors.blue,
         text: "Tap me to pop this route!",
