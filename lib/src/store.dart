@@ -1001,6 +1001,10 @@ void _throws(errorMsg, error, StackTrace stackTrace) {
 
 // /////////////////////////////////////////////////////////////////////////////
 
+/// Each state passed in the [Vm.equals] parameter in the in view-model will be
+/// compared by equality (==), unless it is of type [VmEquals], when it will be
+/// compared by the [VmEquals.vmEquals] method, which by default is a comparison
+/// by identity (but can be overridden).
 abstract class VmEquals<T> {
   bool vmEquals(T other) => identical(this, other);
 }
