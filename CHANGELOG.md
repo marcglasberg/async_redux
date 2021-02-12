@@ -1,3 +1,7 @@
+# [7.0.2] - 2020/02/12
+
+* LocalPersist: Better handling of mock file-systems.
+
 # [7.0.1] - 2020/12/30
 
 * Breaking change:
@@ -27,8 +31,9 @@
     2) `currentState()` method: The current (most recent) store state. This will return the current
        state the store holds at the time the method is called.
 
-* New store parameter `immutableCollectionEquality` lets you override the equality used for immutable collections
-from the <a href="https://pub.dev/packages/fast_immutable_collections">fast_immutable_collections</a> package. 
+* New store parameter `immutableCollectionEquality` lets you override the equality used for
+  immutable collections from the <a href="https://pub.dev/packages/fast_immutable_collections">
+  fast_immutable_collections</a> package.
 
 # [6.0.3] - 2020/12/03
 

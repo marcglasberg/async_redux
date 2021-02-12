@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:async_redux/async_redux.dart';
+import 'package:file/file.dart' as f;
 import 'package:file/local.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
-import 'package:file/file.dart' as f;
 import 'package:path_provider/path_provider.dart';
 
 // Developed by Marcelo Glasberg (Nov 2019).
@@ -52,6 +53,8 @@ class LocalPersist {
 
   final List<String> subDirs;
 
+  final f.FileSystem _fileSystemRef;
+
   File _file;
 
   /// Saves to `appDocsDir/db/${dbName}.db`
@@ -81,7 +84,8 @@ class LocalPersist {
       : assert(dbName != null),
         dbName = _getStringFromEnum(dbName),
         subDirs = subDirs?.map((s) => _getStringFromEnum(s))?.toList(),
-        _file = null;
+        _file = null,
+        _fileSystemRef = _fileSystem;
 
   /// Saves to the given file.
   LocalPersist.from(File file)
@@ -89,12 +93,14 @@ class LocalPersist {
         dbName = null,
         dbSubDir = null,
         subDirs = null,
-        _file = file;
+        _file = file,
+        _fileSystemRef = _fileSystem;
 
   /// Saves the given simple objects.
   /// If [append] is false (the default), the file will be overwritten.
   /// If [append] is true, it will write to the end of the file.
   Future<File> save(List<Object> simpleObjs, {bool append = false}) async {
+    _checkIfFileSystemIsTheSame();
     File file = _file ?? await this.file();
     await file.create(recursive: true);
 
@@ -111,6 +117,7 @@ class LocalPersist {
   /// If the file doesn't exist, returns null.
   /// If the file exists and is empty, returns an empty list.
   Future<List<Object>> load() async {
+    _checkIfFileSystemIsTheSame();
     File file = _file ?? await this.file();
 
     if (!file.existsSync())
@@ -147,6 +154,7 @@ class LocalPersist {
   /// If the file was deleted, returns true.
   /// If the file did not exist, return false.
   Future<bool> delete() async {
+    _checkIfFileSystemIsTheSame();
     File file = _file ?? await this.file();
 
     if (!file.existsSync())
@@ -166,6 +174,7 @@ class LocalPersist {
   /// Returns the file length.
   /// If the file doesn't exist, or exists and is empty, returns 0.
   Future<int> length() async {
+    _checkIfFileSystemIsTheSame();
     File file = _file ?? await this.file();
 
     if (!file.existsSync())
@@ -183,8 +192,14 @@ class LocalPersist {
 
   /// Returns true if the file exist. False, otherwise.
   Future<bool> exists() async {
+    _checkIfFileSystemIsTheSame();
     File file = _file ?? await this.file();
     return file.existsSync();
+  }
+
+  // If the fileSystemRef has changed, files will have to be recreated.
+  void _checkIfFileSystemIsTheSame() {
+    if (!identical(_fileSystemRef, _fileSystem)) _file = null;
   }
 
   /// Gets the file.
