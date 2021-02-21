@@ -1,4 +1,4 @@
-# [8.0.9] - 2020/02/21
+# [8.0.0] - 2020/02/21
 
 * Uses nullsafe dependencies (it's not yet itself nullsafe).
   
