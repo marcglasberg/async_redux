@@ -26,12 +26,12 @@ import 'package:flutter/material.dart';
 ///
 class UserExceptionDialog<St> extends StatelessWidget {
   final Widget child;
-  final ShowUserExceptionDialog onShowUserExceptionDialog;
+  final ShowUserExceptionDialog? onShowUserExceptionDialog;
 
   UserExceptionDialog({
-    @required this.child,
+    required this.child,
     this.onShowUserExceptionDialog,
-  }) : assert(child != null);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -48,13 +48,13 @@ class UserExceptionDialog<St> extends StatelessWidget {
 
 class _UserExceptionDialogWidget extends StatefulWidget {
   final Widget child;
-  final Event<UserException> error;
+  final Event<UserException>? error;
   final ShowUserExceptionDialog onShowUserExceptionDialog;
 
   _UserExceptionDialogWidget(
     this.child,
     this.error,
-    ShowUserExceptionDialog onShowUserExceptionDialog,
+    ShowUserExceptionDialog? onShowUserExceptionDialog,
   ) : onShowUserExceptionDialog = //
             onShowUserExceptionDialog ?? _defaultUserExceptionDialog;
 
@@ -67,8 +67,8 @@ class _UserExceptionDialogWidget extends StatefulWidget {
       showCupertinoDialog(
         context: context,
         builder: (BuildContext context) => CupertinoAlertDialog(
-          title: Text(userException.dialogTitle()),
-          content: Text(userException.dialogContent()),
+          title: Text(userException.dialogTitle()!),
+          content: Text(userException.dialogContent()!),
           actions: [
             CupertinoDialogAction(
               child: const Text("OK"),
@@ -81,8 +81,8 @@ class _UserExceptionDialogWidget extends StatefulWidget {
       showDialog(
         context: context,
         builder: (BuildContext context) => AlertDialog(
-          title: Text(userException.dialogTitle()),
-          content: Text(userException.dialogContent()),
+          title: Text(userException.dialogTitle()!),
+          content: Text(userException.dialogContent()!),
           actions: [
             FlatButton(
               child: const Text("OK"),
@@ -104,10 +104,10 @@ class _UserExceptionDialogState extends State<_UserExceptionDialogWidget> {
   void didUpdateWidget(_UserExceptionDialogWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    UserException userException = widget.error.consume();
+    UserException? userException = widget.error!.consume();
 
     if (userException != null)
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance!.addPostFrameCallback((_) {
         widget.onShowUserExceptionDialog(context, userException);
       });
   }
@@ -121,20 +121,20 @@ class _UserExceptionDialogState extends State<_UserExceptionDialogWidget> {
 class _ViewModel extends BaseModel {
   _ViewModel();
 
-  Event<UserException> error;
+  Event<UserException>? error;
 
-  _ViewModel.build({@required this.error});
+  _ViewModel.build({required this.error});
 
   @override
   _ViewModel fromStore() => _ViewModel.build(
-        error: Event(getAndRemoveFirstError()),
+        error: Event(getAndRemoveFirstError!()),
       );
 
   /// Does not respect equals contract:
   /// A==B ➜ true only if B.error.state is not null.
   @override
   bool operator ==(Object other) {
-    return error.state == null;
+    return error!.state == null;
   }
 
   @override

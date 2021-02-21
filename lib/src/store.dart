@@ -26,7 +26,7 @@ typedef TestInfoPrinter = void Function(TestInfo);
 class TestInfo<St> {
   final St state;
   final bool ini;
-  final ReduxAction<St> action;
+  final ReduxAction<St>? action;
   final int dispatchCount;
   final int reduceCount;
 
@@ -35,11 +35,11 @@ class TestInfo<St> {
 
   /// The error thrown by the action, if any,
   /// before being processed by the action's wrapError() method.
-  final Object error;
+  final Object? error;
 
   /// The error thrown by the action,
   /// after being processed by the action's wrapError() method.
-  final Object processedError;
+  final Object? processedError;
 
   bool get isINI => ini;
 
@@ -150,12 +150,12 @@ class SwallowErrorObserver<St> implements ErrorObserver<St> {
 /// any extra info you need.
 ///
 class DefaultModelObserver<Model> implements ModelObserver<Model> {
-  Model _previous;
-  Model _current;
+  Model? _previous;
+  Model? _current;
 
-  Model get previous => _previous;
+  Model? get previous => _previous;
 
-  Model get current => _current;
+  Model? get current => _current;
 
   final List<Type> _storeConnectorTypes;
 
@@ -163,24 +163,23 @@ class DefaultModelObserver<Model> implements ModelObserver<Model> {
 
   @override
   void observe({
-    Model modelPrevious,
-    Model modelCurrent,
-    bool isDistinct,
-    StoreConnectorInterface storeConnector,
-    int reduceCount,
-    int dispatchCount,
+    required Model? modelPrevious,
+    required Model? modelCurrent,
+    bool? isDistinct,
+    StoreConnectorInterface? storeConnector,
+    int? reduceCount,
+    int? dispatchCount,
   }) {
     _previous = modelPrevious;
     _current = modelCurrent;
 
-    var shouldObserve = (_storeConnectorTypes == null || //
-            _storeConnectorTypes.isEmpty) ||
-        _storeConnectorTypes.contains(storeConnector.debug?.runtimeType);
+    var shouldObserve = _storeConnectorTypes.isEmpty ||
+        _storeConnectorTypes.contains(storeConnector!.debug?.runtimeType);
 
     if (shouldObserve)
       print("Model D:$dispatchCount R:$reduceCount = "
           "Rebuild:${isDistinct == null || isDistinct}, "
-          "${storeConnector.debug == null ? "" : //
+          "${storeConnector!.debug == null ? "" : //
               "Connector:${storeConnector.debug.runtimeType}"}, "
           "Model:$modelCurrent.");
   }
@@ -242,18 +241,17 @@ class DefaultModelObserver<Model> implements ModelObserver<Model> {
 ///
 class Store<St> {
   Store({
-    St initialState,
+    required St initialState,
     bool syncStream = false,
-    TestInfoPrinter testInfoPrinter,
-    bool ifRecordsTestInfo,
-    List<ActionObserver> actionObservers,
-    List<StateObserver> stateObservers,
-    Persistor persistor,
-    ModelObserver modelObserver,
-    ErrorObserver errorObserver,
-    WrapError wrapError,
-    bool defaultDistinct,
-    CompareBy immutableCollectionEquality,
+    TestInfoPrinter? testInfoPrinter,
+    List<ActionObserver>? actionObservers,
+    List<StateObserver>? stateObservers,
+    Persistor? persistor,
+    ModelObserver? modelObserver,
+    ErrorObserver? errorObserver,
+    WrapError? wrapError,
+    bool? defaultDistinct,
+    CompareBy? immutableCollectionEquality,
   })  : _state = initialState,
         _stateTimestamp = DateTime.now().toUtc(),
         _changeController = StreamController.broadcast(sync: syncStream),
@@ -302,9 +300,9 @@ class Store<St> {
   /// Note: This works with immutable collections `IList`, `ISet`, `IMap` and `IMapOfSets` from
   /// the https://pub.dev/packages/fast_immutable_collections package.
   ///
-  CompareBy get immutableCollectionEquality => _immutableCollectionEquality;
+  CompareBy? get immutableCollectionEquality => _immutableCollectionEquality;
 
-  ModelObserver get modelObserver => _modelObserver;
+  ModelObserver? get modelObserver => _modelObserver;
 
   int get dispatchCount => _dispatchCount;
 
@@ -312,21 +310,21 @@ class Store<St> {
 
   final StreamController<St> _changeController;
 
-  final List<ActionObserver> _actionObservers;
+  final List<ActionObserver>? _actionObservers;
 
-  final List<StateObserver> _stateObservers;
+  final List<StateObserver>? _stateObservers;
 
-  final ProcessPersistence _processPersistence;
+  final ProcessPersistence? _processPersistence;
 
-  final ModelObserver _modelObserver;
+  final ModelObserver? _modelObserver;
 
-  final ErrorObserver _errorObserver;
+  final ErrorObserver? _errorObserver;
 
-  final WrapError _wrapError;
+  final WrapError? _wrapError;
 
   final bool _defaultDistinct;
 
-  final CompareBy _immutableCollectionEquality;
+  final CompareBy? _immutableCollectionEquality;
 
   final Queue<UserException> _errors;
 
@@ -335,10 +333,10 @@ class Store<St> {
   // For testing:
   int _dispatchCount;
   int _reduceCount;
-  TestInfoPrinter _testInfoPrinter;
-  StreamController<TestInfo<St>> _testInfoController;
+  TestInfoPrinter? _testInfoPrinter;
+  StreamController<TestInfo<St>>? _testInfoController;
 
-  TestInfoPrinter get testInfoPrinter => _testInfoPrinter;
+  TestInfoPrinter? get testInfoPrinter => _testInfoPrinter;
 
   /// Turns on testing capabilities, if not already.
   void initTestInfoController() {
@@ -374,7 +372,7 @@ class Store<St> {
   /// Used by the storeTester.
   Stream<TestInfo<St>> get onReduce => (_testInfoController != null)
       ? //
-      _testInfoController.stream
+      _testInfoController!.stream
       : Stream<TestInfo<St>>.empty();
 
   /// Beware: Changes the state directly. Use only for TESTS.
@@ -388,12 +386,12 @@ class Store<St> {
   /// [timeoutInSeconds], which by default is null (never times out).
   Future<void> waitCondition(
     bool Function(St) condition, {
-    int timeoutInSeconds,
+    int? timeoutInSeconds,
   }) async {
     var conditionTester = StoreTester.simple(this);
     try {
       await conditionTester.waitCondition(
-        (TestInfo<St> info) => condition(info.state),
+        (TestInfo<St>? info) => condition(info!.state),
         timeoutInSeconds: timeoutInSeconds,
       );
     } finally {
@@ -405,7 +403,7 @@ class Store<St> {
   void _addError(UserException error) => _errors.addLast(error);
 
   /// Gets the first error from the error queue, and removes it from the queue.
-  UserException getAndRemoveFirstError() => (_errors.isEmpty)
+  UserException? getAndRemoveFirstError() => (_errors.isEmpty)
       ? //
       null
       : _errors.removeFirst();
@@ -421,17 +419,16 @@ class Store<St> {
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: store.dispatch is of type Dispatch.
   void dispatch(ReduxAction<St> action, {bool notify = true}) {
-    assert(action != null);
-
+    //
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 
-    if (_shutdown || action.abortDispatch()) return;
+    if (_shutdown || action.abortDispatch()!) return;
 
     _dispatchCount++;
 
     if (_actionObservers != null)
-      for (ActionObserver observer in _actionObservers) {
+      for (ActionObserver observer in _actionObservers!) {
         observer.observe(action, dispatchCount, ini: true);
       }
 
@@ -442,17 +439,16 @@ class Store<St> {
     ReduxAction<St> action, {
     bool notify = true,
   }) async {
-    assert(action != null);
-
+    //
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 
-    if (_shutdown || action.abortDispatch()) return;
+    if (_shutdown || action.abortDispatch()!) return;
 
     _dispatchCount++;
 
     if (_actionObservers != null)
-      for (ActionObserver observer in _actionObservers) {
+      for (ActionObserver observer in _actionObservers!) {
         observer.observe(action, dispatchCount, ini: true);
       }
 
@@ -464,12 +460,8 @@ class Store<St> {
     ReduxAction<St> action,
     dynamic error,
     dynamic processedError, {
-    @required bool ini,
+    required bool ini,
   }) {
-    assert(state != null);
-    assert(action != null);
-    assert(ini != null);
-
     if (_testInfoController != null || testInfoPrinter != null) {
       var reduceInfo = TestInfo<St>(
         state,
@@ -481,8 +473,8 @@ class Store<St> {
         reduceCount,
         errors,
       );
-      if (_testInfoController != null) _testInfoController.add(reduceInfo);
-      if (testInfoPrinter != null) testInfoPrinter(reduceInfo);
+      if (_testInfoController != null) _testInfoController!.add(reduceInfo);
+      if (testInfoPrinter != null) testInfoPrinter!(reduceInfo);
     }
   }
 
@@ -497,7 +489,7 @@ class Store<St> {
   }) async {
     //
     // Creates the "INI" test snapshot.
-    createTestInfoSnapshot(state, action, null, null, ini: true);
+    createTestInfoSnapshot(state!, action, null, null, ini: true);
 
     // The action may access the store/state/dispatch as fields.
     assert(action.store == this);
@@ -513,11 +505,11 @@ class Store<St> {
       action._status = ActionStatus();
       result = action.before();
       if (result is Future) await result;
-      action._status._isBeforeDone = true;
+      action._status!._isBeforeDone = true;
       if (_shutdown) return;
       result = _applyReducer(action, notify: notify);
       if (result is Future) await result;
-      action._status._isReduceDone = true;
+      action._status!._isReduceDone = true;
       if (_shutdown) return;
     } catch (error, stackTrace) {
       originalError = error;
@@ -542,7 +534,7 @@ class Store<St> {
   FutureOr<void> _applyReducer(ReduxAction<St> action, {bool notify = true}) {
     _reduceCount++;
 
-    var reducer = action.wrapReduce(action.reduce);
+    Reducer<St>? reducer = action.wrapReduce(action.reduce);
 
     // Sync reducer.
     if (reducer is St Function()) {
@@ -574,24 +566,6 @@ class Store<St> {
     }
   }
 
-  // Old code:
-  // FutureOr<void> _applyReducer(ReduxAction<St> action, {bool notify = true}) {
-  //   _reduceCount++;
-  //
-  //   var result = action.wrapReduce(action.reduce)();
-  //
-  //   if (result is Future<St>) {
-  //     return result.then((state) => _registerState(
-  //           state,
-  //           action,
-  //           notify: notify,
-  //         ));
-  //   } else if (result is St || result == null) {
-  //     _registerState(result, action, notify: notify);
-  //   } else
-  //     throw AssertionError();
-  // }
-
   /// Adds the state to the changeController, but only if the `reduce` method
   /// did not returned null, and if it did not return the same identical state.
   /// Note: We compare the state using `identical` (which is fast).
@@ -617,12 +591,12 @@ class Store<St> {
     St stateEnd = _state;
 
     if (_stateObservers != null)
-      for (StateObserver observer in _stateObservers) {
+      for (StateObserver observer in _stateObservers!) {
         observer.observe(action, stateIni, stateEnd, dispatchCount);
       }
 
     if (_processPersistence != null)
-      _processPersistence.process(
+      _processPersistence!.process(
         action,
         stateEnd,
       );
@@ -650,7 +624,7 @@ class Store<St> {
 
     if (_wrapError != null) {
       try {
-        error = _wrapError.wrap(error, stackTrace, action) ?? error;
+        error = _wrapError!.wrap(error, stackTrace, action) ?? error;
       } catch (_error) {
         // Errors thrown by the global wrapError.
         // WrapError should never throw. It should return an error.
@@ -680,7 +654,7 @@ class Store<St> {
     // If an errorObserver was defined, observe the error.
     // Then, if the observer returns true, return the error to be thrown.
     else {
-      if (_errorObserver.observe(error, stackTrace, action, this)) //
+      if (_errorObserver!.observe(error, stackTrace, action, this)) //
         return error;
     }
 
@@ -688,7 +662,7 @@ class Store<St> {
   }
 
   void _finalize(
-    Future result,
+    Future? result,
     ReduxAction<St> action,
     dynamic error,
     dynamic processedError,
@@ -696,10 +670,10 @@ class Store<St> {
   ) {
     if (!afterWasRun.value) _after(action);
 
-    createTestInfoSnapshot(state, action, error, processedError, ini: false);
+    createTestInfoSnapshot(state!, action, error, processedError, ini: false);
 
     if (_actionObservers != null)
-      for (ActionObserver observer in _actionObservers) {
+      for (ActionObserver observer in _actionObservers!) {
         observer.observe(action, dispatchCount, ini: false);
       }
   }
@@ -707,7 +681,7 @@ class Store<St> {
   void _after(ReduxAction<St> action) {
     try {
       action.after();
-      action._status._isAfterDone = true;
+      action._status!._isAfterDone = true;
     } catch (error, stackTrace) {
       // After should never throw.
       // However, if it does, prints the error information to the console,
@@ -725,8 +699,8 @@ class Store<St> {
   /// Only use this if you want to destroy the Store while your app is running.
   /// Do not use this method as a way to stop listening to onChange state changes.
   /// For that purpose, view the onChange documentation.
-  Future teardown() async {
-    _state = null;
+  Future teardown({St? emptyState}) async {
+    if (emptyState != null) _state = emptyState;
     _stateTimestamp = DateTime.now().toUtc();
     return _changeController.close();
   }
@@ -756,21 +730,21 @@ class ActionStatus {
 /// their default [Object] comparison by identity, or the StoreTester may not work.
 ///
 abstract class ReduxAction<St> {
-  Store<St> _store;
-  ActionStatus _status;
+  late Store<St> _store;
+  ActionStatus? _status;
 
   void setStore(Store<St> store) => _store = store;
 
   Store<St> get store => _store;
 
-  ActionStatus get status => _status;
+  ActionStatus? get status => _status;
 
   St get state => _store.state;
 
   /// Returns true only if the action finished with no errors.
   /// In other words, if the methods before, reduce and after all finished executing
   /// without throwing any errors.
-  bool get hasFinished => _status.isFinished;
+  bool get hasFinished => _status!.isFinished;
 
   DateTime get stateTimestamp => _store.stateTimestamp;
 
@@ -802,7 +776,7 @@ abstract class ReduxAction<St> {
   /// The `StoreConnector`s may rebuild only if the `reduce` method returns
   /// a state which is both not `null` and different from the previous one
   /// (comparing by `identical`, not `equals`).
-  FutureOr<St> reduce();
+  FutureOr<St>? reduce();
 
   /// You may wrap the reducer to allow for some pre or post-processing.
   /// For example, if you want to abort an async reducer if the state
@@ -828,7 +802,7 @@ abstract class ReduxAction<St> {
   /// and `after` will not be called, and the action will not be visible to the
   /// `StoreTester`. This is only useful under rare circumstances, and you should
   /// only use it if you know what you are doing.
-  bool abortDispatch() => false;
+  bool? abortDispatch() => false;
 
   /// Nest state reducers without dispatching another action.
   /// Example: return AddTaskAction(demoTask).reduceWithState(state);
@@ -836,7 +810,7 @@ abstract class ReduxAction<St> {
       "because it's more difficult to use than it seems. "
       "Unless you completely understand what you're doing,"
       "you should only used it with sync reducers.")
-  FutureOr<St> reduceWithState(Store<St> store, St state) {
+  FutureOr<St>? reduceWithState(Store<St> store, St state) {
     setStore(store);
     _store.defineState(state);
     return reduce();
@@ -854,7 +828,7 @@ abstract class ActionObserver<St> {
   void observe(
     ReduxAction<St> action,
     int dispatchCount, {
-    @required bool ini,
+    required bool ini,
   });
 }
 
@@ -914,7 +888,7 @@ abstract class ErrorObserver<St> {
 ///   return null; }
 /// ```
 abstract class WrapError<St> {
-  Object wrap(
+  Object? wrap(
     Object error,
     StackTrace stackTrace,
     ReduxAction<St> action,
@@ -929,12 +903,12 @@ abstract class WrapError<St> {
 /// * When isDistinct==null, it means the widget rebuilds everytime, and the model is not relevant.
 abstract class ModelObserver<Model> {
   void observe({
-    Model modelPrevious,
-    Model modelCurrent,
-    bool isDistinct,
-    StoreConnectorInterface storeConnector,
-    int reduceCount,
-    int dispatchCount,
+    required Model? modelPrevious,
+    required Model? modelCurrent,
+    bool? isDistinct,
+    StoreConnectorInterface? storeConnector,
+    int? reduceCount,
+    int? dispatchCount,
   });
 }
 
@@ -987,7 +961,7 @@ class StoreException implements Exception {
 ///  See: https://github.com/dart-lang/sdk/issues/10297
 ///  This should be fixed when this issue is solved: https://github.com/dart-lang/sdk/issues/30741
 ///
-void _throws(errorMsg, error, StackTrace stackTrace) {
+void _throws(errorMsg, error, StackTrace? stackTrace) {
   if (errorMsg != null) print(errorMsg);
   if (stackTrace != null) {
     print("\nStackTrace:\n$stackTrace");
@@ -1050,10 +1024,10 @@ abstract class Vm {
 
   /// Fields should not contain functions.
   static bool _onlyContainFieldsOfAllowedTypes(List equals) {
-    equals.forEach((Object field) {
+    equals.forEach((Object? field) {
       if (field is Function)
         throw StoreException("ViewModel equals "
-            "has an invalid field of type ${field.runtimeType}.");
+            "can't contain field of type Function: ${field.runtimeType}.");
     });
 
     return true;
@@ -1070,7 +1044,7 @@ abstract class Vm {
             );
   }
 
-  bool _listEquals<T>(List<T> list1, List<T> list2) {
+  bool _listEquals<T>(List<T>? list1, List<T>? list2) {
     if (list1 == null) return list2 == null;
     if (list2 == null || list1.length != list2.length) return false;
     if (identical(list1, list2)) return true;
@@ -1139,7 +1113,7 @@ abstract class Vm {
 ///
 abstract class VmFactory<St, T> {
   /// A reference to the connector widget that will instantiate the view-model.
-  final T widget;
+  final T? widget;
 
   /// You need to pass the connector widget only if the view-model needs any info from it.
   VmFactory([this.widget]);
@@ -1148,18 +1122,18 @@ abstract class VmFactory<St, T> {
 
   void _setStore(St state, Store store) {
     if (_state != null) throw AssertionError("State is final.");
-    _store = store;
+    _store = store as Store<St>;
     _state = state;
     _dispatch = store.dispatch;
     _dispatchFuture = store.dispatchFuture;
     _getAndRemoveFirstError = store.getAndRemoveFirstError;
   }
 
-  Store<St> _store;
-  St _state;
-  Dispatch<St> _dispatch;
-  DispatchFuture<St> _dispatchFuture;
-  UserException Function() _getAndRemoveFirstError;
+  late Store<St> _store;
+  late St _state;
+  Dispatch<St>? _dispatch;
+  DispatchFuture<St>? _dispatchFuture;
+  late UserException? Function() _getAndRemoveFirstError;
 
   /// The state the store was holding when the factory and the view-model were created.
   /// This state is final inside of the factory.
@@ -1169,11 +1143,11 @@ abstract class VmFactory<St, T> {
   /// This will return the current state the store holds at the time the method is called.
   St currentState() => _store.state;
 
-  Dispatch<St> get dispatch => _dispatch;
+  Dispatch<St>? get dispatch => _dispatch;
 
-  DispatchFuture<St> get dispatchFuture => _dispatchFuture;
+  DispatchFuture<St>? get dispatchFuture => _dispatchFuture;
 
-  UserException getAndRemoveFirstError() => _getAndRemoveFirstError();
+  UserException? getAndRemoveFirstError() => _getAndRemoveFirstError();
 }
 
 /// For internal use only. Please don't use this.
@@ -1188,10 +1162,10 @@ void internalsVmFactoryInject<St>(VmFactory vmFactory, St state, Store store) {
 /// Lets you implement equals/hashcode without having to override these methods.
 abstract class BaseModel<St> {
   /// The List of properties which will be used to determine whether two BaseModels are equal.
-  final List<Object> equals;
+  final List<Object?> equals;
 
   /// You can pass the connector widget, in case the view-model needs any info from it.
-  final Object widget;
+  final Object? widget;
 
   /// The constructor takes an optional List of fields which will be used
   /// to determine whether two [BaseModel] are equal.
@@ -1200,7 +1174,7 @@ abstract class BaseModel<St> {
 
   /// Fields should not contain functions.
   static bool _onlyContainFieldsOfAllowedTypes(List equals) {
-    equals.forEach((Object field) {
+    equals.forEach((Object? field) {
       if (field is Function)
         throw StoreException("ViewModel equals "
             "has an invalid field of type ${field.runtimeType}.");
@@ -1221,7 +1195,7 @@ abstract class BaseModel<St> {
       identical(this, other) ||
       other is BaseModel &&
           runtimeType == other.runtimeType &&
-          const _ListEquality<Object>().equals(
+          const _ListEquality<Object?>().equals(
             equals,
             other.equals,
           );
@@ -1231,24 +1205,24 @@ abstract class BaseModel<St> {
 
   int get _propsHashCode {
     int hashCode = 0;
-    equals.forEach((Object prop) => hashCode = hashCode ^ prop.hashCode);
+    equals.forEach((Object? prop) => hashCode = hashCode ^ prop.hashCode);
     return hashCode;
   }
 
-  St _state;
-  Dispatch<St> _dispatch;
-  DispatchFuture<St> _dispatchFuture;
-  UserException Function() _getAndRemoveFirstError;
+  late St _state;
+  Dispatch<St>? _dispatch;
+  DispatchFuture<St>? _dispatchFuture;
+  UserException? Function()? _getAndRemoveFirstError;
 
   BaseModel fromStore();
 
   St get state => _state;
 
-  Dispatch<St> get dispatch => _dispatch;
+  Dispatch<St>? get dispatch => _dispatch;
 
-  DispatchFuture<St> get dispatchFuture => _dispatchFuture;
+  DispatchFuture<St>? get dispatchFuture => _dispatchFuture;
 
-  UserException Function() get getAndRemoveFirstError => //
+  UserException? Function()? get getAndRemoveFirstError => //
       _getAndRemoveFirstError;
 
   @override
@@ -1262,7 +1236,7 @@ void internalsBaseModelInject<St>(BaseModel baseModel, St state, Store store) {
 
 // /////////////////////////////////////////////////////////////////////////////
 
-typedef Reducer<St> = FutureOr<St> Function();
+typedef Reducer<St> = FutureOr<St>? Function();
 
 /// Convert the entire [Store] into a [Model]. The [Model] will
 /// be used to build a Widget using the [ViewModelBuilder].
@@ -1321,29 +1295,29 @@ typedef OnInitialBuildCallback<Model> = void Function(Model viewModel);
 // /////////////////////////////////////////////////////////////////////////////
 
 abstract class StoreConnectorInterface<St, Model> {
-  VmFactory<St, dynamic> Function() get vm;
+  VmFactory<St, dynamic> Function()? get vm;
 
-  StoreConverter<St, Model> get converter;
+  StoreConverter<St, Model>? get converter;
 
-  BaseModel get model;
+  BaseModel? get model;
 
-  bool get distinct;
+  bool? get distinct;
 
-  OnInitCallback<St> get onInit;
+  OnInitCallback<St>? get onInit;
 
-  OnDisposeCallback<St> get onDispose;
+  OnDisposeCallback<St>? get onDispose;
 
   bool get rebuildOnChange;
 
-  ShouldUpdateModel<St> get shouldUpdateModel;
+  ShouldUpdateModel<St>? get shouldUpdateModel;
 
-  OnWillChangeCallback<Model> get onWillChange;
+  OnWillChangeCallback<Model>? get onWillChange;
 
-  OnDidChangeCallback<Model> get onDidChange;
+  OnDidChangeCallback<Model>? get onDidChange;
 
-  OnInitialBuildCallback<Model> get onInitialBuild;
+  OnInitialBuildCallback<Model>? get onInitialBuild;
 
-  Object get debug;
+  Object? get debug;
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -1355,12 +1329,11 @@ class _ListEquality<E> implements _Equality<List<E>> {
 
   final _Equality<E> _elementEquality;
 
-  // TODO: When NNBD arrives, replace Null with Never.
-  const _ListEquality([_Equality<E> elementEquality = const _DefaultEquality<Null>()])
+  const _ListEquality([_Equality<E> elementEquality = const _DefaultEquality<Never>()])
       : _elementEquality = elementEquality;
 
   @override
-  bool equals(List<E> list1, List<E> list2) {
+  bool equals(List<E>? list1, List<E>? list2) {
     if (identical(list1, list2)) return true;
     if (list1 == null || list2 == null) return false;
     var length = list1.length;
@@ -1372,7 +1345,7 @@ class _ListEquality<E> implements _Equality<List<E>> {
   }
 
   @override
-  int hash(List<E> list) {
+  int hash(List<E>? list) {
     if (list == null) return null.hashCode;
     var hash = 0;
     for (var i = 0; i < list.length; i++) {
@@ -1395,10 +1368,10 @@ class _DefaultEquality<E> implements _Equality<E> {
   const _DefaultEquality();
 
   @override
-  bool equals(Object e1, Object e2) => e1 == e2;
+  bool equals(Object? e1, Object? e2) => e1 == e2;
 
   @override
-  int hash(Object e) => e.hashCode;
+  int hash(Object? e) => e.hashCode;
 
   @override
   bool isValidKey(Object o) => true;

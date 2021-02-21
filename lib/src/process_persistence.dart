@@ -12,24 +12,19 @@ class ProcessPersistence<St> {
         lastPersistTime = DateTime.now().toUtc();
 
   Persistor persistor;
-  St lastPersistedState;
-  St newestState;
+  St? lastPersistedState;
+  late St newestState;
   bool isPersisting;
   bool newStateAvailable;
   DateTime lastPersistTime;
-  Timer timer;
+  Timer? timer;
 
   Duration get throttle => persistor.throttle ?? const Duration();
 
   void process(
-    ReduxAction<St> action,
+    ReduxAction<St>? action,
     St newState,
   ) {
-    assert(newState != null);
-    assert(lastPersistTime != null);
-    assert(isPersisting != null);
-    //
-
     newestState = newState;
 
     var now = DateTime.now().toUtc();
@@ -41,7 +36,7 @@ class ProcessPersistence<St> {
     // If action is PersistAction, persist immediately.
     else if (action is PersistAction) {
       if (timer != null) {
-        timer.cancel();
+        timer!.cancel();
         timer = null;
       }
     }

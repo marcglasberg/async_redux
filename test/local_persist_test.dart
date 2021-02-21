@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
@@ -30,7 +31,7 @@ void main() {
     ];
 
     Uint8List encoded = LocalPersist.encode(simpleObjs);
-    List<Object> decoded = LocalPersist.decode(encoded);
+    List<Object?> decoded = LocalPersist.decode(encoded);
     expect(decoded, simpleObjs);
 
     expect(
@@ -66,7 +67,7 @@ void main() {
 
     await persist.save(simpleObjs);
 
-    List<Object> decoded = await persist.load();
+    List<Object?> decoded = await (persist.load() as FutureOr<List<Object?>>);
 
     expect(decoded, simpleObjs);
 
@@ -86,13 +87,13 @@ void main() {
 
   test('Test file can be defined by String or enum.', () async {
     //
-    File file = await LocalPersist("abc").file();
+    File file = await (LocalPersist("abc").file());
     expect(file.path.endsWith("\\db\\abc.db") || file.path.endsWith("/db/abc.db"), isTrue);
 
-    file = await LocalPersist(files.abc).file();
+    file = await (LocalPersist(files.abc).file());
     expect(file.path.endsWith("\\db\\abc.db") || file.path.endsWith("/db/abc.db"), isTrue);
 
-    file = await LocalPersist(files.xyz, dbSubDir: "kkk").file();
+    file = await (LocalPersist(files.xyz, dbSubDir: "kkk").file());
     expect(file.path.endsWith("\\kkk\\xyz.db") || file.path.endsWith("/kkk/xyz.db"), isTrue);
   });
 
@@ -100,62 +101,62 @@ void main() {
 
   test('Test dbDir and subDirs.', () async {
     //
-    File file = await LocalPersist("xyz").file();
+    File file = await (LocalPersist("xyz").file());
     expect(file.path.endsWith("\\xyz.db") || file.path.endsWith("/xyz.db"), isTrue);
 
-    file = await LocalPersist("xyz", dbSubDir: "kkk").file();
+    file = await (LocalPersist("xyz", dbSubDir: "kkk").file());
     expect(file.path.endsWith("\\kkk\\xyz.db") || file.path.endsWith("/kkk/xyz.db"), isTrue);
 
-    file = await LocalPersist("xyz", dbSubDir: "kkk", subDirs: ["mno"]).file();
+    file = await (LocalPersist("xyz", dbSubDir: "kkk", subDirs: ["mno"]).file());
     expect(
         file.path.endsWith("\\kkk\\mno\\xyz.db") || file.path.endsWith("/kkk/mno/xyz.db"), isTrue);
 
-    file = await LocalPersist("xyz", dbSubDir: "kkk", subDirs: ["m", "n", "o"]).file();
+    file = await (LocalPersist("xyz", dbSubDir: "kkk", subDirs: ["m", "n", "o"]).file());
     expect(file.path.endsWith("\\kkk\\m\\n\\o\\xyz.db") || file.path.endsWith("/kkk/m/n/o/xyz.db"),
         isTrue);
 
-    file = await LocalPersist("xyz", subDirs: ["mno"]).file();
+    file = await (LocalPersist("xyz", subDirs: ["mno"]).file());
     expect(file.path.endsWith("\\db\\mno\\xyz.db") || file.path.endsWith("/db/mno/xyz.db"), isTrue);
 
-    file = await LocalPersist("xyz", subDirs: ["m", "n", "o"]).file();
+    file = await (LocalPersist("xyz", subDirs: ["m", "n", "o"]).file());
     expect(file.path.endsWith("\\db\\m\\n\\o\\xyz.db") || file.path.endsWith("/db/m/n/o/xyz.db"),
         isTrue);
 
-    String saveDefaultDbSubDir = LocalPersist.defaultDbSubDir;
+    String? saveDefaultDbSubDir = LocalPersist.defaultDbSubDir;
 
     LocalPersist.defaultDbSubDir = "myDir";
 
-    file = await LocalPersist("xyz", subDirs: ["mno"]).file();
+    file = await (LocalPersist("xyz", subDirs: ["mno"]).file());
     expect(file.path.endsWith("\\myDir\\mno\\xyz.db") || file.path.endsWith("/myDir/mno/xyz.db"),
         isTrue);
 
-    file = await LocalPersist("xyz", subDirs: ["m", "n", "o"]).file();
+    file = await (LocalPersist("xyz", subDirs: ["m", "n", "o"]).file());
     expect(
         file.path.endsWith("\\myDir\\m\\n\\o\\xyz.db") || file.path.endsWith("/myDir/m/n/o/xyz.db"),
         isTrue);
 
     LocalPersist.defaultDbSubDir = "";
 
-    file = await LocalPersist("xyz", subDirs: ["mno"]).file();
+    file = await (LocalPersist("xyz", subDirs: ["mno"]).file());
     expect(file.path.endsWith("\\mno\\xyz.db") || file.path.endsWith("/mno/xyz.db"), isTrue);
     expect(
         file.path.endsWith("\\db\\mno\\xyz.db") || file.path.endsWith("/db/mno/xyz.db"), isFalse);
 
     print('file.path = ${file.path}');
-    file = await LocalPersist("xyz", subDirs: ["m", "n", "o"]).file();
+    file = await (LocalPersist("xyz", subDirs: ["m", "n", "o"]).file());
     expect(file.path.endsWith("\\m\\n\\o\\xyz.db") || file.path.endsWith("/m/n/o/xyz.db"), isTrue);
     expect(file.path.endsWith("\\db\\m\\n\\o\\xyz.db") || file.path.endsWith("/db/m/n/o/xyz.db"),
         isFalse);
 
     LocalPersist.defaultDbSubDir = null;
 
-    file = await LocalPersist("xyz", subDirs: ["mno"]).file();
+    file = await (LocalPersist("xyz", subDirs: ["mno"]).file());
     expect(file.path.endsWith("\\mno\\xyz.db") || file.path.endsWith("/mno/xyz.db"), isTrue);
     expect(
         file.path.endsWith("\\db\\mno\\xyz.db") || file.path.endsWith("/db/mno/xyz.db"), isFalse);
 
     print('file.path = ${file.path}');
-    file = await LocalPersist("xyz", subDirs: ["m", "n", "o"]).file();
+    file = await (LocalPersist("xyz", subDirs: ["m", "n", "o"]).file());
     expect(file.path.endsWith("\\m\\n\\o\\xyz.db") || file.path.endsWith("/m/n/o/xyz.db"), isTrue);
     expect(file.path.endsWith("\\db\\m\\n\\o\\xyz.db") || file.path.endsWith("/db/m/n/o/xyz.db"),
         isFalse);
@@ -176,7 +177,7 @@ void main() {
     var persist = LocalPersist("xyz");
     await persist.save([randNumber1, randNumber2, randNumber3]);
 
-    List<Object> decoded = await persist.load();
+    List<Object?> decoded = await (persist.load() as FutureOr<List<Object?>>);
 
     expect(decoded, [randNumber1, randNumber2, randNumber3]);
 
@@ -214,7 +215,7 @@ void main() {
     ];
     await persist.save(simpleObjs, append: true);
 
-    List<Object> decoded = await persist.load();
+    List<Object?>? decoded = await persist.load();
 
     expect(decoded, [
       "Hello",
@@ -265,7 +266,7 @@ void main() {
     expect(decoded, [789]);
 
     // Delete.
-    File file = await persist.file();
+    File file = await (persist.file());
     expect(file.existsSync(), true);
     await persist.delete();
     expect(file.existsSync(), false);
@@ -320,7 +321,7 @@ void main() {
     var persist = LocalPersist("obj");
     await persist.save(simpleObjs);
 
-    Map<String, dynamic> decoded = await persist.loadAsObj();
+    Map<String, dynamic>? decoded = await persist.loadAsObj();
 
     expect(decoded, simpleObjs[0]);
 

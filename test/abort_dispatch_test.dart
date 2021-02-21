@@ -6,7 +6,7 @@ import "package:test/test.dart";
 
 ///////////////////////////////////////////////////////////////////////////////
 
-List<String> info;
+List<String>? info;
 
 void main() {
   /////////////////////////////////////////////////////////////////////////////
@@ -57,27 +57,27 @@ void main() {
 // ----------------------------------------------
 
 class ActionA extends ReduxAction<String> {
-  bool abort;
+  bool? abort;
 
   ActionA({this.abort});
 
   @override
-  bool abortDispatch() => abort;
+  bool? abortDispatch() => abort;
 
   @override
   void before() {
-    info.add('1');
+    info!.add('1');
   }
 
   @override
   String reduce() {
-    info.add('2');
+    info!.add('2');
     return state + 'X';
   }
 
   @override
   void after() {
-    info.add('3');
+    info!.add('3');
   }
 }
 
@@ -89,18 +89,18 @@ class ActionB extends ReduxAction<String> {
 
   @override
   void before() {
-    info.add('1');
+    info!.add('1');
   }
 
   @override
   String reduce() {
-    info.add('2');
+    info!.add('2');
     return state + 'X';
   }
 
   @override
   void after() {
-    info.add('3');
+    info!.add('3');
   }
 }
 

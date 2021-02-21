@@ -32,44 +32,44 @@ class StoreConnector<St, Model> extends StatelessWidget
     implements StoreConnectorInterface<St, Model> {
   //
   /// Build a Widget using the [BuildContext] and [Model]. The [Model]
-  /// is created by the [converter] or [model] functions.
+  /// is created by the [vm] or [converter] functions.
   final ViewModelBuilder<Model> builder;
 
   /// Convert the [Store] into a [Model]. The resulting [Model] will be
   /// passed to the [builder] function.
   @override
-  final VmFactory<St, dynamic> Function() vm;
+  final VmFactory<St, dynamic> Function()? vm;
 
   /// Convert the [Store] into a [Model]. The resulting [Model] will be
   /// passed to the [builder] function.
   @override
-  final StoreConverter<St, Model> converter;
+  final StoreConverter<St, Model>? converter;
 
   /// Don't use, this is deprecated. Please, use the recommended
   /// `vm` parameter (of type [VmFactory]) or `converter`.
   @Deprecated("Please, use `vm` parameter. "
       "See classes `VmFactory` and `Vm`.")
   @override
-  final BaseModel model;
+  final BaseModel? model;
 
   /// When [distinct] is true (the default), the Widget is rebuilt only
   /// when the [Model] changes. In order for this to work correctly, you
   /// must implement [==] and [hashCode] for the [Model].
   @override
-  final bool distinct;
+  final bool? distinct;
 
   /// A function that will be run when the StoreConnector is initially created.
   /// It is run in the [State.initState] method.
   /// This can be useful for dispatching actions that fetch data for your Widget
   /// when it is first displayed.
   @override
-  final OnInitCallback<St> onInit;
+  final OnInitCallback<St>? onInit;
 
   /// A function that will be run when the StoreConnector is removed from the
   /// Widget Tree. It is run in the [State.dispose] method.
   /// This can be useful for dispatching actions that remove stale data from your State tree.
   @override
-  final OnDisposeCallback<St> onDispose;
+  final OnDisposeCallback<St>? onDispose;
 
   /// Determines whether the Widget should be rebuilt when the Store emits an onChange event.
   @override
@@ -88,14 +88,14 @@ class StoreConnector<St, Model> extends StatelessWidget
   /// the [builder] function will be called with the latest [Model] produced
   /// by your [vm] or [converter] function.
   @override
-  final ShouldUpdateModel<St> shouldUpdateModel;
+  final ShouldUpdateModel<St>? shouldUpdateModel;
 
   /// A function that will be run on State change, before the Widget is built.
   /// This function is passed the `Model`, and if `distinct` is `true`,
   /// it will only be called if the `Model` changes.
   /// This can be useful for imperative calls to things like Navigator, TabController, etc
   @override
-  final OnWillChangeCallback<Model> onWillChange;
+  final OnWillChangeCallback<Model>? onWillChange;
 
   /// A function that will be run on State change, after the Widget is built.
   /// This function is passed the `Model`, and if `distinct` is `true`,
@@ -104,22 +104,22 @@ class StoreConnector<St, Model> extends StatelessWidget
   /// Note: Using a [BuildContext] inside this callback can cause problems if
   /// the callback performs navigation. For navigation purposes, please use [onWillChange].
   @override
-  final OnDidChangeCallback<Model> onDidChange;
+  final OnDidChangeCallback<Model>? onDidChange;
 
   /// A function that will be run after the Widget is built the first time.
   /// This function is passed the initial `Model` created by the `converter`
   /// or `vm` function. This can be useful for starting certain animations,
   /// such as showing snackbars, after the Widget is built the first time.
   @override
-  final OnInitialBuildCallback<Model> onInitialBuild;
+  final OnInitialBuildCallback<Model>? onInitialBuild;
 
   /// Pass the parameter `debug: this` to get a more detailed error message.
   @override
-  final Object debug;
+  final Object? debug;
 
   const StoreConnector({
-    Key key,
-    @required this.builder,
+    Key? key,
+    required this.builder,
     this.distinct,
     this.vm, // Recommended.
     this.converter, // Can be used instead of `vm`.
@@ -132,8 +132,7 @@ class StoreConnector<St, Model> extends StatelessWidget
     this.onWillChange,
     this.onDidChange,
     this.onInitialBuild,
-  })  : assert(builder != null),
-        assert(converter != null || vm != null || model != null,
+  })  : assert(converter != null || vm != null || model != null,
             "You should provide the `converter` or the `vm` parameter."),
         assert(converter == null || vm == null,
             "You can't provide both the `converter` and the `vm` parameters."),
@@ -152,6 +151,7 @@ class StoreConnector<St, Model> extends StatelessWidget
       builder: builder,
       converter: converter,
       vm: vm,
+      // ignore: deprecated_member_use_from_same_package
       model: model,
       distinct: distinct,
       onInit: onInit,
@@ -176,20 +176,23 @@ class StoreConnector<St, Model> extends StatelessWidget
     //
     // The `vm` parameter is recommended.
     if (vm != null) {
-      var factory = vm();
+      var factory = vm!();
       internalsVmFactoryInject(factory, store.state, store);
       return factory.fromStore() as Model;
     }
     //
     // The `converter` parameter can be used instead of `vm`.
     else if (converter != null) {
-      return converter(store);
+      return converter!(store as Store<St>);
     }
     //
     // The `model` parameter is deprecated.
+    // ignore: deprecated_member_use_from_same_package
     else if (model != null) {
-      internalsBaseModelInject(model, store.state, store);
-      return model.fromStore() as Model;
+      // ignore: deprecated_member_use_from_same_package
+      internalsBaseModelInject(model!, store.state, store);
+      // ignore: deprecated_member_use_from_same_package
+      return model!.fromStore() as Model;
     }
     //
     else
@@ -203,30 +206,30 @@ class StoreConnector<St, Model> extends StatelessWidget
 /// Listens to the store and calls builder whenever the store changes.
 class _StoreStreamListener<St, Model> extends StatefulWidget {
   final ViewModelBuilder<Model> builder;
-  final StoreConverter<St, Model> converter;
-  final VmFactory Function() vm;
-  final BaseModel model; // Deprecated.
+  final StoreConverter<St, Model>? converter;
+  final VmFactory Function()? vm;
+  final BaseModel? model; // Deprecated.
   final Store<St> store;
-  final Object debug;
+  final Object? debug;
   final StoreConnector storeConnector;
   final bool rebuildOnChange;
-  final bool distinct;
-  final OnInitCallback<St> onInit;
-  final OnDisposeCallback<St> onDispose;
-  final ShouldUpdateModel<St> shouldUpdateModel;
-  final OnWillChangeCallback<Model> onWillChange;
-  final OnDidChangeCallback<Model> onDidChange;
-  final OnInitialBuildCallback<Model> onInitialBuild;
+  final bool? distinct;
+  final OnInitCallback<St>? onInit;
+  final OnDisposeCallback<St>? onDispose;
+  final ShouldUpdateModel<St>? shouldUpdateModel;
+  final OnWillChangeCallback<Model>? onWillChange;
+  final OnDidChangeCallback<Model>? onDidChange;
+  final OnInitialBuildCallback<Model>? onInitialBuild;
 
   const _StoreStreamListener({
-    Key key,
-    @required this.builder,
-    @required this.store,
-    @required this.debug,
-    @required this.converter,
-    @required this.vm,
-    @required this.model, // Deprecated.
-    @required this.storeConnector,
+    Key? key,
+    required this.builder,
+    required this.store,
+    required this.debug,
+    required this.converter,
+    required this.vm,
+    required this.model, // Deprecated.
+    required this.storeConnector,
     this.distinct,
     this.onInit,
     this.onDispose,
@@ -247,7 +250,7 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
 
 /// If the StoreConnector throws an error.
 class _ConverterError extends Error {
-  final Object debug;
+  final Object? debug;
 
   /// The error thrown while running the [StoreConnector.converter] function.
   final Object error;
@@ -272,34 +275,30 @@ class _ConverterError extends Error {
 
 class _StoreStreamListenerState<St, Model> //
     extends State<_StoreStreamListener<St, Model>> {
-  Stream<Model> _stream;
-  Model _latestModel;
-  _ConverterError _latestError;
+  Stream<Model>? _stream;
+  Model? _latestModel;
+  _ConverterError? _latestError;
 
   // If `widget.distinct` was passed, use it. Otherwise, use the store default.
   bool get _distinct => widget.distinct ?? widget.store.defaultDistinct;
-
-  /// Reference to the last state.
-  /// We need this so that we only recalculate the view-model if the state changed.
-  St _previousState;
 
   /// if [StoreConnector.shouldUpdateModel] returns false, we need to know the
   /// most recent VALID state (it was valid when [StoreConnector.shouldUpdateModel]
   /// returned true). We save all valid states into [_mostRecentValidState], and
   /// when we need to use it we put it into [_forceLastValidStreamState].
-  St _mostRecentValidState, _forceLastValidStreamState;
+  St? _mostRecentValidState, _forceLastValidStreamState;
 
   @override
   void initState() {
     if (widget.onInit != null) {
-      widget.onInit(widget.store);
+      widget.onInit!(widget.store);
     }
 
     _computeLatestModel();
 
-    if (widget.onInitialBuild != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onInitialBuild(_latestModel);
+    if ((widget.onInitialBuild != null) && (_latestModel != null)) {
+      WidgetsBinding.instance!.addPostFrameCallback((_) {
+        widget.onInitialBuild!(_latestModel!);
       });
     }
 
@@ -311,7 +310,7 @@ class _StoreStreamListenerState<St, Model> //
   @override
   void dispose() {
     if (widget.onDispose != null) {
-      widget.onDispose(widget.store);
+      widget.onDispose!(widget.store);
     }
 
     super.dispose();
@@ -352,13 +351,13 @@ class _StoreStreamListenerState<St, Model> //
       // Important: This must be done after all other optional
       // transformations, such as shouldUpdateModel.
       .transform(StreamTransformer.fromHandlers(
-        handleData: _handleData,
+        handleData: _handleData as void Function(Model?, EventSink<Model>)?,
         handleError: _handleError,
       ));
 
   // This prevents unnecessary calculations of the view-model.
   bool _stateChanged(St state) {
-    return !identical(_previousState, widget.store.state);
+    return !identical(_mostRecentValidState, widget.store.state);
   }
 
   // If `shouldUpdateModel` is provided, it will calculate if the STORE state contains
@@ -374,7 +373,7 @@ class _StoreStreamListenerState<St, Model> //
       return true;
     else {
       _forceLastValidStreamState = null;
-      bool ifStoreHasValidModel = widget.shouldUpdateModel(widget.store.state);
+      bool ifStoreHasValidModel = widget.shouldUpdateModel!(widget.store.state);
       if (ifStoreHasValidModel) {
         _mostRecentValidState = widget.store.state;
         return true;
@@ -382,7 +381,7 @@ class _StoreStreamListenerState<St, Model> //
       //
       else {
         //
-        bool ifStreamHasValidModel = widget.shouldUpdateModel(state);
+        bool ifStreamHasValidModel = widget.shouldUpdateModel!(state);
         if (ifStreamHasValidModel) {
           _mostRecentValidState = state;
           return false;
@@ -397,11 +396,11 @@ class _StoreStreamListenerState<St, Model> //
     }
   }
 
-  Model _calculateModel(St state) =>
+  Model? _calculateModel(St state) =>
       getLatestModel(_forceLastValidStreamState ?? widget.store.state);
 
   // Don't use `Stream.distinct` since it can't capture the initial vm.
-  bool _whereDistinct(Model vm) {
+  bool _whereDistinct(Model? vm) {
     if (_distinct) {
       bool isDistinct = _isDistinct(vm);
 
@@ -416,14 +415,14 @@ class _StoreStreamListenerState<St, Model> //
       return true;
   }
 
-  bool _isDistinct(Model vm) {
+  bool _isDistinct(Model? vm) {
     if ((vm is ImmutableCollection) &&
         (_latestModel is ImmutableCollection) &&
         widget.store.immutableCollectionEquality != null) {
       if (widget.store.immutableCollectionEquality == CompareBy.byIdentity)
-        return areSameImmutableCollection(vm, _latestModel as ImmutableCollection);
+        return areSameImmutableCollection(vm, _latestModel as ImmutableCollection?);
       if (widget.store.immutableCollectionEquality == CompareBy.byDeepEquals) {
-        return areImmutableCollectionsWithEqualItems(vm, _latestModel as ImmutableCollection);
+        return areImmutableCollectionsWithEqualItems(vm, _latestModel as ImmutableCollection?);
       } else
         throw AssertionError(widget.store.immutableCollectionEquality);
     } else
@@ -436,20 +435,20 @@ class _StoreStreamListenerState<St, Model> //
       _observeWithTheModelObserver(
         modelPrevious: _latestModel,
         modelCurrent: vm,
-        isDistinct: null,
+        isDistinct: _distinct,
       );
 
     _latestError = null;
 
-    if (widget.onWillChange != null) {
-      widget.onWillChange(_latestModel, vm);
+    if ((widget.onWillChange != null) && (_latestModel != null)) {
+      widget.onWillChange!(_latestModel!, vm);
     }
 
     _latestModel = vm;
 
-    if (widget.onDidChange != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onDidChange(_latestModel);
+    if ((widget.onDidChange != null) && (_latestModel != null)) {
+      WidgetsBinding.instance!.addPostFrameCallback((_) {
+        widget.onDidChange!(_latestModel!);
       });
     }
 
@@ -469,12 +468,12 @@ class _StoreStreamListenerState<St, Model> //
 
   // If there is a ModelObserver, observe.
   // Note: This observer is only useful for tests.
-  void _observeWithTheModelObserver({
-    @required modelPrevious,
-    @required modelCurrent,
-    @required bool isDistinct,
+  void _observeWithTheModelObserver<Model>({
+    required Model? modelPrevious,
+    required Model? modelCurrent,
+    required bool isDistinct,
   }) {
-    ModelObserver modelObserver = widget.store.modelObserver;
+    ModelObserver? modelObserver = widget.store.modelObserver;
     if (modelObserver != null) {
       modelObserver.observe(
         modelPrevious: modelPrevious,
@@ -495,20 +494,20 @@ class _StoreStreamListenerState<St, Model> //
     //
     // The `vm` parameter is recommended.
     if (widget.vm != null) {
-      var factory = widget.vm();
+      var factory = widget.vm!();
       internalsVmFactoryInject(factory, state, widget.store);
       return factory.fromStore() as Model;
     }
     //
     // The `converter` parameter can be used instead of `vm`.
     else if (widget.converter != null) {
-      return widget.converter(widget.store);
+      return widget.converter!(widget.store);
     }
     //
     // The `model` parameter is deprecated.
     else if (widget.model != null) {
-      internalsBaseModelInject(widget.model, state, widget.store);
-      return widget.model.fromStore() as Model;
+      internalsBaseModelInject(widget.model!, state, widget.store);
+      return widget.model!.fromStore() as Model;
     }
     //
     else
@@ -521,16 +520,22 @@ class _StoreStreamListenerState<St, Model> //
     return widget.rebuildOnChange
         ? StreamBuilder<Model>(
             stream: _stream,
-            builder: (context, snapshot) {
-              if (_latestError != null) throw _latestError;
-
-              return widget.builder(context, _latestModel);
-            },
+            builder: (context, snapshot) => (_latestError != null)
+                ? throw _latestError!
+                : widget.builder(context, _latestModel as Model),
           )
         : _latestError != null
-            ? throw _latestError
-            : widget.builder(context, _latestModel);
+            ? throw _latestError!
+            : widget.builder(context, _latestModel as Model);
   }
+
+// The following _TypeError was thrown
+// building StreamBuilder<_MyViewModel>(dirty, state: _StreamBuilderBaseState<_MyViewModel, AsyncSnapshot<_MyViewModel>>#1a713):
+// type
+// '(BuildContext, _MyViewModel) => Widget'
+// '(BuildContext, _MyViewModel?) => Widget'
+// is not a subtype of type
+
 }
 
 // /////////////////////////////////////////////////////////////////////////////

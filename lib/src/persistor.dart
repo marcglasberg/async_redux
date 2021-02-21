@@ -1,8 +1,5 @@
 import 'dart:async';
-
 import 'package:async_redux/async_redux.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 
 // Developed by Marcelo Glasberg (Aug 2019).
 // Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
@@ -35,15 +32,15 @@ abstract class Persistor<St> {
   Future<void> deleteState();
 
   Future<void> persistDifference({
-    @required St lastPersistedState,
-    @required St newState,
+    required St? lastPersistedState,
+    required St newState,
   });
 
   Future<void> saveInitialState(St state) =>
       persistDifference(lastPersistedState: null, newState: state);
 
   /// The default throttle is 2 seconds. Pass null to turn off throttle.
-  Duration get throttle => const Duration(seconds: 2);
+  Duration? get throttle => const Duration(seconds: 2);
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -55,49 +52,51 @@ abstract class Persistor<St> {
 /// var store = Store<AppState>(...,  persistor: PersistorPrinterDecorator(persistor));
 /// ```
 ///
-class PersistorPrinterDecorator<T> extends Persistor<T> {
-  final Persistor _persistor;
+class PersistorPrinterDecorator<St> extends Persistor<St> {
+  final Persistor<St> _persistor;
 
   PersistorPrinterDecorator(this._persistor);
 
   @override
-  Future<T> readState() async {
+  Future<St> readState() async {
     print("Persistor: read state.");
-    return _persistor?.readState();
+    return _persistor.readState();
   }
 
   @override
   Future<void> deleteState() async {
     print("Persistor: delete state.");
-    return _persistor?.deleteState();
+    return _persistor.deleteState();
   }
 
   @override
-  Future<void> persistDifference({lastPersistedState, newState}) async {
+  Future<void> persistDifference({
+    required St? lastPersistedState,
+    required St newState,
+  }) async {
     print("Persistor: persist difference:\n"
         "lastPersistedState = $lastPersistedState\n"
         "newState = newState");
-    return _persistor?.persistDifference(
-        lastPersistedState: lastPersistedState, newState: newState);
+    return _persistor.persistDifference(lastPersistedState: lastPersistedState, newState: newState);
   }
 
   @override
-  Future<void> saveInitialState(state) async {
+  Future<void> saveInitialState(St state) async {
     print("Persistor: save initial state.");
-    return _persistor?.saveInitialState(state);
+    return _persistor.saveInitialState(state);
   }
 
   @override
-  Duration get throttle => _persistor?.throttle;
+  Duration? get throttle => _persistor.throttle;
 }
 
 // /////////////////////////////////////////////////////////////////////////////
 
 /// A dummy persistor.
 ///
-class PersistorDummy<T> extends Persistor<T> {
+class PersistorDummy<T> extends Persistor<T?> {
   @override
-  Future<T> readState() async => null;
+  Future<T?> readState() async => null;
 
   @override
   Future<void> deleteState() async => null;
@@ -109,7 +108,7 @@ class PersistorDummy<T> extends Persistor<T> {
   Future<void> saveInitialState(state) async => null;
 
   @override
-  Duration get throttle => null;
+  Duration? get throttle => null;
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -139,9 +138,7 @@ class PersistException implements Exception {
 
 class PersistAction<St> extends ReduxAction<St> {
   @override
-  St reduce() {
-    return null;
-  }
+  St? reduce() => null;
 }
 
 // /////////////////////////////////////////////////////////////////////////////

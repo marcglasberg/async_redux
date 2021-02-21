@@ -4,7 +4,7 @@ import 'package:async_redux/async_redux.dart';
 import "package:test/test.dart";
 
 class UserExceptionCode extends ExceptionCode {
-  final String id, pt, en;
+  final String? id, pt, en;
 
   const UserExceptionCode._(
     this.id, {
@@ -33,10 +33,10 @@ class UserExceptionCode extends ExceptionCode {
   static const unknownError = UserExceptionCode._("unknownError");
 
   @override
-  String toString() => id;
+  String toString() => id!;
 
   @override
-  String asText([Locale locale]) {
+  String? asText([Locale? locale]) {
     if (locale.toString() == "en_US")
       return en;
     else if (locale.toString() == "pt_BR")
@@ -256,7 +256,7 @@ void main() {
     // ---
 
     UserException.joinExceptionMainAndCause =
-        (Locale locale, String mainMsg, String causeMsg) => "xyz $locale $mainMsg $causeMsg";
+        (Locale? locale, String? mainMsg, String? causeMsg) => "xyz $locale $mainMsg $causeMsg";
 
     // Locale "en_US".
     expect(exception.dialogTitle(localeEn), "This is a message");

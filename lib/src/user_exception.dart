@@ -46,21 +46,21 @@ import 'package:async_redux/async_redux.dart';
 ///
 class UserException implements Exception {
   /// Some message shown to the user.
-  final String msg;
+  final String? msg;
 
   /// The cause of the user-exception. Usually another error.
-  final Object cause;
+  final Object? cause;
 
   /// The error may have some code. This may be used for error message
   /// translations, and also to simplify receiving errors from web-services,
   /// cloud-functions etc.
-  final ExceptionCode code;
+  final ExceptionCode? code;
 
   const UserException(this.msg, {this.cause, this.code});
 
   /// Returns the first cause which, recursively, is NOT a UserException.
   /// If not found, returns null.
-  Object hardCause() {
+  Object? hardCause() {
     if (cause is UserException)
       return (cause as UserException).hardCause();
     else
@@ -78,22 +78,22 @@ class UserException implements Exception {
         code: code,
       );
 
-  String dialogTitle([Locale locale]) => //
+  String? dialogTitle([Locale? locale]) => //
       (cause is UserException || cause is String)
           ? //
           _codeAsTextOrMsg(locale)
           : "";
 
-  String dialogContent([Locale locale]) {
+  String? dialogContent([Locale? locale]) {
     if (cause is UserException)
       return (cause as UserException)._dialogTitleAndContent(locale);
     else if (cause is String)
-      return cause;
+      return cause as String?;
     else
       return _codeAsTextOrMsg(locale);
   }
 
-  String _dialogTitleAndContent([Locale locale]) => (cause is UserException)
+  String? _dialogTitleAndContent([Locale? locale]) => (cause is UserException)
       ? joinExceptionMainAndCause(
           locale,
           _codeAsTextOrMsg(locale),
@@ -104,13 +104,13 @@ class UserException implements Exception {
   /// Return the string that join the main message and the reason message.
   /// You can change this variable to inject another way to join them.
   static var joinExceptionMainAndCause = (
-    Locale locale,
-    String mainMsg,
-    String causeMsg,
+    Locale? locale,
+    String? mainMsg,
+    String? causeMsg,
   ) =>
       "$mainMsg\n\n${_getReasonFromLocale(locale) ?? "Reason"}: $causeMsg";
 
-  static String _getReasonFromLocale(Locale locale) {
+  static String? _getReasonFromLocale(Locale? locale) {
     if (locale == null)
       return null;
     else {
@@ -143,15 +143,15 @@ class UserException implements Exception {
   /// Otherwise, if the [msg] is a non-empty text, return this [msg].
   /// Otherwise, if there is a [code], return the [code] itself.
   /// Otherwise, return an empty text.
-  String _codeAsTextOrMsg(Locale locale) {
-    String codeAsText = code?.asText(locale);
+  String? _codeAsTextOrMsg(Locale? locale) {
+    String? codeAsText = code?.asText(locale);
     if (codeAsText != null && codeAsText.isNotEmpty) return codeAsText;
-    if (msg != null && msg.isNotEmpty) return msg;
+    if (msg != null && msg!.isNotEmpty) return msg;
     return code?.toString() ?? "";
   }
 
   @override
-  String toString() => _dialogTitleAndContent();
+  String toString() => _dialogTitleAndContent()!;
 
   @override
   bool operator ==(Object other) =>
@@ -169,7 +169,7 @@ class UserException implements Exception {
 abstract class ExceptionCode {
   const ExceptionCode();
 
-  String asText([Locale locale]);
+  String? asText([Locale? locale]);
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -192,15 +192,15 @@ class UserExceptionAction<St> extends ReduxAction<St> {
     String msg, {
 
     /// The cause of the user-exception. Usually another error.
-    Object cause,
+    Object? cause,
 
     /// The error may have some code. This may be used for error message
     /// translations, and also to simplify receiving errors from web-services,
     /// cloud-functions etc.
-    ExceptionCode code,
+    ExceptionCode? code,
   }) : this.from(UserException(msg, cause: cause, code: code));
 
-  UserExceptionAction.from(this.exception) : assert(exception != null);
+  UserExceptionAction.from(this.exception);
 
   @override
   Future<St> reduce() async => throw exception;

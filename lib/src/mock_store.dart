@@ -14,23 +14,21 @@ import 'package:async_redux/async_redux.dart';
 ///
 class MockStore<St> extends Store<St> {
   MockStore({
-    St initialState,
+    required St initialState,
     bool syncStream = false,
-    TestInfoPrinter testInfoPrinter,
-    bool ifRecordsTestInfo,
-    List<ActionObserver> actionObservers,
-    List<StateObserver> stateObservers,
-    Persistor persistor,
-    ModelObserver modelObserver,
-    ErrorObserver errorObserver,
-    WrapError wrapError,
+    TestInfoPrinter? testInfoPrinter,
+    List<ActionObserver>? actionObservers,
+    List<StateObserver>? stateObservers,
+    Persistor? persistor,
+    ModelObserver? modelObserver,
+    ErrorObserver? errorObserver,
+    WrapError? wrapError,
     bool defaultDistinct = true,
     this.mocks,
   }) : super(
           initialState: initialState,
           syncStream: syncStream,
           testInfoPrinter: testInfoPrinter,
-          ifRecordsTestInfo: ifRecordsTestInfo,
           actionObservers: actionObservers,
           stateObservers: stateObservers,
           persistor: persistor,
@@ -53,17 +51,15 @@ class MockStore<St> extends Store<St> {
   /// 5) `St Function(ReduxAction<St>, St)` or
   /// `Future<St> Function(ReduxAction<St>, St)` to modify the state directly.
   ///
-  Map<Type, dynamic> mocks;
+  Map<Type, dynamic>? mocks;
 
   MockStore<St> addMock(Type actionType, dynamic mock) {
-    mocks ??= {};
-    mocks[actionType] = mock;
+    (mocks ??= {})[actionType] = mock;
     return this;
   }
 
   MockStore<St> addMocks(Map<Type, dynamic> mocks) {
-    this.mocks ??= {};
-    this.mocks.addAll(mocks);
+    (this.mocks ??= {}).addAll(mocks);
     return this;
   }
 
@@ -74,9 +70,8 @@ class MockStore<St> extends Store<St> {
 
   @override
   void dispatch(ReduxAction<St> action, {bool notify = true}) {
-    assert(action != null);
-    action = _getMockedAction(action);
-    if (action != null) super.dispatch(action, notify: notify);
+    ReduxAction<St>? _action = _getMockedAction(action);
+    if (_action != null) super.dispatch(_action, notify: notify);
   }
 
   @override
@@ -84,16 +79,15 @@ class MockStore<St> extends Store<St> {
     ReduxAction<St> action, {
     bool notify = true,
   }) async {
-    assert(action != null);
-    action = _getMockedAction(action);
-    if (action != null) return super.dispatchFuture(action, notify: notify);
+    ReduxAction<St>? _action = _getMockedAction(action);
+    return (_action == null) ? null : super.dispatchFuture(_action, notify: notify);
   }
 
-  ReduxAction<St> _getMockedAction(ReduxAction<St> action) {
-    if (mocks == null || !mocks.containsKey(action.runtimeType))
+  ReduxAction<St>? _getMockedAction(ReduxAction<St> action) {
+    if (mocks == null || !mocks!.containsKey(action.runtimeType))
       return action;
     else {
-      var mock = mocks[action.runtimeType];
+      var mock = mocks![action.runtimeType];
 
       // 1) `null` to disable dispatching the action of a certain type.
       if (mock == null)
@@ -108,7 +102,7 @@ class MockStore<St> extends Store<St> {
       //
       // 3) A `ReduxAction<St>` instance to dispatch that mocked action instead.
       else if (mock is ReduxAction) {
-        return mock;
+        return mock as ReduxAction<St>;
       }
       //
       // 4) `ReduxAction<St> Function(ReduxAction<St>)` to create a mock
@@ -147,11 +141,11 @@ class MockStore<St> extends Store<St> {
 // /////////////////////////////////////////////////////////////////////////////
 
 abstract class MockAction<St> extends ReduxAction<St> {
-  ReduxAction _action;
+  late ReduxAction<St> _action;
 
-  ReduxAction get action => _action;
+  ReduxAction<St> get action => _action;
 
-  void _setAction(ReduxAction action) {
+  void _setAction(ReduxAction<St> action) {
     _action = action;
   }
 }

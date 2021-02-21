@@ -2,7 +2,7 @@
 
 * Uses nullsafe dependencies (it's not yet itself nullsafe).
   
-* Cache functions (for memoization) have been renamed and extended.
+* Breaking change: Cache functions (for memoization) have been renamed and extended.
 
 # [7.0.2] - 2020/02/12
 

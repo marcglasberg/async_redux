@@ -3,7 +3,7 @@ import 'package:async_redux/src/store_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Store<AppState> store;
+late Store<AppState> store;
 
 final navigatorKey = GlobalKey<NavigatorState>();
 

@@ -74,7 +74,7 @@ void main() {
 
   test('MappedEvent', () {
     List<String> users = ["Mary", "Anna", "Arnold", "Jake", "Frank", "Suzy"];
-    var mapFunction = (int index) => index == null ? null : users[index];
+    String? Function(int?) mapFunction = (index) => index == null ? null : users[index];
     Event<String> userEvt1 = Event.map(Event<int>(3), mapFunction);
     Event<String> userEvt2 = MappedEvent<int, String>(Event<int>(2), mapFunction);
 
