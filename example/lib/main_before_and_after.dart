@@ -19,6 +19,9 @@ Store<AppState> store;
 /// the async process ends with an error, which can be simulated by turning
 /// off the internet connection (putting the phone in airplane mode).
 ///
+/// Note: This example uses http. It works in Android, debug mode. If you use iOS, please see:
+/// https://flutter.dev/docs/release/breaking-changes/network-policy-ios-android
+///
 void main() {
   var state = AppState.initialState();
   store = Store<AppState>(initialState: state);
@@ -41,8 +44,7 @@ class AppState {
         waiting: waiting ?? this.waiting,
       );
 
-  static AppState initialState() =>
-      AppState(counter: 0, description: "", waiting: false);
+  static AppState initialState() => AppState(counter: 0, description: "", waiting: false);
 
   @override
   bool operator ==(Object other) =>
@@ -54,8 +56,7 @@ class AppState {
           waiting == other.waiting;
 
   @override
-  int get hashCode =>
-      counter.hashCode ^ description.hashCode ^ waiting.hashCode;
+  int get hashCode => counter.hashCode ^ description.hashCode ^ waiting.hashCode;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
