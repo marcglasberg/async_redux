@@ -152,25 +152,24 @@ abstract class VmFactory<St, T> {
   /// A reference to the connector widget that will instantiate the view-model.
   final T? widget;
 
+  late final Store<St> _store;
+  late final St _state;
+  late final Dispatch<St> _dispatch;
+  late final DispatchFuture<St> _dispatchFuture;
+  late final UserException? Function() _getAndRemoveFirstError;
+
   /// You need to pass the connector widget only if the view-model needs any info from it.
   VmFactory([this.widget]);
 
   Vm fromStore();
 
   void _setStore(St state, Store store) {
-    if (_state != null) throw AssertionError("State is final.");
     _store = store as Store<St>;
     _state = state;
     _dispatch = store.dispatch;
     _dispatchFuture = store.dispatchFuture;
     _getAndRemoveFirstError = store.getAndRemoveFirstError;
   }
-
-  late Store<St> _store;
-  late St _state;
-  Dispatch<St>? _dispatch;
-  DispatchFuture<St>? _dispatchFuture;
-  late UserException? Function() _getAndRemoveFirstError;
 
   /// The state the store was holding when the factory and the view-model were created.
   /// This state is final inside of the factory.
