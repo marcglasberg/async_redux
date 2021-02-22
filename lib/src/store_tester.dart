@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
-
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Action;
 
@@ -35,20 +35,20 @@ class StoreTester<St> {
 
   final Store<St> _store;
   final List<Type> _ignore;
-  StreamSubscription _subscription;
-  Completer<TestInfo<St>> _completer;
-  Queue<Future<TestInfo<St>>> _futures;
+  late StreamSubscription _subscription;
+  late Completer<TestInfo<St>> _completer;
+  late Queue<Future<TestInfo<St>>> _futures;
 
   Store<St> get store => _store;
 
   St get state => _store.state;
 
   /// The last TestInfo read after some wait method.
-  TestInfo<St> lastInfo;
+  late TestInfo<St> lastInfo;
 
   /// The current TestInfo.
   TestInfo<St> get currentTestInfo => _currentTestInfo;
-  TestInfo<St> _currentTestInfo;
+  late TestInfo<St> _currentTestInfo;
 
   /// The [StoreTester] makes it easy to test both sync and async reducers.
   /// You may dispatch some action, wait for it to finish or wait until some
@@ -67,13 +67,13 @@ class StoreTester<St> {
   /// where you can assert they exist with the right error messages.
   ///
   StoreTester({
-    @required St initialState,
-    TestInfoPrinter testInfoPrinter,
-    List<Type> ignore,
+    required St initialState,
+    TestInfoPrinter? testInfoPrinter,
+    List<Type>? ignore,
     bool syncStream = false,
-    ErrorObserver errorObserver,
+    ErrorObserver? errorObserver,
     bool shouldThrowUserExceptions = false,
-    Map<Type, dynamic> mocks,
+    Map<Type, dynamic>? mocks,
   }) : this.from(
             MockStore(
               initialState: initialState,
@@ -88,10 +88,9 @@ class StoreTester<St> {
   /// Create a StoreTester from a store that already exists.
   StoreTester.from(
     Store<St> store, {
-    TestInfoPrinter testInfoPrinter,
-    List<Type> ignore,
-  })  : assert(store != null),
-        _ignore = ignore ?? const [],
+    TestInfoPrinter? testInfoPrinter,
+    List<Type>? ignore,
+  })  : _ignore = ignore ?? const [],
         _store = store {
     if (testInfoPrinter != null)
       _store.initTestInfoPrinter(testInfoPrinter);
@@ -104,29 +103,27 @@ class StoreTester<St> {
 
   /// Create a StoreTester from a store that already exists,
   /// but don't print anything to the console.
-  StoreTester.simple(this._store)
-      : assert(_store != null),
-        _ignore = const [] {
+  StoreTester.simple(this._store) : _ignore = const [] {
     _listen();
   }
 
-  Map<Type, dynamic> get mocks => (store as MockStore).mocks;
+  Map<Type, dynamic>? get mocks => (store as MockStore).mocks;
 
-  set mocks(Map<Type, dynamic> _mocks) => (store as MockStore).mocks = _mocks;
+  set mocks(Map<Type, dynamic>? _mocks) => (store as MockStore).mocks = _mocks;
 
   MockStore<St> addMock(Type actionType, dynamic mock) {
     (store as MockStore).addMock(actionType, mock);
-    return store;
+    return store as MockStore<St>;
   }
 
   MockStore<St> addMocks(Map<Type, dynamic> mocks) {
     (store as MockStore).addMocks(mocks);
-    return store;
+    return store as MockStore<St>;
   }
 
   MockStore<St> clearMocks() {
     (store as MockStore).clearMocks();
-    return store;
+    return store as MockStore<St>;
   }
 
   void dispatch(ReduxAction<St> action, {bool notify = true}) =>
@@ -150,7 +147,7 @@ class StoreTester<St> {
     var action = _NewStateAction(state);
     dispatch(action);
 
-    TestInfo<St> testInfo;
+    TestInfo<St>? testInfo;
 
     while (testInfo == null || !identical(testInfo.action, action) || testInfo.isINI) {
       testInfo = await _next();
@@ -208,10 +205,8 @@ class StoreTester<St> {
     StateCondition<St> condition, {
     bool testImmediately = true,
     bool ignoreIni = true,
-    int timeoutInSeconds = defaultTimeout,
+    int? timeoutInSeconds = defaultTimeout,
   }) async {
-    assert(condition != null);
-
     TestInfoList<St> infoList = TestInfoList<St>();
 
     if (testImmediately) {
@@ -237,9 +232,9 @@ class StoreTester<St> {
     while (true) {
       if (ignoreIni)
         while (testInfo.ini)
-          testInfo = await _next(
+          testInfo = await (_next(
             timeoutInSeconds: timeoutInSeconds,
-          );
+          ));
 
       infoList._add(testInfo);
 
@@ -263,8 +258,8 @@ class StoreTester<St> {
   /// Returns the info after the error condition is met.
   ///
   Future<TestInfo<St>> waitUntilErrorGetLast({
-    Object error,
-    Object processedError,
+    Object? error,
+    Object? processedError,
     int timeoutInSeconds = defaultTimeout,
   }) async {
     var infoList = await waitUntilError(
@@ -286,8 +281,8 @@ class StoreTester<St> {
   /// Returns a list with all info until the error condition is met.
   ///
   Future<TestInfoList<St>> waitUntilError({
-    Object error,
-    Object processedError,
+    Object? error,
+    Object? processedError,
     int timeoutInSeconds = defaultTimeout,
   }) async {
     assert(error != null || processedError != null);
@@ -326,9 +321,7 @@ class StoreTester<St> {
     Type actionType, {
     int timeoutInSeconds = defaultTimeout,
   }) async {
-    assert(actionType != null);
-
-    TestInfo<St> testInfo;
+    TestInfo<St>? testInfo;
 
     while (testInfo == null || testInfo.type != actionType || testInfo.isINI) {
       testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
@@ -352,9 +345,7 @@ class StoreTester<St> {
     ReduxAction<St> action, {
     int timeoutInSeconds = defaultTimeout,
   }) async {
-    assert(action != null);
-
-    TestInfo<St> testInfo;
+    TestInfo<St>? testInfo;
 
     while (testInfo == null || testInfo.action != action || testInfo.isINI) {
       testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
@@ -383,9 +374,9 @@ class StoreTester<St> {
   ///
   Future<TestInfo<St>> waitAllGetLast(
     List<Type> actionTypes, {
-    List<Type> ignore,
+    List<Type>? ignore,
   }) async {
-    assert(actionTypes != null && actionTypes.isNotEmpty);
+    assert(actionTypes.isNotEmpty);
     ignore ??= _ignore;
 
     var infoList = await waitAll(actionTypes, ignore: ignore);
@@ -407,7 +398,7 @@ class StoreTester<St> {
   Future<TestInfo<St>> waitAllUnorderedGetLast(
     List<Type> actionTypes, {
     int timeoutInSeconds = defaultTimeout,
-    List<Type> ignore,
+    List<Type>? ignore,
   }) async =>
       (await waitAllUnordered(
         actionTypes,
@@ -437,14 +428,14 @@ class StoreTester<St> {
   ///
   Future<TestInfoList<St>> waitAll(
     List<Type> actionTypes, {
-    List<Type> ignore,
+    List<Type>? ignore,
   }) async {
-    assert(actionTypes != null && actionTypes.isNotEmpty);
+    assert(actionTypes.isNotEmpty);
     ignore ??= _ignore;
 
     TestInfoList<St> infoList = TestInfoList<St>();
 
-    TestInfo<St> testInfo;
+    TestInfo<St>? testInfo;
 
     Queue<Type> expectedActionTypesINI = Queue.from(actionTypes);
 
@@ -452,8 +443,8 @@ class StoreTester<St> {
     List<Type> obtainedIni = [];
     List<Type> ignoredIni = [];
 
-    List<ReduxAction> expectedActionsEND = [];
-    List<ReduxAction> expectedActionsENDIgnored = [];
+    List<ReduxAction?> expectedActionsEND = [];
+    List<ReduxAction?> expectedActionsENDIgnored = [];
 
     while (expectedActionTypesINI.isNotEmpty ||
         expectedActionsEND.isNotEmpty ||
@@ -478,7 +469,7 @@ class StoreTester<St> {
           expectedActionsEND.add(testInfo.action);
           obtainedIni.add(testInfo.type); // For better error messages only.
 
-          Type expectedActionTypeINI = expectedActionTypesINI.isEmpty
+          Type? expectedActionTypeINI = expectedActionTypesINI.isEmpty
               ? //
               null
               : expectedActionTypesINI.removeFirst();
@@ -529,9 +520,9 @@ class StoreTester<St> {
   Future<TestInfoList<St>> waitAllUnordered(
     List<Type> actionTypes, {
     int timeoutInSeconds = defaultTimeout,
-    List<Type> ignore,
+    List<Type>? ignore,
   }) async {
-    assert(actionTypes != null && actionTypes.isNotEmpty);
+    assert(actionTypes.isNotEmpty);
     ignore ??= _ignore;
 
     // Actions which are expected can't also be ignored.
@@ -544,17 +535,17 @@ class StoreTester<St> {
     List<Type> actionsIni = List.from(actionTypes);
     List<Type> actionsEnd = List.from(actionTypes);
 
-    TestInfo<St> testInfo;
+    TestInfo<St>? testInfo;
 
     // Saves ignored actions INI.
     // Note: This relies on Actions not overriding operator ==.
-    List<ReduxAction> ignoredActions = [];
+    List<ReduxAction?> ignoredActions = [];
 
     while (actionsIni.isNotEmpty || actionsEnd.isNotEmpty) {
       try {
         testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
 
-        while (ignore.contains(testInfo.type)) {
+        while (ignore.contains(testInfo!.type)) {
           //
           // Saves ignored actions.
           if (ignore.contains(testInfo.type)) {
@@ -564,7 +555,7 @@ class StoreTester<St> {
               ignoredActions.remove(testInfo.action);
           }
 
-          testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
+          testInfo = await (_next(timeoutInSeconds: timeoutInSeconds));
         }
       } on StoreExceptionTimeout catch (error) {
         error.addDetail("These actions were not dispatched: "
@@ -633,7 +624,7 @@ class StoreTester<St> {
   }
 
   Future<TestInfo<St>> _next({
-    int timeoutInSeconds = defaultTimeout,
+    int? timeoutInSeconds = defaultTimeout,
   }) async {
     if (_futures.isEmpty) {
       _completer = Completer();
@@ -646,7 +637,7 @@ class StoreTester<St> {
         ? result
         : result.timeout(
             Duration(seconds: timeoutInSeconds),
-            onTimeout: () => throw StoreExceptionTimeout(),
+            onTimeout: (() => throw StoreExceptionTimeout()),
           ));
 
     return _currentTestInfo;
@@ -678,23 +669,16 @@ class TestInfoList<St> {
   TestInfo<St> getIndex(int index) => _info[index];
 
   /// Returns the first info corresponding to the end of the given action type.
-  TestInfo<St> operator [](Type actionType) {
-    return _info.firstWhere(
-      (info) => info.type == actionType,
-      orElse: () => null,
-    );
-  }
+  TestInfo<St>? operator [](Type actionType) =>
+      _info.firstWhereOrNull((info) => info.type == actionType);
 
   /// Returns the n-th info corresponding to the end of the given action type
   /// Note: N == 1 is the first one.
-  TestInfo<St> get(Type actionType, [int n = 1]) {
-    assert(n != null);
-    return _info.firstWhere((info) {
-      var ifFound = (info.type == actionType);
-      if (ifFound) n--;
-      return ifFound && (n == 0);
-    }, orElse: () => null);
-  }
+  TestInfo<St>? get(Type actionType, [int n = 1]) => _info.firstWhereOrNull((info) {
+        var ifFound = (info.type == actionType);
+        if (ifFound) n--;
+        return ifFound && (n == 0);
+      });
 
   /// Returns all info corresponding to the action type.
   List<TestInfo<St>> getAll(Type actionType) {
@@ -705,19 +689,19 @@ class TestInfoList<St> {
 
   TestInfo<St> firstWhere(
     bool test(TestInfo<St> element), {
-    TestInfo<St> orElse(),
+    TestInfo<St> orElse()?,
   }) =>
       _info.firstWhere(test, orElse: orElse);
 
   TestInfo<St> lastWhere(
     bool test(TestInfo<St> element), {
-    TestInfo<St> orElse(),
+    TestInfo<St> orElse()?,
   }) =>
       _info.lastWhere(test, orElse: orElse);
 
   TestInfo<St> singleWhere(
     bool test(TestInfo<St> element), {
-    TestInfo<St> orElse(),
+    TestInfo<St> orElse()?,
   }) =>
       _info.singleWhere(test, orElse: orElse);
 

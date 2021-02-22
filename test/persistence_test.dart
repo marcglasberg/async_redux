@@ -1,17 +1,15 @@
 import 'dart:async';
-
 import "package:async_redux/async_redux.dart";
-import 'package:flutter/foundation.dart';
 import "package:test/test.dart";
 
 void main() {
   //
-  MyPersistor persistor;
-  LocalDb localDb;
+  late MyPersistor persistor;
+  late LocalDb localDb;
 
   Future<void> setupPersistorAndLocalDb({
-    Duration throttle,
-    Duration saveDuration,
+    Duration? throttle,
+    Duration? saveDuration,
   }) async {
     persistor = MyPersistor(throttle: throttle, saveDuration: saveDuration);
     await persistor.init();
@@ -48,12 +46,12 @@ void main() {
     expect(await persistor.readState(), storeTester.state);
 
     storeTester.dispatch(ChangeNameAction("Mary"));
-    TestInfo<AppState> info1 = await storeTester.waitAllGetLast([ChangeNameAction]);
+    TestInfo<AppState> info1 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "Mary");
     expect(await persistor.readState(), info1.state);
 
     storeTester.dispatch(ChangeNameAction("Steve"));
-    TestInfo<AppState> info2 = await storeTester.waitAllGetLast([ChangeNameAction]);
+    TestInfo<AppState> info2 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "Steve");
     expect(await persistor.readState(), info2.state);
   });
@@ -69,23 +67,23 @@ void main() {
 
     // 1) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Mary"));
-    TestInfo<AppState> info1 = await storeTester.waitAllGetLast([ChangeNameAction]);
+    TestInfo<AppState?> info1 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "John");
-    expect(info1.state.name, "Mary");
+    expect(info1.state!.name, "Mary");
     expect(await persistor.readState(), isNot(info1.state));
 
     // 2) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Steve"));
-    TestInfo<AppState> info2 = await storeTester.waitAllGetLast([ChangeNameAction]);
+    TestInfo<AppState?> info2 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "John");
-    expect(info2.state.name, "Steve");
+    expect(info2.state!.name, "Steve");
     expect(await persistor.readState(), isNot(info2.state));
 
     // 3) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Eve"));
-    TestInfo<AppState> info3 = await storeTester.waitAllGetLast([ChangeNameAction]);
+    TestInfo<AppState?> info3 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "John");
-    expect(info3.state.name, "Eve");
+    expect(info3.state!.name, "Eve");
     expect(await persistor.readState(), isNot(info3.state));
 
     // 4) Now lets wait until the save is done.
@@ -464,14 +462,14 @@ String writeStateAndDb(StoreTester<AppState> storeTester, LocalDb localDb) => "(
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class AppState {
-  String name;
+  String? name;
 
   AppState({
     this.name,
   });
 
   AppState copy({
-    String name,
+    String? name,
   }) =>
       AppState(name: name ?? this.name);
 
@@ -513,14 +511,14 @@ abstract class LocalDb<T> {
   //
   Map<String, T> dbs = {};
 
-  Set<String> dbNames;
+  Set<String>? dbNames;
 
   bool get isEmpty => dbs.isEmpty || dbs.values.every((dynamic t) => t.isEmpty);
 
   bool get isNotEmpty => !isEmpty;
 
-  T getDb(String name) {
-    T db = dbs[name];
+  T getDb(String? name) {
+    T? db = dbs[name!];
     if (db == null) throw PersistException("Database '$name' does not exist.");
     return db;
   }
@@ -528,7 +526,7 @@ abstract class LocalDb<T> {
   /// This method Must be called right after instantiating the object.
   /// If it's overridden, you must call super in the beginning.
   Future<void> init(Iterable<String> dbNames) async {
-    assert(dbNames != null && dbNames.isNotEmpty);
+    assert(dbNames.isNotEmpty);
     this.dbNames = dbNames.toSet();
   }
 
@@ -537,22 +535,22 @@ abstract class LocalDb<T> {
   Future<void> deleteDatabases();
 
   Future<void> save({
-    String db,
-    Id id,
-    Object info,
+    String? db,
+    Id? id,
+    required Object? info,
   });
 
-  Object get({
-    String db,
-    Id id,
-    Object orElse(),
-    Object deserializer(Object obj),
+  Object? get({
+    String? db,
+    Id? id,
+    Object orElse()?,
+    Object deserializer(Object? obj)?,
   });
 
-  Object getOrThrow({
-    String db,
-    Id id,
-    Object deserializer(Object obj),
+  Object? getOrThrow({
+    String? db,
+    Id? id,
+    Object deserializer(Object? obj)?,
   });
 }
 
@@ -569,9 +567,9 @@ class NotFound {
 class SavedInfo {
   //
   final Id id;
-  final Object info;
+  final Object? info;
 
-  SavedInfo(this.id, this.info) : assert(id != null);
+  SavedInfo(this.id, this.info);
 
   @override
   String toString() => identical(this, NotFound.instance)
@@ -616,15 +614,15 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
 
   @override
   Future<void> save({
-    @required String db,
-    @required Id id,
-    @required Object info,
+    String? db,
+    Id? id,
+    required Object? info,
   }) async {
     assert(db != null);
     assert(id != null);
     assert(info != null);
 
-    var savedInfo = SavedInfo(id, info);
+    var savedInfo = SavedInfo(id!, info);
     List<SavedInfo> dbObj = getDb(db);
     dbObj.add(savedInfo);
   }
@@ -633,11 +631,11 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
   /// If not found, returns NotFound.instance.
   /// Will return null if the saved value is null.
   @override
-  Object get({
-    @required String db,
-    @required Id id,
-    Object orElse(),
-    Object deserializer(Object obj),
+  Object? get({
+    String? db,
+    Id? id,
+    Object orElse()?,
+    Object deserializer(Object? obj)?,
   }) {
     assert(db != null);
     assert(id != null);
@@ -659,10 +657,10 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
   /// If not found, returns NotFound.instance.
   /// Will return null if the saved value is null.
   @override
-  Object getOrThrow({
-    @required String db,
-    @required Id id,
-    Object deserializer(Object obj),
+  Object? getOrThrow({
+    String? db,
+    Id? id,
+    Object deserializer(Object? obj)?,
   }) {
     assert(db != null);
     assert(id != null);
@@ -682,35 +680,32 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class MyPersistor implements Persistor<AppState> {
+class MyPersistor implements Persistor<AppState?> {
   //
-  final Duration _throttle;
-  final Duration _saveDuration;
+  final Duration? _throttle;
+  final Duration? _saveDuration;
 
   MyPersistor({
-    Duration throttle,
-    Duration saveDuration,
+    Duration? throttle,
+    Duration? saveDuration,
   })  : _throttle = throttle,
         _saveDuration = saveDuration;
 
   @override
-  Duration get throttle => _throttle;
+  Duration? get throttle => _throttle;
 
-  Duration get saveDuration => _saveDuration;
+  Duration? get saveDuration => _saveDuration;
 
-  LocalDb _localDb;
+  LocalDb? _localDb;
 
-  LocalDb get localDb {
-    _localDb = _localDb ?? LocalDbInMemory();
-    return _localDb;
-  }
+  LocalDb get localDb => _localDb ??= LocalDbInMemory();
 
   Future<void> init() async {
     localDb.init(["main", "students"]);
   }
 
   @override
-  Future<void> saveInitialState(AppState state) async {
+  Future<void> saveInitialState(AppState? state) async {
     if (localDb.isNotEmpty)
       throw PersistException("Store is already persisted.");
     else
@@ -719,24 +714,24 @@ class MyPersistor implements Persistor<AppState> {
 
   @override
   Future<void> persistDifference({
-    AppState lastPersistedState,
-    @required AppState newState,
+    AppState? lastPersistedState,
+    required AppState? newState,
   }) async {
     assert(newState != null);
 
-    if (saveDuration != null) await Future.delayed(saveDuration);
+    if (saveDuration != null) await Future.delayed(saveDuration!);
 
-    if (lastPersistedState == null || lastPersistedState.name != newState.name) {
-      await localDb.save(db: "main", id: Id("name"), info: newState.name);
+    if (lastPersistedState == null || lastPersistedState.name != newState!.name) {
+      await localDb.save(db: "main", id: Id("name"), info: newState!.name);
     }
   }
 
   @override
-  Future<AppState> readState() async {
+  Future<AppState?> readState() async {
     if (localDb.isEmpty)
       return null;
     else
-      return AppState(name: localDb.getOrThrow(db: "main", id: Id("name")));
+      return AppState(name: localDb.getOrThrow(db: "main", id: Id("name")) as String?);
   }
 
   @override

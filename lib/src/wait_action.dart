@@ -105,7 +105,7 @@ class WaitAction<St> extends ReduxAction<St> {
 
   final WaitOperation operation;
 
-  final Object flag, ref;
+  final Object? flag, ref;
 
   /// [flag] and [ref] must be immutable objects.
   WaitAction.add(
@@ -124,12 +124,12 @@ class WaitAction<St> extends ReduxAction<St> {
         ref = null;
 
   @override
-  St reduce() => reducer(state, operation, flag, ref);
+  St? reduce() => reducer(state, operation, flag, ref);
 }
 
-typedef WaitReducer<St> = St Function(
-  St state,
+typedef WaitReducer<St> = St? Function(
+  St? state,
   WaitOperation operation,
-  Object flag,
-  Object ref,
+  Object? flag,
+  Object? ref,
 );

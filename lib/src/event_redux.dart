@@ -41,9 +41,9 @@
 ///
 class Event<T> {
   bool _spent;
-  final T _evtInfo;
+  final T? _evtInfo;
 
-  Event([T evtInfo])
+  Event([T? evtInfo])
       : _evtInfo = evtInfo,
         _spent = false;
 
@@ -56,14 +56,14 @@ class Event<T> {
   bool get isNotSpent => !isSpent;
 
   /// Returns the event state and consumes the event.
-  T consume() {
-    T saveState = state;
+  T? consume() {
+    T? saveState = state;
     _spent = true;
     return saveState;
   }
 
   /// Returns the event state.
-  T get state {
+  T? get state {
     if (T == dynamic && _evtInfo == null) {
       if (_spent)
         return (false as T);
@@ -96,7 +96,7 @@ class Event<T> {
   /// var mapFunction = (int index) => index == null ? null : state.users[index];
   /// Event<User> userEvt = Event.map(state.indexEvt, mapFunction);
   /// ```
-  static Event<T> map<T, V>(Event<V> evt, T Function(V) mapFunction) =>
+  static Event<T> map<T, V>(Event<V> evt, T? Function(V?) mapFunction) =>
       MappedEvent<V, T>(evt, mapFunction);
 
   /// This is a convenience method to create an event which consumes from more than one event.
@@ -125,9 +125,9 @@ class Event<T> {
   ///    return Event.consumeFrom(setTypedMessageEvt, widget.setTypedMessageEvt);
   ///  }
   /// ```
-  static T consumeFrom<T>(Event<T> evt1, Event<T> evt2) {
-    T evt = evt1?.consume();
-    evt ??= evt2?.consume();
+  static T? consumeFrom<T>(Event<T> evt1, Event<T> evt2) {
+    T? evt = evt1.consume();
+    evt ??= evt2.consume();
     return evt;
   }
 
@@ -211,9 +211,9 @@ class EventMultiple<T> extends Event<T> {
   Event<T> evt1;
   Event<T> evt2;
 
-  EventMultiple(Event evt1, Event evt2)
-      : evt1 = evt1 ?? Event<T>.spent(),
-        evt2 = evt2 ?? Event<T>.spent();
+  EventMultiple(Event? evt1, Event? evt2)
+      : evt1 = evt1 as Event<T>? ?? Event<T>.spent(),
+        evt2 = evt2 as Event<T>? ?? Event<T>.spent();
 
   // Is spent only if both are spent.
   @override
@@ -221,15 +221,15 @@ class EventMultiple<T> extends Event<T> {
 
   /// Returns the event state and consumes the event.
   @override
-  T consume() {
+  T? consume() {
     return Event.consumeFrom(evt1, evt2);
   }
 
   /// Returns the event state.
   @override
-  T get state {
-    T st = evt1?.state;
-    st ??= evt2?.state;
+  T? get state {
+    T? st = evt1.state;
+    st ??= evt2.state;
     return st;
   }
 }
@@ -250,22 +250,21 @@ class EventMultiple<T> extends Event<T> {
 /// ```
 class MappedEvent<V, T> extends Event<T> {
   Event<V> evt;
-  T Function(V) mapFunction;
+  T? Function(V?) mapFunction;
 
-  MappedEvent(Event<V> evt, this.mapFunction)
-      : assert(mapFunction != null),
-        evt = evt ?? Event<V>.spent();
+  MappedEvent(Event<V>? evt, this.mapFunction)
+      : evt = evt ?? Event<V>.spent();
 
   @override
   bool get isSpent => evt.isSpent;
 
   /// Returns the event state and consumes the event.
   @override
-  T consume() => mapFunction(evt.consume());
+  T? consume() => mapFunction(evt.consume());
 
   /// Returns the event state.
   @override
-  T get state => mapFunction(evt.state);
+  T? get state => mapFunction(evt.state);
 }
 
 // /////////////////////////////////////////////////////////////////////////////

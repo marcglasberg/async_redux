@@ -13,16 +13,14 @@ class StoreProvider<St> extends InheritedWidget {
   final Store<St> _store;
 
   const StoreProvider({
-    Key key,
-    @required Store<St> store,
-    @required Widget child,
-  })  : assert(store != null),
-        assert(child != null),
-        _store = store,
+    Key? key,
+    required Store<St> store,
+    required Widget child,
+  })   : _store = store,
         super(key: key, child: child);
 
-  static Store<St> of<St>(BuildContext context, Object debug) {
-    final StoreProvider<St> provider =
+  static Store<St> of<St>(BuildContext context, Object? debug) {
+    final StoreProvider<St>? provider =
         context.dependOnInheritedWidgetOfExactType<StoreProvider<St>>();
 
     if (provider == null)
@@ -38,7 +36,7 @@ class StoreProvider<St> extends InheritedWidget {
   static void dispatch<St>(
     BuildContext context,
     ReduxAction<St> action, {
-    Object debug,
+    Object? debug,
   }) {
     of<St>(context, debug).dispatch(action);
   }
@@ -48,12 +46,12 @@ class StoreProvider<St> extends InheritedWidget {
   static Future<void> dispatchFuture<St>(
     BuildContext context,
     ReduxAction<St> action, {
-    Object debug,
+    Object? debug,
   }) async =>
       of<St>(context, debug).dispatchFuture(action);
 
   /// Get the state, without a StoreConnector.
-  static St state<St>(BuildContext context, {Object debug}) => //
+  static St? state<St>(BuildContext context, {Object? debug}) => //
       of<St>(context, debug).state;
 
   /// Workaround to capture generics.
@@ -68,7 +66,7 @@ class StoreProvider<St> extends InheritedWidget {
 
 class StoreConnectorError extends Error {
   final Type type;
-  final Object debug;
+  final Object? debug;
 
   StoreConnectorError(this.type, this.debug);
 

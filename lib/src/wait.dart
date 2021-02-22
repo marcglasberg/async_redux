@@ -29,18 +29,18 @@ enum WaitOperation { add, remove, clear }
 ///
 @immutable
 class Wait {
-  final Map<Object, Set<Object>> _flags;
+  final Map<Object?, Set<Object?>> _flags;
 
-  static final Wait _empty = Wait._({});
+  static const Wait empty = Wait._({});
 
-  factory Wait() => _empty;
+  factory Wait() => empty;
 
-  Wait._(Map<Object, Set<Object>> flags) : _flags = flags;
+  const Wait._(Map<Object?, Set<Object?>> flags) : _flags = flags;
 
-  Wait add({@required Object flag, Object ref}) {
-    Map<Object, Set<Object>> newFlags = _deepCopy();
+  Wait add({required Object? flag, Object? ref}) {
+    Map<Object?, Set<Object?>> newFlags = _deepCopy();
 
-    Set<Object> refs = newFlags[flag];
+    Set<Object?>? refs = newFlags[flag];
     if (refs == null) {
       refs = {};
       newFlags[flag] = refs;
@@ -50,22 +50,22 @@ class Wait {
     return Wait._(newFlags);
   }
 
-  Wait remove({@required Object flag, Object ref}) {
-    if (_flags == null || _flags.isEmpty)
+  Wait remove({required Object? flag, Object? ref}) {
+    if (_flags.isEmpty)
       return this;
     else {
-      Map<Object, Set<Object>> newFlags = _deepCopy();
+      Map<Object?, Set<Object?>> newFlags = _deepCopy();
 
       if (ref == null) {
         newFlags.remove(flag);
       } else {
-        Set<Object> refs = newFlags[flag];
+        Set<Object?> refs = newFlags[flag]!;
         refs.remove(ref);
         if (refs.isEmpty) newFlags.remove(flag);
       }
 
       if (newFlags.isEmpty)
-        return _empty;
+        return empty;
       else
         return Wait._(newFlags);
     }
@@ -73,8 +73,8 @@ class Wait {
 
   Wait process(
     WaitOperation operation, {
-    @required Object flag,
-    Object ref,
+    required Object? flag,
+    Object? ref,
   }) {
     if (operation == WaitOperation.add)
       return add(flag: flag, ref: ref);
@@ -88,8 +88,8 @@ class Wait {
 
   bool get isWaiting => _flags.isNotEmpty;
 
-  bool isWaitingFor(Object flag, {Object ref}) {
-    Set refs = _flags[flag];
+  bool isWaitingFor(Object? flag, {Object? ref}) {
+    Set? refs = _flags[flag];
 
     if (ref == null)
       return refs != null && refs.isNotEmpty;
@@ -97,11 +97,11 @@ class Wait {
       return refs != null && refs.contains(ref);
   }
 
-  Wait clear({Object flag}) {
+  Wait clear({Object? flag}) {
     if (flag == null)
-      return _empty;
+      return empty;
     else {
-      Map<Object, Set<Object>> newFlags = _deepCopy();
+      Map<Object?, Set<Object?>> newFlags = _deepCopy();
       newFlags.remove(flag);
       return Wait._(newFlags);
     }
@@ -109,16 +109,16 @@ class Wait {
 
   void clearWhere(
           bool Function(
-    Object flag,
-    Set<Object> refs,
+    Object? flag,
+    Set<Object?> refs,
   )
               test) =>
       _flags.removeWhere(test);
 
-  Map<Object, Set<Object>> _deepCopy() {
-    Map<Object, Set<Object>> newFlags = {};
+  Map<Object?, Set<Object?>> _deepCopy() {
+    Map<Object?, Set<Object?>> newFlags = {};
 
-    for (MapEntry<Object, Set<Object>> flag in _flags.entries) {
+    for (MapEntry<Object?, Set<Object?>> flag in _flags.entries) {
       newFlags[flag.key] = Set.of(flag.value);
     }
 

@@ -8,7 +8,7 @@ import "package:test/test.dart";
 
 ///////////////////////////////////////////////////////////////////////////////
 
-List<String> info;
+late List<String> info;
 
 enum When { before, reduce, after }
 
@@ -25,9 +25,9 @@ void main() {
 
     var actionA = MyAction(whenToThrow: When.before);
     store.dispatch(actionA);
-    expect(actionA.status.isBeforeDone, false);
-    expect(actionA.status.isReduceDone, false);
-    expect(actionA.status.isAfterDone, true);
+    expect(actionA.status!.isBeforeDone, false);
+    expect(actionA.status!.isReduceDone, false);
+    expect(actionA.status!.isAfterDone, true);
     expect(actionA.hasFinished, false);
   });
 
@@ -40,9 +40,9 @@ void main() {
 
     var actionA = MyAction(whenToThrow: When.reduce);
     store.dispatch(actionA);
-    expect(actionA.status.isBeforeDone, true);
-    expect(actionA.status.isReduceDone, false);
-    expect(actionA.status.isAfterDone, true);
+    expect(actionA.status!.isBeforeDone, true);
+    expect(actionA.status!.isReduceDone, false);
+    expect(actionA.status!.isAfterDone, true);
     expect(actionA.hasFinished, false);
   });
 
@@ -60,9 +60,9 @@ void main() {
     runZoned(() {
       var actionA = MyAction(whenToThrow: When.after);
       store.dispatch(actionA);
-      expect(actionA.status.isBeforeDone, true);
-      expect(actionA.status.isReduceDone, true);
-      expect(actionA.status.isAfterDone, false);
+      expect(actionA.status!.isBeforeDone, true);
+      expect(actionA.status!.isReduceDone, true);
+      expect(actionA.status!.isAfterDone, false);
       expect(actionA.hasFinished, false);
     }, onError: (error, stackTrace) {
       hasThrown = true;
@@ -82,9 +82,9 @@ void main() {
 
     var actionA = MyAction(whenToThrow: null);
     store.dispatch(actionA);
-    expect(actionA.status.isBeforeDone, true);
-    expect(actionA.status.isReduceDone, true);
-    expect(actionA.status.isAfterDone, true);
+    expect(actionA.status!.isBeforeDone, true);
+    expect(actionA.status!.isReduceDone, true);
+    expect(actionA.status!.isAfterDone, true);
     expect(actionA.hasFinished, true);
   });
 
@@ -94,7 +94,7 @@ void main() {
 // ----------------------------------------------
 
 class MyAction extends ReduxAction<String> {
-  When whenToThrow;
+  When? whenToThrow;
 
   MyAction({this.whenToThrow});
 

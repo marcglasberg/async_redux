@@ -24,17 +24,17 @@ import '../async_redux.dart';
 /// `NavigateAction.popUntilRoute()`,
 ///
 class NavigateAction<St> extends ReduxAction<St> {
-  static GlobalKey<NavigatorState> _navigatorKey;
+  static GlobalKey<NavigatorState>? _navigatorKey;
 
-  static GlobalKey<NavigatorState> get navigatorKey => _navigatorKey;
+  static GlobalKey<NavigatorState>? get navigatorKey => _navigatorKey;
 
   static void setNavigatorKey(GlobalKey<NavigatorState> navigatorKey) =>
       _navigatorKey = navigatorKey;
 
   /// Trick explained here: https://github.com/flutter/flutter/issues/20451
   /// Note 'ModalRoute.of(context).settings.name' doesn't always work.
-  static String getCurrentNavigatorRouteName(BuildContext context) {
-    Route currentRoute;
+  static String? getCurrentNavigatorRouteName(BuildContext context) {
+    late Route currentRoute;
     Navigator.popUntil(context, (route) {
       currentRoute = route;
       return true;
@@ -51,7 +51,7 @@ class NavigateAction<St> extends ReduxAction<St> {
   NavigateType get type => details.type;
 
   @override
-  St reduce() {
+  St? reduce() {
     details.navigate();
     return null;
   }
@@ -60,22 +60,22 @@ class NavigateAction<St> extends ReduxAction<St> {
     Route route,
   ) : this._(NavigatorDetails_Push(route));
 
-  NavigateAction.pop([Object result]) : this._(NavigatorDetails_Pop(result));
+  NavigateAction.pop([Object? result]) : this._(NavigatorDetails_Pop(result));
 
   NavigateAction.popAndPushNamed(
     String routeName, {
-    Object result,
-    Object arguments,
+    Object? result,
+    Object? arguments,
   }) : this._(NavigatorDetails_PopAndPushNamed(routeName, result: result, arguments: arguments));
 
   NavigateAction.pushNamed(
     String routeName, {
-    Object arguments,
+    Object? arguments,
   }) : this._(NavigatorDetails_PushNamed(routeName, arguments: arguments));
 
   NavigateAction.pushReplacement(
     Route route, {
-    Object result,
+    Object? result,
   }) : this._(NavigatorDetails_PushReplacement(route, result: result));
 
   NavigateAction.pushAndRemoveUntil(
@@ -84,16 +84,16 @@ class NavigateAction<St> extends ReduxAction<St> {
   ) : this._(NavigatorDetails_PushAndRemoveUntil(route, predicate));
 
   NavigateAction.replace({
-    Route oldRoute,
-    Route newRoute,
+    Route? oldRoute,
+    Route? newRoute,
   }) : this._(NavigatorDetails_Replace(
           oldRoute: oldRoute,
           newRoute: newRoute,
         ));
 
   NavigateAction.replaceRouteBelow({
-    Route anchorRoute,
-    Route newRoute,
+    Route? anchorRoute,
+    Route? newRoute,
   }) : this._(NavigatorDetails_ReplaceRouteBelow(
           anchorRoute: anchorRoute,
           newRoute: newRoute,
@@ -101,19 +101,19 @@ class NavigateAction<St> extends ReduxAction<St> {
 
   NavigateAction.pushReplacementNamed(
     String routeName, {
-    Object arguments,
+    Object? arguments,
   }) : this._(NavigatorDetails_PushReplacementNamed(routeName, arguments: arguments));
 
   NavigateAction.pushNamedAndRemoveUntil(
     String newRouteName,
     RoutePredicate predicate, {
-    Object arguments,
+    Object? arguments,
   }) : this._(NavigatorDetails_PushNamedAndRemoveUntil(newRouteName, predicate,
             arguments: arguments));
 
   NavigateAction.pushNamedAndRemoveAll(
     String newRouteName, {
-    Object arguments,
+    Object? arguments,
   }) : this._(NavigatorDetails_PushNamedAndRemoveUntil(newRouteName, (_) => false,
             arguments: arguments));
 
@@ -157,7 +157,7 @@ class NavigatorDetails_Push implements NavigatorDetails {
 // ////////////////////////////////////////////////////////////////////////////
 
 class NavigatorDetails_Pop implements NavigatorDetails {
-  final Object result;
+  final Object? result;
 
   NavigatorDetails_Pop(this.result);
 
@@ -174,8 +174,8 @@ class NavigatorDetails_Pop implements NavigatorDetails {
 
 class NavigatorDetails_PopAndPushNamed implements NavigatorDetails {
   final String routeName;
-  final Object result;
-  final Object arguments;
+  final Object? result;
+  final Object? arguments;
 
   NavigatorDetails_PopAndPushNamed(
     this.routeName, {
@@ -200,7 +200,7 @@ class NavigatorDetails_PopAndPushNamed implements NavigatorDetails {
 
 class NavigatorDetails_PushNamed implements NavigatorDetails {
   final String routeName;
-  final Object arguments;
+  final Object? arguments;
 
   NavigatorDetails_PushNamed(
     this.routeName, {
@@ -220,7 +220,7 @@ class NavigatorDetails_PushNamed implements NavigatorDetails {
 
 class NavigatorDetails_PushReplacementNamed implements NavigatorDetails {
   final String routeName;
-  final Object arguments;
+  final Object? arguments;
 
   NavigatorDetails_PushReplacementNamed(
     this.routeName, {
@@ -241,7 +241,7 @@ class NavigatorDetails_PushReplacementNamed implements NavigatorDetails {
 
 class NavigatorDetails_PushNamedAndRemoveUntil implements NavigatorDetails {
   final String newRouteName;
-  final Object arguments;
+  final Object? arguments;
   final RoutePredicate predicate;
 
   NavigatorDetails_PushNamedAndRemoveUntil(
@@ -264,7 +264,7 @@ class NavigatorDetails_PushNamedAndRemoveUntil implements NavigatorDetails {
 
 class NavigatorDetails_PushReplacement implements NavigatorDetails {
   final Route route;
-  final Object result;
+  final Object? result;
 
   NavigatorDetails_PushReplacement(
     this.route, {
@@ -303,19 +303,19 @@ class NavigatorDetails_PushAndRemoveUntil implements NavigatorDetails {
 // ////////////////////////////////////////////////////////////////////////////
 
 class NavigatorDetails_Replace implements NavigatorDetails {
-  final Route oldRoute;
-  final Route newRoute;
+  final Route? oldRoute;
+  final Route? newRoute;
 
   NavigatorDetails_Replace({
-    @required this.oldRoute,
-    @required this.newRoute,
+    required this.oldRoute,
+    required this.newRoute,
   });
 
   @override
   void navigate() {
     NavigateAction._navigatorKey?.currentState?.replace(
-      oldRoute: oldRoute,
-      newRoute: newRoute,
+      oldRoute: oldRoute!,
+      newRoute: newRoute!,
     );
   }
 
@@ -326,19 +326,19 @@ class NavigatorDetails_Replace implements NavigatorDetails {
 // ////////////////////////////////////////////////////////////////////////////
 
 class NavigatorDetails_ReplaceRouteBelow implements NavigatorDetails {
-  final Route anchorRoute;
-  final Route newRoute;
+  final Route? anchorRoute;
+  final Route? newRoute;
 
   NavigatorDetails_ReplaceRouteBelow({
-    @required this.anchorRoute,
-    @required this.newRoute,
+    required this.anchorRoute,
+    required this.newRoute,
   });
 
   @override
   void navigate() {
     NavigateAction._navigatorKey?.currentState?.replaceRouteBelow(
-      anchorRoute: anchorRoute,
-      newRoute: newRoute,
+      anchorRoute: anchorRoute!,
+      newRoute: newRoute!,
     );
   }
 

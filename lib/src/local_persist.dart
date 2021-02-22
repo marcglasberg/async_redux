@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-
 import 'package:async_redux/async_redux.dart';
 import 'package:file/file.dart' as f;
 import 'package:file/local.dart';
@@ -33,14 +33,14 @@ class LocalPersist {
   //
   /// The default is saving/loading to/from "appDocsDir/db/".
   /// This is not final, so you can change it.
-  static String defaultDbSubDir = "db";
+  static String? defaultDbSubDir = "db";
 
   /// The default is adding a ".db" termination to the file name.
   /// This is not final, so you can change it.
   static String defaultTermination = ".db";
 
-  static Directory get appDocDir => _appDocDir;
-  static Directory _appDocDir;
+  static Directory? get appDocDir => _appDocDir;
+  static Directory? _appDocDir;
 
   // Each json may have at most 65.536 bytes.
   // Note this refers to a single json object, not to the total json file,
@@ -49,13 +49,13 @@ class LocalPersist {
 
   static f.FileSystem _fileSystem = const LocalFileSystem();
 
-  final String dbName, dbSubDir;
+  final String? dbName, dbSubDir;
 
-  final List<String> subDirs;
+  final List<String>? subDirs;
 
   final f.FileSystem _fileSystemRef;
 
-  File _file;
+  File? _file;
 
   /// Saves to `appDocsDir/db/${dbName}.db`
   ///
@@ -80,17 +80,15 @@ class LocalPersist {
   /// — If you mock the file-system (see method `setFileSystem()`)
   /// it will save to `fileSystem.systemTempDirectory`.
   ///
-  LocalPersist(Object dbName, {this.dbSubDir, List<Object> subDirs})
-      : assert(dbName != null),
-        dbName = _getStringFromEnum(dbName),
-        subDirs = subDirs?.map((s) => _getStringFromEnum(s))?.toList(),
+  LocalPersist(Object dbName, {this.dbSubDir, List<Object>? subDirs})
+      : dbName = _getStringFromEnum(dbName),
+        subDirs = subDirs?.map((s) => _getStringFromEnum(s)).toList(),
         _file = null,
         _fileSystemRef = _fileSystem;
 
   /// Saves to the given file.
   LocalPersist.from(File file)
-      : assert(file != null),
-        dbName = null,
+      : dbName = null,
         dbSubDir = null,
         subDirs = null,
         _file = file,
@@ -116,7 +114,7 @@ class LocalPersist {
   /// Loads the simple objects from the file.
   /// If the file doesn't exist, returns null.
   /// If the file exists and is empty, returns an empty list.
-  Future<List<Object>> load() async {
+  Future<List<Object?>?> load() async {
     _checkIfFileSystemIsTheSame();
     File file = _file ?? await this.file();
 
@@ -132,7 +130,7 @@ class LocalPersist {
         rethrow;
       }
 
-      List<Object> simpleObjs = decode(encoded);
+      List<Object?> simpleObjs = decode(encoded);
       return simpleObjs;
     }
   }
@@ -140,14 +138,14 @@ class LocalPersist {
   /// Same as [load], but expects the file to be a Map<String, dynamic>
   /// representing a single object. Will fail if it's not a map,
   /// or if contains more than one single object. It may return null.
-  Future<Map<String, dynamic>> loadAsObj() async {
-    List<Object> simpleObjs = await load();
+  Future<Map<String, dynamic>?> loadAsObj() async {
+    List<Object?>? simpleObjs = await load();
     if (simpleObjs == null) return null;
     if (simpleObjs.length != 1) throw PersistException("Not a single object.");
     var simpleObj = simpleObjs[0];
     if ((simpleObj != null) && (simpleObj is! Map<String, dynamic>))
       throw PersistException("Not an object.");
-    return simpleObj;
+    return simpleObj as FutureOr<Map<String, dynamic>?>;
   }
 
   /// Deletes the file.
@@ -205,7 +203,7 @@ class LocalPersist {
   /// Gets the file.
   Future<File> file() async {
     if (_file != null)
-      return _file;
+      return _file!;
     else {
       if (_appDocDir == null) await _findAppDocDir();
       String pathNameStr = pathName(
@@ -214,22 +212,22 @@ class LocalPersist {
         subDirs: subDirs,
       );
       _file = _fileSystem.file(pathNameStr);
-      return _file;
+      return _file!;
     }
   }
 
-  static String simpleObjsToString(List<Object> simpleObjs) => //
+  static String? simpleObjsToString(List<Object?>? simpleObjs) => //
       simpleObjs == null
-          ? simpleObjs
+          ? simpleObjs as String?
           : simpleObjs.map((obj) => "$obj (${obj.runtimeType})").join("\n");
 
   static String pathName(
-    String dbName, {
-    String dbSubDir,
-    List<String> subDirs,
+    String? dbName, {
+    String? dbSubDir,
+    List<String>? subDirs,
   }) {
     return p.joinAll([
-      LocalPersist._appDocDir.path,
+      LocalPersist._appDocDir!.path,
       dbSubDir ?? LocalPersist.defaultDbSubDir ?? "",
       if (subDirs != null) ...subDirs,
       "$dbName${LocalPersist.defaultTermination}"
@@ -288,7 +286,7 @@ class LocalPersist {
     return Uint8List.fromList(chunks.expand((x) => (x)).toList());
   }
 
-  static List<Object> decode(Uint8List bytes) {
+  static List<Object?> decode(Uint8List bytes) {
     List<Uint8List> chunks = bytesToUint8Lists(bytes);
     Iterable<String> jsons = uint8ListsToJsons(chunks);
     return toSimpleObjs(jsons).toList();
@@ -312,7 +310,7 @@ class LocalPersist {
     return chunks.map((readChunks) => utf8Decoder.convert(readChunks));
   }
 
-  static Iterable<Object> toSimpleObjs(Iterable<String> jsons) {
+  static Iterable<Object?> toSimpleObjs(Iterable<String> jsons) {
     var jsonDecoder = const JsonDecoder();
     return jsons.map((json) => jsonDecoder.convert(json));
   }
@@ -326,7 +324,6 @@ class LocalPersist {
   /// expect(mfs.file('myPic.jpg').readAsBytesSync(), List.filled(100, 0));
   /// ```
   static void setFileSystem(f.FileSystem fileSystem) {
-    assert(fileSystem != null);
     _fileSystem = fileSystem;
   }
 

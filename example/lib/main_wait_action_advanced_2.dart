@@ -13,6 +13,9 @@ Store<AppState> store;
 /// However, instead of only using flags in the [WaitAction], it uses both
 /// flags and references.
 ///
+/// Note: This example uses http. It works in Android, debug mode. If you use iOS, please see:
+/// https://flutter.dev/docs/release/breaking-changes/network-policy-ios-android
+///
 void main() {
   var state = AppState.initialState();
   store = Store<AppState>(initialState: state);

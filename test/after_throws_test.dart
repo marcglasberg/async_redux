@@ -8,7 +8,7 @@ import "package:test/test.dart";
 
 ///////////////////////////////////////////////////////////////////////////////
 
-List<String> info;
+late List<String> info;
 
 /// IMPORTANT:
 /// These tests may print errors to the console. This is normal.
@@ -20,7 +20,7 @@ void main() {
     //
     dynamic error;
     dynamic asyncError;
-    Store<String> store;
+    late Store<String> store;
 
     await runZoned(() async {
       info = [];

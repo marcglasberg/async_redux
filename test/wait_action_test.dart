@@ -3,16 +3,16 @@ import 'package:async_redux/src/wait.dart';
 import 'package:async_redux/src/wait_action.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Store<AppState> store;
+late Store<AppState> store;
 
 ///////////////////////////////////////////////////////////////////////////
 
 class AppState {
   final Wait wait;
 
-  AppState({this.wait});
+  AppState({this.wait = Wait.empty});
 
-  AppState copy({Wait wait}) => AppState(wait: wait);
+  AppState copy({Wait? wait}) => AppState(wait: wait ?? this.wait);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -21,9 +21,9 @@ class AppState {
 class AppStateFreezed {
   final Wait wait;
 
-  AppStateFreezed({this.wait});
+  AppStateFreezed({this.wait = Wait.empty});
 
-  AppStateFreezed copyWith({Wait wait}) => AppStateFreezed(wait: wait);
+  AppStateFreezed copyWith({Wait? wait}) => AppStateFreezed(wait: wait ?? this.wait);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -32,7 +32,7 @@ class AppStateFreezed {
 class AppStateBuiltValue {
   Wait wait;
 
-  AppStateBuiltValue({this.wait});
+  AppStateBuiltValue({this.wait = Wait.empty});
 
   AppStateBuiltValue rebuild(dynamic func(dynamic state)) => func(AppStateBuiltValue(wait: Wait()));
 }
@@ -88,7 +88,7 @@ void main() {
 
   ///////////////////////////////////////////////////////////////////////////
 
-  test("Test compatibility with the BuitValue package.", () {
+  test("Test compatibility with the BuiltValue package.", () {
     Store<AppStateFreezed> freezedStore;
     freezedStore = Store<AppStateFreezed>(initialState: AppStateFreezed(wait: Wait()));
 

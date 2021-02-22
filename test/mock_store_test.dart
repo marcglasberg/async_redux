@@ -134,7 +134,7 @@ void main() {
     expect(store.state.text, "0");
     store.addMocks({MyAction1: 123});
 
-    Object error;
+    Object? error;
     try {
       store.dispatch(MyAction1());
     } catch (_error) {

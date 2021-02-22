@@ -8,7 +8,7 @@ void main() {
 
   test('Test 1 state with 0 parameters.', () {
     //
-    var selector = cache1((int limit) => () => stateNames.take(limit).toList());
+    var selector = cache1state((int limit) => () => stateNames.take(limit).toList());
 
     var memoA1 = selector(1)();
     var memoA2 = selector(1)();
@@ -25,7 +25,7 @@ void main() {
 
   test('Test results are forgotten when the state changes (1 state with 0 parameters).', () {
     //
-    var selector = cache1((int limit) => () => stateNames.take(limit).toList());
+    var selector = cache1state((int limit) => () => stateNames.take(limit).toList());
 
     var memoA1 = selector(1)();
     var memoA2 = selector(1)();
@@ -45,7 +45,7 @@ void main() {
 
   test('Test 1 state with 1 parameter.', () {
     //
-    var selector = cache1_1((List<String> state) =>
+    var selector = cache1state_1param((List<String> state) =>
         (String startString) => state.where((str) => str.startsWith(startString)).toList());
 
     var memoA1 = selector(stateNames)("A");
@@ -64,7 +64,7 @@ void main() {
 
   test('Test results are forgotten when the state changes (1 state with 1 parameter).', () {
     //
-    var selector = cache1_1((List<String> state) => (String startString) {
+    var selector = cache1state_1param((List<String> state) => (String startString) {
           return state.where((str) => str.startsWith(startString)).toList();
         });
 
@@ -87,13 +87,15 @@ void main() {
 
   test('Test 1 state with 2 parameters.', () {
     //
-    var selector = cache1_2((List<String> state) => (String startString, String endString) {
-          return state
-              .where((str) => str.startsWith(startString) && str.endsWith(endString))
-              .toList();
-        });
+    var selector =
+        cache1state_2params((List<String> state) => (String startString, String endString) {
+              return state
+                  .where((str) => str.startsWith(startString) && str.endsWith(endString))
+                  .toList();
+            });
 
-    String otherA = "a" ""; // Concatenate.
+    // Concatenate.
+    String otherA = "a" + ""; // ignore: prefer_adjacent_string_concatenation
     expect(identical("a", otherA), isFalse);
 
     var memoA1 = selector(stateNames)("A", "a");
@@ -115,11 +117,12 @@ void main() {
 
   test('Test results are forgotten when the state changes (1 state with 2 parameters).', () {
     //
-    var selector = cache1_2((List<String> state) => (String startString, String endString) {
-          return state
-              .where((str) => str.startsWith(startString) && str.endsWith(endString))
-              .toList();
-        });
+    var selector =
+        cache1state_2params((List<String> state) => (String startString, String endString) {
+              return state
+                  .where((str) => str.startsWith(startString) && str.endsWith(endString))
+                  .toList();
+            });
 
     var memoA1 = selector(stateNames)("A", "a");
     var memoA2 = selector(stateNames)("A", "a");
@@ -140,7 +143,7 @@ void main() {
 
   test('Test 2 states with 0 parameters.', () {
     //
-    var selector = cache2((List<String> names, int limit) =>
+    var selector = cache2states((List<String> names, int limit) =>
         () => names.where((str) => str.startsWith("A")).take(limit).toList());
 
     var memoA1 = selector(stateNames, 1)();
@@ -159,7 +162,7 @@ void main() {
 
   test('Test results are forgotten when the state changes (2 states with 0 parameters).', () {
     //
-    var selector = cache2((List<String> names, int limit) => () {
+    var selector = cache2states((List<String> names, int limit) => () {
           return names.where((str) => str.startsWith("A")).take(limit).toList();
         });
 
@@ -181,7 +184,7 @@ void main() {
 
   test('Test 2 states with 1 parameter.', () {
     //
-    var selector = cache2_1((List<String> names, int limit) => (String searchString) {
+    var selector = cache2states_1param((List<String> names, int limit) => (String searchString) {
           return names.where((str) => str.startsWith(searchString)).take(limit).toList();
         });
 
@@ -210,7 +213,7 @@ void main() {
 
   test('Test results are forgotten when the state changes (2 states with 1 parameter).', () {
     //
-    var selector = cache2_1((List<String> names, int limit) => (String searchString) {
+    var selector = cache2states_1param((List<String> names, int limit) => (String searchString) {
           return names.where((str) => str.startsWith(searchString)).take(limit).toList();
         });
 
@@ -233,8 +236,8 @@ void main() {
 
   test('Test 2 states with 2 parameters.', () {
     //
-    var selector =
-        cache2_2((List<String> names, int limit) => (String startString, String endString) {
+    var selector = cache2states_2params(
+        (List<String> names, int limit) => (String startString, String endString) {
               return names
                   .where((str) => str.startsWith(startString) && str.endsWith(endString))
                   .take(limit)
@@ -256,8 +259,8 @@ void main() {
 
   test('Test results are forgotten when the state changes (2 states with 2 parameters).', () {
     //
-    var selector =
-        cache2_2((List<String> names, int limit) => (String startString, String endString) {
+    var selector = cache2states_2params(
+        (List<String> names, int limit) => (String startString, String endString) {
               return names
                   .where((str) => str.startsWith(startString) && str.endsWith(endString))
                   .take(limit)
@@ -285,8 +288,8 @@ void main() {
     //
     var stateNames1 = List<String>.unmodifiable(["A1a", "A2a", "A3x", "B4a", "B5a", "B6x"]);
 
-    var selector =
-        cache2_2((List<String> names, int limit) => (String startString, String endString) {
+    var selector = cache2states_2params(
+        (List<String> names, int limit) => (String startString, String endString) {
               return names
                   .where((str) => str.startsWith(startString) && str.endsWith(endString))
                   .take(limit)

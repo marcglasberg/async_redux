@@ -32,8 +32,8 @@ void main() {
 
       await tester.pump();
 
-      expect(modelObserver.previous.text, "A");
-      expect(modelObserver.current.text, "B");
+      expect(modelObserver.previous!.text, "A");
+      expect(modelObserver.current!.text, "B");
 
       // ---
 
@@ -44,8 +44,8 @@ void main() {
 
       await tester.pump();
 
-      expect(modelObserver.previous.text, "B");
-      expect(modelObserver.current.text, "B");
+      expect(modelObserver.previous!.text, "B");
+      expect(modelObserver.current!.text, "B");
 
       // ---
 
@@ -56,8 +56,8 @@ void main() {
 
       await tester.pump();
 
-      expect(modelObserver.previous.text, "B");
-      expect(modelObserver.current.text, "C");
+      expect(modelObserver.previous!.text, "B");
+      expect(modelObserver.current!.text, "C");
 
       // ---
 
@@ -68,8 +68,8 @@ void main() {
 
       await tester.pump();
 
-      expect(modelObserver.previous.text, "C");
-      expect(modelObserver.current.text, "D");
+      expect(modelObserver.previous!.text, "C");
+      expect(modelObserver.current!.text, "D");
     },
   );
 }
@@ -104,14 +104,14 @@ class _MyWidgetConnector extends StatelessWidget {
   Widget build(BuildContext context) => StoreConnector<_StateTest, _MyViewModel>(
         debug: this,
         model: _MyViewModel(),
-        builder: (context, vm) => Container(),
+        builder: (BuildContext context, _MyViewModel vm) => Container(),
       );
 }
 
 class _MyViewModel extends BaseModel<_StateTest> {
   _MyViewModel();
 
-  String text;
+  String? text;
 
   _MyViewModel.build(this.text) : super(equals: [text]);
 

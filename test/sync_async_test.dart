@@ -18,7 +18,7 @@ class AppState {
 
   AppState(this.text);
 
-  AppState copy(String text) => AppState(text ?? this.text);
+  AppState copy(String? text) => AppState(text ?? this.text);
 
   static AppState initialState() => AppState('A');
 
@@ -34,7 +34,7 @@ class AppState {
   String toString() => text.toString();
 }
 
-List<AppState> states;
+List<AppState?>? states;
 
 void main() {
   /////////////////////////////////////////////////////////////////////////////
@@ -131,9 +131,9 @@ void main() {
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action1B());
-    TestInfo<AppState> info = await storeTester.waitAllUnorderedGetLast([Action1B]);
+    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action1B]));
     expect(states, [AppState('A')]);
-    expect(info.state.text, 'AB');
+    expect(info.state!.text, 'AB');
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -146,9 +146,9 @@ void main() {
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action2B());
-    TestInfo<AppState> info = await storeTester.waitAllUnorderedGetLast([Action2B, Action2C]);
+    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action2B, Action2C]));
     expect(states, [AppState('A'), AppState('AC')]);
-    expect(info.state.text, 'ACB');
+    expect(info.state!.text, 'ACB');
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -160,9 +160,9 @@ void main() {
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action3B());
-    TestInfo<AppState> info = await storeTester.waitAllUnorderedGetLast([Action3B, Action3C]);
+    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action3B, Action3C]));
     expect(states, [AppState('A'), AppState('A')]);
-    expect(info.state.text, 'ABC');
+    expect(info.state!.text, 'ABC');
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -175,9 +175,9 @@ void main() {
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action4B());
-    TestInfo<AppState> info = await storeTester.waitAllUnorderedGetLast([Action4B, Action4C]);
+    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action4B, Action4C]));
     expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('AC')]);
-    expect(info.state.text, 'ACB');
+    expect(info.state!.text, 'ACB');
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -190,9 +190,9 @@ void main() {
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action5B());
-    TestInfo<AppState> info = await storeTester.waitAllUnorderedGetLast([Action5B, Action5C]);
+    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action5B, Action5C]));
     expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('A')]);
-    expect(info.state.text, 'ABC');
+    expect(info.state!.text, 'ABC');
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -208,12 +208,12 @@ void main() {
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action6B());
 
-    TestInfo<AppState> info = await storeTester.waitAllUnorderedGetLast([Action6B, Action6C]);
+    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action6B, Action6C]));
     expect(states, [AppState('A'), AppState('A'), AppState('AB')]);
 
     // State 'C' is lost.
-    expect(info.state.text, 'ABC');
-    print('info.state.text = ${info.state.text}');
+    expect(info.state!.text, 'ABC');
+    print('info.state.text = ${info.state!.text}');
   });
 
   ///////////////////////////////////////////////////////////////////////////
@@ -225,9 +225,9 @@ void main() {
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action7B());
-    TestInfo<AppState> info = await storeTester.waitAllUnorderedGetLast([Action7B, Action7C]);
+    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action7B, Action7C]));
     expect(states, [AppState('A'), AppState('A'), AppState('AB'), AppState('AB')]);
-    expect(info.state.text, 'ABC');
+    expect(info.state!.text, 'ABC');
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -239,9 +239,9 @@ void main() {
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action8B());
-    TestInfo<AppState> info = await storeTester.waitAllUnorderedGetLast([Action8B, Action8C]);
+    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action8B, Action8C]));
     expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('AB')]);
-    expect(info.state.text, 'ABC');
+    expect(info.state!.text, 'ABC');
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -253,9 +253,9 @@ void main() {
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action9B());
-    TestInfo<AppState> info = await storeTester.waitAllUnorderedGetLast([Action9B, Action9C]);
+    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action9B, Action9C]));
     expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('A'), AppState('AB')]);
-    expect(info.state.text, 'ABC');
+    expect(info.state!.text, 'ABC');
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -281,7 +281,7 @@ void main() {
 class Action1B extends ReduxAction<AppState> {
   @override
   AppState reduce() {
-    states.add(state);
+    states!.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -291,9 +291,9 @@ class Action1B extends ReduxAction<AppState> {
 class Action2B extends ReduxAction<AppState> {
   @override
   AppState reduce() {
-    states.add(state);
+    states!.add(state);
     dispatch(Action2C());
-    states.add(state);
+    states!.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -310,9 +310,9 @@ class Action2C extends ReduxAction<AppState> {
 class Action3B extends ReduxAction<AppState> {
   @override
   AppState reduce() {
-    states.add(state);
+    states!.add(state);
     dispatch(Action3C());
-    states.add(state);
+    states!.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -330,13 +330,13 @@ class Action3C extends ReduxAction<AppState> {
 class Action4B extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    states.add(state);
+    states!.add(state);
     await Future.delayed(const Duration(milliseconds: 100));
-    states.add(state);
+    states!.add(state);
     dispatch(Action4C());
-    states.add(state);
+    states!.add(state);
     await Future.delayed(const Duration(milliseconds: 200));
-    states.add(state);
+    states!.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -354,13 +354,13 @@ class Action4C extends ReduxAction<AppState> {
 class Action5B extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    states.add(state);
+    states!.add(state);
     await Future.delayed(const Duration(milliseconds: 100));
-    states.add(state);
+    states!.add(state);
     dispatch(Action5C());
-    states.add(state);
+    states!.add(state);
     await Future.delayed(const Duration(milliseconds: 50));
-    states.add(state);
+    states!.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -380,9 +380,9 @@ class Action6B extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     print('33333333333');
-    states.add(state);
+    states!.add(state);
     dispatch(Action6C());
-    states.add(state);
+    states!.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -392,7 +392,7 @@ class Action6C extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     await Future.value(null);
-    states.add(state);
+    states!.add(state);
     print('Action6C.reduce');
     return state.copy(state.text + 'C');
   }
@@ -404,9 +404,9 @@ class Action7B extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     await Future.value(null);
-    states.add(state);
+    states!.add(state);
     dispatch(Action7C());
-    states.add(state);
+    states!.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -414,9 +414,9 @@ class Action7B extends ReduxAction<AppState> {
 class Action7C extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    states.add(state);
+    states!.add(state);
     await Future.value(null);
-    states.add(state);
+    states!.add(state);
     return state.copy(state.text + 'C');
   }
 }
@@ -426,11 +426,11 @@ class Action7C extends ReduxAction<AppState> {
 class Action8B extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    states.add(state);
+    states!.add(state);
     dispatch(Action8C());
-    states.add(state);
+    states!.add(state);
     await Future.value(null);
-    states.add(state);
+    states!.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -439,7 +439,7 @@ class Action8C extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     await Future.value(null);
-    states.add(state);
+    states!.add(state);
     return state.copy(state.text + 'C');
   }
 }
@@ -449,13 +449,13 @@ class Action8C extends ReduxAction<AppState> {
 class Action9B extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    states.add(state);
+    states!.add(state);
     await Future.value(null);
-    states.add(state);
+    states!.add(state);
     dispatch(Action9C());
-    states.add(state);
+    states!.add(state);
     await Future.value(null);
-    states.add(state);
+    states!.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -464,7 +464,7 @@ class Action9C extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     await Future.value(null);
-    states.add(state);
+    states!.add(state);
     return state.copy(state.text + 'C');
   }
 }

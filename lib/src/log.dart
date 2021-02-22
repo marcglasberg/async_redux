@@ -51,14 +51,14 @@ class Log<St> implements ActionObserver<St> {
 
   /// Logs actions to the given Logger, and does not print anything to the console.
   Log({
-    Logger logger,
+    Logger? logger,
     this.level = Level.INFO,
     this.formatter = singleLineFormatter,
   }) : logger = logger ?? Logger("Log");
 
   /// Logs actions to the console.
   factory Log.printer({
-    Logger logger,
+    Logger? logger,
     Level level = Level.INFO,
     MessageFormatter<St> formatter = singleLineFormatter,
   }) {
@@ -83,7 +83,7 @@ class Log<St> implements ActionObserver<St> {
   static String singleLineFormatter(
     dynamic state,
     ReduxAction action,
-    bool ini,
+    bool? ini,
     int dispatchCount,
     DateTime timestamp,
   ) {
@@ -106,7 +106,7 @@ class Log<St> implements ActionObserver<St> {
   }
 
   @override
-  void observe(ReduxAction<St> action, int dispatchCount, {bool ini}) {
+  void observe(ReduxAction<St> action, int dispatchCount, {required bool ini}) {
     logger.log(
       level,
       formatter(null, action, ini, dispatchCount, new DateTime.now()),
@@ -122,7 +122,7 @@ class Log<St> implements ActionObserver<St> {
 ///   var store = new Store(initialState: 0, actionObservers:[log], stateObservers: [...]);
 ///
 typedef MessageFormatter<St> = String Function(
-  St state,
+  St? state,
   ReduxAction<St> action,
   bool ini,
   int dispatchCount,
