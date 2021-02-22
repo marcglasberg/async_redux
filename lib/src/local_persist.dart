@@ -42,7 +42,7 @@ class LocalPersist {
   static Directory get appDocDir => _appDocDir;
   static Directory _appDocDir;
 
-  // Each json may have at most 65.536 ‬bytes.
+  // Each json may have at most 65.536 bytes.
   // Note this refers to a single json object, not to the total json file,
   // which may contain many objects.
   static const maxJsonSize = 256 * 256;

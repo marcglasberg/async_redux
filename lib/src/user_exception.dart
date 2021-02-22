@@ -58,6 +58,18 @@ class UserException implements Exception {
 
   const UserException(this.msg, {this.cause, this.code});
 
+  /// Adding `.debug` to the constructor will print the exception to the console.
+  /// Use this for debugging purposes only.
+  /// This constructor is marked as deprecated so that you don't forget to remove it.
+  @deprecated
+  UserException.debug(this.msg, {this.cause, this.code}) {
+    print("================================================================\n"
+        "UserException${code == null ? "" : " (code: $code)"}:\n"
+        "Msg = $msg,\n"
+        "${cause == null ? "" : "Cause = $cause,\n"}"
+        "================================================================");
+  }
+
   /// Returns the first cause which, recursively, is NOT a UserException.
   /// If not found, returns null.
   Object hardCause() {
