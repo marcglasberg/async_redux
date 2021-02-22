@@ -48,7 +48,9 @@ class DevelopmentErrorObserver<St> implements ErrorObserver<St> {
       // We have to dispatch another action, since we cannot do:
       // store._addError(errorAsUserException);
       // store._changeController.add(store.state);
-      store.dispatch(UserExceptionAction(error.toString(), cause: error));
+      Future.microtask(() => store.dispatch(
+            UserExceptionAction(error.toString(), cause: error),
+          ));
       return true;
     }
   }

@@ -22,9 +22,9 @@ import 'package:async_redux/async_redux.dart';
 /// Note, this could also be done in the [ReduxAction.wrapError], but then
 /// you'd have to add it to all actions that use Firebase.
 ///
-/// Another use case is when you want to throw UserException causes which
-/// are not UserExceptions, but still show the original UserException
-/// in a dialog to the user:
+/// Another use case is when you want to throw the [UserException.cause]
+/// which is not itself an [UserException], and you still want to show
+/// the original [UserException] in a dialog to the user:
 /// ```
 /// Object wrap(Object error, [StackTrace stackTrace, ReduxAction<St> action]) {
 ///   if (error is UserException) {

@@ -300,8 +300,8 @@ class Store<St> {
   void createTestInfoSnapshot(
     St state,
     ReduxAction<St> action,
-    dynamic error,
-    dynamic processedError, {
+    Object? error,
+    Object? processedError, {
     required bool ini,
   }) {
     if (_testInfoController != null || testInfoPrinter != null) {
@@ -338,10 +338,7 @@ class Store<St> {
 
     var afterWasRun = _Flag<bool>(false);
 
-    dynamic result;
-
-    dynamic originalError;
-    dynamic processedError;
+    Object? result, originalError, processedError;
 
     try {
       action._status = ActionStatus();
@@ -369,7 +366,7 @@ class Store<St> {
       else
         throw processedError;
     } finally {
-      _finalize(result, action, originalError, processedError, afterWasRun);
+      _finalize(action, originalError, processedError, afterWasRun);
     }
   }
 
@@ -445,9 +442,9 @@ class Store<St> {
   }
 
   /// Returns the processed error. Returns `null` if the error is meant to be "swallowed".
-  dynamic _processError(
-    error,
-    stackTrace,
+  Object? _processError(
+    Object error,
+    StackTrace stackTrace,
     ReduxAction<St> action,
     _Flag<bool> afterWasRun,
   ) {
@@ -504,10 +501,9 @@ class Store<St> {
   }
 
   void _finalize(
-    Future? result,
     ReduxAction<St> action,
-    dynamic error,
-    dynamic processedError,
+    Object? error,
+    Object? processedError,
     _Flag<bool> afterWasRun,
   ) {
     if (!afterWasRun.value) _after(action);
