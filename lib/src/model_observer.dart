@@ -15,12 +15,12 @@ import 'package:async_redux/async_redux.dart';
 /// * When isDistinct==null, it means the widget rebuilds everytime, and the model is not relevant.
 abstract class ModelObserver<Model> {
   void observe({
-    Model modelPrevious,
-    Model modelCurrent,
-    bool isDistinct,
-    StoreConnectorInterface storeConnector,
-    int reduceCount,
-    int dispatchCount,
+    required Model? modelPrevious,
+    required Model? modelCurrent,
+    bool? isDistinct,
+    StoreConnectorInterface? storeConnector,
+    int? reduceCount,
+    int? dispatchCount,
   });
 }
 
@@ -43,12 +43,12 @@ abstract class ModelObserver<Model> {
 /// any extra info you need.
 ///
 class DefaultModelObserver<Model> implements ModelObserver<Model> {
-  Model _previous;
-  Model _current;
+  Model? _previous;
+  Model? _current;
 
-  Model get previous => _previous;
+  Model? get previous => _previous;
 
-  Model get current => _current;
+  Model? get current => _current;
 
   final List<Type> _storeConnectorTypes;
 
@@ -56,24 +56,23 @@ class DefaultModelObserver<Model> implements ModelObserver<Model> {
 
   @override
   void observe({
-    Model modelPrevious,
-    Model modelCurrent,
-    bool isDistinct,
-    StoreConnectorInterface storeConnector,
-    int reduceCount,
-    int dispatchCount,
+    required Model? modelPrevious,
+    required Model? modelCurrent,
+    bool? isDistinct,
+    StoreConnectorInterface? storeConnector,
+    int? reduceCount,
+    int? dispatchCount,
   }) {
     _previous = modelPrevious;
     _current = modelCurrent;
 
-    var shouldObserve = (_storeConnectorTypes == null || //
-        _storeConnectorTypes.isEmpty) ||
-        _storeConnectorTypes.contains(storeConnector.debug?.runtimeType);
+    var shouldObserve = _storeConnectorTypes.isEmpty ||
+        _storeConnectorTypes.contains(storeConnector!.debug?.runtimeType);
 
     if (shouldObserve)
       print("Model D:$dispatchCount R:$reduceCount = "
           "Rebuild:${isDistinct == null || isDistinct}, "
-          "${storeConnector.debug == null ? "" : //
+          "${storeConnector!.debug == null ? "" : //
       "Connector:${storeConnector.debug.runtimeType}"}, "
           "Model:$modelCurrent.");
   }

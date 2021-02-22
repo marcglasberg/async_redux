@@ -1,4 +1,5 @@
 import 'dart:ui';
+
 import 'package:async_redux/async_redux.dart';
 
 // Developed by Marcelo Glasberg (Aug 2019).

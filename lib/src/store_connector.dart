@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:async_redux/async_redux.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
@@ -10,12 +11,94 @@ import 'package:flutter/material.dart';
 
 // /////////////////////////////////////////////////////////////////////////////
 
+/// Convert the entire [Store] into a [Model]. The [Model] will
+/// be used to build a Widget using the [ViewModelBuilder].
+typedef StoreConverter<St, Model> = Model Function(Store<St> store);
+
+/// A function that will be run when the [StoreConnector] is initialized (using
+/// the [State.initState] method). This can be useful for dispatching actions
+/// that fetch data for your Widget when it is first displayed.
+typedef OnInitCallback<St> = void Function(Store<St> store);
+
+/// A function that will be run when the StoreConnector is removed from the Widget Tree.
+/// It is run in the [State.dispose] method.
+/// This can be useful for dispatching actions that remove stale data from your State tree.
+typedef OnDisposeCallback<St> = void Function(Store<St> store);
+
+/// A test of whether or not your `converter` or `vm` function should run in
+/// response to a State change. For advanced use only.
+/// Some changes to the State of your application will mean your `converter`
+/// or `vm` function can't produce a useful Model. In these cases, such as when
+/// performing exit animations on data that has been removed from your Store,
+/// it can be best to ignore the State change while your animation completes.
+/// To ignore a change, provide a function that returns true or false. If the
+/// returned value is false, the change will be ignored.
+/// If you ignore a change, and the framework needs to rebuild the Widget, the
+/// `builder` function will be called with the latest Model produced
+/// by your `converter` or `vm` functions.
+typedef ShouldUpdateModel<St> = bool Function(St state);
+
+/// A function that will be run on state change, before the build method.
+/// This function is passed the `Model`, and if `distinct` is `true`,
+/// it will only be called if the `Model` changes.
+/// This is useful for making calls to other classes, such as a
+/// `Navigator` or `TabController`, in response to state changes.
+/// It can also be used to trigger an action based on the previous state.
+typedef OnWillChangeCallback<Model> = void Function(
+  Model previousViewModel,
+  Model newViewModel,
+);
+
+/// A function that will be run on State change, after the build method.
+///
+/// This function is passed the `Model`, and if `distinct` is `true`,
+/// it will only be called if the `Model` changes.
+/// This can be useful for running certain animations after the build is complete.
+/// Note: Using a [BuildContext] inside this callback can cause problems if
+/// the callback performs navigation. For navigation purposes, please use
+/// an [OnWillChangeCallback].
+typedef OnDidChangeCallback<Model> = void Function(Model viewModel);
+
+/// A function that will be run after the Widget is built the first time.
+/// This function is passed the initial `Model` created by the [converter] function.
+/// This can be useful for starting certain animations, such as showing
+/// Snackbars, after the Widget is built the first time.
+typedef OnInitialBuildCallback<Model> = void Function(Model viewModel);
+
 /// Build a Widget using the [BuildContext] and [Model].
 /// The [Model] is derived from the [Store] using a [StoreConverter].
 typedef ViewModelBuilder<Model> = Widget Function(
   BuildContext context,
   Model vm,
 );
+
+// /////////////////////////////////////////////////////////////////////////////
+
+abstract class StoreConnectorInterface<St, Model> {
+  VmFactory<St, dynamic> Function()? get vm;
+
+  StoreConverter<St, Model>? get converter;
+
+  BaseModel? get model;
+
+  bool? get distinct;
+
+  OnInitCallback<St>? get onInit;
+
+  OnDisposeCallback<St>? get onDispose;
+
+  bool get rebuildOnChange;
+
+  ShouldUpdateModel<St>? get shouldUpdateModel;
+
+  OnWillChangeCallback<Model>? get onWillChange;
+
+  OnDidChangeCallback<Model>? get onDidChange;
+
+  OnInitialBuildCallback<Model>? get onInitialBuild;
+
+  Object? get debug;
+}
 
 // /////////////////////////////////////////////////////////////////////////////
 
@@ -528,14 +611,6 @@ class _StoreStreamListenerState<St, Model> //
             ? throw _latestError!
             : widget.builder(context, _latestModel as Model);
   }
-
-// The following _TypeError was thrown
-// building StreamBuilder<_MyViewModel>(dirty, state: _StreamBuilderBaseState<_MyViewModel, AsyncSnapshot<_MyViewModel>>#1a713):
-// type
-// '(BuildContext, _MyViewModel) => Widget'
-// '(BuildContext, _MyViewModel?) => Widget'
-// is not a subtype of type
-
 }
 
 // /////////////////////////////////////////////////////////////////////////////

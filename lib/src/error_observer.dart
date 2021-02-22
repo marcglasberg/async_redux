@@ -8,7 +8,7 @@ import 'package:async_redux/async_redux.dart';
 // /////////////////////////////////////////////////////////////////////////////
 
 /// This will be given all errors, including those of type [UserException].
-/// Return `true` to throw the error, or `false` to swallow it.
+/// Return true to throw the error. False to swallow it.
 ///
 /// Don't use the store to dispatch any actions, as this may have
 /// unpredictable results.
@@ -45,10 +45,10 @@ class DevelopmentErrorObserver<St> implements ErrorObserver<St> {
     if (error is UserException)
       return false;
     else {
-      store.dispatch(UserExceptionAction(
-        error.toString(),
-        cause: error,
-      ));
+      // We have to dispatch another action, since we cannot do:
+      // store._addError(errorAsUserException);
+      // store._changeController.add(store.state);
+      store.dispatch(UserExceptionAction(error.toString(), cause: error));
       return true;
     }
   }

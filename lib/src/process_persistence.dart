@@ -1,8 +1,6 @@
 import 'dart:async';
 
-import 'package:async_redux/src/store.dart';
-
-import '../async_redux.dart';
+import 'package:async_redux/async_redux.dart';
 
 class ProcessPersistence<St> {
   //
