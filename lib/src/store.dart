@@ -261,19 +261,7 @@ class Store<St> {
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: store.dispatch is of type Dispatch.
   void dispatch(ReduxAction<St> action, {bool notify = true}) {
-    //
-    // The action may access the store/state/dispatch as fields.
-    action.setStore(this);
-
-    if (_shutdown || action.abortDispatch()!) return;
-
-    _dispatchCount++;
-
-    if (_actionObservers != null)
-      for (ActionObserver observer in _actionObservers!) {
-        observer.observe(action, dispatchCount, ini: true);
-      }
-
+    _dispatch(action, notify: notify);
     _processAction(action, notify: notify);
   }
 
@@ -281,7 +269,11 @@ class Store<St> {
     ReduxAction<St> action, {
     bool notify = true,
   }) async {
-    //
+    _dispatch(action, notify: notify);
+    await _processAction(action, notify: notify);
+  }
+
+  void _dispatch(ReduxAction<St> action, {bool notify = true}) {
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 
@@ -293,8 +285,6 @@ class Store<St> {
       for (ActionObserver observer in _actionObservers!) {
         observer.observe(action, dispatchCount, ini: true);
       }
-
-    await _processAction(action, notify: notify);
   }
 
   void createTestInfoSnapshot(
