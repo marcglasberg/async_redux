@@ -172,7 +172,7 @@ void main() {
     return StoreTester.from(store);
   }
 
-  ///////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
 
   test('Dispatch multiple actions but only issue a single change event.', () async {
     var storeTester = createStoreTester();
@@ -352,16 +352,25 @@ void main() {
 
     storeTester.dispatch(Action1());
 
-    await storeTester.wait(Action2).then((_) => throw AssertionError(),
-        onError: expectAsync1((Object error) {
-      expect(error, const TypeMatcher<StoreException>());
-      expect(
-          error.toString(),
-          'Got this unexpected action: Action1 INI.\n'
-          'Was expecting: Action2 INI.\n'
-          'obtainedIni: [Action1]\n'
-          'ignoredIni: []');
-    }));
+    // await storeTester.wait(Action2);
+
+    await storeTester.wait(Action2).then(
+      (_) {
+        throw AssertionError();
+        return null; // ignore: dead_code
+      },
+      onError: expectAsync1(
+        (Object error) {
+          expect(error, const TypeMatcher<StoreException>());
+          expect(
+              error.toString(),
+              'Got this unexpected action: Action1 INI.\n'
+              'Was expecting: Action2 INI.\n'
+              'obtainedIni: [Action1]\n'
+              'ignoredIni: []');
+        },
+      ),
+    );
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -408,8 +417,10 @@ void main() {
     storeTester.dispatch(Action3());
     storeTester.dispatch(Action2());
 
-    await storeTester.waitAllGetLast([Action1, Action2, Action3]).then(
-        (_) => throw AssertionError(), onError: expectAsync1((Object error) {
+    await storeTester.waitAllGetLast([Action1, Action2, Action3]).then((_) {
+      throw AssertionError();
+      return null; // ignore: dead_code
+    }, onError: expectAsync1((Object error) {
       expect(error, const TypeMatcher<StoreException>());
       expect(
           error.toString(),
@@ -432,8 +443,10 @@ void main() {
     storeTester.dispatch(Action4());
     storeTester.dispatch(Action3());
 
-    await storeTester.waitAllGetLast([Action1, Action2, Action3]).then(
-        (_) => throw AssertionError(), onError: expectAsync1((Object error) {
+    await storeTester.waitAllGetLast([Action1, Action2, Action3]).then((_) {
+      throw AssertionError();
+      return null; // ignore: dead_code
+    }, onError: expectAsync1((Object error) {
       expect(error, const TypeMatcher<StoreException>());
       expect(
           error.toString(),
@@ -475,8 +488,10 @@ void main() {
     storeTester.dispatch(Action2());
     storeTester.dispatch(Action4());
 
-    await storeTester.waitUntil(Action3, timeoutInSeconds: 1).then((_) => throw AssertionError(),
-        onError: expectAsync1((Object error) {
+    await storeTester.waitUntil(Action3, timeoutInSeconds: 1).then((_) {
+      throw AssertionError();
+      return null; // ignore: dead_code
+    }, onError: expectAsync1((Object error) {
       expect(error, const TypeMatcher<StoreException>());
       expect(error.toString(), "Timeout.");
     }));
@@ -514,9 +529,10 @@ void main() {
     storeTester.dispatch(Action2());
     storeTester.dispatch(Action4());
 
-    await storeTester
-        .waitUntilAction(Action3(), timeoutInSeconds: 1)
-        .then((_) => throw AssertionError(), onError: expectAsync1((Object error) {
+    await storeTester.waitUntilAction(Action3(), timeoutInSeconds: 1).then((_) {
+      throw AssertionError();
+      return null; // ignore: dead_code
+    }, onError: expectAsync1((Object error) {
       expect(error, const TypeMatcher<StoreException>());
       expect(error.toString(), "Timeout.");
     }));
@@ -551,8 +567,10 @@ void main() {
     storeTester.dispatch(Action4());
     storeTester.dispatch(Action3());
 
-    await storeTester.waitAllUnorderedGetLast([Action1, Action2, Action3]).then(
-        (_) => throw AssertionError(), onError: expectAsync1((Object error) {
+    await storeTester.waitAllUnorderedGetLast([Action1, Action2, Action3]).then((_) {
+      throw AssertionError();
+      return null; // ignore: dead_code
+    }, onError: expectAsync1((Object error) {
       expect(error, const TypeMatcher<StoreException>());
       expect(error.toString(), "Unexpected action was dispatched: Action4 INI.");
     }));
@@ -1020,7 +1038,7 @@ void main() {
         throwsA(anything));
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////
 
   test('Makes sure we wait until the END of all ignored actions.', () async {
     //
@@ -1117,18 +1135,20 @@ void main() {
         throwsA(StoreException("Got this unexpected action: Action4 INI.")));
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
 
   test('Error message when time is out.', () async {
     //
     var storeTester = createStoreTester();
-    await storeTester.waitAllUnordered([Action1], timeoutInSeconds: 1).then(
-        (_) => fail('There was no timeout.'), onError: expectAsync1((dynamic error) {
+    await storeTester.waitAllUnordered([Action1], timeoutInSeconds: 1).then((_) {
+      fail('There was no timeout.');
+      return null; // ignore: dead_code
+    }, onError: expectAsync1((dynamic error) {
       expect(error, StoreExceptionTimeout());
     }));
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
+  // ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'An action dispatches other actions, and one of them throws an error. '
@@ -1264,7 +1284,10 @@ void main() {
     await storeTester
         .waitConditionGetLast((info) => info.state.text == "0",
             testImmediately: false, timeoutInSeconds: 1)
-        .then((_) => throw AssertionError(), onError: expectAsync1((Object error) {
+        .then((_) {
+      throw AssertionError();
+      return null; // ignore: dead_code
+    }, onError: expectAsync1((Object error) {
       expect(error, const TypeMatcher<StoreException>());
       expect(error.toString(), "Timeout.");
     }));
