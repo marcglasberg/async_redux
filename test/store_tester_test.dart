@@ -1156,9 +1156,9 @@ void main() {
       'and check the error.', () async {
     var storeTester = createStoreTester();
 
-    runZoned(() {
+    runZonedGuarded(() {
       storeTester.dispatch(Action10a());
-    }, onError: (error, stackTrace) {
+    }, (error, stackTrace) {
       expect(error, const UserException("Hello!"));
     });
 
@@ -1177,9 +1177,9 @@ void main() {
       'and check the error.', () async {
     var storeTester = createStoreTester();
 
-    runZoned(() {
+    runZonedGuarded(() {
       storeTester.dispatch(Action10b());
-    }, onError: (error, stackTrace) {
+    }, (error, stackTrace) {
       expect(error, const UserException("Hello!"));
     });
 
@@ -1199,9 +1199,9 @@ void main() {
       'and check the error.', () async {
     var storeTester = createStoreTester();
 
-    runZoned(() {
+    runZonedGuarded(() {
       storeTester.dispatch(Action10a());
-    }, onError: (error, stackTrace) {});
+    }, (error, stackTrace) {});
 
     TestInfo<AppState?> info = await (storeTester.waitUntilErrorGetLast(
       error: UserException,
@@ -1223,9 +1223,9 @@ void main() {
       'and check the error.', () async {
     var storeTester = createStoreTester();
 
-    runZoned(() {
+    runZonedGuarded(() {
       storeTester.dispatch(Action10a());
-    }, onError: (error, stackTrace) {});
+    }, (error, stackTrace) {});
 
     TestInfo<AppState?> info = await (storeTester.waitUntilErrorGetLast(
       error: const UserException("Hello!"),

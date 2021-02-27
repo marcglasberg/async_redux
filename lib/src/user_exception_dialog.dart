@@ -84,7 +84,7 @@ class _UserExceptionDialogWidget extends StatefulWidget {
           title: Text(userException.dialogTitle()!),
           content: Text(userException.dialogContent()!),
           actions: [
-            FlatButton(
+            TextButton(
               child: const Text("OK"),
               onPressed: () => Navigator.of(context).pop(),
             )

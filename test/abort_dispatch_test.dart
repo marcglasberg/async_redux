@@ -57,12 +57,12 @@ void main() {
 // ----------------------------------------------
 
 class ActionA extends ReduxAction<String> {
-  bool? abort;
+  bool abort;
 
-  ActionA({this.abort});
+  ActionA({required this.abort});
 
   @override
-  bool? abortDispatch() => abort;
+  bool abortDispatch() => abort;
 
   @override
   void before() {

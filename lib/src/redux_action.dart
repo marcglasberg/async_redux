@@ -57,7 +57,7 @@ abstract class ReduxAction<St> {
   /// The `StoreConnector`s may rebuild only if the `reduce` method returns
   /// a state which is both not `null` and different from the previous one
   /// (comparing by `identical`, not `equals`).
-  FutureOr<St>? reduce();
+  FutureOr<St?> reduce();
 
   /// You may wrap the reducer to allow for some pre or post-processing.
   /// For example, if you want to abort an async reducer if the state
@@ -94,7 +94,7 @@ abstract class ReduxAction<St> {
   /// and `after` will not be called, and the action will not be visible to the
   /// `StoreTester`. This is only useful under rare circumstances, and you should
   /// only use it if you know what you are doing.
-  bool? abortDispatch() => false;
+  bool abortDispatch() => false;
 
   /// Nest state reducers without dispatching another action.
   /// Example: return AddTaskAction(demoTask).reduceWithState(state);
@@ -102,7 +102,7 @@ abstract class ReduxAction<St> {
       "because it's more difficult to use than it seems. "
       "Unless you completely understand what you're doing,"
       "you should only used it with sync reducers.")
-  FutureOr<St>? reduceWithState(Store<St> store, St state) {
+  FutureOr<St?> reduceWithState(Store<St> store, St state) {
     setStore(store);
     _store.defineState(state);
     return reduce();

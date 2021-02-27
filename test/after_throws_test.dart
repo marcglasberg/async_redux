@@ -22,7 +22,7 @@ void main() {
     dynamic asyncError;
     late Store<String> store;
 
-    await runZoned(() async {
+    await runZonedGuarded(() async {
       info = [];
       store = Store<String>(initialState: "");
 
@@ -32,7 +32,7 @@ void main() {
         error = _error;
       }
       await Future.delayed(const Duration(seconds: 1));
-    }, onError: (_asyncError, s) {
+    }, (_asyncError, s) {
       asyncError = _asyncError;
     });
 

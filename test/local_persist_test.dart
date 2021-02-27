@@ -1,7 +1,9 @@
-import 'dart:async';
+// @dart=2.9
+// Please run this test file by itself, not together with other tests.
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+
 import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/local_persist.dart';
 import 'package:flutter/material.dart';
@@ -31,7 +33,7 @@ void main() {
     ];
 
     Uint8List encoded = LocalPersist.encode(simpleObjs);
-    List<Object?> decoded = LocalPersist.decode(encoded);
+    List<Object> decoded = LocalPersist.decode(encoded);
     expect(decoded, simpleObjs);
 
     expect(
@@ -67,7 +69,7 @@ void main() {
 
     await persist.save(simpleObjs);
 
-    List<Object?> decoded = await (persist.load() as FutureOr<List<Object?>>);
+    List<Object> decoded = await persist.load();
 
     expect(decoded, simpleObjs);
 
@@ -122,7 +124,7 @@ void main() {
     expect(file.path.endsWith("\\db\\m\\n\\o\\xyz.db") || file.path.endsWith("/db/m/n/o/xyz.db"),
         isTrue);
 
-    String? saveDefaultDbSubDir = LocalPersist.defaultDbSubDir;
+    String saveDefaultDbSubDir = LocalPersist.defaultDbSubDir;
 
     LocalPersist.defaultDbSubDir = "myDir";
 
@@ -177,7 +179,7 @@ void main() {
     var persist = LocalPersist("xyz");
     await persist.save([randNumber1, randNumber2, randNumber3]);
 
-    List<Object?> decoded = await (persist.load() as FutureOr<List<Object?>>);
+    List<Object> decoded = await (persist.load());
 
     expect(decoded, [randNumber1, randNumber2, randNumber3]);
 
@@ -215,7 +217,7 @@ void main() {
     ];
     await persist.save(simpleObjs, append: true);
 
-    List<Object?>? decoded = await persist.load();
+    List<Object> decoded = await persist.load();
 
     expect(decoded, [
       "Hello",
@@ -277,7 +279,7 @@ void main() {
   test("Load/Length/Exists file that doesn't exist, or exists and is empty.", () async {
     //
     // File doesn't exist.
-    var persist = LocalPersist("doesnotexist");
+    var persist = LocalPersist("doesNotExist");
     expect(await persist.load(), isNull);
     expect(await persist.length(), 0);
     expect(await persist.exists(), false);
@@ -295,7 +297,7 @@ void main() {
   test("Deletes a file that exists or doesn't exist.", () async {
     //
     // File doesn't exist.
-    var persist = LocalPersist("doesnotexist");
+    var persist = LocalPersist("doesNotExist");
     expect(await persist.delete(), isFalse);
 
     // File exists and is deleted.
@@ -321,7 +323,7 @@ void main() {
     var persist = LocalPersist("obj");
     await persist.save(simpleObjs);
 
-    Map<String, dynamic>? decoded = await persist.loadAsObj();
+    Map<String, dynamic> decoded = await persist.loadAsObj();
 
     expect(decoded, simpleObjs[0]);
 

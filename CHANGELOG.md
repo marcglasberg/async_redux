@@ -1,7 +1,11 @@
+# [9.0.0-nullsafety.1] - 2020/02/27
+
+* First nullsafe version.
+
 # [8.0.0] - 2020/02/21
 
 * Uses nullsafe dependencies (it's not yet itself nullsafe).
-  
+
 * Breaking change: Cache functions (for memoization) have been renamed and extended.
 
 # [7.0.2] - 2020/02/12

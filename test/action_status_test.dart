@@ -57,14 +57,14 @@ void main() {
     Store<String> store = Store<String>(initialState: "");
 
     var hasThrown = false;
-    runZoned(() {
+    runZonedGuarded(() {
       var actionA = MyAction(whenToThrow: When.after);
       store.dispatch(actionA);
       expect(actionA.status!.isBeforeDone, true);
       expect(actionA.status!.isReduceDone, true);
       expect(actionA.status!.isAfterDone, false);
       expect(actionA.hasFinished, false);
-    }, onError: (error, stackTrace) {
+    }, (error, stackTrace) {
       hasThrown = true;
       expect(error, const UserException("During after"));
     });

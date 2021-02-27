@@ -15,7 +15,7 @@ part 'redux_action.dart';
 
 // /////////////////////////////////////////////////////////////////////////////
 
-typedef Reducer<St> = FutureOr<St>? Function();
+typedef Reducer<St> = FutureOr<St?> Function();
 
 typedef Dispatch<St> = void Function(
   ReduxAction<St> action, {
@@ -262,22 +262,16 @@ class Store<St> {
   /// Note: store.dispatch is of type Dispatch.
   void dispatch(ReduxAction<St> action, {bool notify = true}) {
     _dispatch(action, notify: notify);
-    _processAction(action, notify: notify);
   }
 
-  Future<void> dispatchFuture(
-    ReduxAction<St> action, {
-    bool notify = true,
-  }) async {
-    _dispatch(action, notify: notify);
-    await _processAction(action, notify: notify);
-  }
+  Future<void> dispatchFuture(ReduxAction<St> action, {bool notify = true}) =>
+      _dispatch(action, notify: notify);
 
-  void _dispatch(ReduxAction<St> action, {bool notify = true}) {
+  Future<void> _dispatch(ReduxAction<St> action, {required bool notify}) async {
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 
-    if (_shutdown || action.abortDispatch()!) return;
+    if (_shutdown || action.abortDispatch()) return;
 
     _dispatchCount++;
 
@@ -285,6 +279,8 @@ class Store<St> {
       for (ActionObserver observer in _actionObservers!) {
         observer.observe(action, dispatchCount, ini: true);
       }
+
+    return _processAction(action, notify: notify);
   }
 
   void createTestInfoSnapshot(
@@ -363,18 +359,18 @@ class Store<St> {
   FutureOr<void> _applyReducer(ReduxAction<St> action, {bool notify = true}) {
     _reduceCount++;
 
-    Reducer<St>? reducer = action.wrapReduce(action.reduce);
+    Reducer<St> reducer = action.wrapReduce(action.reduce);
 
     // Sync reducer.
-    if (reducer is St Function()) {
-      St result = reducer();
+    if (reducer is St? Function()) {
+      St? result = reducer();
       _registerState(result, action, notify: notify);
     }
     //
     // Async reducer.
-    else if (reducer is Future<St> Function()) {
+    else if (reducer is Future<St?> Function()) {
       // Make sure it's NOT a completed future.
-      Future<St> result = (() async {
+      Future<St?> result = (() async {
         await Future.microtask(() {});
         return reducer();
       })();
@@ -389,9 +385,10 @@ class Store<St> {
           ));
     }
     // Not defined.
-    else if (reducer is FutureOr<St> Function()) {
-      throw StoreException("Reducer should return `St` or `Future<St>`. "
-          "Do not return `FutureOr<St>`.");
+    else {
+      throw StoreException("Reducer should return `St?` or `Future<St?>`. "
+          "Do not return `FutureOr<St?>`. "
+          "Reduce is of type: '${reducer.runtimeType}'.");
     }
   }
 
@@ -399,7 +396,7 @@ class Store<St> {
   /// did not returned null, and if it did not return the same identical state.
   /// Note: We compare the state using `identical` (which is fast).
   void _registerState(
-    St state,
+    St? state,
     ReduxAction<St> action, {
     bool notify = true,
   }) {
