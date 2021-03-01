@@ -33,7 +33,8 @@ Store<AppState> store;
 /// void after() => dispatch(WaitAction.remove(this));
 /// ```
 ///
-/// Note: This example uses http. It works in Android, debug mode. If you use iOS, please see:
+/// Note: This example uses http. It was configured to work in Android, debug mode only.
+/// If you use iOS, please see:
 /// https://flutter.dev/docs/release/breaking-changes/network-policy-ios-android
 ///
 void main() {

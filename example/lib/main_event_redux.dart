@@ -20,7 +20,8 @@ Store<AppState> store;
 /// It also demonstrates the use of an abstract class [BarrierAction]
 /// to override the action's before() and after() methods.
 ///
-/// Note: This example uses http. It works in Android, debug mode. If you use iOS, please see:
+/// Note: This example uses http. It was configured to work in Android, debug mode only.
+/// If you use iOS, please see:
 /// https://flutter.dev/docs/release/breaking-changes/network-policy-ios-android
 ///
 void main() {

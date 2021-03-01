@@ -16,7 +16,8 @@ Store<AppState> store;
 ///
 /// `IsLoadingAction` prevents the user to load more while the async loading action is running.
 ///
-/// Note: This example uses http. It works in Android, debug mode. If you use iOS, please see:
+/// Note: This example uses http. It was configured to work in Android, debug mode only.
+/// If you use iOS, please see:
 /// https://flutter.dev/docs/release/breaking-changes/network-policy-ios-android
 ///
 void main() {

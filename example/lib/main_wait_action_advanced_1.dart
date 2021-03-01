@@ -18,7 +18,8 @@ Store<AppState> store;
 /// indicator while its description is downloading. The screen title shows
 /// the text "Downloading..." if any of the buttons is currently downloading.
 ///
-/// Note: This example uses http. It works in Android, debug mode. If you use iOS, please see:
+/// Note: This example uses http. It was configured to work in Android, debug mode only.
+/// If you use iOS, please see:
 /// https://flutter.dev/docs/release/breaking-changes/network-policy-ios-android
 ///
 void main() {
