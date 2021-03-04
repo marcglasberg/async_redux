@@ -180,7 +180,7 @@ class IncrementAction extends ReduxAction<AppState> {
 
   final int amount;
 
-  IncrementAction({this.amount}) : assert(amount != null);
+  IncrementAction({this.amount});
 
   @override
   AppState reduce() {
@@ -286,7 +286,7 @@ class IncrementAction extends ReduxAction<AppState> {
   
   final int amount;
 
-  IncrementAction({this.amount}) : assert(amount != null);
+  IncrementAction({this.amount});
 
   @override
   AppState reduce() {
@@ -362,7 +362,7 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
 	dispatch(IncrementAction());
-	String description = await read("http://numbersapi.com/${state.counter}");
+	String description = await read(Uri.http("numbersapi.com","${state.counter}");
 	return state.copy(description: description);
   }
 
@@ -2281,7 +2281,7 @@ class ChangeTextAction extends BarrierAction {
 
   @override
   Future<AppState> reduce() async {
-	String newText = await read("http://numbersapi.com/${state.counter}");
+	String newText = await read(Uri.http("numbersapi.com","${state.counter}");
 	return state.copy(
 	  counter: state.counter + 1,
 	  changeTextEvt: Event<String>(newText));

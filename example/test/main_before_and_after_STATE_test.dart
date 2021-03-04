@@ -86,24 +86,24 @@ void main() {
     ]);
 
     // Modal barrier is turned on (first time BarrierAction is dispatched).
-    var info = infos.get(BarrierAction, 1);
+    var info = infos.get(BarrierAction, 1)!;
     expect(info.state.waiting, true);
     expect(info.state.description, isEmpty);
     expect(info.state.counter, 0);
 
     // While the counter was incremented the barrier was on.
-    info = infos[IncrementAction];
+    info = infos[IncrementAction]!;
     expect(info.state.counter, 1);
     expect(info.state.waiting, true);
 
     // Then the modal barrier is dismissed (second time BarrierAction is dispatched).
-    info = infos.get(BarrierAction, 2);
+    info = infos.get(BarrierAction, 2)!;
     expect(info.state.waiting, false);
     expect(info.state.description, isNotEmpty);
     expect(info.state.counter, 1);
 
     // In the end, counter is incremented, description is created, and barrier is dismissed.
-    info = infos[IncrementAndGetDescriptionAction];
+    info = infos[IncrementAndGetDescriptionAction]!;
     expect(info.state.waiting, false);
     expect(info.state.description, isNotEmpty);
     expect(info.state.counter, 1);

@@ -7,7 +7,7 @@ import 'package:http/http.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-Store<AppState> store;
+late Store<AppState> store;
 
 /// This example shows how to use [WaitAction] in advanced ways.
 /// For this to work, the [AppState] must have a [wait] field of type [Wait],
@@ -35,10 +35,10 @@ class AppState {
   final Map<int, String> descriptions;
   final Wait wait;
 
-  AppState({this.descriptions, this.wait});
+  AppState({required this.descriptions, required this.wait});
 
   /// The copy method has a named [wait] parameter of type [Wait].
-  AppState copy({int counter, Map<int, String> descriptions, Wait wait}) =>
+  AppState copy({int? counter, Map<int, String>? descriptions, Wait? wait}) =>
       AppState(
         descriptions: descriptions ?? this.descriptions,
         wait: wait ?? this.wait,
@@ -82,7 +82,8 @@ class GetDescriptionAction extends ReduxAction<AppState> {
 
   @override
   Future<AppState> reduce() async {
-    String description = await read("http://numbersapi.com/$index");
+    String description =
+        await read(Uri.http("numbersapi.com", "$index"));
     await Future.delayed(const Duration(seconds: 2)); // Adds some more delay.
 
     Map<int, String> newDescriptions = Map.of(state.descriptions);
@@ -104,7 +105,7 @@ class GetDescriptionAction extends ReduxAction<AppState> {
 
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
-  MyHomePageConnector({Key key}) : super(key: key);
+  MyHomePageConnector({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +128,7 @@ class PageViewModelFactory extends VmFactory<AppState, MyHomePageConnector> {
         /// If there is any waiting, `state.wait.isWaiting` will return true.
         waiting: state.wait.isWaiting,
 
-        onGetDescription: (int index) => dispatch(GetDescriptionAction(index)),
+        onGetDescription: (int index) => dispatch!(GetDescriptionAction(index)),
       );
 }
 
@@ -136,8 +137,8 @@ class PageViewModel extends Vm {
   final void Function(int) onGetDescription;
 
   PageViewModel({
-    @required this.waiting,
-    @required this.onGetDescription,
+    required this.waiting,
+    required this.onGetDescription,
   }) : super(equals: [waiting]);
 }
 
@@ -149,9 +150,9 @@ class MyItemConnector extends StatelessWidget {
   final void Function(int) onGetDescription;
 
   MyItemConnector({
-    @required this.index,
-    @required this.onGetDescription,
-    Key key,
+    required this.index,
+    required this.onGetDescription,
+    Key? key,
   }) : super(key: key);
 
   @override
@@ -174,10 +175,10 @@ class ItemViewModelFactory extends VmFactory<AppState, MyItemConnector> {
 
   @override
   ItemViewModel fromStore() => ItemViewModel(
-        description: state.descriptions[widget.index],
+        description: state.descriptions[widget!.index] ?? "",
 
         /// If index is waiting, `state.wait.isWaitingFor(index)` returns true.
-        waiting: state.wait.isWaitingFor(widget.index),
+        waiting: state.wait.isWaitingFor(widget!.index),
       );
 }
 
@@ -186,8 +187,8 @@ class ItemViewModel extends Vm {
   final bool waiting;
 
   ItemViewModel({
-    @required this.description,
-    @required this.waiting,
+    required this.description,
+    required this.waiting,
   }) : super(equals: [description, waiting]);
 }
 
@@ -200,10 +201,10 @@ class MyItem extends StatelessWidget {
   final void Function(int) onGetDescription;
 
   MyItem({
-    this.description,
-    this.waiting,
-    this.index,
-    this.onGetDescription,
+    required this.description,
+    required this.waiting,
+    required this.index,
+    required this.onGetDescription,
   });
 
   @override
@@ -212,7 +213,7 @@ class MyItem extends StatelessWidget {
 
     if (waiting)
       contents = _progressIndicator();
-    else if (description != null)
+    else if (description.isNotEmpty)
       contents = _indexDescription();
     else
       contents = _button();
@@ -243,9 +244,9 @@ class MyHomePage extends StatelessWidget {
   final void Function(int) onGetDescription;
 
   MyHomePage({
-    Key key,
-    this.waiting,
-    this.onGetDescription,
+    Key? key,
+    required this.waiting,
+    required this.onGetDescription,
   }) : super(key: key);
 
   @override

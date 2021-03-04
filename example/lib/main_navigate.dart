@@ -2,7 +2,7 @@ import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
-Store<AppState> store;
+late Store<AppState> store;
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -37,18 +37,18 @@ class MyApp extends StatelessWidget {
 ///////////////////////////////////////////////////////////////////////////////
 
 class Page extends StatelessWidget {
-  final Color color;
-  final String text;
+  final Color? color;
+  final String? text;
   final VoidCallback onChangePage;
 
-  Page({this.color, this.text, @required this.onChangePage}) : assert(onChangePage != null);
+  Page({this.color, this.text, required this.onChangePage});
 
   @override
   Widget build(BuildContext context) => ElevatedButton(
         style: ElevatedButton.styleFrom(
           primary: color,
         ),
-        child: Text(text),
+        child: Text(text!),
         onPressed: onChangePage,
       );
 }
@@ -73,14 +73,14 @@ class Page1Connector extends StatelessWidget {
 class Factory1 extends VmFactory<AppState, Page1Connector> {
   @override
   ViewModel1 fromStore() =>
-      ViewModel1(onChangePage: () => dispatch(NavigateAction.pushNamed("/myRoute")));
+      ViewModel1(onChangePage: () => dispatch!(NavigateAction.pushNamed("/myRoute")));
 }
 
 /// The view-model holds the part of the Store state the dumb-widget needs.
 class ViewModel1 extends Vm {
   final VoidCallback onChangePage;
 
-  ViewModel1({@required this.onChangePage});
+  ViewModel1({required this.onChangePage});
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -103,7 +103,7 @@ class Page2Connector extends StatelessWidget {
 class Factory2 extends VmFactory<AppState, Page1Connector> {
   @override
   ViewModel2 fromStore() => ViewModel2(
-        onChangePage: () => dispatch(NavigateAction.pop()),
+        onChangePage: () => dispatch!(NavigateAction.pop()),
       );
 }
 
@@ -111,7 +111,7 @@ class Factory2 extends VmFactory<AppState, Page1Connector> {
 class ViewModel2 extends Vm {
   final VoidCallback onChangePage;
 
-  ViewModel2({@required this.onChangePage});
+  ViewModel2({required this.onChangePage});
 }
 
 ///////////////////////////////////////////////////////////////////////////////

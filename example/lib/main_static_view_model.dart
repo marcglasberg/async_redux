@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-Store<int> store;
+late Store<int> store;
 
 /// This example shows how to use the same view-model architecture of the
 /// flutter_redux package. This is specially useful if you are migrating
@@ -37,7 +37,7 @@ class MyApp extends StatelessWidget {
 class IncrementAction extends ReduxAction<int> {
   final int amount;
 
-  IncrementAction({@required this.amount}) : assert(amount != null);
+  IncrementAction({required this.amount});
 
   @override
   int reduce() => state + amount;
@@ -47,7 +47,7 @@ class IncrementAction extends ReduxAction<int> {
 
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
-  MyHomePageConnector({Key key}) : super(key: key);
+  MyHomePageConnector({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -67,8 +67,8 @@ class ViewModel extends Vm {
   final VoidCallback onIncrement;
 
   ViewModel({
-    @required this.counter,
-    @required this.onIncrement,
+    required this.counter,
+    required this.onIncrement,
   }) : super(equals: [counter]);
 
   /// Static factory called by the StoreConnector's converter parameter.
@@ -83,11 +83,11 @@ class ViewModel extends Vm {
 ///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatelessWidget {
-  final int counter;
-  final VoidCallback onIncrement;
+  final int? counter;
+  final VoidCallback? onIncrement;
 
   MyHomePage({
-    Key key,
+    Key? key,
     this.counter,
     this.onIncrement,
   }) : super(key: key);

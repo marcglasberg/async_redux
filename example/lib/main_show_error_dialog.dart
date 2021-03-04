@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-Store<AppState> store;
+late Store<AppState> store;
 
 /// This example lets you enter a name and click save.
 /// If the name has less than 4 chars, an error dialog will be shown.
@@ -19,11 +19,11 @@ void main() {
 
 /// The app state, which in this case is the user name.
 class AppState {
-  final String name;
+  final String? name;
 
   AppState({this.name});
 
-  AppState copy({String name}) => AppState(name: name ?? this.name);
+  AppState copy({String? name}) => AppState(name: name ?? this.name);
 
   static AppState initialState() => AppState(name: "");
 
@@ -76,7 +76,7 @@ class SaveUserAction extends ReduxAction<AppState> {
 
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
-  MyHomePageConnector({Key key}) : super(key: key);
+  MyHomePageConnector({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -97,29 +97,29 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
   @override
   ViewModel fromStore() => ViewModel(
         name: state.name,
-        onSaveName: (String name) => dispatch(SaveUserAction(name)),
+        onSaveName: (String name) => dispatch!(SaveUserAction(name)),
       );
 }
 
 /// The view-model holds the part of the Store state the dumb-widget needs.
 class ViewModel extends Vm {
-  final String name;
+  final String? name;
   final ValueChanged<String> onSaveName;
 
   ViewModel({
-    @required this.name,
-    @required this.onSaveName,
-  }) : super(equals: [name]);
+    required this.name,
+    required this.onSaveName,
+  }) : super(equals: [name!]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatefulWidget {
-  final String name;
-  final ValueChanged<String> onSaveName;
+  final String? name;
+  final ValueChanged<String>? onSaveName;
 
   MyHomePage({
-    Key key,
+    Key? key,
     this.name,
     this.onSaveName,
   }) : super(key: key);
@@ -129,7 +129,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  TextEditingController controller;
+  TextEditingController? controller;
 
   @override
   void initState() {
@@ -157,7 +157,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           floatingActionButton: FloatingActionButton(
-            onPressed: () => widget.onSaveName(controller.text),
+            onPressed: () => widget.onSaveName!(controller!.text),
             child: const Text("Save"),
           ),
         ),

@@ -1,6 +1,6 @@
-# [9.0.0-nullsafety.1] - 2020/02/27
+# [9.0.0] - 2020/03/03
 
-* First nullsafe version.
+* Nullsafe.
 
 # [8.0.0] - 2020/02/21
 

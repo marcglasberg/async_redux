@@ -6,7 +6,7 @@ import 'package:http/http.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-Store<AppState> store;
+late Store<AppState> store;
 
 /// This example shows a List of number descriptions.
 /// Scrolling to the bottom of the list will async load the next 20 elements.
@@ -33,12 +33,12 @@ void main() {
 ///////////////////////////////////////////////////////////////////////////////
 
 class AppState {
-  final List<String> numTrivia;
-  final bool isLoading;
+  final List<String>? numTrivia;
+  final bool? isLoading;
 
   AppState({this.numTrivia, this.isLoading});
 
-  AppState copy({List<String> numTrivia, bool isLoading}) => AppState(
+  AppState copy({List<String>? numTrivia, bool? isLoading}) => AppState(
         numTrivia: numTrivia ?? this.numTrivia,
         isLoading: isLoading ?? this.isLoading,
       );
@@ -77,14 +77,15 @@ class MyApp extends StatelessWidget {
 class LoadMoreAction extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    Response response = await get('http://numbersapi.com/'
-        '${state.numTrivia.length}'
-        '..'
-        '${state.numTrivia.length + 19}');
+    Response response = await get(Uri.http(
+        'http://numbersapi.com/',
+        '${state.numTrivia!.length}'
+            '..'
+            '${state.numTrivia!.length + 19}'));
 
-    List<String> list = state.numTrivia;
+    List<String>? list = state.numTrivia;
     Map<String, dynamic> map = jsonDecode(response.body);
-    map.forEach((String v, e) => list.add(e.toString()));
+    map.forEach((String v, e) => list!.add(e.toString()));
     return state.copy(numTrivia: list);
   }
 
@@ -98,7 +99,7 @@ class LoadMoreAction extends ReduxAction<AppState> {
 class RefreshAction extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    Response response = await get('http://numbersapi.com/0..19');
+    Response response = await get(Uri.http('http://numbersapi.com/', '0..19'));
     List<String> list = [];
     Map<String, dynamic> map = jsonDecode(response.body);
     map.forEach((String v, e) => list.add(e.toString()));
@@ -124,7 +125,7 @@ class IsLoadingAction extends ReduxAction<AppState> {
 ///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePageConnector extends StatelessWidget {
-  MyHomePageConnector({Key key}) : super(key: key);
+  MyHomePageConnector({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -151,40 +152,40 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
     return ViewModel(
       numTrivia: state.numTrivia,
       isLoading: state.isLoading,
-      loadMore: () => dispatch(LoadMoreAction()),
-      onRefresh: () => dispatchFuture(RefreshAction()),
+      loadMore: () => dispatch!(LoadMoreAction()),
+      onRefresh: () => dispatchFuture!(RefreshAction()),
     );
   }
 }
 
 /// The view-model holds the part of the Store state the dumb-widget needs.
 class ViewModel extends Vm {
-  final List<String> numTrivia;
-  final bool isLoading;
+  final List<String>? numTrivia;
+  final bool? isLoading;
   final VoidCallback loadMore;
   final Future<void> Function() onRefresh;
 
   ViewModel({
-    @required this.numTrivia,
-    @required this.isLoading,
-    @required this.loadMore,
-    @required this.onRefresh,
+    required this.numTrivia,
+    required this.isLoading,
+    required this.loadMore,
+    required this.onRefresh,
   }) : super(equals: [
-          numTrivia,
-          isLoading,
+          numTrivia!,
+          isLoading!,
         ]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatefulWidget {
-  final List<String> numTrivia;
-  final bool isLoading;
-  final VoidCallback loadMore;
-  final Future<void> Function() onRefresh;
+  final List<String>? numTrivia;
+  final bool? isLoading;
+  final VoidCallback? loadMore;
+  final Future<void> Function()? onRefresh;
 
   MyHomePage({
-    Key key,
+    Key? key,
     this.numTrivia,
     this.isLoading,
     this.loadMore,
@@ -196,15 +197,16 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  ScrollController _controller;
+  ScrollController? _controller;
 
   @override
   void initState() {
     _controller = ScrollController()
       ..addListener(() {
-        if (!widget.isLoading &&
-            _controller.position.maxScrollExtent == _controller.position.pixels) {
-          widget.loadMore();
+        if (!widget.isLoading! &&
+            _controller!.position.maxScrollExtent ==
+                _controller!.position.pixels) {
+          widget.loadMore!();
         }
       });
     super.initState();
@@ -212,7 +214,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller!.dispose();
     super.dispose();
   }
 
@@ -220,16 +222,16 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Dispatch Future Example')),
-      body: (widget.numTrivia == null || widget.numTrivia.isEmpty)
+      body: (widget.numTrivia == null || widget.numTrivia!.isEmpty)
           ? Container()
           : RefreshIndicator(
-              onRefresh: widget.onRefresh,
+              onRefresh: widget.onRefresh!,
               child: ListView.builder(
                 controller: _controller,
-                itemCount: widget.numTrivia.length,
+                itemCount: widget.numTrivia!.length,
                 itemBuilder: (context, index) => ListTile(
                   leading: CircleAvatar(child: Text(index.toString())),
-                  title: Text(widget.numTrivia[index]),
+                  title: Text(widget.numTrivia![index]),
                 ),
               ),
             ),

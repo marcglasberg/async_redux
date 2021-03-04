@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-Store<int> store;
+late Store<int> store;
 
 /// This example shows how to prevent creating view-models from invalid states.
 /// When the button is tapped, the counter will increment 5 times, synchronously.
@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
 class IncrementAction extends ReduxAction<int> {
   final int amount;
 
-  IncrementAction({@required this.amount}) : assert(amount != null);
+  IncrementAction({required this.amount});
 
   @override
   int reduce() => state + amount;
@@ -42,7 +42,7 @@ class IncrementAction extends ReduxAction<int> {
 ///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePageConnector extends StatelessWidget {
-  MyHomePageConnector({Key key}) : super(key: key);
+  MyHomePageConnector({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -70,11 +70,11 @@ class Factory extends VmFactory<int, MyHomePageConnector> {
       counter: state,
       onIncrement: () {
         // Increment 5 times.
-        dispatch(IncrementAction(amount: 1));
-        dispatch(IncrementAction(amount: 1));
-        dispatch(IncrementAction(amount: 1));
-        dispatch(IncrementAction(amount: 1));
-        dispatch(IncrementAction(amount: 1));
+        dispatch!(IncrementAction(amount: 1));
+        dispatch!(IncrementAction(amount: 1));
+        dispatch!(IncrementAction(amount: 1));
+        dispatch!(IncrementAction(amount: 1));
+        dispatch!(IncrementAction(amount: 1));
       },
     );
   }
@@ -85,19 +85,19 @@ class ViewModel extends Vm {
   final VoidCallback onIncrement;
 
   ViewModel({
-    @required this.counter,
-    @required this.onIncrement,
+    required this.counter,
+    required this.onIncrement,
   }) : super(equals: [counter]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatelessWidget {
-  final int counter;
-  final VoidCallback onIncrement;
+  final int? counter;
+  final VoidCallback? onIncrement;
 
   MyHomePage({
-    Key key,
+    Key? key,
     this.counter,
     this.onIncrement,
   }) : super(key: key);

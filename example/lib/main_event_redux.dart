@@ -7,7 +7,7 @@ import 'package:http/http.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-Store<AppState> store;
+late Store<AppState> store;
 
 /// This example shows a text-field, and two buttons.
 /// When the first button is tapped, an async process downloads
@@ -34,10 +34,10 @@ void main() {
 
 /// The app state, which in this case is a counter and two events.
 class AppState {
-  final int counter;
-  final bool waiting;
-  final Event clearTextEvt;
-  final Event<String> changeTextEvt;
+  final int? counter;
+  final bool? waiting;
+  final Event? clearTextEvt;
+  final Event<String>? changeTextEvt;
 
   AppState({
     this.counter,
@@ -47,10 +47,10 @@ class AppState {
   });
 
   AppState copy({
-    int counter,
-    bool waiting,
-    Event clearTextEvt,
-    Event<String> changeTextEvt,
+    int? counter,
+    bool? waiting,
+    Event? clearTextEvt,
+    Event<String>? changeTextEvt,
   }) =>
       AppState(
         counter: counter ?? this.counter,
@@ -125,9 +125,9 @@ class _WaitAction extends ReduxAction<AppState> {
 class ChangeTextAction extends BarrierAction {
   @override
   Future<AppState> reduce() async {
-    String newText = await read("http://numbersapi.com/${state.counter}");
+    String newText = await read(Uri.http("numbersapi.com","${state.counter}"));
     return state.copy(
-      counter: state.counter + 1,
+      counter: state.counter! + 1,
       changeTextEvt: Event<String>(newText),
     );
   }
@@ -137,7 +137,7 @@ class ChangeTextAction extends BarrierAction {
 
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
-  MyHomePageConnector({Key key}) : super(key: key);
+  MyHomePageConnector({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -163,39 +163,39 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
         waiting: state.waiting,
         clearTextEvt: state.clearTextEvt,
         changeTextEvt: state.changeTextEvt,
-        onClear: () => dispatch(ClearTextAction()),
-        onChange: () => dispatch(ChangeTextAction()),
+        onClear: () => dispatch!(ClearTextAction()),
+        onChange: () => dispatch!(ChangeTextAction()),
       );
 }
 
 /// The view-model holds the part of the Store state the dumb-widget needs.
 class ViewModel extends Vm {
-  final bool waiting;
-  final Event clearTextEvt;
-  final Event<String> changeTextEvt;
+  final bool? waiting;
+  final Event? clearTextEvt;
+  final Event<String>? changeTextEvt;
   final VoidCallback onClear;
   final VoidCallback onChange;
 
   ViewModel({
-    @required this.waiting,
-    @required this.clearTextEvt,
-    @required this.changeTextEvt,
-    @required this.onClear,
-    @required this.onChange,
-  }) : super(equals: [waiting, clearTextEvt, changeTextEvt]);
+    required this.waiting,
+    required this.clearTextEvt,
+    required this.changeTextEvt,
+    required this.onClear,
+    required this.onChange,
+  }) : super(equals: [waiting!, clearTextEvt!, changeTextEvt!]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatefulWidget {
-  final bool waiting;
-  final Event clearTextEvt;
-  final Event<String> changeTextEvt;
-  final VoidCallback onClear;
-  final VoidCallback onChange;
+  final bool? waiting;
+  final Event? clearTextEvt;
+  final Event<String>? changeTextEvt;
+  final VoidCallback? onClear;
+  final VoidCallback? onChange;
 
   MyHomePage({
-    Key key,
+    Key? key,
     this.waiting,
     this.clearTextEvt,
     this.changeTextEvt,
@@ -208,7 +208,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  TextEditingController controller;
+  TextEditingController? controller;
 
   @override
   void initState() {
@@ -223,15 +223,15 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void consumeEvents() {
-    if (widget.clearTextEvt.consume())
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) controller.clear();
+    if (widget.clearTextEvt!.consume())
+      WidgetsBinding.instance!.addPostFrameCallback((_) {
+        if (mounted) controller!.clear();
       });
 
-    String newText = widget.changeTextEvt.consume();
+    String? newText = widget.changeTextEvt!.consume();
     if (newText != null)
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) controller.value = controller.value.copyWith(text: newText);
+      WidgetsBinding.instance!.addPostFrameCallback((_) {
+        if (mounted) controller!.value = controller!.value.copyWith(text: newText);
       });
   }
 
@@ -255,7 +255,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ),
-        if (widget.waiting) ModalBarrier(color: Colors.red.withOpacity(0.4)),
+        if (widget.waiting!) ModalBarrier(color: Colors.red.withOpacity(0.4)),
       ],
     );
   }

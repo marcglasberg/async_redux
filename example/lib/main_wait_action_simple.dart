@@ -7,7 +7,7 @@ import 'package:http/http.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-Store<AppState> store;
+late Store<AppState> store;
 
 /// This example is the same as the one in `main_before_and_after.dart`.
 /// However, instead of declaring a `MyWaitAction`, it uses the build-in
@@ -47,14 +47,14 @@ void main() {
 
 /// The app state contains a [wait] object of type [Wait].
 class AppState {
-  final int counter;
-  final String description;
-  final Wait wait;
+  final int? counter;
+  final String? description;
+  final Wait? wait;
 
   AppState({this.counter, this.description, this.wait});
 
   /// The copy method has a named [wait] parameter of type [Wait].
-  AppState copy({int counter, String description, Wait wait}) => AppState(
+  AppState copy({int? counter, String? description, Wait? wait}) => AppState(
         counter: counter ?? this.counter,
         description: description ?? this.description,
         wait: wait ?? this.wait,
@@ -97,7 +97,8 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     dispatch(IncrementAction(amount: 1));
-    String description = await read("http://numbersapi.com/${state.counter}");
+    String description =
+        await read(Uri.http("numbersapi.com", "${state.counter}"));
     return state.copy(description: description);
   }
 
@@ -117,17 +118,17 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
 class IncrementAction extends ReduxAction<AppState> {
   final int amount;
 
-  IncrementAction({@required this.amount}) : assert(amount != null);
+  IncrementAction({required this.amount});
 
   @override
-  AppState reduce() => state.copy(counter: state.counter + amount);
+  AppState reduce() => state.copy(counter: state.counter! + amount);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
-  MyHomePageConnector({Key key}) : super(key: key);
+  MyHomePageConnector({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -153,37 +154,37 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
         description: state.description,
 
         /// If there is any waiting, `state.wait.isWaiting` will return true.
-        waiting: state.wait.isWaiting,
+        waiting: state.wait!.isWaiting,
 
-        onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
+        onIncrement: () => dispatch!(IncrementAndGetDescriptionAction()),
       );
 }
 
 /// The view-model holds the part of the Store state the dumb-widget needs.
 class ViewModel extends Vm {
-  final int counter;
-  final String description;
+  final int? counter;
+  final String? description;
   final bool waiting;
   final VoidCallback onIncrement;
 
   ViewModel({
-    @required this.counter,
-    @required this.description,
-    @required this.waiting,
-    @required this.onIncrement,
-  }) : super(equals: [counter, description, waiting]);
+    required this.counter,
+    required this.description,
+    required this.waiting,
+    required this.onIncrement,
+  }) : super(equals: [counter!, description!, waiting]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatelessWidget {
-  final int counter;
-  final String description;
-  final bool waiting;
-  final VoidCallback onIncrement;
+  final int? counter;
+  final String? description;
+  final bool? waiting;
+  final VoidCallback? onIncrement;
 
   MyHomePage({
-    Key key,
+    Key? key,
     this.counter,
     this.description,
     this.waiting,
@@ -202,8 +203,9 @@ class MyHomePage extends StatelessWidget {
               children: [
                 const Text('You have pushed the button this many times:'),
                 Text('$counter', style: const TextStyle(fontSize: 30)),
-                Text(description,
-                    style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
+                Text(description!,
+                    style: const TextStyle(fontSize: 15),
+                    textAlign: TextAlign.center),
               ],
             ),
           ),
@@ -212,7 +214,7 @@ class MyHomePage extends StatelessWidget {
             child: const Icon(Icons.add),
           ),
         ),
-        if (waiting) ModalBarrier(color: Colors.red.withOpacity(0.4)),
+        if (waiting!) ModalBarrier(color: Colors.red.withOpacity(0.4)),
       ],
     );
   }

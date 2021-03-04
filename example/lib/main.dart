@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-Store<int> store;
+late Store<int> store;
 
 /// This example shows a counter and a button.
 /// When the button is tapped, the counter will increment synchronously.
@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
 class IncrementAction extends ReduxAction<int> {
   final int amount;
 
-  IncrementAction({@required this.amount}) : assert(amount != null);
+  IncrementAction({required this.amount});
 
   @override
   int reduce() => state + amount;
@@ -46,7 +46,7 @@ class IncrementAction extends ReduxAction<int> {
 /// with the view-model created with the previous state.
 /// Only if the view-model changed, the connector rebuilds.
 class MyHomePageConnector extends StatelessWidget {
-  MyHomePageConnector({Key key}) : super(key: key);
+  MyHomePageConnector({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +67,7 @@ class Factory extends VmFactory<int, MyHomePageConnector> {
   @override
   ViewModel fromStore() => ViewModel(
         counter: state,
-        onIncrement: () => dispatch(IncrementAction(amount: 1)),
+        onIncrement: () => dispatch!(IncrementAction(amount: 1)),
       );
 }
 
@@ -91,8 +91,8 @@ class ViewModel extends Vm {
   final VoidCallback onIncrement;
 
   ViewModel({
-    @required this.counter,
-    @required this.onIncrement,
+    required this.counter,
+    required this.onIncrement,
   }) : super(equals: [counter]);
 }
 
@@ -102,11 +102,11 @@ class ViewModel extends Vm {
 /// connector or the view-model. It just gets the parameters it needs to display
 /// itself, and callbacks it should call when reacting to the user interface.
 class MyHomePage extends StatelessWidget {
-  final int counter;
-  final VoidCallback onIncrement;
+  final int? counter;
+  final VoidCallback? onIncrement;
 
   MyHomePage({
-    Key key,
+    Key? key,
     this.counter,
     this.onIncrement,
   }) : super(key: key);
