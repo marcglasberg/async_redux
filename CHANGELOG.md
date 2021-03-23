@@ -1,14 +1,18 @@
-# [9.0.0] - 2020/03/03
+# [9.0.1] - 2021/03/22
+
+* Downgrade to file: ^6.0.0 to improve compatibility.
+
+# [9.0.0] - 2021/03/03
 
 * Nullsafe.
 
-# [8.0.0] - 2020/02/21
+# [8.0.0] - 2021/02/21
 
 * Uses nullsafe dependencies (it's not yet itself nullsafe).
 
 * Breaking change: Cache functions (for memoization) have been renamed and extended.
 
-# [7.0.2] - 2020/02/12
+# [7.0.2] - 2021/02/12
 
 * LocalPersist: Better handling of mock file-systems.
 
