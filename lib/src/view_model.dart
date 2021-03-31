@@ -179,9 +179,9 @@ abstract class VmFactory<St, T> {
   /// This will return the current state the store holds at the time the method is called.
   St currentState() => _store.state;
 
-  Dispatch<St>? get dispatch => _dispatch;
+  Dispatch<St> get dispatch => _dispatch;
 
-  DispatchFuture<St>? get dispatchFuture => _dispatchFuture;
+  DispatchFuture<St> get dispatchFuture => _dispatchFuture;
 
   UserException? getAndRemoveFirstError() => _getAndRemoveFirstError();
 }

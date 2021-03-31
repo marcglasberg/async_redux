@@ -1,3 +1,7 @@
+# [9.0.2] - 2021/03/22
+
+* Detail: Better NNBD for VmFactory.
+
 # [9.0.1] - 2021/03/22
 
 * Downgrade to file: ^6.0.0 to improve compatibility.
