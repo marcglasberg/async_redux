@@ -53,7 +53,7 @@ abstract class VmEquals<T> {
 @immutable
 abstract class Vm {
   /// The List of properties which will be used to determine whether two BaseModels are equal.
-  final List<Object> equals;
+  final List<Object?> equals;
 
   /// The constructor takes an optional List of fields which will be used
   /// to determine whether two [Vm] are equal.
@@ -104,7 +104,7 @@ abstract class Vm {
 
   int get _propsHashCode {
     int hashCode = 0;
-    equals.forEach((Object prop) => hashCode = hashCode ^ prop.hashCode);
+    equals.forEach((Object? prop) => hashCode = hashCode ^ prop.hashCode);
     return hashCode;
   }
 
