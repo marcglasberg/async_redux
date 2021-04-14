@@ -163,8 +163,8 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
         waiting: state.waiting,
         clearTextEvt: state.clearTextEvt,
         changeTextEvt: state.changeTextEvt,
-        onClear: () => dispatch!(ClearTextAction()),
-        onChange: () => dispatch!(ChangeTextAction()),
+        onClear: () => dispatch(ClearTextAction()),
+        onChange: () => dispatch(ChangeTextAction()),
       );
 }
 

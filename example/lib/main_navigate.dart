@@ -73,7 +73,7 @@ class Page1Connector extends StatelessWidget {
 class Factory1 extends VmFactory<AppState, Page1Connector> {
   @override
   ViewModel1 fromStore() =>
-      ViewModel1(onChangePage: () => dispatch!(NavigateAction.pushNamed("/myRoute")));
+      ViewModel1(onChangePage: () => dispatch(NavigateAction.pushNamed("/myRoute")));
 }
 
 /// The view-model holds the part of the Store state the dumb-widget needs.
@@ -103,7 +103,7 @@ class Page2Connector extends StatelessWidget {
 class Factory2 extends VmFactory<AppState, Page1Connector> {
   @override
   ViewModel2 fromStore() => ViewModel2(
-        onChangePage: () => dispatch!(NavigateAction.pop()),
+        onChangePage: () => dispatch(NavigateAction.pop()),
       );
 }
 

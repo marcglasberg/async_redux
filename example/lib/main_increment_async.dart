@@ -125,7 +125,7 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
   ViewModel fromStore() => ViewModel(
         counter: state.counter,
         description: state.description,
-        onIncrement: () => dispatch!(IncrementAndGetDescriptionAction()),
+        onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
       );
 }
 

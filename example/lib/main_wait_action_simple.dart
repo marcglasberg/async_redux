@@ -156,7 +156,7 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
         /// If there is any waiting, `state.wait.isWaiting` will return true.
         waiting: state.wait!.isWaiting,
 
-        onIncrement: () => dispatch!(IncrementAndGetDescriptionAction()),
+        onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
       );
 }
 

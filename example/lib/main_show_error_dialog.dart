@@ -97,7 +97,7 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
   @override
   ViewModel fromStore() => ViewModel(
         name: state.name,
-        onSaveName: (String name) => dispatch!(SaveUserAction(name)),
+        onSaveName: (String name) => dispatch(SaveUserAction(name)),
       );
 }
 

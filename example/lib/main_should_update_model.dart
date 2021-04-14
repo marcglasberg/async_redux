@@ -70,11 +70,11 @@ class Factory extends VmFactory<int, MyHomePageConnector> {
       counter: state,
       onIncrement: () {
         // Increment 5 times.
-        dispatch!(IncrementAction(amount: 1));
-        dispatch!(IncrementAction(amount: 1));
-        dispatch!(IncrementAction(amount: 1));
-        dispatch!(IncrementAction(amount: 1));
-        dispatch!(IncrementAction(amount: 1));
+        dispatch(IncrementAction(amount: 1));
+        dispatch(IncrementAction(amount: 1));
+        dispatch(IncrementAction(amount: 1));
+        dispatch(IncrementAction(amount: 1));
+        dispatch(IncrementAction(amount: 1));
       },
     );
   }

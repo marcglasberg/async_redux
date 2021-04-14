@@ -158,7 +158,7 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
         counter: state.counter,
         description: state.description,
         waiting: state.waiting,
-        onIncrement: () => dispatch!(IncrementAndGetDescriptionAction()),
+        onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
       );
 }
 

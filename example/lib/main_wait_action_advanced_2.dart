@@ -126,7 +126,7 @@ class PageViewModelFactory extends VmFactory<AppState, MyHomePageConnector> {
         /// If there is any waiting, `state.wait.isWaiting` will return true.
         waiting: state.wait.isWaiting,
 
-        onGetDescription: (int index) => dispatch!(GetDescriptionAction(index)),
+        onGetDescription: (int index) => dispatch(GetDescriptionAction(index)),
       );
 }
 
