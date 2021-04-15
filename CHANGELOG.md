@@ -1,6 +1,6 @@
-# [9.0.3] - 2021/03/22
+# [9.0.4] - 2021/04/15
 
-* Detail: Better NNBD for Vm and VmFactory.
+* NNBD improvements.
 
 # [9.0.1] - 2021/03/22
 

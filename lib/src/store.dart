@@ -359,7 +359,7 @@ class Store<St> {
   FutureOr<void> _applyReducer(ReduxAction<St> action, {bool notify = true}) {
     _reduceCount++;
 
-    Reducer<St> reducer = action.wrapReduce(action.reduce);
+    Reducer<St?> reducer = action.wrapReduce(action.reduce);
 
     // Sync reducer.
     if (reducer is St? Function()) {
@@ -430,7 +430,7 @@ class Store<St> {
 
   /// Returns the processed error. Returns `null` if the error is meant to be "swallowed".
   Object? _processError(
-    Object error,
+    Object? error,
     StackTrace stackTrace,
     ReduxAction<St> action,
     _Flag<bool> afterWasRun,
@@ -448,7 +448,7 @@ class Store<St> {
       );
     }
 
-    if (_wrapError != null) {
+    if (_wrapError != null && error != null) {
       try {
         error = _wrapError!.wrap(error, stackTrace, action) ?? error;
       } catch (_error) {
@@ -479,7 +479,7 @@ class Store<St> {
     }
     // If an errorObserver was defined, observe the error.
     // Then, if the observer returns true, return the error to be thrown.
-    else {
+    else if (error != null) {
       if (_errorObserver!.observe(error, stackTrace, action, this)) //
         return error;
     }
