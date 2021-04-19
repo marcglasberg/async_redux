@@ -1,4 +1,4 @@
-# [9.0.6] - 2021/04/16
+# [9.0.7] - 2021/04/16
 
 * NNBD improvements.
 * FIC version bump.

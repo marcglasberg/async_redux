@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Action;
 
