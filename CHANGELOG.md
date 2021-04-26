@@ -1,3 +1,7 @@
+# [9.0.8] - 2021/04/26
+
+* FIC and weak-map version bump.
+
 # [9.0.7] - 2021/04/16
 
 * NNBD improvements.

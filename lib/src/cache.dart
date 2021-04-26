@@ -14,7 +14,7 @@ import 'package:weak_map/weak_map.dart' as c;
 ///    () =>
 ///    stateNames.take(limit).toList());
 /// ```
-Result? Function() Function(State1) cache1state<Result, State1>(
+Result Function() Function(State1) cache1state<Result, State1>(
   Result Function() Function(State1) f,
 ) =>
     c.cache1state(f);
@@ -38,7 +38,7 @@ Result? Function() Function(State1) cache1state<Result, State1>(
 ///    (String startString) =>
 ///    state.where((str) => str.startsWith(startString)).toList());
 /// ```
-Result? Function(Param1) Function(State1) cache1state_1param<Result, State1, Param1>(
+Result Function(Param1) Function(State1) cache1state_1param<Result, State1, Param1>(
   Result Function(Param1) Function(State1) f,
 ) =>
     c.cache1state_1param(f);
@@ -64,7 +64,7 @@ Result? Function(Param1) Function(State1) cache1state_1param<Result, State1, Par
 ///       .where((str) => str.startsWith(startString) && str.endsWith(endString)).toList();
 ///    });
 /// ```
-Result? Function(Param1, Param2) Function(State1)
+Result Function(Param1, Param2) Function(State1)
     cache1state_2params<Result, State1, Param1, Param2>(
   Result Function(Param1, Param2) Function(State1) f,
 ) =>
@@ -83,7 +83,7 @@ Result? Function(Param1, Param2) Function(State1)
 /// var selector = cache2((List<String> names, int limit) =>
 ///        () => names.where((str) => str.startsWith("A")).take(limit).toList());
 /// ```
-Result? Function() Function(State1, State2) cache2states<Result, State1, State2>(
+Result Function() Function(State1, State2) cache2states<Result, State1, State2>(
   Result Function() Function(State1, State2) f,
 ) =>
     c.cache2states(f);
@@ -107,7 +107,7 @@ Result? Function() Function(State1, State2) cache2states<Result, State1, State2>
 ///    return names.where((str) => str.startsWith(searchString)).take(limit).toList();
 ///    });
 /// ```
-Result? Function(Param1) Function(State1, State2)
+Result Function(Param1) Function(State1, State2)
     cache2states_1param<Result, State1, State2, Param1>(
   Result Function(Param1) Function(State1, State2) f,
 ) =>
@@ -136,7 +136,7 @@ Result? Function(Param1) Function(State1, State2)
 ///          .take(limit).toList();
 ///    });
 /// ```
-Result? Function(Param1, Param2) Function(State1, State2)
+Result Function(Param1, Param2) Function(State1, State2)
     cache2states_2params<Result, State1, State2, Param1, Param2>(
   Result Function(Param1, Param2) Function(State1, State2) f,
 ) =>
@@ -155,7 +155,7 @@ Result? Function(Param1, Param2) Function(State1, State2)
 /// var selector = cache3states((List<String> names, int limit, String prefix) =>
 ///        () => names.where((str) => str.startsWith(prefix)).take(limit).toList());
 /// ```
-Result? Function() Function(State1, State2, State3) cache3states<Result, State1, State2, State3>(
+Result Function() Function(State1, State2, State3) cache3states<Result, State1, State2, State3>(
   Result Function() Function(State1, State2, State3) f,
 ) =>
     c.cache3states(f);
@@ -164,7 +164,7 @@ Result? Function() Function(State1, State2, State3) cache3states<Result, State1,
 /// as [cache1state] but with an extra information. Note: The extra information is not used in
 /// any way to decide whether the cache should be used/recalculated/evicted. It's just passed down
 /// to the [f] function to be used during the result calculation.
-Result? Function() Function(State1, Extra) cache1state_0params_x<Result, State1, Extra>(
+Result Function() Function(State1, Extra) cache1state_0params_x<Result, State1, Extra>(
   Result Function() Function(State1, Extra) f,
 ) =>
     c.cache1state_0params_x(f);
@@ -173,7 +173,7 @@ Result? Function() Function(State1, Extra) cache1state_0params_x<Result, State1,
 /// as [cache1state] but with an extra information. Note: The extra information is not used in
 /// any way to decide whether the cache should be used/recalculated/evicted. It's just passed down
 /// to the [f] function to be used during the result calculation.
-Result? Function() Function(State1, State2, Extra)
+Result Function() Function(State1, State2, Extra)
     cache2states_0params_x<Result, State1, State2, Extra>(
   Result Function() Function(State1, State2, Extra) f,
 ) =>
@@ -183,7 +183,7 @@ Result? Function() Function(State1, State2, Extra)
 /// as [cache1state] but with an extra information. Note: The extra information is not used in
 /// any way to decide whether the cache should be used/recalculated/evicted. It's just passed down
 /// to the [f] function to be used during the result calculation.
-Result? Function() Function(State1, State2, State3, Extra)
+Result Function() Function(State1, State2, State3, Extra)
     cache3states_0params_x<Result, State1, State2, State3, Extra>(
   Result Function() Function(State1, State2, State3, Extra) f,
 ) =>
