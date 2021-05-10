@@ -541,11 +541,11 @@ ViewModel({
 Note: Each state passed in the `equals` parameter will, by default, be compared by equality (`==`).
 However, you can provide your own comparison method, if you want. To that end, your state classes
 may implement the `VmEquals` interface. As a default, objects of type `VmEquals` are compared by
-their `VmEquals.vmEquals()` method, which by default is an identity comparison. You may then 
+their `VmEquals.vmEquals()` method, which by default is an identity comparison. You may then
 override this method to provide your custom comparisons.
 
-For example, here `description` will be compared by equality, 
-while `myObj` will be compared by its `info` length:
+For example, here `description` will be compared by equality, while `myObj` will be compared by
+its `info` length:
 
 ```
 class ViewModel extends Vm {
@@ -2441,6 +2441,15 @@ int length = await persist.length();
 bool exists = await persist.exists();
 await persist.delete();
 ```                            
+
+Note: `LocalPersist` uses a file format similar to JSON, but not exactly JSON, because JSON cannot
+be appended to. If you want to save and load a single object into standard JSON, use the `saveJson`
+and `loadJson` methods:
+
+```
+await persist.saveJson(simpleObj);
+Object? simpleObj = await persistence.loadJson();
+```
 
 Have a look at
 the: <a href="https://github.com/marcglasberg/async_redux/blob/master/test/local_persist_test.dart">

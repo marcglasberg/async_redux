@@ -1,3 +1,7 @@
+# [9.0.9] - 2021/05/10
+
+* LocalPersist `saveJson()` and `loadJson()` methods.
+
 # [9.0.8] - 2021/04/26
 
 * FIC and weak-map version bump.

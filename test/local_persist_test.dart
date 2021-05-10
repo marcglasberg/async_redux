@@ -1,4 +1,3 @@
-// @dart=2.9
 // Please run this test file by itself, not together with other tests.
 import 'dart:io';
 import 'dart:math';
@@ -33,7 +32,7 @@ void main() {
     ];
 
     Uint8List encoded = LocalPersist.encode(simpleObjs);
-    List<Object> decoded = LocalPersist.decode(encoded);
+    List<Object?> decoded = LocalPersist.decode(encoded);
     expect(decoded, simpleObjs);
 
     expect(
@@ -50,7 +49,7 @@ void main() {
 
   test('Save and load state.', () async {
     //
-    // User a random number to make sure it's not checking already saved files.
+    // Use a random number to make sure it's not checking already saved files.
     int randNumber = Random().nextInt(100000);
 
     List<Object> simpleObjs = [
@@ -69,7 +68,7 @@ void main() {
 
     await persist.save(simpleObjs);
 
-    List<Object> decoded = await persist.load();
+    List<Object?> decoded = (await persist.load())!;
 
     expect(decoded, simpleObjs);
 
@@ -150,7 +149,7 @@ void main() {
     expect(file.path.endsWith("\\db\\m\\n\\o\\xyz.db") || file.path.endsWith("/db/m/n/o/xyz.db"),
         isFalse);
 
-    LocalPersist.defaultDbSubDir = null;
+    LocalPersist.defaultDbSubDir = "";
 
     file = await (LocalPersist("xyz", subDirs: ["mno"]).file());
     expect(file.path.endsWith("\\mno\\xyz.db") || file.path.endsWith("/mno/xyz.db"), isTrue);
@@ -179,7 +178,7 @@ void main() {
     var persist = LocalPersist("xyz");
     await persist.save([randNumber1, randNumber2, randNumber3]);
 
-    List<Object> decoded = await (persist.load());
+    List<Object?> decoded = (await persist.load())!;
 
     expect(decoded, [randNumber1, randNumber2, randNumber3]);
 
@@ -217,7 +216,7 @@ void main() {
     ];
     await persist.save(simpleObjs, append: true);
 
-    List<Object> decoded = await persist.load();
+    List<Object?> decoded = (await persist.load())!;
 
     expect(decoded, [
       "Hello",
@@ -310,7 +309,7 @@ void main() {
 
   test('Load as object.', () async {
     //
-    // User a random number to make sure it's not checking already saved files.
+    // Use a random number to make sure it's not checking already saved files.
     int randNumber = Random().nextInt(100000);
 
     List<Object> simpleObjs = [
@@ -323,7 +322,7 @@ void main() {
     var persist = LocalPersist("obj");
     await persist.save(simpleObjs);
 
-    Map<String, dynamic> decoded = await persist.loadAsObj();
+    Map<String, dynamic> decoded = (await persist.loadAsObj())!;
 
     expect(decoded, simpleObjs[0]);
 
@@ -377,6 +376,92 @@ void main() {
       error = _error;
     }
     expect(error, PersistException("Not an object."));
+
+    // Cleans up test.
+    await persist.delete();
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  test('Encode and decode as JSON.', () async {
+    //
+    List<Object> simpleObjs = [
+      'Hello',
+      'How are you?',
+      [
+        1,
+        2,
+        3,
+        {'name': 'John'}
+      ],
+      42,
+      true,
+      false
+    ];
+
+    Uint8List encoded = LocalPersist.encodeJson(simpleObjs);
+    Object decoded = LocalPersist.decodeJson(encoded);
+    expect(decoded, simpleObjs);
+
+    expect(
+        (decoded as List).map((obj) => "$obj (${obj.runtimeType})").join("\n"),
+        'Hello (String)\n'
+        'How are you? (String)\n'
+        '[1, 2, 3, {name: John}] (List<dynamic>)\n'
+        '42 (int)\n'
+        'true (bool)\n'
+        'false (bool)');
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  test('Save and load state into/from JSON.', () async {
+    //
+    // Use a random number to make sure it's not checking already saved files.
+    int randNumber = Random().nextInt(100000);
+
+    List<Object> simpleObjs = [
+      'Goodbye',
+      '"Life is what happens\n\rwhen you\'re busy making other plans." -John Lennon',
+      [
+        100,
+        200,
+        {"name": "João"}
+      ],
+      true,
+      randNumber,
+    ];
+
+    var persist = LocalPersist("abc");
+
+    await persist.saveJson(simpleObjs);
+
+    Object decoded = (await persist.loadJson())!;
+
+    expect(decoded, simpleObjs);
+
+    expect(
+        (decoded as List).map((obj) => "$obj (${obj.runtimeType})").join("\n"),
+        'Goodbye (String)\n'
+        '"Life is what happens\n\rwhen you\'re busy making other plans." -John Lennon (String)\n'
+        '[100, 200, {name: João}] (List<dynamic>)\n'
+        'true (bool)\n'
+        '$randNumber (int)');
+
+    // Cleans up test.
+    await persist.delete();
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  test('Save and load a single string into/from JSON.', () async {
+    //
+    Object simpleObjs = 'Goodbye';
+    var persist = LocalPersist("abc");
+    await persist.saveJson(simpleObjs);
+    Object decoded = (await persist.loadJson())!;
+    expect(decoded, simpleObjs);
+    expect(decoded, 'Goodbye');
 
     // Cleans up test.
     await persist.delete();

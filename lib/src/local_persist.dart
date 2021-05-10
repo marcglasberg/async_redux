@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:async_redux/async_redux.dart';
 import 'package:file/file.dart' as f;
 import 'package:file/local.dart';
@@ -33,7 +34,8 @@ class LocalPersist {
   //
   /// The default is saving/loading to/from "appDocsDir/db/".
   /// This is not final, so you can change it.
-  static String? defaultDbSubDir = "db";
+  /// Make it an empty string to remove it.
+  static String defaultDbSubDir = "db";
 
   /// The default is adding a ".db" termination to the file name.
   /// This is not final, so you can change it.
@@ -135,6 +137,47 @@ class LocalPersist {
     }
   }
 
+  /// Saves the given simple object as JSON.
+  /// If the file exists, it will be overwritten.
+  Future<File> saveJson(Object? simpleObj) async {
+    _checkIfFileSystemIsTheSame();
+
+    Uint8List encoded = encodeJson(simpleObj);
+
+    File file = _file ?? await this.file();
+    await file.create(recursive: true);
+
+    return file.writeAsBytes(
+      encoded,
+      flush: true,
+      mode: FileMode.writeOnly,
+    );
+  }
+
+  /// Loads an object from a JSON file. If the file doesn't exist, returns null.
+  /// Note: The file must contain a single JSON, which is NOT
+  /// the default file-format for [LocalPersist].
+  Future<Object?>? loadJson() async {
+    _checkIfFileSystemIsTheSame();
+    File file = _file ?? await this.file();
+
+    if (!file.existsSync())
+      return null;
+    else {
+      Uint8List encoded;
+      try {
+        encoded = await file.readAsBytes();
+      } catch (error) {
+        if ((error is FileSystemException) && //
+            error.message.contains("No such file or directory")) return null;
+        rethrow;
+      }
+
+      Object simpleObjs = decodeJson(encoded);
+      return simpleObjs;
+    }
+  }
+
   /// Same as [load], but expects the file to be a Map<String, dynamic>
   /// representing a single object. Will fail if it's not a map,
   /// or if contains more than one single object. It may return null.
@@ -228,7 +271,7 @@ class LocalPersist {
   }) {
     return p.joinAll([
       LocalPersist._appDocDir!.path,
-      dbSubDir ?? LocalPersist.defaultDbSubDir ?? "",
+      dbSubDir ?? LocalPersist.defaultDbSubDir,
       if (subDirs != null) ...subDirs,
       "$dbName${LocalPersist.defaultTermination}"
     ]);
@@ -290,6 +333,26 @@ class LocalPersist {
     List<Uint8List> chunks = bytesToUint8Lists(bytes);
     Iterable<String> jsons = uint8ListsToJsons(chunks);
     return toSimpleObjs(jsons).toList();
+  }
+
+  /// Decodes a single JSON into a simple object, from the given [bytes].
+  static Object decodeJson(Uint8List bytes) {
+    ByteBuffer buffer = bytes.buffer;
+    Uint8List info = Uint8List.view(buffer);
+    var utf8Decoder = const Utf8Decoder();
+    String json = utf8Decoder.convert(info);
+    var jsonDecoder = const JsonDecoder();
+    return jsonDecoder.convert(json);
+  }
+
+  /// Decodes a single simple object into a JSON, from the given [simpleObj].
+  static Uint8List encodeJson(Object? simpleObj) {
+    var jsonEncoder = const JsonEncoder();
+    String json = jsonEncoder.convert(simpleObj);
+
+    Utf8Encoder encoder = const Utf8Encoder();
+    Uint8List encoded = encoder.convert(json);
+    return encoded;
   }
 
   static List<Uint8List> bytesToUint8Lists(Uint8List bytes) {
