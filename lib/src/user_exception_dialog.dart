@@ -28,9 +28,22 @@ class UserExceptionDialog<St> extends StatelessWidget {
   final Widget child;
   final ShowUserExceptionDialog? onShowUserExceptionDialog;
 
+  /// If false (the default), the dialog will appear in the context of the
+  /// [NavigateAction.navigatorKey]. If you don't set up that key, or if you
+  /// pass `true` here, it will use the local context of the
+  /// [UserExceptionDialog] widget.
+  ///
+  /// Make sure this is `false` if you are putting the [UserExceptionDialog] in
+  /// the `builder` parameter of the [MaterialApp] widget, because in this case
+  /// the [UserExceptionDialog] will be above the app's [Navigator], and if
+  /// you open the dialog in the local context you won't be able to use the
+  /// Android back-button to close it.
+  final bool useLocalContext;
+
   UserExceptionDialog({
     required this.child,
     this.onShowUserExceptionDialog,
+    this.useLocalContext = false,
   });
 
   @override
@@ -38,7 +51,13 @@ class UserExceptionDialog<St> extends StatelessWidget {
     return StoreConnector<St, _ViewModel>(
       model: _ViewModel(),
       builder: (context, vm) {
-        return _UserExceptionDialogWidget(child, vm.error, onShowUserExceptionDialog);
+        //
+        return _UserExceptionDialogWidget(
+          child,
+          vm.error,
+          onShowUserExceptionDialog,
+          useLocalContext,
+        );
       },
     );
   }
@@ -50,18 +69,26 @@ class _UserExceptionDialogWidget extends StatefulWidget {
   final Widget child;
   final Event<UserException>? error;
   final ShowUserExceptionDialog onShowUserExceptionDialog;
+  final bool useLocalContext;
 
   _UserExceptionDialogWidget(
     this.child,
     this.error,
     ShowUserExceptionDialog? onShowUserExceptionDialog,
+    this.useLocalContext,
   ) : onShowUserExceptionDialog = //
             onShowUserExceptionDialog ?? _defaultUserExceptionDialog;
 
   static void _defaultUserExceptionDialog(
     BuildContext context,
     UserException userException,
+    bool useLocalContext,
   ) {
+    if (!useLocalContext) {
+      var navigatorContext = NavigateAction.navigatorKey?.currentContext;
+      if (navigatorContext != null) context = navigatorContext;
+    }
+
     defaultTargetPlatform;
     if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS)) {
       showCupertinoDialog(
@@ -108,7 +135,7 @@ class _UserExceptionDialogState extends State<_UserExceptionDialogWidget> {
 
     if (userException != null)
       WidgetsBinding.instance!.addPostFrameCallback((_) {
-        widget.onShowUserExceptionDialog(context, userException);
+        widget.onShowUserExceptionDialog(context, userException, widget.useLocalContext);
       });
   }
 
@@ -146,6 +173,7 @@ class _ViewModel extends BaseModel {
 typedef ShowUserExceptionDialog = void Function(
   BuildContext context,
   UserException userException,
+  bool useLocalContext,
 );
 
 // ////////////////////////////////////////////////////////////////////////////

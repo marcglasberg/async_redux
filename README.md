@@ -902,11 +902,17 @@ class MyApp extends StatelessWidget {
 	  => StoreProvider<AppState>(
 		  store: store,
 		  child: MaterialApp(
+		    navigatorKey: navigatorKey,
 			home: UserExceptionDialog<AppState>(
 			  child: MyHomePage(),
 			)));
 }
 ```
+
+Note: If you are not using the `home` parameter of the `MaterialApp` widget, you can also put the
+`UserExceptionDialog` the `builder` parameter. Please note, if you do that you **must** define the
+`NavigateAction.navigatorKey` of the Navigator. Please, see the documentation of the
+`UserExceptionDialog.useLocalContext` parameter for more information.
 
 Try running
 the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_error_dialog.dart">
