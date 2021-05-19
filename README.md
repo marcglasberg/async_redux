@@ -75,8 +75,7 @@ Medium story</a>.
 
 A single **store** holds all the **state**, which is immutable. When you need to modify some state
 you **dispatch** an **action**. Then a **reducer** creates a new copy of the state, with the desired
-changes. Your widgets are **connected** to the store (through **store-connectors** and **
-view-models**), so they know that the state changed, and rebuild as needed.
+changes. Your widgets are **connected** to the store (through **store-connectors** and **view-models**), so they know that the state changed, and rebuild as needed.
 
 <br>
 
