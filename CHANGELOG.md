@@ -2,8 +2,9 @@
 
 * Breaking change: The new `UserExceptionDialog.useLocalContext` parameter now allows
   the `UserExceptionDialog` to be put in the `builder` parameter of the `MaterialApp` widget. Even
-  if you use this dialog, it is unlikely this will be a breaking change for you. But if it is (your
-  error dialog now has problems), simply make `useLocalContext: true` to return to the old behavior.
+  if you use this dialog, it is unlikely this will be a breaking change for you. But if it is, and
+  your error dialog now has problems, simply make `useLocalContext: true` to return to the old
+  behavior.
 
 # [9.0.9] - 2021/05/10
 
