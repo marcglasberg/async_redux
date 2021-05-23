@@ -6,6 +6,9 @@
   your error dialog now has problems, simply make `useLocalContext: true` to return to the old
   behavior.
 
+* Breaking change: The `StoreConnector.onInitialBuild` parameter now also gets the store. Where you
+  previously had `onInitialBuild(vm) {...}` now you have `onInitialBuild(store, vm) {...}`.
+
 # [9.0.9] - 2021/05/10
 
 * LocalPersist `saveJson()` and `loadJson()` methods.

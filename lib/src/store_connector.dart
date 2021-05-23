@@ -60,10 +60,10 @@ typedef OnWillChangeCallback<Model> = void Function(
 typedef OnDidChangeCallback<Model> = void Function(Model viewModel);
 
 /// A function that will be run after the Widget is built the first time.
-/// This function is passed the initial `Model` created by the [converter] function.
-/// This can be useful for starting certain animations, such as showing
-/// Snackbars, after the Widget is built the first time.
-typedef OnInitialBuildCallback<Model> = void Function(Model viewModel);
+/// This function is passed the store and the initial `Model` created by the [vm]
+/// or the [converter] function. This can be useful for starting certain animations,
+/// such as showing Snackbars, after the Widget is built the first time.
+typedef OnInitialBuildCallback<St, Model> = void Function(Store<St> store, Model viewModel);
 
 /// Build a Widget using the [BuildContext] and [Model].
 /// The [Model] is derived from the [Store] using a [StoreConverter].
@@ -95,7 +95,7 @@ abstract class StoreConnectorInterface<St, Model> {
 
   OnDidChangeCallback<Model>? get onDidChange;
 
-  OnInitialBuildCallback<Model>? get onInitialBuild;
+  OnInitialBuildCallback<St, Model>? get onInitialBuild;
 
   Object? get debug;
 }
@@ -190,11 +190,11 @@ class StoreConnector<St, Model> extends StatelessWidget
   final OnDidChangeCallback<Model>? onDidChange;
 
   /// A function that will be run after the Widget is built the first time.
-  /// This function is passed the initial `Model` created by the `converter`
-  /// or `vm` function. This can be useful for starting certain animations,
-  /// such as showing snackbars, after the Widget is built the first time.
+  /// This function is passed the store and the initial `Model` created by
+  /// the `vm` or the `converter` function. This can be useful for starting certain
+  /// animations, such as showing snackbars, after the Widget is built the first time.
   @override
-  final OnInitialBuildCallback<Model>? onInitialBuild;
+  final OnInitialBuildCallback<St, Model>? onInitialBuild;
 
   /// Pass the parameter `debug: this` to get a more detailed error message.
   @override
@@ -302,7 +302,7 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
   final ShouldUpdateModel<St>? shouldUpdateModel;
   final OnWillChangeCallback<Model>? onWillChange;
   final OnDidChangeCallback<Model>? onDidChange;
-  final OnInitialBuildCallback<Model>? onInitialBuild;
+  final OnInitialBuildCallback<St, Model>? onInitialBuild;
 
   const _StoreStreamListener({
     Key? key,
@@ -381,7 +381,7 @@ class _StoreStreamListenerState<St, Model> //
 
     if ((widget.onInitialBuild != null) && (_latestModel != null)) {
       WidgetsBinding.instance!.addPostFrameCallback((_) {
-        widget.onInitialBuild!(_latestModel!);
+        widget.onInitialBuild!(widget.store, _latestModel!);
       });
     }
 
