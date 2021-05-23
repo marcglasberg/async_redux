@@ -6,9 +6,9 @@
   your error dialog now has problems, simply make `useLocalContext: true` to return to the old
   behavior.
 
-* Breaking change: `StoreConnector.onInitialBuild` and `StoreConnector.onWillChange` parameters now
-  also get the context and the store. For example, where you previously
-  had `onInitialBuild(vm) {...}` now you have `onInitialBuild(context, store, vm) {...}`.
+* Breaking change: `StoreConnector` parameters like `onInitialBuild`, `onDidChange`
+  and `.onWillChange` now also get the context and the store. For example, where you
+  previously had `onInitialBuild(vm) {...}` now you have `onInitialBuild(context, store, vm) {...}`.
 
 # [9.0.9] - 2021/05/10
 
@@ -92,7 +92,7 @@
 
 # [5.0.0] - 2020/10/19
 
-* Breaking change: OnWillChangeCallback now provides previousViewModel.
+* Breaking change: OnWillChangeCallback now provides previousVm.
 
 # [4.0.4] - 2020/10/19
 

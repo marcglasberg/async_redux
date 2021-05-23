@@ -44,9 +44,11 @@ typedef ShouldUpdateModel<St> = bool Function(St state);
 /// This is useful for making calls to other classes, such as a
 /// `Navigator` or `TabController`, in response to state changes.
 /// It can also be used to trigger an action based on the previous state.
-typedef OnWillChangeCallback<Model> = void Function(
-  Model previousViewModel,
-  Model newViewModel,
+typedef OnWillChangeCallback<St, Model> = void Function(
+  BuildContext context,
+  Store<St> store,
+  Model previousVm,
+  Model newVm,
 );
 
 /// A function that will be run on State change, after the build method.
@@ -93,7 +95,7 @@ abstract class StoreConnectorInterface<St, Model> {
 
   ShouldUpdateModel<St>? get shouldUpdateModel;
 
-  OnWillChangeCallback<Model>? get onWillChange;
+  OnWillChangeCallback<St, Model>? get onWillChange;
 
   OnDidChangeCallback<St, Model>? get onDidChange;
 
@@ -180,7 +182,7 @@ class StoreConnector<St, Model> extends StatelessWidget
   /// it will only be called if the `Model` changes.
   /// This can be useful for imperative calls to things like Navigator, TabController, etc
   @override
-  final OnWillChangeCallback<Model>? onWillChange;
+  final OnWillChangeCallback<St, Model>? onWillChange;
 
   /// A function that will be run on State change, after the Widget is built.
   /// This function is passed the `Model`, and if `distinct` is `true`,
@@ -302,7 +304,7 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
   final OnInitCallback<St>? onInit;
   final OnDisposeCallback<St>? onDispose;
   final ShouldUpdateModel<St>? shouldUpdateModel;
-  final OnWillChangeCallback<Model>? onWillChange;
+  final OnWillChangeCallback<St, Model>? onWillChange;
   final OnDidChangeCallback<St, Model>? onDidChange;
   final OnInitialBuildCallback<St, Model>? onInitialBuild;
 
@@ -526,7 +528,7 @@ class _StoreStreamListenerState<St, Model> //
     _latestError = null;
 
     if ((widget.onWillChange != null) && (_latestModel != null)) {
-      widget.onWillChange!(_latestModel!, vm);
+      widget.onWillChange!(context, widget.store, _latestModel!, vm);
     }
 
     _latestModel = vm;

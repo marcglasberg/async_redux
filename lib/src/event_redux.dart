@@ -160,7 +160,7 @@ class Event<T> {
   ///
   /// Note: To differentiate 3 and 4 we would actually be breaking the equals contract (which says
   /// A==B should be the same as B==A). Besides, we would need to know if AsyncRedux is
-  /// comparing newViewModel==oldViewModel or oldViewModel==newViewModel (and stays like this).
+  /// comparing newVm==oldViewModel or oldViewModel==newVm (and stays like this).
   /// A safer alternative is discard 4, and always consider events different if any of them is not
   /// spent. That will, however, fire some unnecessary rebuilds.
   ///
