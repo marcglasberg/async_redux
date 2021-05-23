@@ -1795,7 +1795,7 @@ class AppState {
   
   AppState({this.wait, ...});
 
-  AppState copy({Wait wait, ...}) => AppState(wait: wait, ...);
+  AppState copy({Wait wait, ...}) => AppState(wait: wait ?? this.wait, ...);
   }
 ```
 
