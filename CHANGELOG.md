@@ -6,9 +6,9 @@
   your error dialog now has problems, simply make `useLocalContext: true` to return to the old
   behavior.
 
-* Breaking change: `StoreConnector` parameters like `onInitialBuild`, `onDidChange`
-  and `.onWillChange` now also get the context and the store. For example, where you
-  previously had `onInitialBuild(vm) {...}` now you have `onInitialBuild(context, store, vm) {...}`.
+* Breaking change: `StoreConnector` parameters `onInitialBuild`, `onDidChange`
+  and `onWillChange` now also get the context and the store. For example, where you previously
+  had `onInitialBuild(vm) {...}` now you have `onInitialBuild(context, store, vm) {...}`.
 
 # [9.0.9] - 2021/05/10
 
