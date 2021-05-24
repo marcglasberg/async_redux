@@ -44,9 +44,11 @@ typedef ShouldUpdateModel<St> = bool Function(St state);
 /// This is useful for making calls to other classes, such as a
 /// `Navigator` or `TabController`, in response to state changes.
 /// It can also be used to trigger an action based on the previous state.
-typedef OnWillChangeCallback<Model> = void Function(
-  Model previousViewModel,
-  Model newViewModel,
+typedef OnWillChangeCallback<St, Model> = void Function(
+  BuildContext context,
+  Store<St> store,
+  Model previousVm,
+  Model newVm,
 );
 
 /// A function that will be run on State change, after the build method.
@@ -57,13 +59,15 @@ typedef OnWillChangeCallback<Model> = void Function(
 /// Note: Using a [BuildContext] inside this callback can cause problems if
 /// the callback performs navigation. For navigation purposes, please use
 /// an [OnWillChangeCallback].
-typedef OnDidChangeCallback<Model> = void Function(Model viewModel);
+typedef OnDidChangeCallback<St, Model> = void Function(
+    BuildContext context, Store<St> store, Model viewModel);
 
 /// A function that will be run after the Widget is built the first time.
-/// This function is passed the initial `Model` created by the [converter] function.
-/// This can be useful for starting certain animations, such as showing
-/// Snackbars, after the Widget is built the first time.
-typedef OnInitialBuildCallback<Model> = void Function(Model viewModel);
+/// This function is passed the store and the initial `Model` created by the [vm]
+/// or the [converter] function. This can be useful for starting certain animations,
+/// such as showing Snackbars, after the Widget is built the first time.
+typedef OnInitialBuildCallback<St, Model> = void Function(
+    BuildContext context, Store<St> store, Model viewModel);
 
 /// Build a Widget using the [BuildContext] and [Model].
 /// The [Model] is derived from the [Store] using a [StoreConverter].
@@ -91,11 +95,11 @@ abstract class StoreConnectorInterface<St, Model> {
 
   ShouldUpdateModel<St>? get shouldUpdateModel;
 
-  OnWillChangeCallback<Model>? get onWillChange;
+  OnWillChangeCallback<St, Model>? get onWillChange;
 
-  OnDidChangeCallback<Model>? get onDidChange;
+  OnDidChangeCallback<St, Model>? get onDidChange;
 
-  OnInitialBuildCallback<Model>? get onInitialBuild;
+  OnInitialBuildCallback<St, Model>? get onInitialBuild;
 
   Object? get debug;
 }
@@ -178,7 +182,7 @@ class StoreConnector<St, Model> extends StatelessWidget
   /// it will only be called if the `Model` changes.
   /// This can be useful for imperative calls to things like Navigator, TabController, etc
   @override
-  final OnWillChangeCallback<Model>? onWillChange;
+  final OnWillChangeCallback<St, Model>? onWillChange;
 
   /// A function that will be run on State change, after the Widget is built.
   /// This function is passed the `Model`, and if `distinct` is `true`,
@@ -187,14 +191,14 @@ class StoreConnector<St, Model> extends StatelessWidget
   /// Note: Using a [BuildContext] inside this callback can cause problems if
   /// the callback performs navigation. For navigation purposes, please use [onWillChange].
   @override
-  final OnDidChangeCallback<Model>? onDidChange;
+  final OnDidChangeCallback<St, Model>? onDidChange;
 
   /// A function that will be run after the Widget is built the first time.
-  /// This function is passed the initial `Model` created by the `converter`
-  /// or `vm` function. This can be useful for starting certain animations,
-  /// such as showing snackbars, after the Widget is built the first time.
+  /// This function is passed the store and the initial `Model` created by
+  /// the `vm` or the `converter` function. This can be useful for starting certain
+  /// animations, such as showing snackbars, after the Widget is built the first time.
   @override
-  final OnInitialBuildCallback<Model>? onInitialBuild;
+  final OnInitialBuildCallback<St, Model>? onInitialBuild;
 
   /// Pass the parameter `debug: this` to get a more detailed error message.
   @override
@@ -300,9 +304,9 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
   final OnInitCallback<St>? onInit;
   final OnDisposeCallback<St>? onDispose;
   final ShouldUpdateModel<St>? shouldUpdateModel;
-  final OnWillChangeCallback<Model>? onWillChange;
-  final OnDidChangeCallback<Model>? onDidChange;
-  final OnInitialBuildCallback<Model>? onInitialBuild;
+  final OnWillChangeCallback<St, Model>? onWillChange;
+  final OnDidChangeCallback<St, Model>? onDidChange;
+  final OnInitialBuildCallback<St, Model>? onInitialBuild;
 
   const _StoreStreamListener({
     Key? key,
@@ -381,7 +385,7 @@ class _StoreStreamListenerState<St, Model> //
 
     if ((widget.onInitialBuild != null) && (_latestModel != null)) {
       WidgetsBinding.instance!.addPostFrameCallback((_) {
-        widget.onInitialBuild!(_latestModel!);
+        widget.onInitialBuild!(context, widget.store, _latestModel!);
       });
     }
 
@@ -524,14 +528,14 @@ class _StoreStreamListenerState<St, Model> //
     _latestError = null;
 
     if ((widget.onWillChange != null) && (_latestModel != null)) {
-      widget.onWillChange!(_latestModel!, vm);
+      widget.onWillChange!(context, widget.store, _latestModel!, vm);
     }
 
     _latestModel = vm;
 
     if ((widget.onDidChange != null) && (_latestModel != null)) {
       WidgetsBinding.instance!.addPostFrameCallback((_) {
-        widget.onDidChange!(_latestModel!);
+        widget.onDidChange!(context, widget.store, _latestModel!);
       });
     }
 
