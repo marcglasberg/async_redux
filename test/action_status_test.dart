@@ -25,9 +25,9 @@ void main() {
 
     var actionA = MyAction(whenToThrow: When.before);
     store.dispatch(actionA);
-    expect(actionA.status!.isBeforeDone, false);
-    expect(actionA.status!.isReduceDone, false);
-    expect(actionA.status!.isAfterDone, true);
+    expect(actionA.status.isBeforeDone, false);
+    expect(actionA.status.isReduceDone, false);
+    expect(actionA.status.isAfterDone, true);
     expect(actionA.hasFinished, false);
   });
 
@@ -40,9 +40,9 @@ void main() {
 
     var actionA = MyAction(whenToThrow: When.reduce);
     store.dispatch(actionA);
-    expect(actionA.status!.isBeforeDone, true);
-    expect(actionA.status!.isReduceDone, false);
-    expect(actionA.status!.isAfterDone, true);
+    expect(actionA.status.isBeforeDone, true);
+    expect(actionA.status.isReduceDone, false);
+    expect(actionA.status.isAfterDone, true);
     expect(actionA.hasFinished, false);
   });
 
@@ -60,9 +60,9 @@ void main() {
     runZonedGuarded(() {
       var actionA = MyAction(whenToThrow: When.after);
       store.dispatch(actionA);
-      expect(actionA.status!.isBeforeDone, true);
-      expect(actionA.status!.isReduceDone, true);
-      expect(actionA.status!.isAfterDone, false);
+      expect(actionA.status.isBeforeDone, true);
+      expect(actionA.status.isReduceDone, true);
+      expect(actionA.status.isAfterDone, false);
       expect(actionA.hasFinished, false);
     }, (error, stackTrace) {
       hasThrown = true;
@@ -82,9 +82,9 @@ void main() {
 
     var actionA = MyAction(whenToThrow: null);
     store.dispatch(actionA);
-    expect(actionA.status!.isBeforeDone, true);
-    expect(actionA.status!.isReduceDone, true);
-    expect(actionA.status!.isAfterDone, true);
+    expect(actionA.status.isBeforeDone, true);
+    expect(actionA.status.isReduceDone, true);
+    expect(actionA.status.isAfterDone, true);
     expect(actionA.hasFinished, true);
   });
 

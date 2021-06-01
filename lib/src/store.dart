@@ -27,6 +27,11 @@ typedef DispatchFuture<St> = Future<void> Function(
   bool notify,
 });
 
+typedef DispatchFutureX<St> = FutureOr<ActionStatus> Function(
+  ReduxAction<St> action, {
+  bool notify,
+});
+
 // /////////////////////////////////////////////////////////////////////////////
 
 /// Creates a Redux store that holds the app state.
@@ -264,14 +269,17 @@ class Store<St> {
     _dispatch(action, notify: notify);
   }
 
-  Future<void> dispatchFuture(ReduxAction<St> action, {bool notify = true}) =>
+  Future<void> dispatchFuture(ReduxAction<St> action, {bool notify = true}) async =>
       _dispatch(action, notify: notify);
 
-  Future<void> _dispatch(ReduxAction<St> action, {required bool notify}) async {
+  FutureOr<ActionStatus> dispatchX(ReduxAction<St> action, {bool notify = true}) =>
+      _dispatch(action, notify: notify);
+
+  FutureOr<ActionStatus> _dispatch(ReduxAction<St> action, {required bool notify}) async {
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 
-    if (_shutdown || action.abortDispatch()) return;
+    if (_shutdown || action.abortDispatch()) return ActionStatus();
 
     _dispatchCount++;
 
@@ -311,7 +319,7 @@ class Store<St> {
   /// We check the return type of methods `before` and `reduce` to decide if the
   /// reducer is synchronous or asynchronous. It's important to run the reducer
   /// synchronously, if possible.
-  Future<void> _processAction(
+  FutureOr<ActionStatus> _processAction(
     ReduxAction<St> action, {
     bool notify = true,
   }) async {
@@ -327,21 +335,23 @@ class Store<St> {
     Object? result, originalError, processedError;
 
     try {
-      action._status = ActionStatus();
+      action._status._clear();
       result = action.before();
       if (result is Future) await result;
-      action._status!._isBeforeDone = true;
-      if (_shutdown) return;
+      action._status._isBeforeDone = true;
+      if (_shutdown) return action._status;
       result = _applyReducer(action, notify: notify);
       if (result is Future) await result;
-      action._status!._isReduceDone = true;
-      if (_shutdown) return;
-    } catch (error, stackTrace) {
+      action._status._isReduceDone = true;
+      if (_shutdown) return action._status;
+    }
+    //
+    catch (error, stackTrace) {
       originalError = error;
       processedError = _processError(error, stackTrace, action, afterWasRun);
       // Error is meant to be "swallowed".
       if (processedError == null)
-        return;
+        return action._status;
       // Error was not changed. Rethrows.
       else if (identical(processedError, error))
         rethrow;
@@ -351,9 +361,13 @@ class Store<St> {
       // This should be fixed when this issue is solved: https://github.com/dart-lang/sdk/issues/30741
       else
         throw processedError;
-    } finally {
+    }
+    //
+     finally {
       _finalize(action, originalError, processedError, afterWasRun);
     }
+
+    return action._status;
   }
 
   FutureOr<void> _applyReducer(ReduxAction<St> action, {bool notify = true}) {
@@ -506,7 +520,7 @@ class Store<St> {
   void _after(ReduxAction<St> action) {
     try {
       action.after();
-      action._status!._isAfterDone = true;
+      action._status._isAfterDone = true;
     } catch (error, stackTrace) {
       // After should never throw.
       // However, if it does, prints the error information to the console,
@@ -569,6 +583,12 @@ class ActionStatus {
   bool get isAfterDone => _isAfterDone;
 
   bool get isFinished => _isBeforeDone && _isReduceDone && _isAfterDone;
+
+  void _clear() {
+    _isBeforeDone = false;
+    _isReduceDone = false;
+    _isAfterDone = false;
+  }
 }
 
 // /////////////////////////////////////////////////////////////////////////////

@@ -12,26 +12,28 @@ part of async_redux_store;
 ///
 abstract class ReduxAction<St> {
   late Store<St> _store;
-  ActionStatus? _status;
+  final ActionStatus _status = ActionStatus();
 
   void setStore(Store<St> store) => _store = store;
 
   Store<St> get store => _store;
 
-  ActionStatus? get status => _status;
+  ActionStatus get status => _status;
 
   St get state => _store.state;
 
   /// Returns true only if the action finished with no errors.
   /// In other words, if the methods before, reduce and after all finished executing
   /// without throwing any errors.
-  bool get hasFinished => _status!.isFinished;
+  bool get hasFinished => _status.isFinished;
 
   DateTime get stateTimestamp => _store.stateTimestamp;
 
   Dispatch<St> get dispatch => _store.dispatch;
 
   DispatchFuture<St> get dispatchFuture => _store.dispatchFuture;
+
+  DispatchFutureX<St> get dispatchX => _store.dispatchX;
 
   /// This is an optional method that may be overridden to run during action
   /// dispatching, before `reduce`. If this method throws an error, the
