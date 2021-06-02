@@ -33,7 +33,7 @@ abstract class ReduxAction<St> {
 
   DispatchFuture<St> get dispatchFuture => _store.dispatchFuture;
 
-  DispatchFutureX<St> get dispatchX => _store.dispatchX;
+  DispatchX<St> get dispatchX => _store.dispatchX;
 
   /// This is an optional method that may be overridden to run during action
   /// dispatching, before `reduce`. If this method throws an error, the

@@ -132,6 +132,9 @@ class StoreTester<St> {
   Future<void> dispatchFuture(ReduxAction<St> action, {bool notify = true}) =>
       store.dispatchFuture(action, notify: notify);
 
+  FutureOr<ActionStatus> dispatchX(ReduxAction<St> action, {bool notify = true}) =>
+      store.dispatchX(action, notify: notify);
+
   void defineState(St state) => _store.defineState(state);
 
   /// Dispatches an action that changes the current state to the one provided by you.

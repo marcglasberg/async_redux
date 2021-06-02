@@ -154,6 +154,7 @@ abstract class VmFactory<St, T> {
 
   late final Store<St> _store;
   late final St _state;
+  late final DispatchX<St> _dispatchX;
   late final Dispatch<St> _dispatch;
   late final DispatchFuture<St> _dispatchFuture;
   late final UserException? Function() _getAndRemoveFirstError;
@@ -166,6 +167,7 @@ abstract class VmFactory<St, T> {
   void _setStore(St state, Store store) {
     _store = store as Store<St>;
     _state = state;
+    _dispatchX = store.dispatchX;
     _dispatch = store.dispatch;
     _dispatchFuture = store.dispatchFuture;
     _getAndRemoveFirstError = store.getAndRemoveFirstError;
@@ -178,6 +180,8 @@ abstract class VmFactory<St, T> {
   /// The current (most recent) store state.
   /// This will return the current state the store holds at the time the method is called.
   St currentState() => _store.state;
+
+  DispatchX<St> get dispatchX => _dispatchX;
 
   Dispatch<St> get dispatch => _dispatch;
 

@@ -27,7 +27,7 @@ typedef DispatchFuture<St> = Future<void> Function(
   bool notify,
 });
 
-typedef DispatchFutureX<St> = FutureOr<ActionStatus> Function(
+typedef DispatchX<St> = FutureOr<ActionStatus> Function(
   ReduxAction<St> action, {
   bool notify,
 });
