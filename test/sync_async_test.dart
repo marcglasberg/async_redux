@@ -34,7 +34,7 @@ class AppState {
   String toString() => text.toString();
 }
 
-List<AppState?>? states;
+late List<AppState?> states;
 
 void main() {
   /////////////////////////////////////////////////////////////////////////////
@@ -281,7 +281,7 @@ void main() {
 class Action1B extends ReduxAction<AppState> {
   @override
   AppState reduce() {
-    states!.add(state);
+    states.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -291,9 +291,9 @@ class Action1B extends ReduxAction<AppState> {
 class Action2B extends ReduxAction<AppState> {
   @override
   AppState reduce() {
-    states!.add(state);
+    states.add(state);
     dispatch(Action2C());
-    states!.add(state);
+    states.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -310,9 +310,9 @@ class Action2C extends ReduxAction<AppState> {
 class Action3B extends ReduxAction<AppState> {
   @override
   AppState reduce() {
-    states!.add(state);
+    states.add(state);
     dispatch(Action3C());
-    states!.add(state);
+    states.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -330,13 +330,13 @@ class Action3C extends ReduxAction<AppState> {
 class Action4B extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    states!.add(state);
+    states.add(state);
     await Future.delayed(const Duration(milliseconds: 100));
-    states!.add(state);
+    states.add(state);
     dispatch(Action4C());
-    states!.add(state);
+    states.add(state);
     await Future.delayed(const Duration(milliseconds: 200));
-    states!.add(state);
+    states.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -354,13 +354,13 @@ class Action4C extends ReduxAction<AppState> {
 class Action5B extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    states!.add(state);
+    states.add(state);
     await Future.delayed(const Duration(milliseconds: 100));
-    states!.add(state);
+    states.add(state);
     dispatch(Action5C());
-    states!.add(state);
+    states.add(state);
     await Future.delayed(const Duration(milliseconds: 50));
-    states!.add(state);
+    states.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -380,9 +380,9 @@ class Action6B extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     print('33333333333');
-    states!.add(state);
+    states.add(state);
     dispatch(Action6C());
-    states!.add(state);
+    states.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -392,7 +392,7 @@ class Action6C extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     await Future.value(null);
-    states!.add(state);
+    states.add(state);
     print('Action6C.reduce');
     return state.copy(state.text + 'C');
   }
@@ -404,9 +404,9 @@ class Action7B extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     await Future.value(null);
-    states!.add(state);
+    states.add(state);
     dispatch(Action7C());
-    states!.add(state);
+    states.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -414,9 +414,9 @@ class Action7B extends ReduxAction<AppState> {
 class Action7C extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    states!.add(state);
+    states.add(state);
     await Future.value(null);
-    states!.add(state);
+    states.add(state);
     return state.copy(state.text + 'C');
   }
 }
@@ -426,11 +426,11 @@ class Action7C extends ReduxAction<AppState> {
 class Action8B extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    states!.add(state);
+    states.add(state);
     dispatch(Action8C());
-    states!.add(state);
+    states.add(state);
     await Future.value(null);
-    states!.add(state);
+    states.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -439,7 +439,7 @@ class Action8C extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     await Future.value(null);
-    states!.add(state);
+    states.add(state);
     return state.copy(state.text + 'C');
   }
 }
@@ -449,13 +449,13 @@ class Action8C extends ReduxAction<AppState> {
 class Action9B extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    states!.add(state);
+    states.add(state);
     await Future.value(null);
-    states!.add(state);
+    states.add(state);
     dispatch(Action9C());
-    states!.add(state);
+    states.add(state);
     await Future.value(null);
-    states!.add(state);
+    states.add(state);
     return state.copy(state.text + 'B');
   }
 }
@@ -464,7 +464,7 @@ class Action9C extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     await Future.value(null);
-    states!.add(state);
+    states.add(state);
     return state.copy(state.text + 'C');
   }
 }

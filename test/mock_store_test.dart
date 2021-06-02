@@ -141,7 +141,9 @@ void main() {
       error = _error;
     }
 
+    expect(error, isNotNull);
     expect(error, const TypeMatcher<StoreException>());
+
     expect(
         error.toString(),
         "Action of type `MyAction1` can't be mocked by a mock of type `int`.\n"

@@ -154,9 +154,7 @@ abstract class VmFactory<St, T> {
 
   late final Store<St> _store;
   late final St _state;
-  late final DispatchX<St> _dispatchX;
   late final Dispatch<St> _dispatch;
-  late final DispatchFuture<St> _dispatchFuture;
   late final UserException? Function() _getAndRemoveFirstError;
 
   /// You need to pass the connector widget only if the view-model needs any info from it.
@@ -167,9 +165,7 @@ abstract class VmFactory<St, T> {
   void _setStore(St state, Store store) {
     _store = store as Store<St>;
     _state = state;
-    _dispatchX = store.dispatchX;
     _dispatch = store.dispatch;
-    _dispatchFuture = store.dispatchFuture;
     _getAndRemoveFirstError = store.getAndRemoveFirstError;
   }
 
@@ -181,11 +177,7 @@ abstract class VmFactory<St, T> {
   /// This will return the current state the store holds at the time the method is called.
   St currentState() => _store.state;
 
-  DispatchX<St> get dispatchX => _dispatchX;
-
   Dispatch<St> get dispatch => _dispatch;
-
-  DispatchFuture<St> get dispatchFuture => _dispatchFuture;
 
   UserException? getAndRemoveFirstError() => _getAndRemoveFirstError();
 }
@@ -226,7 +218,6 @@ abstract class BaseModel<St> {
   void _setStore(St state, Store store) {
     _state = state;
     _dispatch = store.dispatch;
-    _dispatchFuture = store.dispatchFuture;
     _getAndRemoveFirstError = store.getAndRemoveFirstError;
   }
 
@@ -251,7 +242,6 @@ abstract class BaseModel<St> {
 
   late St _state;
   Dispatch<St>? _dispatch;
-  DispatchFuture<St>? _dispatchFuture;
   UserException? Function()? _getAndRemoveFirstError;
 
   BaseModel fromStore();
@@ -259,8 +249,6 @@ abstract class BaseModel<St> {
   St get state => _state;
 
   Dispatch<St>? get dispatch => _dispatch;
-
-  DispatchFuture<St>? get dispatchFuture => _dispatchFuture;
 
   UserException? Function()? get getAndRemoveFirstError => //
       _getAndRemoveFirstError;

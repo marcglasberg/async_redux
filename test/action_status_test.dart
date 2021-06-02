@@ -28,7 +28,7 @@ void main() {
     expect(actionA.status.isBeforeDone, false);
     expect(actionA.status.isReduceDone, false);
     expect(actionA.status.isAfterDone, true);
-    expect(actionA.hasFinished, false);
+    expect(actionA.isFinished, false);
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -43,7 +43,7 @@ void main() {
     expect(actionA.status.isBeforeDone, true);
     expect(actionA.status.isReduceDone, false);
     expect(actionA.status.isAfterDone, true);
-    expect(actionA.hasFinished, false);
+    expect(actionA.isFinished, false);
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -63,7 +63,7 @@ void main() {
       expect(actionA.status.isBeforeDone, true);
       expect(actionA.status.isReduceDone, true);
       expect(actionA.status.isAfterDone, false);
-      expect(actionA.hasFinished, false);
+      expect(actionA.isFinished, false);
     }, (error, stackTrace) {
       hasThrown = true;
       expect(error, const UserException("During after"));
@@ -85,7 +85,7 @@ void main() {
     expect(actionA.status.isBeforeDone, true);
     expect(actionA.status.isReduceDone, true);
     expect(actionA.status.isAfterDone, true);
-    expect(actionA.hasFinished, true);
+    expect(actionA.isFinished, true);
   });
 
   /////////////////////////////////////////////////////////////////////////////

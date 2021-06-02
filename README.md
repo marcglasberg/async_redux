@@ -75,7 +75,8 @@ Medium story</a>.
 
 A single **store** holds all the **state**, which is immutable. When you need to modify some state
 you **dispatch** an **action**. Then a **reducer** creates a new copy of the state, with the desired
-changes. Your widgets are **connected** to the store (through **store-connectors** and **view-models**), so they know that the state changed, and rebuild as needed.
+changes. Your widgets are **connected** to the store (through **store-connectors** and **
+view-models**), so they know that the state changed, and rebuild as needed.
 
 <br>
 
@@ -169,7 +170,7 @@ The reducer has direct access to:
 
 ### Sync Reducer
 
-If you want to do some synchronous work, simply declare the reducer to return `AppState`, then
+If you want to do some synchronous work, simply declare the reducer to return `AppState?`, then
 change the state and return it.
 
 For example, let's start with a simple action to increment a counter by some value:
@@ -182,7 +183,7 @@ class IncrementAction extends ReduxAction<AppState> {
   IncrementAction({this.amount});
 
   @override
-  AppState reduce() {
+  AppState? reduce() {
 	return state.copy(counter: state.counter + amount));
   }
 }
@@ -207,7 +208,7 @@ Increment Example</a>.
 
 ### Async Reducer
 
-If you want to do some asynchronous work, simply declare the reducer to return `Future<AppState>`
+If you want to do some asynchronous work, simply declare the reducer to return `Future<AppState?>`
 then change the state and return it. There is no need of any "middleware", like for other Redux
 versions.
 
@@ -221,7 +222,7 @@ database access is async, so you must use an async reducer:
 class QueryAndIncrementAction extends ReduxAction<AppState> {
 
   @override
-  Future<AppState> reduce() async {
+  Future<AppState?> reduce() async {
 	int value = await getAmount();
 	return state.copy(counter: state.counter + value));
   }
@@ -246,15 +247,15 @@ Increment Async Example</a>.
 
 #### One important rule
 
-The abstract `ReduxAction.reduce()` method signature has a return type of `FutureOr<AppState>`, but
-your concrete reducers must return one or the other: `AppState` or `Future<AppState>`.
+The abstract `ReduxAction.reduce()` method signature has a return type of `FutureOr<AppState?>`, but
+your concrete reducers must return one or the other: `AppState?` or `Future<AppState?>`.
 
 That's necessary because AsyncRedux knows if a reducer is sync or async not by checking the returned
-type, but by checking your `reducer()` method signature. If it is `FutureOr<AppState>`, AsyncRedux
+type, but by checking your `reducer()` method signature. If it is `FutureOr<AppState?>`, AsyncRedux
 can't know if it's sync or async, and will throw a `StoreException`:
 
 ```
-Reducer should return `St` or `Future<St>`. Do not return `FutureOr<St>`.
+Reducer should return `St?` or `Future<St?>`. Do not return `FutureOr<St?>`.
 ```
 
 <br>
@@ -403,7 +404,7 @@ bool abortDispatch() => state.user.name == null;
 
 #### Action status
 
-Although is unlikely you ever need it, you can check if some action finished executing its
+Although it's unlikely you'll ever need it, you can check if some action finished executing its
 methods `before`, `reduce` and `after`:
 
 ```       
@@ -412,12 +413,39 @@ store.dispatch(action);
 print(action.status.isBeforeDone);
 print(action.status.isReduceDone);
 print(action.status.isAfterDone);
-print(action.hasFinished);
+print(action.status.isFinished);
+print(action.isFinished);
 ```
 
-Method `hasFinished` returns `true` only if the action finished with no errors
-(in other words, if methods `before`, `reduce` and `after` all finished executing without throwing
-any errors).
+Method `isFinished` returns `true` only if the action finished with no errors (in other words, if
+methods `before`, `reduce` and `after` all finished executing without throwing any errors).
+
+A bit more useful is getting this information through the `dispatch` method:
+
+```       
+var status = await store.dispatch(MyAction());
+print(status.isFinished);
+```
+
+For example, suppose you want to save some info, and you want to leave the current screen if
+and only if the save process succeeds. Your `SaveAction` may look like this:
+
+```                                      
+class SaveAction extends ReduxAction<AppState> {      
+  Future<AppState> reduce() async {
+    bool isSaved = await saveMyInfo(); 
+    if (!isSaved) throw UserException("Save failed.");	 
+    ...
+  }
+}
+```
+
+Then, you may write:
+
+```
+var status = await dispatch(SaveAction(info));
+if (status.isFinished) Navigator.pop(context); // Or: dispatch(NavigateAction.pop()) 
+```              
 
 #### What's the order of execution of sync and async reducers?
 
@@ -433,27 +461,23 @@ dispatch(MyAction1());
 dispatch(MyAction2());
 ```
 
-When you dispatch an **async** reducer with `dispatch` it starts immediately, but there is really no
-way of knowing when it finishes, because it depends on how long the async code takes to run, which
-depends on the async code itself, not AsyncRedux.
-
-Dispatching an async reducer with dispatch is like starting any other async processes without
-writing `await`. The process will start, but you are not waiting for it to finish. For example, this
-code will start both `MyAsyncAction1` and `MyAsyncAction2`, but is says nothing about how long they
-will take or which one finishes first:
+Dispatching an async reducer without writing `await` is like starting any other async processes
+without writing `await`. The process will start immediately, but you are not waiting for it to
+finish. For example, this code will start both `MyAsyncAction1` and `MyAsyncAction2`, but is says
+nothing about how long they will take or which one finishes first:
 
 ```
 dispatch(MyAsyncAction1()); 
 dispatch(MyAsyncAction2());
 ```
 
-If you want to wait for some async action to finish, you must dispatch it with `dispatchFuture`
-instead of dispatch. Then you can actually wait for it to finish. For example, this code will wait
-until `MyAsyncAction1` is finished, and only then run `MyAsyncAction2`:
+If you want to wait for some async action to finish, you must write `await dispatch(...)`
+instead of simply `dispatch(...)`. Then you can actually wait for it to finish. For example, this
+code will wait until `MyAsyncAction1` is finished, and only then run `MyAsyncAction2`:
 
 ```      
-await dispatchFuture(MyAsyncAction1()); 
-await dispatchFuture(MyAsyncAction2());
+await dispatch(MyAsyncAction1()); 
+await dispatch(MyAsyncAction2());
 ```
 
 <br>
@@ -590,8 +614,8 @@ should be provided in the `StoreConnector` constructor:
      }
    ```   
 
-   AsyncRedux will automatically inject `state`, `currentState()`, `dispatch()` and
-   `dispatchFuture()`  into your model instance, so that boilerplate is reduced in your `fromStore`
+   AsyncRedux will automatically inject `state`, `currentState()` and `dispatch()` into your model
+   instance, so that boilerplate is reduced in your `fromStore`
    method. For example:
 
    ```
@@ -762,7 +786,6 @@ providing a `notify: false` when dispatching:
 
 ```
 dispatch(MyAction1(), notify: false); 
-dispatchFuture(MyAction2(), notify: false);
 ```
 
 <br>
@@ -778,10 +801,6 @@ from inside of your widgets (for example in the `build` method):
 ```
 /// Dispatch an action without a StoreConnector.
 StoreProvider.dispatch<AppState>(context, MyAction());
-
-/// Dispatch an action without a StoreConnector,
-/// and get a `Future<void>` which completes when the action is done.
-StoreProvider.dispatchFuture<AppState>(context, MyAction());
 
 /// Get the state, without a StoreConnector.
 AppState state = StoreProvider.state<AppState>(context); 
@@ -1904,13 +1923,12 @@ documentation</a> for more information.
 In a real Flutter app it's also the case that some Widgets ask for futures that complete when some
 async process is done.
 
-If instead of `dispatch()` you use `dispatchFuture()`, it will return you a `Future<void>` that
-completes as soon as the action is done.
+The `dispatch()` function returns a future which completes as soon as the action is done.
 
 This is an example using the `RefreshIndicator` widget:
 
 ```
-Future<void> downloadStuff() => dispatchFuture(DownloadStuffAction());
+Future<void> downloadStuff() => dispatch(DownloadStuffAction());
 
 return RefreshIndicator(
     onRefresh: downloadStuff;

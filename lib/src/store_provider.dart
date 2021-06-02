@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 
@@ -16,7 +18,7 @@ class StoreProvider<St> extends InheritedWidget {
     Key? key,
     required Store<St> store,
     required Widget child,
-  })   : _store = store,
+  })  : _store = store,
         super(key: key, child: child);
 
   static Store<St> of<St>(BuildContext context, Object? debug) {
@@ -32,23 +34,14 @@ class StoreProvider<St> extends InheritedWidget {
     return provider._store;
   }
 
-  /// Dispatch an action without a StoreConnector.
-  static void dispatch<St>(
-    BuildContext context,
-    ReduxAction<St> action, {
-    Object? debug,
-  }) {
-    of<St>(context, debug).dispatch(action);
-  }
-
   /// Dispatch an action without a StoreConnector,
   /// and get a `Future<void>` which completes when the action is done.
-  static Future<void> dispatchFuture<St>(
+  static FutureOr<ActionStatus> dispatch<St>(
     BuildContext context,
     ReduxAction<St> action, {
     Object? debug,
-  }) async =>
-      of<St>(context, debug).dispatchFuture(action);
+  }) =>
+      of<St>(context, debug).dispatch(action);
 
   /// Get the state, without a StoreConnector.
   static St? state<St>(BuildContext context, {Object? debug}) => //

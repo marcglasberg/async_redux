@@ -25,15 +25,14 @@ abstract class ReduxAction<St> {
   /// Returns true only if the action finished with no errors.
   /// In other words, if the methods before, reduce and after all finished executing
   /// without throwing any errors.
+  bool get isFinished => _status.isFinished;
+
+  @Deprecated("Use `isFinished` instead. This will be removed soon.")
   bool get hasFinished => _status.isFinished;
 
   DateTime get stateTimestamp => _store.stateTimestamp;
 
   Dispatch<St> get dispatch => _store.dispatch;
-
-  DispatchFuture<St> get dispatchFuture => _store.dispatchFuture;
-
-  DispatchX<St> get dispatchX => _store.dispatchX;
 
   /// This is an optional method that may be overridden to run during action
   /// dispatching, before `reduce`. If this method throws an error, the

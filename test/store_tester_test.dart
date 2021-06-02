@@ -184,10 +184,10 @@ void main() {
       invocations += 1;
     });
 
-    await storeTester.dispatchFuture(Action1());
-    await storeTester.dispatchFuture(Action2());
-    await storeTester.dispatchFuture(Action3());
-    await storeTester.dispatchFuture(Action4());
+    await storeTester.dispatch(Action1());
+    await storeTester.dispatch(Action2());
+    await storeTester.dispatch(Action3());
+    await storeTester.dispatch(Action4());
 
     expect(invocations, 4);
     expect(storeTester.state.text, "0,1,2,3,4");
@@ -201,10 +201,10 @@ void main() {
       invocations += 1;
     });
 
-    await storeTester.dispatchFuture(Action1(), notify: false);
-    await storeTester.dispatchFuture(Action2(), notify: false);
-    await storeTester.dispatchFuture(Action3(), notify: false);
-    await storeTester.dispatchFuture(Action4(), notify: true);
+    await storeTester.dispatch(Action1(), notify: false);
+    await storeTester.dispatch(Action2(), notify: false);
+    await storeTester.dispatch(Action3(), notify: false);
+    await storeTester.dispatch(Action4(), notify: true);
 
     expect(invocations, 1);
     expect(storeTester.state.text, "0,1,2,3,4");

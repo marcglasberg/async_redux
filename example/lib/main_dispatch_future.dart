@@ -10,8 +10,8 @@ late Store<AppState> store;
 
 /// This example shows a List of number descriptions.
 /// Scrolling to the bottom of the list will async load the next 20 elements.
-/// Scrolling past the top of the list (pull to refresh) will use `dispatchFuture`
-/// to dispatch an action, and get a `Future<void>` that tells a `RefreshIndicator`
+/// Scrolling past the top of the list (pull to refresh) will use `dispatch`
+/// to dispatch an action, and get a future that tells a `RefreshIndicator`
 /// when the action completes.
 ///
 /// `IsLoadingAction` prevents the user to load more while the async loading action is running.
@@ -153,7 +153,7 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
       numTrivia: state.numTrivia,
       isLoading: state.isLoading,
       loadMore: () => dispatch(LoadMoreAction()),
-      onRefresh: () => dispatchFuture(RefreshAction()),
+      onRefresh: () => dispatch(RefreshAction()),
     );
   }
 }

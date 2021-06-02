@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Action;
@@ -126,14 +127,8 @@ class StoreTester<St> {
     return store as MockStore<St>;
   }
 
-  void dispatch(ReduxAction<St> action, {bool notify = true}) =>
+  FutureOr<ActionStatus> dispatch(ReduxAction<St> action, {bool notify = true}) =>
       store.dispatch(action, notify: notify);
-
-  Future<void> dispatchFuture(ReduxAction<St> action, {bool notify = true}) =>
-      store.dispatchFuture(action, notify: notify);
-
-  FutureOr<ActionStatus> dispatchX(ReduxAction<St> action, {bool notify = true}) =>
-      store.dispatchX(action, notify: notify);
 
   void defineState(St state) => _store.defineState(state);
 

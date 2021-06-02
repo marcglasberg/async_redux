@@ -17,17 +17,7 @@ part 'redux_action.dart';
 
 typedef Reducer<St> = FutureOr<St?> Function();
 
-typedef Dispatch<St> = void Function(
-  ReduxAction<St> action, {
-  bool notify,
-});
-
-typedef DispatchFuture<St> = Future<void> Function(
-  ReduxAction<St> action, {
-  bool notify,
-});
-
-typedef DispatchX<St> = FutureOr<ActionStatus> Function(
+typedef Dispatch<St> = Future<ActionStatus> Function(
   ReduxAction<St> action, {
   bool notify,
 });
@@ -265,17 +255,10 @@ class Store<St> {
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: store.dispatch is of type Dispatch.
-  void dispatch(ReduxAction<St> action, {bool notify = true}) {
-    _dispatch(action, notify: notify);
-  }
-
-  Future<void> dispatchFuture(ReduxAction<St> action, {bool notify = true}) async =>
+  Future<ActionStatus> dispatch(ReduxAction<St> action, {bool notify = true}) =>
       _dispatch(action, notify: notify);
 
-  FutureOr<ActionStatus> dispatchX(ReduxAction<St> action, {bool notify = true}) =>
-      _dispatch(action, notify: notify);
-
-  FutureOr<ActionStatus> _dispatch(ReduxAction<St> action, {required bool notify}) async {
+  Future<ActionStatus> _dispatch(ReduxAction<St> action, {required bool notify}) async {
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 

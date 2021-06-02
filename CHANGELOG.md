@@ -1,3 +1,33 @@
+# [11.0.0] - 2021/06/02
+
+* Breaking change: The `dispatchFuture` function is not necessary anymore. Just rename it
+  to `dispatch`, since now the `dispatch` function always returns a future, and you can await it or
+  not, as desired.
+
+* Breaking change: `ReduxAction.hasFinished()` has been renamed to `isFinished`.
+
+* The `dispatch` function now returns an `ActionStatus`. Usually you will discard this info, but you
+  may use it to know if the action completed with no errors. For example, suppose a `SaveAction`
+  looks like this:
+
+  ```                                      
+  class SaveAction extends ReduxAction<AppState> {      
+    Future<AppState> reduce() async {
+	  bool isSaved = await saveMyInfo(); 
+      if (!isSaved) throw UserException("Save failed.");	 
+	  ...
+    }
+  }
+  ```
+
+  Then, when you save some info, you want to leave the current screen if and only if the save
+  process succeeded:
+
+  ```
+  var status = await dispatch(SaveAction(info));
+  if (status.isFinished) dispatch(NavigateAction.pop()); // Or: Navigator.pop(context) 
+  ```              
+
 # [10.0.1] - 2021/05/15
 
 * Breaking change: The new `UserExceptionDialog.useLocalContext` parameter now allows
@@ -117,7 +147,7 @@ type, but by checking your `reducer()` method signature. If it is `FutureOr<AppS
 can't know if it's sync or async, and will throw a `StoreException`:
 
 ```
-Reducer should return `St` or `Future<St>`. Do not return `FutureOr<St>`.
+Reducer should return `St?` or `Future<St?>`. Do not return `FutureOr<St?>`.
 ```
 
 <br>
@@ -248,7 +278,7 @@ then override the `VmEquals.vmEquals()` method to provide your custom comparison
 * MockStore (still experimental, in `mock_store.dart`), lets you mock or disable actions/reducers
   during tests.
   (See section `Mocking actions and reducers` in README.md).
-* ReduxAction.status and ReduxAction.hasFinished. (Search for "Action status" in README.md).
+* ReduxAction.status and ReduxAction.isFinished. (Search for "Action status" in README.md).
 * ReduxAction.reduceWithState deprecated (will be removed).
 
 ## [2.11.1] - 2020/06/12

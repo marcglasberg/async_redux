@@ -70,27 +70,16 @@ class MockStore<St> extends Store<St> {
   }
 
   @override
-  void dispatch(ReduxAction<St> action, {bool notify = true}) {
-    ReduxAction<St>? _action = _getMockedAction(action);
-    if (_action != null) super.dispatch(_action, notify: notify);
-  }
-
-  @override
-  Future<void> dispatchFuture(
+  Future<ActionStatus> dispatch(
     ReduxAction<St> action, {
     bool notify = true,
-  }) async {
+  }) {
     ReduxAction<St>? _action = _getMockedAction(action);
-    return (_action == null) ? null : super.dispatchFuture(_action, notify: notify);
-  }
 
-  @override
-  FutureOr<ActionStatus> dispatchX(
-    ReduxAction<St> action, {
-    bool notify = true,
-  }) async {
-    ReduxAction<St>? _action = _getMockedAction(action);
-    return (_action == null) ? ActionStatus() : super.dispatchX(_action, notify: notify);
+    if (_action == null)
+      return Future.value(ActionStatus());
+    else
+      return super.dispatch(_action, notify: notify);
   }
 
   ReduxAction<St>? _getMockedAction(ReduxAction<St> action) {
@@ -137,7 +126,7 @@ class MockStore<St> extends Store<St> {
       else
         throw StoreException("Action of type `${action.runtimeType}` "
             "can't be mocked by a mock of type "
-            "`${(mock as Object).runtimeType}`.\n"
+            "`${mock.runtimeType}`.\n"
             "Valid mock types are:\n"
             "`null`\n"
             "`MockAction<St>`\n"
