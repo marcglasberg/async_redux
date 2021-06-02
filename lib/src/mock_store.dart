@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:async_redux/async_redux.dart';
 
 // Developed by Marcelo Glasberg (Aug 2019).
@@ -81,6 +82,15 @@ class MockStore<St> extends Store<St> {
   }) async {
     ReduxAction<St>? _action = _getMockedAction(action);
     return (_action == null) ? null : super.dispatchFuture(_action, notify: notify);
+  }
+
+  @override
+  FutureOr<ActionStatus> dispatchX(
+    ReduxAction<St> action, {
+    bool notify = true,
+  }) async {
+    ReduxAction<St>? _action = _getMockedAction(action);
+    return (_action == null) ? ActionStatus() : super.dispatchX(_action, notify: notify);
   }
 
   ReduxAction<St>? _getMockedAction(ReduxAction<St> action) {
