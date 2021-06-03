@@ -389,24 +389,6 @@ Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
 };
 ```
 
-#### VoidCallback to dispatch an action
-
-The `onDispatch` method can be used instead of `() => dispatch(...)`, whenever you need
-a `VoidCallback` to dispatch an action in a view-model.
-
-However, note `onDispatch` will create the action object when the view-model is created, and then
-reuse it if the callback is called more than once.
-
-Compare:
-
-```
-// Creates the action object each time the callback is called, but only if necessary.
-onIncrement: () => dispatch(IncrementAction(amount: 1)),
-
-// Creates the action object once, each time the view-model is created, even if the callback will not be used.
-onIncrement: onDispatch(IncrementAction(amount: 1)),
-```
-
 #### Aborting the dispatch
 
 You may override the action's `abortDispatch` to completely prevent the action to run if some

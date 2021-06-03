@@ -180,22 +180,6 @@ abstract class VmFactory<St, T> {
   /// Dispatch an action, possibly changing the store state.
   Dispatch<St> get dispatch => _dispatch;
 
-  /// VoidCallback to dispatch an action, possibly changing the store state.
-  /// This can be used instead of `() => dispatch(...)`, but beware it will create the action
-  /// object when the view model is created, and then reuse the callback. Compare:
-  ///
-  /// ```
-  /// // Creates the action object each time the callback is called, but only if necessary.
-  /// onIncrement: () => dispatch(IncrementAction(amount: 1)),
-  ///
-  /// // Creates the action object once, each time the view-model is created, even if the callback will not be used.
-  /// onIncrement: onDispatch(IncrementAction(amount: 1)),
-  /// ```
-  ///
-  Future<ActionStatus> Function() Function(ReduxAction<St> action) get onDispatch => _onDispatch;
-
-  Future<ActionStatus> Function() _onDispatch(ReduxAction<St> action) => () => dispatch(action);
-
   UserException? getAndRemoveFirstError() => _getAndRemoveFirstError();
 }
 
