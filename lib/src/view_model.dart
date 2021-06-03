@@ -181,15 +181,14 @@ abstract class VmFactory<St, T> {
   Dispatch<St> get dispatch => _dispatch;
 
   /// VoidCallback to dispatch an action, possibly changing the store state.
-  /// This is simply a syntactic sugar for `() => dispatch(...)`
+  /// This can be used instead of `() => dispatch(...)`, but beware it will create the action
+  /// object when the view model is created, and then reuse the callback. Compare:
   ///
-  /// For example, instead of:
   /// ```
+  /// // Creates the action object each time the callback is called, but only if necessary.
   /// onIncrement: () => dispatch(IncrementAction(amount: 1)),
-  /// ```
   ///
-  /// One may write:
-  /// ```
+  /// // Creates the action object once, each time the view-model is created, even if the callback will not be used.
   /// onIncrement: onDispatch(IncrementAction(amount: 1)),
   /// ```
   ///
