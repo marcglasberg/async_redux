@@ -389,6 +389,21 @@ Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
 };
 ```
 
+#### VoidCallback to dispatch an action
+
+The `onDispatch` method is a simple syntactic sugar for `() => dispatch(...)`
+Whenever you need a `VoidCallback` to dispatch an action, like:
+
+```
+onIncrement: () => dispatch(IncrementAction(amount: 1)),
+```
+
+You may instead write:
+
+```
+onIncrement: onDispatch(IncrementAction(amount: 1)),
+```
+
 #### Aborting the dispatch
 
 You may override the action's `abortDispatch` to completely prevent the action to run if some
@@ -427,8 +442,8 @@ var status = await store.dispatch(MyAction());
 print(status.isFinished);
 ```
 
-For example, suppose you want to save some info, and you want to leave the current screen if
-and only if the save process succeeds. Your `SaveAction` may look like this:
+For example, suppose you want to save some info, and you want to leave the current screen if and
+only if the save process succeeds. Your `SaveAction` may look like this:
 
 ```                                      
 class SaveAction extends ReduxAction<AppState> {      

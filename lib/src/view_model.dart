@@ -177,7 +177,25 @@ abstract class VmFactory<St, T> {
   /// This will return the current state the store holds at the time the method is called.
   St currentState() => _store.state;
 
+  /// Dispatch an action, possibly changing the store state.
   Dispatch<St> get dispatch => _dispatch;
+
+  /// VoidCallback to dispatch an action, possibly changing the store state.
+  /// This is simply a syntactic sugar for `() => dispatch(...)`
+  ///
+  /// For example, instead of:
+  /// ```
+  /// onIncrement: () => dispatch(IncrementAction(amount: 1)),
+  /// ```
+  ///
+  /// One may write:
+  /// ```
+  /// onIncrement: onDispatch(IncrementAction(amount: 1)),
+  /// ```
+  ///
+  Future<ActionStatus> Function() Function(ReduxAction<St> action) get onDispatch => _onDispatch;
+
+  Future<ActionStatus> Function() _onDispatch(ReduxAction<St> action) => () => dispatch(action);
 
   UserException? getAndRemoveFirstError() => _getAndRemoveFirstError();
 }

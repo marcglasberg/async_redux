@@ -67,6 +67,8 @@ class Factory extends VmFactory<int, MyHomePageConnector> {
   @override
   ViewModel fromStore() => ViewModel(
         counter: state,
+        //
+        // This can also be written as: `onIncrement: onDispatch(IncrementAction(amount: 1)),`
         onIncrement: () => dispatch(IncrementAction(amount: 1)),
       );
 }

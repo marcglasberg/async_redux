@@ -27,6 +27,18 @@
   var status = await dispatch(SaveAction(info));
   if (status.isFinished) dispatch(NavigateAction.pop()); // Or: Navigator.pop(context) 
   ```              
+               
+*  Now, whenever you need a VoidCallback to dispatch an action, like:
+   
+   ```
+   onIncrement: () => dispatch(IncrementAction(amount: 1)),
+   ```
+   
+   You may instead write:
+   
+   ```
+   onIncrement: onDispatch(IncrementAction(amount: 1)),
+   ```
 
 # [10.0.1] - 2021/05/15
 
