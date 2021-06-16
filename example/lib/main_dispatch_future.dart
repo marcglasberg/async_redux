@@ -81,7 +81,7 @@ class MyApp extends StatelessWidget {
 
 class LoadMoreAction extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     Response response = await get(Uri.http(
         'http://numbersapi.com/',
         '${state.numTrivia!.length}'
@@ -103,7 +103,7 @@ class LoadMoreAction extends ReduxAction<AppState, AppEnvironment> {
 
 class RefreshAction extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     Response response = await get(Uri.http('http://numbersapi.com/', '0..19'));
     List<String> list = [];
     Map<String, dynamic> map = jsonDecode(response.body);
@@ -124,7 +124,7 @@ class IsLoadingAction extends ReduxAction<AppState, AppEnvironment> {
   final bool val;
 
   @override
-  AppState reduce({required AppEnvironment environment}) => state.copy(isLoading: val);
+  AppState reduce() => state.copy(isLoading: val);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

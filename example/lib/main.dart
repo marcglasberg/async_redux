@@ -41,7 +41,7 @@ class IncrementAction extends ReduxAction<int, AppEnvironment> {
   IncrementAction({required this.amount});
 
   @override
-  int reduce({required AppEnvironment environment}) => state + (amount * environment.multiplier);
+  int reduce() => state + (amount * environment.multiplier);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

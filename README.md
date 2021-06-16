@@ -275,7 +275,7 @@ database, and another action to change the state:
 class QueryAction extends ReduxAction<AppState, AppEnvironment> {
 
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     int value = await getAmount();
     dispatch(IncrementAction(amount: value));
     return null;
@@ -289,7 +289,7 @@ class IncrementAction extends ReduxAction<AppState, AppEnvironment> {
   IncrementAction({this.amount});
 
   @override
-  AppState reduce({required AppEnvironment environment}) {
+  AppState reduce() {
     return state.copy(counter: state.counter + amount));
   }
 }
@@ -360,7 +360,7 @@ Complete example:
 class IncrementAndGetDescriptionAction extends ReduxAction<AppState, AppEnvironment> {
 
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
 	dispatch(IncrementAction());
 	String description = await read(Uri.http("numbersapi.com","${state.counter}");
 	return state.copy(description: description);
@@ -432,7 +432,7 @@ only if the save process succeeds. Your `SaveAction` may look like this:
 
 ```                                      
 class SaveAction extends ReduxAction<AppState, AppEnvironment> {      
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     bool isSaved = await saveMyInfo(); 
     if (!isSaved) throw UserException("Save failed.");	 
     ...
@@ -837,7 +837,7 @@ then deletes the database and sets the store to its initial state:
 ```
 class LogoutAction extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
 	await checkInternetConnection();
 	await deleteDatabase();
 	dispatch(NavigateToLoginScreenAction());
@@ -894,7 +894,7 @@ The solution is implementing the optional `wrapError(error)` method:
 class LogoutAction extends ReduxAction<AppState, AppEnvironment> {
 
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async { ... }
+  Future<AppState> reduce() async { ... }
 
   @override
   Object wrapError(error)
@@ -949,7 +949,7 @@ class SaveUserAction extends ReduxAction<AppState, AppEnvironment> {
    SaveUserAction(this.name);
 
    @override
-   Future<AppState> reduce({required AppEnvironment environment}) async {
+   Future<AppState> reduce() async {
 	 if (name.length < 4) dispatch(ShowDialogAction("Name must have at least 4 letters."));
 	 else await saveUser(name);
 	 return null;
@@ -969,7 +969,7 @@ class SaveUserAction extends ReduxAction<AppState, AppEnvironment> {
    SaveUserAction(this.name);
 
    @override
-   Future<AppState> reduce({required AppEnvironment environment}) async {
+   Future<AppState> reduce() async {
 	 if (name.length < 4) throw UserException("Name must have at least 4 letters.");
 	 await saveName(name);
 	 return null;
@@ -1316,11 +1316,11 @@ There are 5 different ways to define mocks:
     class MyAction extends ReduxAction<AppState, AppEnvironment> {
       String url;
       MyAction(this.url);
-      Future<AppState> reduce({required AppEnvironment environment}) => get(url);
+      Future<AppState> reduce() => get(url);
     }      
 
     class MyMockAction extends MockAction<AppState, AppEnvironment> {  
-      Future<AppState> reduce({required AppEnvironment environment}) async {                  
+      Future<AppState> reduce() async {                  
         String url = (action as MyAction).url;
         if (url == 'http://example.com') return 123;
         else if (url == 'http://flutter.io') return 345;
@@ -1341,11 +1341,11 @@ There are 5 different ways to define mocks:
     class MyAction extends ReduxAction<AppState, AppEnvironment> {
       String url;            
       MyAction(this.url);
-      Future<AppState> reduce({required AppEnvironment environment}) => get(url);
+      Future<AppState> reduce() => get(url);
     }
     
     class MyMockAction extends ReduxAction<AppState, AppEnvironment> {  
-      Future<AppState> reduce({required AppEnvironment environment}) async => 123;
+      Future<AppState> reduce() async => 123;
     }
     ```
 
@@ -1361,13 +1361,13 @@ There are 5 different ways to define mocks:
     class MyAction extends ReduxAction<AppState, AppEnvironment> {
       String url;        
       MyAction(this.url);
-      Future<AppState> reduce({required AppEnvironment environment}) => get(url);
+      Future<AppState> reduce() => get(url);
     }
     
     class MyMockAction extends MockAction<AppState, AppEnvironment> {
       String url;
       MyMockAction(this.url);  
-      Future<AppState> reduce({required AppEnvironment environment}) async {                     
+      Future<AppState> reduce() async {                     
         if (url == 'http://example.com') return 123;
         else if (url == 'http://flutter.io') return 345;
         else return 678;
@@ -1389,7 +1389,7 @@ There are 5 different ways to define mocks:
     class MyAction extends ReduxAction<AppState, AppEnvironment> {
       String url;        
       MyAction(this.url);
-      Future<AppState> reduce({required AppEnvironment environment}) => get(url);
+      Future<AppState> reduce() => get(url);
     }
     ```
 
@@ -1649,7 +1649,7 @@ class ViewModel extends BaseModel<AppState> {
 
 class ClearTextAction extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) => state.copy(changeTextEvt: Event());
+  AppState reduce() => state.copy(changeTextEvt: Event());
 }
 
 class ChangeTextAction extends ReduxAction<AppState, AppEnvironment> {
@@ -1657,7 +1657,7 @@ class ChangeTextAction extends ReduxAction<AppState, AppEnvironment> {
   ChangeTextAction(this.newText);
 
   @override
-  AppState reduce({required AppEnvironment environment}) => state.copy(changeTextEvt: Event<String>(newText));
+  AppState reduce() => state.copy(changeTextEvt: Event<String>(newText));
 }
 ```
 
@@ -1846,7 +1846,7 @@ the `WaitAction`:
 ```
 class LoadAction extends ReduxAction<AppState, AppEnvironment> {
 
-  Future<AppState> reduce({required AppEnvironment environment}) async {    
+  Future<AppState> reduce() async {    
     var newText = await loadText(); 
     return state.copy(text: newText);
   }
@@ -1971,7 +1971,7 @@ class SaveAppointmentAction extends ReduxAction<AppState, AppEnvironment> {
   SaveAppointmentAction(this.appointment);      
 
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) {    
+  Future<AppState> reduce() {    
     dispatch(CreateCalendarIfNecessaryAction());    
     await store.waitCondition((state) => state.calendar != null);
     return state.copy(calendar: state.calendar.copyAdding(appointment));
@@ -2214,7 +2214,7 @@ class AddTodoAction extends ReduxAction<AppState, AppEnvironment> {
   AddTodoAction(this.todo);
 
   @override
-  AppState reduce({required AppEnvironment environment}) {
+  AppState reduce() {
 	if (todo == null) return null;
 	else return state.copy(todoState: List.of(state.todoState.todos)..add(todo));
   }
@@ -2245,7 +2245,7 @@ class AddTodoAction extends BaseAction {
   AddTodoAction(this.todo);
 
   @override
-  AppState reduce({required AppEnvironment environment}) {
+  AppState reduce() {
 	if (todo == null) return null;
 	else return state.copy(todoState: List.of(todos)..add(todo)));
   }
@@ -2264,7 +2264,7 @@ abstract class TodoAction extends BaseAction {
   TodoState reduceTodoState();
       
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) {
+  Future<AppState> reduce() {
     Future<TodoState> todoState = reduceTodoState();
     if (todoState is Future) return todoState.then((_todoState) => state.copy(todoState: _todoState));   
     else return (todoState == null) ? null : state.copy(todoState: todoState);
@@ -2309,7 +2309,7 @@ Then you could use it like this:
 class ChangeTextAction extends BarrierAction {
 
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
 	String newText = await read(Uri.http("numbersapi.com","${state.counter}");
 	return state.copy(
 	  counter: state.counter + 1,
@@ -2611,7 +2611,7 @@ This would be your reducer:
 
 ```
 @override
-Future<AppState> reduce({required AppEnvironment environment}) async {
+Future<AppState> reduce() async {
 	var something = await myDao.loadSomething();
 	return state.copy(something: something);
 }

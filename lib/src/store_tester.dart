@@ -789,7 +789,7 @@ class _NewStateAction<St, Environment> extends ReduxAction<St, Environment> {
   _NewStateAction(this.newState);
 
   @override
-  St reduce({required Environment environment}) => newState;
+  St reduce() => newState;
 }
 
 // /////////////////////////////////////////////////////////////////////////////

@@ -183,7 +183,7 @@ class ActionA extends ReduxAction<String, int> {
   }
 
   @override
-  String reduce({required int environment}) {
+  String reduce() {
     info.add('A.reduce state="$state"');
     return state + 'A';
   }
@@ -203,7 +203,7 @@ class ActionB extends ReduxAction<String, int> {
   }
 
   @override
-  Future<String> reduce({required int environment}) async {
+  Future<String> reduce() async {
     info.add('B.reduce1 state="$state"');
     await Future.delayed(const Duration(milliseconds: 50));
     info.add('B.reduce2 state="$state"');
@@ -225,7 +225,7 @@ class ActionC extends ReduxAction<String, int> {
   }
 
   @override
-  String reduce({required int environment}) {
+  String reduce() {
     info.add('C.reduce state="$state"');
     return state + 'C';
   }
@@ -247,7 +247,7 @@ class ActionD extends ReduxAction<String, int> {
   }
 
   @override
-  String reduce({required int environment}) {
+  String reduce() {
     info.add('D.reduce state="$state"');
     return state + 'D';
   }
@@ -267,7 +267,7 @@ class ActionE extends ReduxAction<String, int> {
   }
 
   @override
-  String reduce({required int environment}) {
+  String reduce() {
     info.add('E.reduce state="$state"');
     return state + 'E';
   }
@@ -289,7 +289,7 @@ class ActionF extends ReduxAction<String, int> {
   }
 
   @override
-  Future<String> reduce({required int environment}) async {
+  Future<String> reduce() async {
     info.add('F.reduce1 state="$state"');
     await Future.delayed(const Duration(milliseconds: 10));
     info.add('F.reduce2 state="$state"');

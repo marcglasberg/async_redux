@@ -124,7 +124,7 @@ class WaitAction<St, Environment> extends ReduxAction<St, Environment> {
         ref = null;
 
   @override
-  St? reduce({required Environment environment}) => reducer(state, operation, flag, ref);
+  St? reduce() => reducer(state, operation, flag, ref);
 }
 
 typedef WaitReducer<St> = St? Function(

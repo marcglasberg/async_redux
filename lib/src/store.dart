@@ -15,7 +15,7 @@ part 'redux_action.dart';
 
 // /////////////////////////////////////////////////////////////////////////////
 
-typedef Reducer<St, Environment> = FutureOr<St?> Function({required Environment environment});
+typedef Reducer<St, Environment> = FutureOr<St?> Function();
 
 typedef Dispatch<St, Environment> = Future<ActionStatus> Function(
   ReduxAction<St, Environment> action, {
@@ -29,11 +29,11 @@ typedef Dispatch<St, Environment> = Future<ActionStatus> Function(
 /// The only way to change the state in the store is to dispatch a ReduxAction.
 /// You may implement these methods:
 ///
-/// 1) `AppState reduce({required AppEnvironment environment})` ➜
+/// 1) `AppState reduce()` ➜
 ///    To run synchronously, just return the state:
-///         AppState reduce({required AppEnvironment environment}) { ... return state; }
+///         AppState reduce() { ... return state; }
 ///    To run asynchronously, return a future of the state:
-///         Future<AppState> reduce({required AppEnvironment environment}) async { ... return state; }
+///         Future<AppState> reduce() async { ... return state; }
 ///    Note that changing the state is optional. If you return null (or Future of null)
 ///    the state will not be changed. Just the same, if you return the same instance
 ///    of state (or its Future) the state will not be changed.
@@ -368,17 +368,17 @@ class Store<St, Environment> {
     Reducer<St?, Environment> reducer = action.wrapReduce(action.reduce);
 
     // Sync reducer.
-    if (reducer is St? Function({required Environment environment})) {
-      St? result = reducer(environment: environment);
+    if (reducer is St? Function()) {
+      St? result = reducer();
       _registerState(result, action, notify: notify);
     }
     //
     // Async reducer.
-    else if (reducer is Future<St?> Function({required Environment environment})) {
+    else if (reducer is Future<St?> Function()) {
       // Make sure it's NOT a completed future.
       Future<St?> result = (() async {
         await Future.microtask(() {});
-        return reducer(environment: environment);
+        return reducer();
       })();
 
       // The "then callback" will be applied synchronously,

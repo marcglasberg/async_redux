@@ -17,7 +17,7 @@ class MyAction extends ReduxAction<AppState, AppEnvironment> {
   MyAction(this.value);
 
   @override
-  AppState reduce({required AppEnvironment environment}) => AppState(state.text + value.toString());
+  AppState reduce() => AppState(state.text + value.toString());
 }
 
 class MyAction1 extends MyAction {
@@ -42,7 +42,7 @@ class MyAction5 extends MyAction {
 
 class MyMockAction extends MockAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) => AppState(state.text + '[' + (action as MyAction).value.toString() + ']');
+  AppState reduce() => AppState(state.text + '[' + (action as MyAction).value.toString() + ']');
 }
 
 void main() {

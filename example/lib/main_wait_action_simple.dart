@@ -40,7 +40,7 @@ late Store<AppState, AppEnvironment> store;
 void main() {
   var state = AppState.initialState();
   var environment = AppEnvironment();
-  store = Store<AppState, AppEnvironment>(initialState: state, environment: environment);
+  store = Store<AppState, AppEnvironment>(initialState: state, environment: environment,);
   runApp(MyApp());
 }
 
@@ -98,7 +98,7 @@ class MyApp extends StatelessWidget {
 
 class IncrementAndGetDescriptionAction extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     dispatch(IncrementAction(amount: 1));
     String description =
         await read(Uri.http("numbersapi.com", "${state.counter}"));
@@ -124,7 +124,7 @@ class IncrementAction extends ReduxAction<AppState, AppEnvironment> {
   IncrementAction({required this.amount});
 
   @override
-  AppState reduce({required AppEnvironment environment}) => state.copy(counter: state.counter! + amount);
+  AppState reduce() => state.copy(counter: state.counter! + amount);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -757,7 +757,7 @@ class ChangeNameAction extends ReduxAction<AppState, AppEnvironment> {
   ChangeNameAction(this.name);
 
   @override
-  AppState reduce({required AppEnvironment environment}) => state.copy(name: name);
+  AppState reduce() => state.copy(name: name);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

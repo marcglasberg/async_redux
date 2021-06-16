@@ -105,7 +105,7 @@ class MyAction extends ReduxAction<String, int> {
   }
 
   @override
-  String reduce({required int environment}) {
+  String reduce() {
     info.add('2');
     if (whenToThrow == When.reduce) throw const UserException("During reduce");
     return state + 'X';

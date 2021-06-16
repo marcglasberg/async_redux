@@ -138,7 +138,7 @@ class PersistException implements Exception {
 
 class PersistAction<St, Environment> extends ReduxAction<St, Environment> {
   @override
-  St? reduce({required Environment environment}) => null;
+  St? reduce() => null;
 }
 
 // /////////////////////////////////////////////////////////////////////////////

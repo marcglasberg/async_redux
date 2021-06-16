@@ -12,7 +12,7 @@
 
   ```                                      
   class SaveAction extends ReduxAction<AppState, AppEnvironment> {      
-    Future<AppState> reduce({required AppEnvironment environment}) async {
+    Future<AppState> reduce() async {
 	  bool isSaved = await saveMyInfo(); 
       if (!isSaved) throw UserException("Save failed.");	 
 	  ...

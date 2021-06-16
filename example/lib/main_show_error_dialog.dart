@@ -64,7 +64,7 @@ class SaveUserAction extends ReduxAction<AppState, AppEnvironment> {
   SaveUserAction(this.name);
 
   @override
-  AppState reduce({required AppEnvironment environment}) {
+  AppState reduce() {
     print("Saving '$name'.");
     if (name.length < 4)
       throw const UserException("Name must have at least 4 letters.");

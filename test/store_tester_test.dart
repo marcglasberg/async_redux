@@ -15,22 +15,22 @@ class AppEnvironment {}
 
 class Action1 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) => AppState.add(state, "1");
+  AppState reduce() => AppState.add(state, "1");
 }
 
 class Action2 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) => AppState.add(state, "2");
+  AppState reduce() => AppState.add(state, "2");
 }
 
 class Action3 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) => AppState.add(state, "3");
+  AppState reduce() => AppState.add(state, "3");
 }
 
 class Action3b extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) {
+  AppState reduce() {
     dispatch(Action4());
     return AppState.add(state, "3b");
   }
@@ -38,17 +38,17 @@ class Action3b extends ReduxAction<AppState, AppEnvironment> {
 
 class Action4 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) => AppState.add(state, "4");
+  AppState reduce() => AppState.add(state, "4");
 }
 
 class Action5 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) => AppState.add(state, "5");
+  AppState reduce() => AppState.add(state, "5");
 }
 
 class Action6 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) {
+  AppState reduce() {
     dispatch(Action1());
     dispatch(Action2());
     dispatch(Action3());
@@ -58,7 +58,7 @@ class Action6 extends ReduxAction<AppState, AppEnvironment> {
 
 class Action6b extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     dispatch(Action1());
     await Future.delayed(const Duration(milliseconds: 10));
     dispatch(Action2());
@@ -69,7 +69,7 @@ class Action6b extends ReduxAction<AppState, AppEnvironment> {
 
 class Action6c extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) {
+  AppState reduce() {
     dispatch(Action1());
     dispatch(Action2());
     dispatch(Action3b());
@@ -79,7 +79,7 @@ class Action6c extends ReduxAction<AppState, AppEnvironment> {
 
 class Action7 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     dispatch(Action4());
     dispatch(Action6());
     dispatch(Action2());
@@ -90,7 +90,7 @@ class Action7 extends ReduxAction<AppState, AppEnvironment> {
 
 class Action7b extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     dispatch(Action4());
     dispatch(Action6b());
     dispatch(Action2());
@@ -101,7 +101,7 @@ class Action7b extends ReduxAction<AppState, AppEnvironment> {
 
 class Action8 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     await Future.delayed(const Duration(milliseconds: 50));
     dispatch(Action2());
     return AppState.add(state, "8");
@@ -110,7 +110,7 @@ class Action8 extends ReduxAction<AppState, AppEnvironment> {
 
 class Action9 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     await Future.delayed(const Duration(milliseconds: 100));
     return AppState.add(state, "9");
   }
@@ -118,7 +118,7 @@ class Action9 extends ReduxAction<AppState, AppEnvironment> {
 
 class Action10a extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     dispatch(Action1());
     dispatch(Action2());
     dispatch(Action11a());
@@ -129,7 +129,7 @@ class Action10a extends ReduxAction<AppState, AppEnvironment> {
 
 class Action10b extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     dispatch(Action1());
     dispatch(Action2());
     dispatch(Action11b());
@@ -140,21 +140,21 @@ class Action10b extends ReduxAction<AppState, AppEnvironment> {
 
 class Action11a extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) {
+  AppState reduce() {
     throw const UserException("Hello!");
   }
 }
 
 class Action11b extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     throw const UserException("Hello!");
   }
 }
 
 class Action12 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) {
+  AppState reduce() {
     dispatch(Action13());
     return AppState.add(state, "12");
   }
@@ -162,7 +162,7 @@ class Action12 extends ReduxAction<AppState, AppEnvironment> {
 
 class Action13 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     await Future.delayed(const Duration(milliseconds: 1));
     return AppState.add(state, "13");
   }

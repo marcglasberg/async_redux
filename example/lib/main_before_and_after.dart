@@ -85,7 +85,7 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState, AppEnvironm
   // Async reducer.
   // To make it async we simply return Future<AppState> instead of AppState.
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     // First, we increment the counter, synchronously.
     dispatch(IncrementAction(amount: 1));
 
@@ -116,7 +116,7 @@ class BarrierAction extends ReduxAction<AppState, AppEnvironment> {
   BarrierAction(this.waiting);
 
   @override
-  AppState reduce({required AppEnvironment environment}) {
+  AppState reduce() {
     return state.copy(waiting: waiting);
   }
 }
@@ -131,7 +131,7 @@ class IncrementAction extends ReduxAction<AppState, AppEnvironment> {
 
   // Synchronous reducer.
   @override
-  AppState reduce({required AppEnvironment environment}) => state.copy(counter: state.counter! + amount);
+  AppState reduce() => state.copy(counter: state.counter! + amount);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

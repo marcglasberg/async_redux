@@ -59,7 +59,7 @@ class ActionA extends ReduxAction<String, int> {
   }
 
   @override
-  String reduce({required int environment}) {
+  String reduce() {
     info.add('A.reduce state="$state"');
     return state + 'A';
   }

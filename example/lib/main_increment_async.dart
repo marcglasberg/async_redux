@@ -21,7 +21,10 @@ late Store<AppState, AppEnvironment> store;
 void main() {
   var state = AppState.initialState();
   var environment = AppEnvironment();
-  store = Store<AppState, AppEnvironment>(initialState: state, environment: environment);
+  store = Store<AppState, AppEnvironment>(
+    initialState: state,
+    environment: environment,
+  );
   runApp(MyApp());
 }
 
@@ -53,9 +56,7 @@ class AppState {
   int get hashCode => counter.hashCode ^ description.hashCode;
 }
 
-class AppEnvironment {
-
-}
+class AppEnvironment {}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -72,17 +73,19 @@ class MyApp extends StatelessWidget {
 
 /// This action increments the counter by 1,
 /// and then gets some description text relating to the new counter number.
-class IncrementAndGetDescriptionAction extends ReduxAction<AppState, AppEnvironment> {
+class IncrementAndGetDescriptionAction
+    extends ReduxAction<AppState, AppEnvironment> {
   //
   // Async reducer.
   // To make it async we simply return Future<AppState> instead of AppState.
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     // First, we increment the counter, synchronously.
     dispatch(IncrementAction(amount: 1));
 
     // Then, we start and wait for some asynchronous process.
-    String description = await read(Uri.http("numbersapi.com","${state.counter}"));
+    String description =
+        await read(Uri.http("numbersapi.com", "${state.counter}"));
 
     // After we get the response, we can modify the state with it,
     // without having to dispatch another action.
@@ -100,7 +103,7 @@ class IncrementAction extends ReduxAction<AppState, AppEnvironment> {
 
   // Synchronous reducer.
   @override
-  AppState reduce({required AppEnvironment environment}) => state.copy(counter: state.counter! + amount);
+  AppState reduce() => state.copy(counter: state.counter! + amount);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

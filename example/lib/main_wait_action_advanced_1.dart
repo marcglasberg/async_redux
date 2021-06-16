@@ -25,7 +25,7 @@ late Store<AppState, AppEnvironment> store;
 void main() {
   var state = AppState.initialState();
   var environment = AppEnvironment();
-  store = Store<AppState, AppEnvironment>(initialState: state, environment: environment);
+  store = Store<AppState, AppEnvironment>(initialState: state, environment: environment,);
   runApp(MyApp());
 }
 
@@ -84,7 +84,7 @@ class GetDescriptionAction extends ReduxAction<AppState, AppEnvironment> {
   GetDescriptionAction(this.index);
 
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     String description =
         await read(Uri.http("numbersapi.com", "$index"));
     await Future.delayed(const Duration(seconds: 2)); // Adds some more delay.

@@ -216,7 +216,7 @@ class UserExceptionAction<St, Environment> extends ReduxAction<St, Environment> 
   UserExceptionAction.from(this.exception);
 
   @override
-  Future<St> reduce({required Environment environment}) async => throw exception;
+  Future<St> reduce() async => throw exception;
 }
 
 // /////////////////////////////////////////////////////////////////////////////

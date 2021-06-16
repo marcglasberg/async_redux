@@ -22,6 +22,8 @@ abstract class ReduxAction<St, Environment> {
 
   St get state => _store.state;
 
+  Environment get environment => _store.environment;
+
   /// Returns true only if the action finished with no errors.
   /// In other words, if the methods before, reduce and after all finished executing
   /// without throwing any errors.
@@ -58,7 +60,7 @@ abstract class ReduxAction<St, Environment> {
   /// The `StoreConnector`s may rebuild only if the `reduce` method returns
   /// a state which is both not `null` and different from the previous one
   /// (comparing by `identical`, not `equals`).
-  FutureOr<St?> reduce({required Environment environment});
+  FutureOr<St?> reduce();
 
   /// You may wrap the reducer to allow for some pre or post-processing.
   /// For example, if you want to abort an async reducer if the state
@@ -106,7 +108,7 @@ abstract class ReduxAction<St, Environment> {
   FutureOr<St?> reduceWithState(Store<St, Environment> store, St state) {
     setStore(store);
     _store.defineState(state);
-    return reduce(environment: store.environment);
+    return reduce();
   }
 
   @override

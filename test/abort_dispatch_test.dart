@@ -70,7 +70,7 @@ class ActionA extends ReduxAction<String, int> {
   }
 
   @override
-  String reduce({required int environment}) {
+  String reduce() {
     info!.add('2');
     return state + 'X';
   }
@@ -93,7 +93,7 @@ class ActionB extends ReduxAction<String, int> {
   }
 
   @override
-  String reduce({required int environment}) {
+  String reduce() {
     info!.add('2');
     return state + 'X';
   }

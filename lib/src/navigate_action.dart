@@ -51,7 +51,7 @@ class NavigateAction<St, Environment> extends ReduxAction<St, Environment> {
   NavigateType get type => details.type;
 
   @override
-  St? reduce({required Environment environment}) {
+  St? reduce() {
     details.navigate();
     return null;
   }

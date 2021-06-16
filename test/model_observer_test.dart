@@ -134,7 +134,7 @@ class _MyAction extends ReduxAction<_StateTest, _EnvironmentTest> {
   _MyAction(this.text, this.number);
 
   @override
-  _StateTest reduce({required _EnvironmentTest environment}) => _StateTest(text, number);
+  _StateTest reduce() => _StateTest(text, number);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

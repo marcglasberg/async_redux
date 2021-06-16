@@ -115,7 +115,7 @@ class MockStore<St, Environment> extends Store<St, Environment> {
       //
       // 5) `St Function(ReduxAction<St>, St)` or
       // `Future<St> Function(ReduxAction<St>, St)` to modify the state directly.
-      else if (mock is St Function(ReduxAction<St, Environment>, St, Environment)) {
+      else if (mock is St Function(ReduxAction<St, Environment>, St)) {
         MockAction<St, Environment> mockAction = _GeneralActionSync(mock);
         mockAction._setAction(action);
         return mockAction;
@@ -154,12 +154,12 @@ abstract class MockAction<St, Environment> extends ReduxAction<St, Environment> 
 // /////////////////////////////////////////////////////////////////////////////
 
 class _GeneralActionSync<St, Environment> extends MockAction<St, Environment> {
-  final St Function(ReduxAction<St, Environment> action, St state, Environment environment) _reducer;
+  final St Function(ReduxAction<St, Environment> action, St state) _reducer;
 
   _GeneralActionSync(this._reducer);
 
   @override
-  St reduce({required Environment environment}) => _reducer(action, state, environment);
+  St reduce() => _reducer(action, state);
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -170,7 +170,7 @@ class _GeneralActionAsync<St, Environment> extends MockAction<St, Environment> {
   _GeneralActionAsync(this._reducer);
 
   @override
-  Future<St> reduce({required Environment environment}) => _reducer(action, state, environment);
+  Future<St> reduce() => _reducer(action, state, environment);
 }
 
 // /////////////////////////////////////////////////////////////////////////////

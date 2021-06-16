@@ -309,7 +309,7 @@ void main() {
 
 class Action1B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) {
+  AppState reduce() {
     states.add(state);
     return state.copy(state.text + 'B');
   }
@@ -319,7 +319,7 @@ class Action1B extends ReduxAction<AppState, AppEnvironment> {
 
 class Action2B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) {
+  AppState reduce() {
     states.add(state);
     dispatch(Action2C());
     states.add(state);
@@ -329,7 +329,7 @@ class Action2B extends ReduxAction<AppState, AppEnvironment> {
 
 class Action2C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) {
+  AppState reduce() {
     return state.copy(state.text + 'C');
   }
 }
@@ -338,7 +338,7 @@ class Action2C extends ReduxAction<AppState, AppEnvironment> {
 
 class Action3B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) {
+  AppState reduce() {
     states.add(state);
     dispatch(Action3C());
     states.add(state);
@@ -348,7 +348,7 @@ class Action3B extends ReduxAction<AppState, AppEnvironment> {
 
 class Action3C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     await Future.sync(() {});
     return state.copy(state.text + 'C');
   }
@@ -358,7 +358,7 @@ class Action3C extends ReduxAction<AppState, AppEnvironment> {
 
 class Action4B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     states.add(state);
     await Future.delayed(const Duration(milliseconds: 100));
     states.add(state);
@@ -372,7 +372,7 @@ class Action4B extends ReduxAction<AppState, AppEnvironment> {
 
 class Action4C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     await Future.delayed(const Duration(milliseconds: 50));
     return state.copy(state.text + 'C');
   }
@@ -382,7 +382,7 @@ class Action4C extends ReduxAction<AppState, AppEnvironment> {
 
 class Action5B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     states.add(state);
     await Future.delayed(const Duration(milliseconds: 100));
     states.add(state);
@@ -396,7 +396,7 @@ class Action5B extends ReduxAction<AppState, AppEnvironment> {
 
 class Action5C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     await Future.delayed(const Duration(milliseconds: 200));
     return state.copy(state.text + 'C');
   }
@@ -407,7 +407,7 @@ class Action5C extends ReduxAction<AppState, AppEnvironment> {
 /// Returns a COMPLETED Future.
 class Action6B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     print('33333333333');
     states.add(state);
     dispatch(Action6C());
@@ -419,7 +419,7 @@ class Action6B extends ReduxAction<AppState, AppEnvironment> {
 /// Returns an UNCOMPLETED Future.
 class Action6C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     await Future.value(null);
     states.add(state);
     print('Action6C.reduce');
@@ -431,7 +431,7 @@ class Action6C extends ReduxAction<AppState, AppEnvironment> {
 
 class Action7B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     await Future.value(null);
     states.add(state);
     dispatch(Action7C());
@@ -442,7 +442,7 @@ class Action7B extends ReduxAction<AppState, AppEnvironment> {
 
 class Action7C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     states.add(state);
     await Future.value(null);
     states.add(state);
@@ -454,7 +454,7 @@ class Action7C extends ReduxAction<AppState, AppEnvironment> {
 
 class Action8B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     states.add(state);
     dispatch(Action8C());
     states.add(state);
@@ -466,7 +466,7 @@ class Action8B extends ReduxAction<AppState, AppEnvironment> {
 
 class Action8C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     await Future.value(null);
     states.add(state);
     return state.copy(state.text + 'C');
@@ -477,7 +477,7 @@ class Action8C extends ReduxAction<AppState, AppEnvironment> {
 
 class Action9B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     states.add(state);
     await Future.value(null);
     states.add(state);
@@ -491,7 +491,7 @@ class Action9B extends ReduxAction<AppState, AppEnvironment> {
 
 class Action9C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
+  Future<AppState> reduce() async {
     await Future.value(null);
     states.add(state);
     return state.copy(state.text + 'C');

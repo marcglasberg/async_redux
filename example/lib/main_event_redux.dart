@@ -29,7 +29,10 @@ late Store<AppState, AppEnvironment> store;
 void main() {
   var state = AppState.initialState();
   var environment = AppEnvironment();
-  store = Store<AppState, AppEnvironment>(initialState: state, environment: environment);
+  store = Store<AppState, AppEnvironment>(
+    initialState: state,
+    environment: environment,
+  );
   runApp(MyApp());
 }
 
@@ -98,7 +101,7 @@ class MyApp extends StatelessWidget {
 /// This action orders the text-controller to clear.
 class ClearTextAction extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce({required AppEnvironment environment}) => state.copy(clearTextEvt: Event());
+  AppState reduce() => state.copy(clearTextEvt: Event());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -118,7 +121,7 @@ class _WaitAction extends ReduxAction<AppState, AppEnvironment> {
   _WaitAction(this.waiting);
 
   @override
-  AppState reduce({required AppEnvironment environment}) => state.copy(waiting: waiting);
+  AppState reduce() => state.copy(waiting: waiting);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -127,8 +130,8 @@ class _WaitAction extends ReduxAction<AppState, AppEnvironment> {
 /// that tells the text-controller to display that new text.
 class ChangeTextAction extends BarrierAction {
   @override
-  Future<AppState> reduce({required AppEnvironment environment}) async {
-    String newText = await read(Uri.http("numbersapi.com","${state.counter}"));
+  Future<AppState> reduce() async {
+    String newText = await read(Uri.http("numbersapi.com", "${state.counter}"));
     return state.copy(
       counter: state.counter! + 1,
       changeTextEvt: Event<String>(newText),
@@ -234,7 +237,8 @@ class _MyHomePageState extends State<MyHomePage> {
     String? newText = widget.changeTextEvt!.consume();
     if (newText != null)
       WidgetsBinding.instance!.addPostFrameCallback((_) {
-        if (mounted) controller!.value = controller!.value.copyWith(text: newText);
+        if (mounted)
+          controller!.value = controller!.value.copyWith(text: newText);
       });
   }
 
@@ -251,9 +255,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 const Text('This is a TextField. Click to edit it:'),
                 TextField(controller: controller),
                 const SizedBox(height: 20),
-                FloatingActionButton(onPressed: widget.onChange, child: const Text("Change")),
+                FloatingActionButton(
+                    onPressed: widget.onChange, child: const Text("Change")),
                 const SizedBox(height: 20),
-                FloatingActionButton(onPressed: widget.onClear, child: const Text("Clear")),
+                FloatingActionButton(
+                    onPressed: widget.onClear, child: const Text("Clear")),
               ],
             ),
           ),
