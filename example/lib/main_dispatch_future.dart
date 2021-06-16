@@ -1,12 +1,15 @@
 import 'dart:convert';
 import 'package:async_redux/async_redux.dart';
+import 'package:example/main_before_and_after.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
+
+import 'main_before_and_after.dart';
 
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-late Store<AppState> store;
+late Store<AppState, AppEnvironment> store;
 
 /// This example shows a List of number descriptions.
 /// Scrolling to the bottom of the list will async load the next 20 elements.
@@ -22,9 +25,11 @@ late Store<AppState> store;
 ///
 void main() {
   var state = AppState.initialState();
-  store = Store<AppState>(
+  var environment = AppEnvironment();
+  store = Store<AppState, AppEnvironment>(
     initialState: state,
-    actionObservers: [Log<AppState>.printer()],
+    environment: environment,
+    actionObservers: [Log<AppState, AppEnvironment>.printer()],
     modelObserver: DefaultModelObserver(),
   );
   runApp(MyApp());
@@ -64,7 +69,7 @@ class AppState {
 
 class MyApp extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => StoreProvider<AppState>(
+  Widget build(BuildContext context) => StoreProvider<AppState, AppEnvironment>(
         store: store,
         child: MaterialApp(
           home: MyHomePageConnector(),
@@ -74,9 +79,9 @@ class MyApp extends StatelessWidget {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class LoadMoreAction extends ReduxAction<AppState> {
+class LoadMoreAction extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     Response response = await get(Uri.http(
         'http://numbersapi.com/',
         '${state.numTrivia!.length}'
@@ -96,9 +101,9 @@ class LoadMoreAction extends ReduxAction<AppState> {
   void after() => dispatch(IsLoadingAction(false));
 }
 
-class RefreshAction extends ReduxAction<AppState> {
+class RefreshAction extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     Response response = await get(Uri.http('http://numbersapi.com/', '0..19'));
     List<String> list = [];
     Map<String, dynamic> map = jsonDecode(response.body);
@@ -113,13 +118,13 @@ class RefreshAction extends ReduxAction<AppState> {
   void after() => dispatch(IsLoadingAction(false));
 }
 
-class IsLoadingAction extends ReduxAction<AppState> {
+class IsLoadingAction extends ReduxAction<AppState, AppEnvironment> {
   IsLoadingAction(this.val);
 
   final bool val;
 
   @override
-  AppState reduce() => state.copy(isLoading: val);
+  AppState reduce({required AppEnvironment environment}) => state.copy(isLoading: val);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -129,7 +134,7 @@ class MyHomePageConnector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AppState, ViewModel>(
+    return StoreConnector<AppState, AppEnvironment, ViewModel>(
       debug: this,
       vm: () => Factory(this),
       onInit: (st) => st.dispatch(RefreshAction()),
@@ -144,7 +149,7 @@ class MyHomePageConnector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class Factory extends VmFactory<AppState, MyHomePageConnector> {
+class Factory extends VmFactory<AppState, AppEnvironment, MyHomePageConnector> {
   Factory(widget) : super(widget);
 
   @override

@@ -7,7 +7,7 @@ import 'package:http/http.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-late Store<AppState> store;
+late Store<AppState, AppEnvironment> store;
 
 /// This example shows a counter, a text description, and a button.
 /// When the button is tapped, the counter will increment synchronously,
@@ -25,7 +25,8 @@ late Store<AppState> store;
 ///
 void main() {
   var state = AppState.initialState();
-  store = Store<AppState>(initialState: state);
+  var environment = AppEnvironment();
+  store = Store<AppState, AppEnvironment>(initialState: state, environment: environment);
   runApp(MyApp());
 }
 
@@ -60,11 +61,15 @@ class AppState {
   int get hashCode => counter.hashCode ^ description.hashCode ^ waiting.hashCode;
 }
 
+class AppEnvironment {
+
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 class MyApp extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => StoreProvider<AppState>(
+  Widget build(BuildContext context) => StoreProvider<AppState, AppEnvironment>(
       store: store,
       child: MaterialApp(
         home: MyHomePageConnector(),
@@ -75,12 +80,12 @@ class MyApp extends StatelessWidget {
 
 /// This action increments the counter by 1,
 /// and then gets some description text relating to the new counter number.
-class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
+class IncrementAndGetDescriptionAction extends ReduxAction<AppState, AppEnvironment> {
   //
   // Async reducer.
   // To make it async we simply return Future<AppState> instead of AppState.
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     // First, we increment the counter, synchronously.
     dispatch(IncrementAction(amount: 1));
 
@@ -105,13 +110,13 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class BarrierAction extends ReduxAction<AppState> {
+class BarrierAction extends ReduxAction<AppState, AppEnvironment> {
   final bool waiting;
 
   BarrierAction(this.waiting);
 
   @override
-  AppState reduce() {
+  AppState reduce({required AppEnvironment environment}) {
     return state.copy(waiting: waiting);
   }
 }
@@ -119,14 +124,14 @@ class BarrierAction extends ReduxAction<AppState> {
 ///////////////////////////////////////////////////////////////////////////////
 
 /// This action increments the counter by [amount]].
-class IncrementAction extends ReduxAction<AppState> {
+class IncrementAction extends ReduxAction<AppState, AppEnvironment> {
   final int amount;
 
   IncrementAction({required this.amount});
 
   // Synchronous reducer.
   @override
-  AppState reduce() => state.copy(counter: state.counter! + amount);
+  AppState reduce({required AppEnvironment environment}) => state.copy(counter: state.counter! + amount);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -137,7 +142,7 @@ class MyHomePageConnector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AppState, ViewModel>(
+    return StoreConnector<AppState, AppEnvironment, ViewModel>(
       vm: () => Factory(this),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         counter: vm.counter,
@@ -150,7 +155,7 @@ class MyHomePageConnector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class Factory extends VmFactory<AppState, MyHomePageConnector> {
+class Factory extends VmFactory<AppState, AppEnvironment, MyHomePageConnector> {
   Factory(widget) : super(widget);
 
   @override

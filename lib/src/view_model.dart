@@ -140,7 +140,7 @@ abstract class Vm {
 ///      builder: ...
 ///
 /// ...
-/// class _Factory extends VmFactory<AppState, MyHomePageConnector> {
+/// class _Factory extends VmFactory<AppState, AppEnvironment, MyHomePageConnector> {
 ///    _Factory(widget) : super(widget);
 ///    _ViewModel fromStore() => _ViewModel(
 ///        counter: state,
@@ -148,13 +148,13 @@ abstract class Vm {
 /// }
 /// ```
 ///
-abstract class VmFactory<St, T> {
+abstract class VmFactory<St, Environment, T> {
   /// A reference to the connector widget that will instantiate the view-model.
   final T? widget;
 
-  late final Store<St> _store;
+  late final Store<St, Environment> _store;
   late final St _state;
-  late final Dispatch<St> _dispatch;
+  late final Dispatch<St, Environment> _dispatch;
   late final UserException? Function() _getAndRemoveFirstError;
 
   /// You need to pass the connector widget only if the view-model needs any info from it.
@@ -163,7 +163,7 @@ abstract class VmFactory<St, T> {
   Vm fromStore();
 
   void _setStore(St state, Store store) {
-    _store = store as Store<St>;
+    _store = store as Store<St, Environment>;
     _state = state;
     _dispatch = store.dispatch;
     _getAndRemoveFirstError = store.getAndRemoveFirstError;
@@ -178,7 +178,7 @@ abstract class VmFactory<St, T> {
   St currentState() => _store.state;
 
   /// Dispatch an action, possibly changing the store state.
-  Dispatch<St> get dispatch => _dispatch;
+  Dispatch<St, Environment> get dispatch => _dispatch;
 
   UserException? getAndRemoveFirstError() => _getAndRemoveFirstError();
 }
@@ -193,7 +193,7 @@ void internalsVmFactoryInject<St>(VmFactory vmFactory, St state, Store store) {
 /// Don't use, this is deprecated. Please, use the recommended [Vm] class.
 /// This should only be used for IMMUTABLE classes.
 /// Lets you implement equals/hashcode without having to override these methods.
-abstract class BaseModel<St> {
+abstract class BaseModel<St, Environment> {
   /// The List of properties which will be used to determine whether two BaseModels are equal.
   final List<Object?> equals;
 
@@ -242,14 +242,14 @@ abstract class BaseModel<St> {
   }
 
   late St _state;
-  Dispatch<St>? _dispatch;
+  Dispatch<St, Environment>? _dispatch;
   UserException? Function()? _getAndRemoveFirstError;
 
   BaseModel fromStore();
 
   St get state => _state;
 
-  Dispatch<St>? get dispatch => _dispatch;
+  Dispatch<St, Environment>? get dispatch => _dispatch;
 
   UserException? Function()? get getAndRemoveFirstError => //
       _getAndRemoveFirstError;

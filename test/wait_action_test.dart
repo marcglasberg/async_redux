@@ -3,7 +3,7 @@ import 'package:async_redux/src/wait.dart';
 import 'package:async_redux/src/wait_action.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-late Store<AppState> store;
+late Store<AppState, AppEnvironment> store;
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -14,6 +14,8 @@ class AppState {
 
   AppState copy({Wait? wait}) => AppState(wait: wait ?? this.wait);
 }
+
+class AppEnvironment {}
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -45,7 +47,10 @@ class MyAction {}
 
 void main() {
   setUp(() async {
-    store = Store<AppState>(initialState: AppState(wait: Wait()));
+    store = Store<AppState, AppEnvironment>(
+      initialState: AppState(wait: Wait()),
+      environment: AppEnvironment(),
+    );
   });
 
   ///////////////////////////////////////////////////////////////////////////
@@ -208,8 +213,11 @@ void main() {
   ///////////////////////////////////////////////////////////////////////////
 
   test("Test compatibility with the Freezed package.", () {
-    Store<AppStateFreezed> freezedStore;
-    freezedStore = Store<AppStateFreezed>(initialState: AppStateFreezed(wait: Wait()));
+    Store<AppStateFreezed, AppEnvironment> freezedStore;
+    freezedStore = Store<AppStateFreezed, AppEnvironment>(
+      initialState: AppStateFreezed(wait: Wait()),
+      environment: AppEnvironment(),
+    );
 
     var action = MyAction();
     expect(freezedStore.state.wait.isWaiting, false);
@@ -227,8 +235,11 @@ void main() {
   ///////////////////////////////////////////////////////////////////////////
 
   test("Test compatibility with the BuiltValue package.", () {
-    Store<AppStateBuiltValue> builtValueStore;
-    builtValueStore = Store<AppStateBuiltValue>(initialState: AppStateBuiltValue(wait: Wait()));
+    Store<AppStateBuiltValue, AppEnvironment> builtValueStore;
+    builtValueStore = Store<AppStateBuiltValue, AppEnvironment>(
+      initialState: AppStateBuiltValue(wait: Wait()),
+      environment: AppEnvironment(),
+    );
 
     var action = MyAction();
     expect(builtValueStore.state.wait.isWaiting, false);
@@ -246,8 +257,11 @@ void main() {
   ///////////////////////////////////////////////////////////////////////////
 
   test("Test compatibility with the BuiltValue package.", () {
-    Store<AppStateFreezed> freezedStore;
-    freezedStore = Store<AppStateFreezed>(initialState: AppStateFreezed(wait: Wait()));
+    Store<AppStateFreezed, AppEnvironment> freezedStore;
+    freezedStore = Store<AppStateFreezed, AppEnvironment>(
+      initialState: AppStateFreezed(wait: Wait()),
+      environment: AppEnvironment(),
+    );
 
     var action = MyAction();
     expect(freezedStore.state.wait.isWaiting, false);

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
 
-class ProcessPersistence<St> {
+class ProcessPersistence<St, Environment> {
   //
   ProcessPersistence(this.persistor)
       : isPersisting = false,
@@ -20,7 +20,7 @@ class ProcessPersistence<St> {
   Duration get throttle => persistor.throttle ?? const Duration();
 
   void process(
-    ReduxAction<St>? action,
+    ReduxAction<St, Environment>? action,
     St newState,
   ) {
     newestState = newState;

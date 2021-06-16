@@ -23,7 +23,7 @@ void main() {
     localDb = persistor.localDb;
   }
 
-  Future<StoreTester<AppState>> createStoreTester() async {
+  Future<StoreTester<AppState, AppEnvironment>> createStoreTester() async {
     //
     var initialState = await persistor.readState();
 
@@ -32,8 +32,9 @@ void main() {
       await persistor.saveInitialState(initialState);
     }
 
-    var store = Store<AppState>(
+    var store = Store<AppState, AppEnvironment>(
       initialState: initialState,
+      environment: AppEnvironment(), // not read from persistence
       persistor: persistor,
     );
 
@@ -52,12 +53,12 @@ void main() {
     expect(await persistor.readState(), storeTester.state);
 
     storeTester.dispatch(ChangeNameAction("Mary"));
-    TestInfo<AppState> info1 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    TestInfo<AppState, AppEnvironment> info1 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "Mary");
     expect(await persistor.readState(), info1.state);
 
     storeTester.dispatch(ChangeNameAction("Steve"));
-    TestInfo<AppState> info2 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    TestInfo<AppState, AppEnvironment> info2 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "Steve");
     expect(await persistor.readState(), info2.state);
   });
@@ -73,21 +74,21 @@ void main() {
 
     // 1) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Mary"));
-    TestInfo<AppState?> info1 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    TestInfo<AppState?, AppEnvironment> info1 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "John");
     expect(info1.state!.name, "Mary");
     expect(await persistor.readState(), isNot(info1.state));
 
     // 2) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Steve"));
-    TestInfo<AppState?> info2 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    TestInfo<AppState?, AppEnvironment> info2 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "John");
     expect(info2.state!.name, "Steve");
     expect(await persistor.readState(), isNot(info2.state));
 
     // 3) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Eve"));
-    TestInfo<AppState?> info3 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    TestInfo<AppState?, AppEnvironment> info3 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "John");
     expect(info3.state!.name, "Eve");
     expect(await persistor.readState(), isNot(info3.state));
@@ -460,7 +461,7 @@ void main() {
   ///////////////////////////////////////////////////////////////////////////////
 }
 
-String writeStateAndDb(StoreTester<AppState> storeTester, LocalDb localDb) => "("
+String writeStateAndDb(StoreTester<AppState, AppEnvironment> storeTester, LocalDb localDb) => "("
     "state:${storeTester.state.name}, "
     "db: ${localDb.get(db: 'main', id: Id('name'))}"
     ")";
@@ -491,6 +492,8 @@ class AppState {
     return AppState(name: "John");
   }
 }
+
+class AppEnvironment {}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -748,13 +751,13 @@ class MyPersistor implements Persistor<AppState?> {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class ChangeNameAction extends ReduxAction<AppState> {
+class ChangeNameAction extends ReduxAction<AppState, AppEnvironment> {
   String name;
 
   ChangeNameAction(this.name);
 
   @override
-  AppState reduce() => state.copy(name: name);
+  AppState reduce({required AppEnvironment environment}) => state.copy(name: name);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

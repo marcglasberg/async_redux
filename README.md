@@ -137,7 +137,7 @@ Declare your store and state, like this:
 ```
 var state = AppState.initialState();
 
-var store = Store<AppState>(
+var store = Store<AppState, AppEnvironment>(
   initialState: state,
 );
 ```  
@@ -176,7 +176,7 @@ change the state and return it.
 For example, let's start with a simple action to increment a counter by some value:
 
 ```
-class IncrementAction extends ReduxAction<AppState> {
+class IncrementAction extends ReduxAction<AppState, AppEnvironment> {
 
   final int amount;
 
@@ -219,7 +219,7 @@ As an example, suppose you want to increment a counter by a value you get from t
 database access is async, so you must use an async reducer:
 
 ```
-class QueryAndIncrementAction extends ReduxAction<AppState> {
+class QueryAndIncrementAction extends ReduxAction<AppState, AppEnvironment> {
 
   @override
   Future<AppState?> reduce() async {
@@ -272,24 +272,24 @@ For example, suppose you want to have two separate actions, one for querying som
 database, and another action to change the state:
 
 ```
-class QueryAction extends ReduxAction<AppState> {
+class QueryAction extends ReduxAction<AppState, AppEnvironment> {
 
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     int value = await getAmount();
     dispatch(IncrementAction(amount: value));
     return null;
   }
 }
 
-class IncrementAction extends ReduxAction<AppState> {
+class IncrementAction extends ReduxAction<AppState, AppEnvironment> {
   
   final int amount;
 
   IncrementAction({this.amount});
 
   @override
-  AppState reduce() {
+  AppState reduce({required AppEnvironment environment}) {
     return state.copy(counter: state.counter + amount));
   }
 }
@@ -357,10 +357,10 @@ Complete example:
 
 ```
 // This action increments a counter by 1, and then gets some description text.
-class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
+class IncrementAndGetDescriptionAction extends ReduxAction<AppState, AppEnvironment> {
 
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
 	dispatch(IncrementAction());
 	String description = await read(Uri.http("numbersapi.com","${state.counter}");
 	return state.copy(description: description);
@@ -431,8 +431,8 @@ For example, suppose you want to save some info, and you want to leave the curre
 only if the save process succeeds. Your `SaveAction` may look like this:
 
 ```                                      
-class SaveAction extends ReduxAction<AppState> {      
-  Future<AppState> reduce() async {
+class SaveAction extends ReduxAction<AppState, AppEnvironment> {      
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     bool isSaved = await saveMyInfo(); 
     if (!isSaved) throw UserException("Save failed.");	 
     ...
@@ -507,7 +507,7 @@ For example:
 class MyHomePageConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-	return StoreConnector<AppState, ViewModel>(
+	return StoreConnector<AppState, AppEnvironment, ViewModel>(
 	  vm: () => Factory(this),
 	  builder: (BuildContext context, ViewModel vm) => MyHomePage(
 		counter: vm.counter,
@@ -516,7 +516,7 @@ class MyHomePageConnector extends StatelessWidget {
 	  ));
   }}
 
-class Factory extends VmFactory<AppState, MyHomePageConnector> {
+class Factory extends VmFactory<AppState, AppEnvironment, MyHomePageConnector> {
   Factory(widget) : super(widget);
   @override
   ViewModel fromStore() => ViewModel(
@@ -619,7 +619,7 @@ should be provided in the `StoreConnector` constructor:
    method. For example:
 
    ```
-   class Factory extends VmFactory<AppState, MyHomePageConnector> {           
+   class Factory extends VmFactory<AppState, AppEnvironment, MyHomePageConnector> {           
         @override
         ViewModel fromStore() => ViewModel(
             counter: state.counter,
@@ -646,7 +646,7 @@ should be provided in the `StoreConnector` constructor:
    
    ...
    
-   class Factory extends VmFactory<AppState, MyHomePageConnector> {
+   class Factory extends VmFactory<AppState, AppEnvironment, MyHomePageConnector> {
       Factory(widget) : super(widget);
    
       @override
@@ -718,7 +718,7 @@ should be provided in the `StoreConnector` constructor:
           @required this.onSave,
        });
     
-       static ViewModel fromStore(Store<AppState> store) {
+       static ViewModel fromStore(Store<AppState, AppEnvironment> store) {
           return ViewModel(
              name: store.state,
              onSave: () => store.dispatch(IncrementAction(amount: 1)),
@@ -748,7 +748,7 @@ create `operator ==` and `hashcode` manually:
           @required this.onSave,
        }) : super(equals: [name]);
     
-       static ViewModel fromStore(Store<AppState> store) {
+       static ViewModel fromStore(Store<AppState, AppEnvironment> store) {
           return ViewModel(
              name: store.state,
              onSave: () => store.dispatch(IncrementAction(amount: 1)),
@@ -761,16 +761,16 @@ When using the `converter` parameter, it's a bit more difficult to create separa
 helping construct your view-model:
 
     ```
-    static ViewModel fromStore(Store<AppState> store) {
+    static ViewModel fromStore(Store<AppState, AppEnvironment> store) {
        return ViewModel(
           name: _name(store),
           onSave: _onSave(store),
        );
     }
     
-    static String _name(Store<AppState>) => store.state.user.name;
+    static String _name(Store<AppState, AppEnvironment>) => store.state.user.name;
     
-    static VoidCallback _onSave(Store<AppState>) { 
+    static VoidCallback _onSave(Store<AppState, AppEnvironment>) { 
        return () => store.dispatch(SaveUserAction());
     } 
     ```
@@ -835,9 +835,9 @@ Let's see an example. Suppose a logout action that checks if there is an interne
 then deletes the database and sets the store to its initial state:
 
 ```
-class LogoutAction extends ReduxAction<AppState> {
+class LogoutAction extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
 	await checkInternetConnection();
 	await deleteDatabase();
 	dispatch(NavigateToLoginScreenAction());
@@ -861,7 +861,7 @@ All errors thrown by action reducers are sent to the **ErrorObserver**, which yo
 store creation. For example:
 
 ```
-var store = Store<AppState>(
+var store = Store<AppState, AppEnvironment>(
   initialState: AppState.initialState(),
   errorObserver: MyErrorObserver<AppState>(),
 );
@@ -891,10 +891,10 @@ want all errors thrown by this action to reflect that.
 The solution is implementing the optional `wrapError(error)` method:
 
 ```
-class LogoutAction extends ReduxAction<AppState> {
+class LogoutAction extends ReduxAction<AppState, AppEnvironment> {
 
   @override
-  Future<AppState> reduce() async { ... }
+  Future<AppState> reduce({required AppEnvironment environment}) async { ... }
 
   @override
   Object wrapError(error)
@@ -917,7 +917,7 @@ home-page with `UserExceptionDialog`, below `StoreProvider` and `MaterialApp`:
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context)
-	  => StoreProvider<AppState>(
+	  => StoreProvider<AppState, AppEnvironment>(
 		  store: store,
 		  child: MaterialApp(
 		    navigatorKey: navigatorKey,
@@ -944,12 +944,12 @@ instead, is just warn the user by opening a dialog with some corrective informat
 suppose you want to save the user's name, and you only accept names with at least 4 characters:
 
 ```
-class SaveUserAction extends ReduxAction<AppState> {
+class SaveUserAction extends ReduxAction<AppState, AppEnvironment> {
    final String name;
    SaveUserAction(this.name);
 
    @override
-   Future<AppState> reduce() async {
+   Future<AppState> reduce({required AppEnvironment environment}) async {
 	 if (name.length < 4) dispatch(ShowDialogAction("Name must have at least 4 letters."));
 	 else await saveUser(name);
 	 return null;
@@ -964,12 +964,12 @@ somehow.
 However, there's an easier approach. Just throw AsyncRedux's built-in `UserException`:
 
 ```
-class SaveUserAction extends ReduxAction<AppState> {
+class SaveUserAction extends ReduxAction<AppState, AppEnvironment> {
    final String name;
    SaveUserAction(this.name);
 
    @override
-   Future<AppState> reduce() async {
+   Future<AppState> reduce({required AppEnvironment environment}) async {
 	 if (name.length < 4) throw UserException("Name must have at least 4 letters.");
 	 await saveName(name);
 	 return null;
@@ -1016,7 +1016,7 @@ The first is to do this conversion in the action itself by implementing the
 optional `ReduxAction.wrapError(error)` method:
 
 ```
-class MyAction extends ReduxAction<AppState> {
+class MyAction extends ReduxAction<AppState, AppEnvironment> {
 
   @override
   Object wrapError(error) {
@@ -1032,7 +1032,7 @@ However, then you'd have to add this to all actions that use Firebase. A better 
 globally by passing a `WrapError` object to the store:
 
 ```              
-var store = Store<AppState>(
+var store = Store<AppState, AppEnvironment>(
   initialState: AppState.initialState(),
   wrapError: MyWrapError(),
 );
@@ -1084,14 +1084,17 @@ AsyncRedux provides the `StoreTester` class that makes it easy to test both sync
 Start by creating the store-tester from a store:
 
 ```
-var store = Store<AppState>(initialState: AppState.initialState());
+var store = Store<AppState, AppEnvironment>(initialState: AppState.initialState());
 var storeTester = StoreTester.from(store);
 ```
 
 Or else, creating it directly from `AppState`:
 
 ```
-var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment(),
+    );
 ```
 
 Then, dispatch some action, wait for it to finish, and check the resulting state:
@@ -1207,7 +1210,10 @@ that all actions are called in order, and then get the state after each one of t
 all at once:
 
 ```
-var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment(),
+    );
 expect(storeTester.state.counter, 0);
 expect(storeTester.state.description, isEmpty);
 
@@ -1283,7 +1289,7 @@ The `MockStore` has a `mocks` parameter which is a map where the keys are action
 values are the mocks. For example:
 
 ```
-var store = MockStore<AppState>(
+var store = MockStore<AppState, AppEnvironment>(
   initialState: initialState,  
   mocks: {
      MyAction1 : ...
@@ -1307,14 +1313,14 @@ There are 5 different ways to define mocks:
    action** as a getter to the mock action.
 
     ```                        
-    class MyAction extends ReduxAction<AppState> {
+    class MyAction extends ReduxAction<AppState, AppEnvironment> {
       String url;
       MyAction(this.url);
-      Future<AppState> reduce() => get(url);
+      Future<AppState> reduce({required AppEnvironment environment}) => get(url);
     }      
 
-    class MyMockAction extends MockAction<AppState> {  
-      Future<AppState> reduce() async {                  
+    class MyMockAction extends MockAction<AppState, AppEnvironment> {  
+      Future<AppState> reduce({required AppEnvironment environment}) async {                  
         String url = (action as MyAction).url;
         if (url == 'http://example.com') return 123;
         else if (url == 'http://flutter.io') return 345;
@@ -1332,14 +1338,14 @@ There are 5 different ways to define mocks:
 3. Use a `ReduxAction<St>` instance to dispatch this mock action instead.
 
     ```                        
-    class MyAction extends ReduxAction<AppState> {
+    class MyAction extends ReduxAction<AppState, AppEnvironment> {
       String url;            
       MyAction(this.url);
-      Future<AppState> reduce() => get(url);
+      Future<AppState> reduce({required AppEnvironment environment}) => get(url);
     }
     
-    class MyMockAction extends ReduxAction<AppState> {  
-      Future<AppState> reduce() async => 123;
+    class MyMockAction extends ReduxAction<AppState, AppEnvironment> {  
+      Future<AppState> reduce({required AppEnvironment environment}) async => 123;
     }
     ```
 
@@ -1352,16 +1358,16 @@ There are 5 different ways to define mocks:
 4. Use a `ReduxAction<St> Function(ReduxAction<St>)` to create a mock from the original action.
 
     ```                        
-    class MyAction extends ReduxAction<AppState> {
+    class MyAction extends ReduxAction<AppState, AppEnvironment> {
       String url;        
       MyAction(this.url);
-      Future<AppState> reduce() => get(url);
+      Future<AppState> reduce({required AppEnvironment environment}) => get(url);
     }
     
-    class MyMockAction extends MockAction<AppState> {
+    class MyMockAction extends MockAction<AppState, AppEnvironment> {
       String url;
       MyMockAction(this.url);  
-      Future<AppState> reduce() async {                     
+      Future<AppState> reduce({required AppEnvironment environment}) async {                     
         if (url == 'http://example.com') return 123;
         else if (url == 'http://flutter.io') return 345;
         else return 678;
@@ -1380,10 +1386,10 @@ There are 5 different ways to define mocks:
    to modify the state directly.
 
     ```                        
-    class MyAction extends ReduxAction<AppState> {
+    class MyAction extends ReduxAction<AppState, AppEnvironment> {
       String url;        
       MyAction(this.url);
-      Future<AppState> reduce() => get(url);
+      Future<AppState> reduce({required AppEnvironment environment}) => get(url);
     }
     ```
 
@@ -1438,7 +1444,7 @@ Pass `shouldThrowUserExceptions` as `true`, and all errors will be thrown and no
 including `UserException`s. Use this in all tests that should throw no errors:
 
 ```
-var storeTester = StoreTester<AppState>(
+var storeTester = StoreTester<AppState, AppEnvironment>(
                      initialState: AppState.initialState(), 
                      shouldThrowUserExceptions: true);
 ```
@@ -1519,7 +1525,7 @@ void main() async {
 You must also use this same navigator key in your `MaterialApp`:
 
 ```
-return StoreProvider<AppState>(
+return StoreProvider<AppState, AppEnvironment>(
   store: store,
   child: MaterialApp(
 	  ...
@@ -1608,7 +1614,7 @@ other state:
 class MyConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-	return StoreConnector<AppState, ViewModel>(
+	return StoreConnector<AppState, AppEnvironment, ViewModel>(
 	  model: ViewModel(),
 	  builder: (BuildContext context, ViewModel vm) => MyWidget(
 		initialText: vm.initialText,
@@ -1641,17 +1647,17 @@ class ViewModel extends BaseModel<AppState> {
 	  );
 }
 
-class ClearTextAction extends ReduxAction<AppState> {
+class ClearTextAction extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() => state.copy(changeTextEvt: Event());
+  AppState reduce({required AppEnvironment environment}) => state.copy(changeTextEvt: Event());
 }
 
-class ChangeTextAction extends ReduxAction<AppState> {
+class ChangeTextAction extends ReduxAction<AppState, AppEnvironment> {
   String newText;
   ChangeTextAction(this.newText);
 
   @override
-  AppState reduce() => state.copy(changeTextEvt: Event<String>(newText));
+  AppState reduce({required AppEnvironment environment}) => state.copy(changeTextEvt: Event<String>(newText));
 }
 ```
 
@@ -1838,9 +1844,9 @@ When you are inside of an async action, you can use its `before` and `after` met
 the `WaitAction`:
 
 ```
-class LoadAction extends ReduxAction<AppState> {
+class LoadAction extends ReduxAction<AppState, AppEnvironment> {
 
-  Future<AppState> reduce() async {    
+  Future<AppState> reduce({required AppEnvironment environment}) async {    
     var newText = await loadText(); 
     return state.copy(text: newText);
   }
@@ -1959,13 +1965,13 @@ Future<void> waitCondition(
 For example:
 
 ```
-class SaveAppointmentAction extends ReduxAction<AppState> {  
+class SaveAppointmentAction extends ReduxAction<AppState, AppEnvironment> {  
   final Appointment appointment;
   
   SaveAppointmentAction(this.appointment);      
 
   @override
-  Future<AppState> reduce() {    
+  Future<AppState> reduce({required AppEnvironment environment}) {    
     dispatch(CreateCalendarIfNecessaryAction());    
     await store.waitCondition((state) => state.calendar != null);
     return state.copy(calendar: state.calendar.copyAdding(appointment));
@@ -2203,12 +2209,12 @@ memory.
 Suppose you have the following `AddTodoAction` for the To-Do app:
 
 ```
-class AddTodoAction extends ReduxAction<AppState> {
+class AddTodoAction extends ReduxAction<AppState, AppEnvironment> {
   final Todo todo;
   AddTodoAction(this.todo);
 
   @override
-  AppState reduce() {
+  AppState reduce({required AppEnvironment environment}) {
 	if (todo == null) return null;
 	else return state.copy(todoState: List.of(state.todoState.todos)..add(todo));
   }
@@ -2223,7 +2229,7 @@ boilerplate. Start by creating an **abstract** action base class to allow easier
 sub-states of your store. For example:
 
 ```
-abstract class BaseAction extends ReduxAction<AppState> {
+abstract class BaseAction extends ReduxAction<AppState, AppEnvironment> {
   LoginState get loginState => state.loginState;
   UserState get userState => state.userState;
   TodoState get todoState => state.todoState;
@@ -2239,7 +2245,7 @@ class AddTodoAction extends BaseAction {
   AddTodoAction(this.todo);
 
   @override
-  AppState reduce() {
+  AppState reduce({required AppEnvironment environment}) {
 	if (todo == null) return null;
 	else return state.copy(todoState: List.of(todos)..add(todo)));
   }
@@ -2258,7 +2264,7 @@ abstract class TodoAction extends BaseAction {
   TodoState reduceTodoState();
       
   @override
-  Future<AppState> reduce() {
+  Future<AppState> reduce({required AppEnvironment environment}) {
     Future<TodoState> todoState = reduceTodoState();
     if (todoState is Future) return todoState.then((_todoState) => state.copy(todoState: _todoState));   
     else return (todoState == null) ? null : state.copy(todoState: todoState);
@@ -2291,7 +2297,7 @@ methods. For example, this abstract class turns on a modal barrier when the acti
 removes it when the action finishes:
 
 ```
-abstract class BarrierAction extends ReduxAction<AppState> {
+abstract class BarrierAction extends ReduxAction<AppState, AppEnvironment> {
   void before() => dispatch(BarrierAction(true));
   void after() => dispatch(BarrierAction(false));
 }
@@ -2303,7 +2309,7 @@ Then you could use it like this:
 class ChangeTextAction extends BarrierAction {
 
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
 	String newText = await read(Uri.http("numbersapi.com","${state.counter}");
 	return state.copy(
 	  counter: state.counter + 1,
@@ -2349,7 +2355,7 @@ if (initialState == null) {
       await persistor.saveInitialState(initialState);
     }
 
-var store = Store<AppState>(
+var store = Store<AppState, AppEnvironment>(
   initialState: initialState,  
   persistor: persistor,
 );
@@ -2486,7 +2492,7 @@ Your store optionally accepts lists of `actionObservers` and `stateObservers`, w
 logging:
 
 ```
-var store = Store<AppState>(
+var store = Store<AppState, AppEnvironment>(
   initialState: state,
   actionObservers: [Log.printer(formatter: Log.verySimpleFormatter)],
   stateObservers: [StateLogger()],
@@ -2558,7 +2564,7 @@ You can create your own `ModelObserver`, but the provided `DefaultModelObserver`
 the box to print to the console and do basic testing:
 
 ```
-var store = Store<AppState>(
+var store = Store<AppState, AppEnvironment>(
   initialState: state,
   modelObserver: DefaultModelObserver(),  
 );
@@ -2605,7 +2611,7 @@ This would be your reducer:
 
 ```
 @override
-Future<AppState> reduce() async {
+Future<AppState> reduce({required AppEnvironment environment}) async {
 	var something = await myDao.loadSomething();
 	return state.copy(something: something);
 }

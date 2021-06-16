@@ -16,7 +16,7 @@ void main() {
   test('Method call sequence for sync reducer.', () async {
     //
     info = [];
-    Store<String> store = Store<String>(initialState: "");
+    Store<String, int> store = Store<String, int>(initialState: "", environment: 0);
     store.dispatch(ActionA());
     expect(store.state, "A");
     expect(info, [
@@ -33,7 +33,7 @@ void main() {
       'The reducer is async because the method returns Future.', () async {
     //
     info = [];
-    Store<String> store = Store<String>(initialState: "");
+    Store<String, int> store = Store<String, int>(initialState: "", environment: 0);
     await store.dispatch(ActionB());
     expect(store.state, "B");
     expect(info, [
@@ -51,7 +51,7 @@ void main() {
       'The reducer is async because the REDUCE method returns Future.', () async {
     //
     info = [];
-    Store<String> store = Store<String>(initialState: "");
+    Store<String, int> store = Store<String, int>(initialState: "", environment: 0);
 
     // B is dispatched first, but will finish last, because it's async.
     var f1 = store.dispatch(ActionB());
@@ -77,7 +77,7 @@ void main() {
       'The reducer is async because the BEFORE method returns Future.', () async {
     //
     info = [];
-    Store<String> store = Store<String>(initialState: "");
+    Store<String, int> store = Store<String, int>(initialState: "", environment: 0);
 
     // C is dispatched first, but will finish last, because it's async.
     var f1 = store.dispatch(ActionC());
@@ -103,7 +103,7 @@ void main() {
       'Shows what happens if the before method actually awaits.', () async {
     //
     info = [];
-    Store<String> store = Store<String>(initialState: "");
+    Store<String, int> store = Store<String, int>(initialState: "", environment: 0);
 
     // D is dispatched first, but will finish last, because it's async.
     var f1 = store.dispatch(ActionD());
@@ -129,7 +129,7 @@ void main() {
       'The state is changed by the reduce method before the after method is executed.', () async {
     //
     info = [];
-    Store<String> store = Store<String>(initialState: "");
+    Store<String, int> store = Store<String, int>(initialState: "", environment: 0);
     await store.dispatch(ActionE());
 
     //
@@ -152,7 +152,7 @@ void main() {
       'The state is changed by the reduce method before the after method is executed.', () async {
     //
     info = [];
-    Store<String> store = Store<String>(initialState: "");
+    Store<String, int> store = Store<String, int>(initialState: "", environment: 0);
     await store.dispatch(ActionF());
 
     //
@@ -176,14 +176,14 @@ void main() {
 
 // ----------------------------------------------
 
-class ActionA extends ReduxAction<String> {
+class ActionA extends ReduxAction<String, int> {
   @override
   void before() {
     info.add('A.before state="$state"');
   }
 
   @override
-  String reduce() {
+  String reduce({required int environment}) {
     info.add('A.reduce state="$state"');
     return state + 'A';
   }
@@ -196,14 +196,14 @@ class ActionA extends ReduxAction<String> {
 
 // ----------------------------------------------
 
-class ActionB extends ReduxAction<String> {
+class ActionB extends ReduxAction<String, int> {
   @override
   void before() {
     info.add('B.before state="$state"');
   }
 
   @override
-  Future<String> reduce() async {
+  Future<String> reduce({required int environment}) async {
     info.add('B.reduce1 state="$state"');
     await Future.delayed(const Duration(milliseconds: 50));
     info.add('B.reduce2 state="$state"');
@@ -218,14 +218,14 @@ class ActionB extends ReduxAction<String> {
 
 // ----------------------------------------------
 
-class ActionC extends ReduxAction<String> {
+class ActionC extends ReduxAction<String, int> {
   @override
   Future<void> before() async {
     info.add('C.before state="$state"');
   }
 
   @override
-  String reduce() {
+  String reduce({required int environment}) {
     info.add('C.reduce state="$state"');
     return state + 'C';
   }
@@ -238,7 +238,7 @@ class ActionC extends ReduxAction<String> {
 
 // ----------------------------------------------
 
-class ActionD extends ReduxAction<String> {
+class ActionD extends ReduxAction<String, int> {
   @override
   Future<void> before() async {
     info.add('D.before1 state="$state"');
@@ -247,7 +247,7 @@ class ActionD extends ReduxAction<String> {
   }
 
   @override
-  String reduce() {
+  String reduce({required int environment}) {
     info.add('D.reduce state="$state"');
     return state + 'D';
   }
@@ -260,14 +260,14 @@ class ActionD extends ReduxAction<String> {
 
 // ----------------------------------------------
 
-class ActionE extends ReduxAction<String> {
+class ActionE extends ReduxAction<String, int> {
   @override
   void before() async {
     info.add('E.before state="$state"');
   }
 
   @override
-  String reduce() {
+  String reduce({required int environment}) {
     info.add('E.reduce state="$state"');
     return state + 'E';
   }
@@ -282,14 +282,14 @@ class ActionE extends ReduxAction<String> {
 
 // ----------------------------------------------
 
-class ActionF extends ReduxAction<String> {
+class ActionF extends ReduxAction<String, int> {
   @override
   void before() async {
     info.add('F.before state="$state"');
   }
 
   @override
-  Future<String> reduce() async {
+  Future<String> reduce({required int environment}) async {
     info.add('F.reduce1 state="$state"');
     await Future.delayed(const Duration(milliseconds: 10));
     info.add('F.reduce2 state="$state"');

@@ -20,11 +20,11 @@ void main() {
     //
     dynamic error;
     dynamic asyncError;
-    late Store<String> store;
+    late Store<String, int> store;
 
     await runZonedGuarded(() async {
       info = [];
-      store = Store<String>(initialState: "");
+      store = Store<String, int>(initialState: "", environment: 0);
 
       try {
         store.dispatch(ActionA());
@@ -52,14 +52,14 @@ void main() {
   /////////////////////////////////////////////////////////////////////////////
 }
 
-class ActionA extends ReduxAction<String> {
+class ActionA extends ReduxAction<String, int> {
   @override
   void before() {
     info.add('A.before state="$state"');
   }
 
   @override
-  String reduce() {
+  String reduce({required int environment}) {
     info.add('A.reduce state="$state"');
     return state + 'A';
   }

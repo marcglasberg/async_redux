@@ -23,7 +23,7 @@ import '../async_redux.dart';
 /// `NavigateAction.popUntilRouteName()`,
 /// `NavigateAction.popUntilRoute()`,
 ///
-class NavigateAction<St> extends ReduxAction<St> {
+class NavigateAction<St, Environment> extends ReduxAction<St, Environment> {
   static GlobalKey<NavigatorState>? _navigatorKey;
 
   static GlobalKey<NavigatorState>? get navigatorKey => _navigatorKey;
@@ -51,7 +51,7 @@ class NavigateAction<St> extends ReduxAction<St> {
   NavigateType get type => details.type;
 
   @override
-  St? reduce() {
+  St? reduce({required Environment environment}) {
     details.navigate();
     return null;
   }

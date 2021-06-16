@@ -11,8 +11,8 @@
   looks like this:
 
   ```                                      
-  class SaveAction extends ReduxAction<AppState> {      
-    Future<AppState> reduce() async {
+  class SaveAction extends ReduxAction<AppState, AppEnvironment> {      
+    Future<AppState> reduce({required AppEnvironment environment}) async {
 	  bool isSaved = await saveMyInfo(); 
       if (!isSaved) throw UserException("Save failed.");	 
 	  ...
@@ -192,7 +192,7 @@ This is a complete example:
 class MyHomePageConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AppState, ViewModel>(
+    return StoreConnector<AppState, AppEnvironment, ViewModel>(
         vm: () => Factory(this),
         builder: (BuildContext context, ViewModel vm) =>
             MyHomePage(
@@ -202,7 +202,7 @@ class MyHomePageConnector extends StatelessWidget {
   }
 }
 
-class Factory extends VmFactory<AppState, MyHomePageConnector> {
+class Factory extends VmFactory<AppState, AppEnvironment, MyHomePageConnector> {
   Factory(widget) : super(widget);
 
   @override

@@ -10,13 +10,13 @@ part of async_redux_store;
 /// Important: Do NOT override operator == and hashCode. Actions must retain
 /// their default [Object] comparison by identity, or the StoreTester may not work.
 ///
-abstract class ReduxAction<St> {
-  late Store<St> _store;
+abstract class ReduxAction<St, Environment> {
+  late Store<St, Environment> _store;
   final ActionStatus _status = ActionStatus();
 
-  void setStore(Store<St> store) => _store = store;
+  void setStore(Store<St, Environment> store) => _store = store;
 
-  Store<St> get store => _store;
+  Store<St, Environment> get store => _store;
 
   ActionStatus get status => _status;
 
@@ -32,7 +32,7 @@ abstract class ReduxAction<St> {
 
   DateTime get stateTimestamp => _store.stateTimestamp;
 
-  Dispatch<St> get dispatch => _store.dispatch;
+  Dispatch<St, Environment> get dispatch => _store.dispatch;
 
   /// This is an optional method that may be overridden to run during action
   /// dispatching, before `reduce`. If this method throws an error, the
@@ -58,19 +58,19 @@ abstract class ReduxAction<St> {
   /// The `StoreConnector`s may rebuild only if the `reduce` method returns
   /// a state which is both not `null` and different from the previous one
   /// (comparing by `identical`, not `equals`).
-  FutureOr<St?> reduce();
+  FutureOr<St?> reduce({required Environment environment});
 
   /// You may wrap the reducer to allow for some pre or post-processing.
   /// For example, if you want to abort an async reducer if the state
   /// changed since when the reducer started:
   /// ```
-  /// Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
+  /// Reducer<St, Environment> wrapReduce(Reducer<St, Environment> reduce) => () async {
   ///    var oldState = state;
   ///    AppState newState = await reduce();
   ///    return identical(oldState, state) ? newState : null;
   /// };
   /// ```
-  Reducer<St?> wrapReduce(Reducer<St> reduce) => reduce;
+  Reducer<St?, Environment> wrapReduce(Reducer<St, Environment> reduce) => reduce;
 
   /// If any error is thrown by `reduce` or `before`, you have the chance
   /// to further process it by using `wrapError`. Usually this is used to wrap
@@ -103,10 +103,10 @@ abstract class ReduxAction<St> {
       "because it's more difficult to use than it seems. "
       "Unless you completely understand what you're doing,"
       "you should only used it with sync reducers.")
-  FutureOr<St?> reduceWithState(Store<St> store, St state) {
+  FutureOr<St?> reduceWithState(Store<St, Environment> store, St state) {
     setStore(store);
     _store.defineState(state);
-    return reduce();
+    return reduce(environment: store.environment);
   }
 
   @override

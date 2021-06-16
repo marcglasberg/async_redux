@@ -14,7 +14,10 @@ void main() {
 
   test('Initial state.', () {
     //
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment(),
+    );
 
     expect(storeTester.state.counter, 0);
     expect(storeTester.state.description, "");
@@ -25,11 +28,14 @@ void main() {
 
   test('Increment counter.', () async {
     //
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment()
+    );
     expect(storeTester.state.counter, 0);
 
     storeTester.dispatch(IncrementAction(amount: 1));
-    TestInfo<AppState> info = await storeTester.wait(IncrementAction);
+    TestInfo<AppState, AppEnvironment> info = await storeTester.wait(IncrementAction);
     expect(info.state.counter, 1);
 
     storeTester.dispatch(IncrementAction(amount: 5));
@@ -41,13 +47,16 @@ void main() {
 
   test('Increment counter and download description.', () async {
     //
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment(),
+    );
     expect(storeTester.state.counter, 0);
     expect(storeTester.state.description, isEmpty);
 
     storeTester.dispatch(IncrementAndGetDescriptionAction());
 
-    TestInfo<AppState> info = await storeTester.waitUntil(IncrementAndGetDescriptionAction);
+    TestInfo<AppState, AppEnvironment> info = await storeTester.waitUntil(IncrementAndGetDescriptionAction);
     expect(info.state.counter, 1);
     expect(info.state.description, isNotEmpty);
   });
@@ -56,11 +65,14 @@ void main() {
 
   test('Turn on/off the modal barrier.', () async {
     //
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment(),
+    );
     expect(storeTester.state.waiting, false);
 
     storeTester.dispatch(BarrierAction(true));
-    TestInfo<AppState> info = await storeTester.wait(BarrierAction);
+    TestInfo<AppState, AppEnvironment> info = await storeTester.wait(BarrierAction);
     expect(info.state.waiting, true);
 
     storeTester.dispatch(BarrierAction(false));
@@ -72,13 +84,16 @@ void main() {
 
   test('Modal barrier exists while downloading description.', () async {
     //
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment()
+    );
     expect(storeTester.state.counter, 0);
     expect(storeTester.state.description, isEmpty);
 
     storeTester.dispatch(IncrementAndGetDescriptionAction());
 
-    TestInfoList<AppState> infos = await storeTester.waitAll([
+    TestInfoList<AppState, AppEnvironment> infos = await storeTester.waitAll([
       IncrementAndGetDescriptionAction,
       BarrierAction,
       IncrementAction,

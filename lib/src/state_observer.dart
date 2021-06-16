@@ -5,9 +5,9 @@ import 'package:async_redux/async_redux.dart';
 // Uses code from package equatable by Felix Angelov.
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-abstract class StateObserver<St> {
+abstract class StateObserver<St, Environment> {
   void observe(
-    ReduxAction<St> action,
+    ReduxAction<St, Environment> action,
     St stateIni,
     St stateEnd,
     int dispatchCount,

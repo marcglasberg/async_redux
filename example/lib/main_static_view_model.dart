@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-late Store<int> store;
+late Store<int, int> store;
 
 /// This example shows how to use the same view-model architecture of the
 /// flutter_redux package. This is specially useful if you are migrating
@@ -18,13 +18,13 @@ late Store<int> store;
 /// `converter: (store) => ViewModel.fromStore(store)`.
 ///
 void main() {
-  store = Store<int>(initialState: 0);
+  store = Store<int, int>(initialState: 0, environment: 0);
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => StoreProvider<int>(
+  Widget build(BuildContext context) => StoreProvider<int, int>(
       store: store,
       child: MaterialApp(
         home: MyHomePageConnector(),
@@ -34,13 +34,13 @@ class MyApp extends StatelessWidget {
 ///////////////////////////////////////////////////////////////////////////////
 
 /// This action increments the counter by [amount]].
-class IncrementAction extends ReduxAction<int> {
+class IncrementAction extends ReduxAction<int, int> {
   final int amount;
 
   IncrementAction({required this.amount});
 
   @override
-  int reduce() => state + amount;
+  int reduce({required int environment}) => state + amount;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -51,7 +51,7 @@ class MyHomePageConnector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<int, ViewModel>(
+    return StoreConnector<int, int, ViewModel>(
       converter: (store) => ViewModel.fromStore(store),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         counter: vm.counter,
@@ -72,7 +72,7 @@ class ViewModel extends Vm {
   }) : super(equals: [counter]);
 
   /// Static factory called by the StoreConnector's converter parameter.
-  static ViewModel fromStore(Store<int> store) {
+  static ViewModel fromStore(Store<int, int> store) {
     return ViewModel(
       counter: store.state,
       onIncrement: () => store.dispatch(IncrementAction(amount: 1)),

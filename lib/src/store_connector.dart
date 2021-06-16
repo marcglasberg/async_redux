@@ -13,17 +13,17 @@ import 'package:flutter/material.dart';
 
 /// Convert the entire [Store] into a [Model]. The [Model] will
 /// be used to build a Widget using the [ViewModelBuilder].
-typedef StoreConverter<St, Model> = Model Function(Store<St> store);
+typedef StoreConverter<St, Environment, Model> = Model Function(Store<St, Environment> store);
 
 /// A function that will be run when the [StoreConnector] is initialized (using
 /// the [State.initState] method). This can be useful for dispatching actions
 /// that fetch data for your Widget when it is first displayed.
-typedef OnInitCallback<St> = void Function(Store<St> store);
+typedef OnInitCallback<St, Environment> = void Function(Store<St, Environment> store);
 
 /// A function that will be run when the StoreConnector is removed from the Widget Tree.
 /// It is run in the [State.dispose] method.
 /// This can be useful for dispatching actions that remove stale data from your State tree.
-typedef OnDisposeCallback<St> = void Function(Store<St> store);
+typedef OnDisposeCallback<St, Environment> = void Function(Store<St, Environment> store);
 
 /// A test of whether or not your `converter` or `vm` function should run in
 /// response to a State change. For advanced use only.
@@ -44,9 +44,9 @@ typedef ShouldUpdateModel<St> = bool Function(St state);
 /// This is useful for making calls to other classes, such as a
 /// `Navigator` or `TabController`, in response to state changes.
 /// It can also be used to trigger an action based on the previous state.
-typedef OnWillChangeCallback<St, Model> = void Function(
+typedef OnWillChangeCallback<St, Environment, Model> = void Function(
   BuildContext context,
-  Store<St> store,
+  Store<St, Environment> store,
   Model previousVm,
   Model newVm,
 );
@@ -59,15 +59,15 @@ typedef OnWillChangeCallback<St, Model> = void Function(
 /// Note: Using a [BuildContext] inside this callback can cause problems if
 /// the callback performs navigation. For navigation purposes, please use
 /// an [OnWillChangeCallback].
-typedef OnDidChangeCallback<St, Model> = void Function(
-    BuildContext context, Store<St> store, Model viewModel);
+typedef OnDidChangeCallback<St, Environment, Model> = void Function(
+    BuildContext context, Store<St, Environment> store, Model viewModel);
 
 /// A function that will be run after the Widget is built the first time.
 /// This function is passed the store and the initial `Model` created by the [vm]
 /// or the [converter] function. This can be useful for starting certain animations,
 /// such as showing Snackbars, after the Widget is built the first time.
-typedef OnInitialBuildCallback<St, Model> = void Function(
-    BuildContext context, Store<St> store, Model viewModel);
+typedef OnInitialBuildCallback<St, Environment, Model> = void Function(
+    BuildContext context, Store<St, Environment> store, Model viewModel);
 
 /// Build a Widget using the [BuildContext] and [Model].
 /// The [Model] is derived from the [Store] using a [StoreConverter].
@@ -78,28 +78,28 @@ typedef ViewModelBuilder<Model> = Widget Function(
 
 // /////////////////////////////////////////////////////////////////////////////
 
-abstract class StoreConnectorInterface<St, Model> {
-  VmFactory<St, dynamic> Function()? get vm;
+abstract class StoreConnectorInterface<St, Environment, Model> {
+  VmFactory<St, Environment, dynamic> Function()? get vm;
 
-  StoreConverter<St, Model>? get converter;
+  StoreConverter<St, Environment, Model>? get converter;
 
   BaseModel? get model;
 
   bool? get distinct;
 
-  OnInitCallback<St>? get onInit;
+  OnInitCallback<St, Environment>? get onInit;
 
-  OnDisposeCallback<St>? get onDispose;
+  OnDisposeCallback<St, Environment>? get onDispose;
 
   bool get rebuildOnChange;
 
   ShouldUpdateModel<St>? get shouldUpdateModel;
 
-  OnWillChangeCallback<St, Model>? get onWillChange;
+  OnWillChangeCallback<St, Environment, Model>? get onWillChange;
 
-  OnDidChangeCallback<St, Model>? get onDidChange;
+  OnDidChangeCallback<St, Environment, Model>? get onDidChange;
 
-  OnInitialBuildCallback<St, Model>? get onInitialBuild;
+  OnInitialBuildCallback<St, Environment, Model>? get onInitialBuild;
 
   Object? get debug;
 }
@@ -115,8 +115,8 @@ abstract class StoreConnectorInterface<St, Model> {
 /// optimization, the Widget can be rebuilt only when the [Model] changes.
 /// In order for this to work correctly, you must implement [==] and [hashCode] for
 /// the [Model], and set the [distinct] option to true when creating your StoreConnector.
-class StoreConnector<St, Model> extends StatelessWidget
-    implements StoreConnectorInterface<St, Model> {
+class StoreConnector<St, Environment, Model> extends StatelessWidget
+    implements StoreConnectorInterface<St, Environment, Model> {
   //
   /// Build a Widget using the [BuildContext] and [Model]. The [Model]
   /// is created by the [vm] or [converter] functions.
@@ -125,12 +125,12 @@ class StoreConnector<St, Model> extends StatelessWidget
   /// Convert the [Store] into a [Model]. The resulting [Model] will be
   /// passed to the [builder] function.
   @override
-  final VmFactory<St, dynamic> Function()? vm;
+  final VmFactory<St, Environment, dynamic> Function()? vm;
 
   /// Convert the [Store] into a [Model]. The resulting [Model] will be
   /// passed to the [builder] function.
   @override
-  final StoreConverter<St, Model>? converter;
+  final StoreConverter<St, Environment, Model>? converter;
 
   /// Don't use, this is deprecated. Please, use the recommended
   /// `vm` parameter (of type [VmFactory]) or `converter`.
@@ -150,13 +150,13 @@ class StoreConnector<St, Model> extends StatelessWidget
   /// This can be useful for dispatching actions that fetch data for your Widget
   /// when it is first displayed.
   @override
-  final OnInitCallback<St>? onInit;
+  final OnInitCallback<St, Environment>? onInit;
 
   /// A function that will be run when the StoreConnector is removed from the
   /// Widget Tree. It is run in the [State.dispose] method.
   /// This can be useful for dispatching actions that remove stale data from your State tree.
   @override
-  final OnDisposeCallback<St>? onDispose;
+  final OnDisposeCallback<St, Environment>? onDispose;
 
   /// Determines whether the Widget should be rebuilt when the Store emits an onChange event.
   @override
@@ -182,7 +182,7 @@ class StoreConnector<St, Model> extends StatelessWidget
   /// it will only be called if the `Model` changes.
   /// This can be useful for imperative calls to things like Navigator, TabController, etc
   @override
-  final OnWillChangeCallback<St, Model>? onWillChange;
+  final OnWillChangeCallback<St, Environment, Model>? onWillChange;
 
   /// A function that will be run on State change, after the Widget is built.
   /// This function is passed the `Model`, and if `distinct` is `true`,
@@ -191,14 +191,14 @@ class StoreConnector<St, Model> extends StatelessWidget
   /// Note: Using a [BuildContext] inside this callback can cause problems if
   /// the callback performs navigation. For navigation purposes, please use [onWillChange].
   @override
-  final OnDidChangeCallback<St, Model>? onDidChange;
+  final OnDidChangeCallback<St, Environment, Model>? onDidChange;
 
   /// A function that will be run after the Widget is built the first time.
   /// This function is passed the store and the initial `Model` created by
   /// the `vm` or the `converter` function. This can be useful for starting certain
   /// animations, such as showing snackbars, after the Widget is built the first time.
   @override
-  final OnInitialBuildCallback<St, Model>? onInitialBuild;
+  final OnInitialBuildCallback<St, Environment, Model>? onInitialBuild;
 
   /// Pass the parameter `debug: this` to get a more detailed error message.
   @override
@@ -231,8 +231,8 @@ class StoreConnector<St, Model> extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
-    return _StoreStreamListener<St, Model>(
-      store: StoreProvider.of<St>(context, debug),
+    return _StoreStreamListener<St, Environment, Model>(
+      store: StoreProvider.of<St, Environment>(context, debug),
       debug: debug,
       storeConnector: this,
       builder: builder,
@@ -270,7 +270,7 @@ class StoreConnector<St, Model> extends StatelessWidget
     //
     // The `converter` parameter can be used instead of `vm`.
     else if (converter != null) {
-      return converter!(store as Store<St>);
+      return converter!(store as Store<St, Environment>);
     }
     //
     // The `model` parameter is deprecated.
@@ -291,22 +291,22 @@ class StoreConnector<St, Model> extends StatelessWidget
 // /////////////////////////////////////////////////////////////////////////////
 
 /// Listens to the store and calls builder whenever the store changes.
-class _StoreStreamListener<St, Model> extends StatefulWidget {
+class _StoreStreamListener<St, Environment, Model> extends StatefulWidget {
   final ViewModelBuilder<Model> builder;
-  final StoreConverter<St, Model>? converter;
+  final StoreConverter<St, Environment, Model>? converter;
   final VmFactory Function()? vm;
   final BaseModel? model; // Deprecated.
-  final Store<St> store;
+  final Store<St, Environment> store;
   final Object? debug;
   final StoreConnector storeConnector;
   final bool rebuildOnChange;
   final bool? distinct;
-  final OnInitCallback<St>? onInit;
-  final OnDisposeCallback<St>? onDispose;
+  final OnInitCallback<St, Environment>? onInit;
+  final OnDisposeCallback<St, Environment>? onDispose;
   final ShouldUpdateModel<St>? shouldUpdateModel;
-  final OnWillChangeCallback<St, Model>? onWillChange;
-  final OnDidChangeCallback<St, Model>? onDidChange;
-  final OnInitialBuildCallback<St, Model>? onInitialBuild;
+  final OnWillChangeCallback<St, Environment, Model>? onWillChange;
+  final OnDidChangeCallback<St, Environment, Model>? onDidChange;
+  final OnInitialBuildCallback<St, Environment, Model>? onInitialBuild;
 
   const _StoreStreamListener({
     Key? key,
@@ -329,7 +329,7 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
 
   @override
   State<StatefulWidget> createState() {
-    return _StoreStreamListenerState<St, Model>();
+    return _StoreStreamListenerState<St, Environment, Model>();
   }
 }
 
@@ -360,8 +360,8 @@ class _ConverterError extends Error {
 
 // /////////////////////////////////////////////////////////////////////////////
 
-class _StoreStreamListenerState<St, Model> //
-    extends State<_StoreStreamListener<St, Model>> {
+class _StoreStreamListenerState<St, Environment, Model> //
+    extends State<_StoreStreamListener<St, Environment, Model>> {
   Stream<Model>? _stream;
   Model? _latestModel;
   _ConverterError? _latestError;
@@ -404,7 +404,7 @@ class _StoreStreamListenerState<St, Model> //
   }
 
   @override
-  void didUpdateWidget(_StoreStreamListener<St, Model> oldWidget) {
+  void didUpdateWidget(_StoreStreamListener<St, Environment, Model> oldWidget) {
     _computeLatestModel();
 
     if (widget.store != oldWidget.store) {

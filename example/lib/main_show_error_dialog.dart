@@ -4,14 +4,15 @@ import 'package:flutter/material.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-late Store<AppState> store;
+late Store<AppState, AppEnvironment> store;
 
 /// This example lets you enter a name and click save.
 /// If the name has less than 4 chars, an error dialog will be shown.
 ///
 void main() {
   var state = AppState.initialState();
-  store = Store<AppState>(initialState: state);
+  var environment = AppEnvironment();
+  store = Store<AppState, AppEnvironment>(initialState: state, environment: environment);
   runApp(MyApp());
 }
 
@@ -38,15 +39,17 @@ class AppState {
   int get hashCode => name.hashCode;
 }
 
+class AppEnvironment {}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 /// To display errors, put the [UserExceptionDialog] below [StoreProvider] and [MaterialApp].
 class MyApp extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => StoreProvider<AppState>(
+  Widget build(BuildContext context) => StoreProvider<AppState, AppEnvironment>(
         store: store,
         child: MaterialApp(
-          home: UserExceptionDialog<AppState>(
+          home: UserExceptionDialog<AppState, AppEnvironment>(
             child: MyHomePageConnector(),
           ),
         ),
@@ -55,13 +58,13 @@ class MyApp extends StatelessWidget {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class SaveUserAction extends ReduxAction<AppState> {
+class SaveUserAction extends ReduxAction<AppState, AppEnvironment> {
   final String name;
 
   SaveUserAction(this.name);
 
   @override
-  AppState reduce() {
+  AppState reduce({required AppEnvironment environment}) {
     print("Saving '$name'.");
     if (name.length < 4)
       throw const UserException("Name must have at least 4 letters.");
@@ -80,7 +83,7 @@ class MyHomePageConnector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AppState, ViewModel>(
+    return StoreConnector<AppState, AppEnvironment, ViewModel>(
       vm: () => Factory(this),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         name: vm.name,
@@ -91,7 +94,7 @@ class MyHomePageConnector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class Factory extends VmFactory<AppState, MyHomePageConnector> {
+class Factory extends VmFactory<AppState, AppEnvironment, MyHomePageConnector> {
   Factory(widget) : super(widget);
 
   @override

@@ -197,7 +197,7 @@ abstract class ExceptionCode {
 /// should not throw an exception, but instead call the [UserExceptionAction],
 /// which will then simply throw the exception in its `reduce` method.
 ///
-class UserExceptionAction<St> extends ReduxAction<St> {
+class UserExceptionAction<St, Environment> extends ReduxAction<St, Environment> {
   final UserException exception;
 
   UserExceptionAction(
@@ -216,7 +216,7 @@ class UserExceptionAction<St> extends ReduxAction<St> {
   UserExceptionAction.from(this.exception);
 
   @override
-  Future<St> reduce() async => throw exception;
+  Future<St> reduce({required Environment environment}) async => throw exception;
 }
 
 // /////////////////////////////////////////////////////////////////////////////

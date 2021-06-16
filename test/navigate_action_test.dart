@@ -3,7 +3,7 @@ import 'package:async_redux/src/store_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-late Store<AppState> store;
+late Store<AppState, AppEnvironment> store;
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -15,10 +15,12 @@ final routes = {
 
 class AppState {}
 
+class AppEnvironment {}
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return StoreProvider<AppState>(
+    return StoreProvider<AppState, AppEnvironment>(
       store: store,
       child: MaterialApp(
         initialRoute: "/",
@@ -82,7 +84,10 @@ class MyPage extends StatelessWidget {
 void main() {
   setUp(() async {
     NavigateAction.setNavigatorKey(navigatorKey);
-    store = Store<AppState>(initialState: AppState());
+    store = Store<AppState, AppEnvironment>(
+      initialState: AppState(),
+      environment: AppEnvironment()
+    );
   });
 
   final Finder page1Finder = find.byKey(const Key("page1"));

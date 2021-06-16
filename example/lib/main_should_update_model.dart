@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-late Store<int> store;
+late Store<int, int> store;
 
 /// This example shows how to prevent creating view-models from invalid states.
 /// When the button is tapped, the counter will increment 5 times, synchronously.
@@ -14,13 +14,13 @@ late Store<int> store;
 /// Therefore, it will display 0, 4, 10, 14, 20, 24 etc.
 ///
 void main() {
-  store = Store<int>(initialState: 0);
+  store = Store<int, int>(initialState: 0, environment: 0);
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => StoreProvider<int>(
+  Widget build(BuildContext context) => StoreProvider<int, int>(
       store: store,
       child: MaterialApp(
         home: MyHomePageConnector(),
@@ -30,13 +30,13 @@ class MyApp extends StatelessWidget {
 ///////////////////////////////////////////////////////////////////////////////
 
 /// This action increments the counter by [amount]].
-class IncrementAction extends ReduxAction<int> {
+class IncrementAction extends ReduxAction<int, int> {
   final int amount;
 
   IncrementAction({required this.amount});
 
   @override
-  int reduce() => state + amount;
+  int reduce({required int environment}) => state + amount;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -46,7 +46,7 @@ class MyHomePageConnector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<int, ViewModel>(
+    return StoreConnector<int, int, ViewModel>(
       vm: () => Factory(this),
       //
       // Should update the view-model only when the counter is even.
@@ -61,7 +61,7 @@ class MyHomePageConnector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class Factory extends VmFactory<int, MyHomePageConnector> {
+class Factory extends VmFactory<int, int, MyHomePageConnector> {
   Factory(widget) : super(widget);
 
   @override

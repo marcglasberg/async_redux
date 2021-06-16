@@ -36,10 +36,10 @@ import 'package:async_redux/async_redux.dart';
 ///     }}
 ///   return null; }
 /// ```
-abstract class WrapError<St> {
+abstract class WrapError<St, Environment> {
   Object? wrap(
     Object error,
     StackTrace stackTrace,
-    ReduxAction<St> action,
+    ReduxAction<St, Environment> action,
   );
 }

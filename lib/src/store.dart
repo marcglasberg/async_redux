@@ -15,10 +15,10 @@ part 'redux_action.dart';
 
 // /////////////////////////////////////////////////////////////////////////////
 
-typedef Reducer<St> = FutureOr<St?> Function();
+typedef Reducer<St, Environment> = FutureOr<St?> Function({required Environment environment});
 
-typedef Dispatch<St> = Future<ActionStatus> Function(
-  ReduxAction<St> action, {
+typedef Dispatch<St, Environment> = Future<ActionStatus> Function(
+  ReduxAction<St, Environment> action, {
   bool notify,
 });
 
@@ -29,11 +29,11 @@ typedef Dispatch<St> = Future<ActionStatus> Function(
 /// The only way to change the state in the store is to dispatch a ReduxAction.
 /// You may implement these methods:
 ///
-/// 1) `AppState reduce()` ➜
+/// 1) `AppState reduce({required AppEnvironment environment})` ➜
 ///    To run synchronously, just return the state:
-///         AppState reduce() { ... return state; }
+///         AppState reduce({required AppEnvironment environment}) { ... return state; }
 ///    To run asynchronously, return a future of the state:
-///         Future<AppState> reduce() async { ... return state; }
+///         Future<AppState> reduce({required AppEnvironment environment}) async { ... return state; }
 ///    Note that changing the state is optional. If you return null (or Future of null)
 ///    the state will not be changed. Just the same, if you return the same instance
 ///    of state (or its Future) the state will not be changed.
@@ -76,9 +76,10 @@ typedef Dispatch<St> = Future<ActionStatus> Function(
 ///
 /// For more info, see: https://pub.dartlang.org/packages/async_redux
 ///
-class Store<St> {
+class Store<St, Environment> {
   Store({
     required St initialState,
+    required Environment environment,
     bool syncStream = false,
     TestInfoPrinter? testInfoPrinter,
     List<ActionObserver>? actionObservers,
@@ -90,6 +91,7 @@ class Store<St> {
     bool? defaultDistinct,
     CompareBy? immutableCollectionEquality,
   })  : _state = initialState,
+        _environment = environment,
         _stateTimestamp = DateTime.now().toUtc(),
         _changeController = StreamController.broadcast(sync: syncStream),
         _actionObservers = actionObservers,
@@ -115,10 +117,15 @@ class Store<St> {
 
   St _state;
 
+  final Environment _environment;
+
   DateTime _stateTimestamp;
 
   /// The current state of the app.
   St get state => _state;
+
+  /// The environment, by which an app collects its dependencies.
+  Environment get environment => _environment;
 
   /// The timestamp of the current state in the store, in UTC.
   DateTime get stateTimestamp => _stateTimestamp;
@@ -171,7 +178,7 @@ class Store<St> {
   int _dispatchCount;
   int _reduceCount;
   TestInfoPrinter? _testInfoPrinter;
-  StreamController<TestInfo<St>>? _testInfoController;
+  StreamController<TestInfo<St, Environment>>? _testInfoController;
 
   TestInfoPrinter? get testInfoPrinter => _testInfoPrinter;
 
@@ -196,10 +203,10 @@ class Store<St> {
   Stream<St> get onChange => _changeController.stream;
 
   /// Used by the storeTester.
-  Stream<TestInfo<St>> get onReduce => (_testInfoController != null)
+  Stream<TestInfo<St, Environment>> get onReduce => (_testInfoController != null)
       ? //
       _testInfoController!.stream
-      : Stream<TestInfo<St>>.empty();
+      : Stream<TestInfo<St, Environment>>.empty();
 
   /// Turns on testing capabilities, if not already.
   void initTestInfoController() {
@@ -222,13 +229,13 @@ class Store<St> {
   /// The condition can access the state. You may also provide a
   /// [timeoutInSeconds], which by default is null (never times out).
   Future<void> waitCondition(
-    bool Function(St) condition, {
+    bool Function(St, Environment) condition, {
     int? timeoutInSeconds,
   }) async {
     var conditionTester = StoreTester.simple(this);
     try {
       await conditionTester.waitCondition(
-        (TestInfo<St>? info) => condition(info!.state),
+        (TestInfo<St, Environment>? info) => condition(info!.state, info.environment),
         timeoutInSeconds: timeoutInSeconds,
       );
     } finally {
@@ -255,10 +262,10 @@ class Store<St> {
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: store.dispatch is of type Dispatch.
-  Future<ActionStatus> dispatch(ReduxAction<St> action, {bool notify = true}) =>
+  Future<ActionStatus> dispatch(ReduxAction<St, Environment> action, {bool notify = true}) =>
       _dispatch(action, notify: notify);
 
-  Future<ActionStatus> _dispatch(ReduxAction<St> action, {required bool notify}) async {
+  Future<ActionStatus> _dispatch(ReduxAction<St, Environment> action, {required bool notify}) async {
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 
@@ -276,14 +283,16 @@ class Store<St> {
 
   void createTestInfoSnapshot(
     St state,
-    ReduxAction<St> action,
+    Environment environment,
+    ReduxAction<St, Environment> action,
     Object? error,
     Object? processedError, {
     required bool ini,
   }) {
     if (_testInfoController != null || testInfoPrinter != null) {
-      var reduceInfo = TestInfo<St>(
+      var reduceInfo = TestInfo<St, Environment>(
         state,
+        environment,
         ini,
         action,
         error,
@@ -303,12 +312,12 @@ class Store<St> {
   /// reducer is synchronous or asynchronous. It's important to run the reducer
   /// synchronously, if possible.
   FutureOr<ActionStatus> _processAction(
-    ReduxAction<St> action, {
+    ReduxAction<St, Environment> action, {
     bool notify = true,
   }) async {
     //
     // Creates the "INI" test snapshot.
-    createTestInfoSnapshot(state!, action, null, null, ini: true);
+    createTestInfoSnapshot(state!, environment!, action, null, null, ini: true);
 
     // The action may access the store/state/dispatch as fields.
     assert(action.store == this);
@@ -353,23 +362,23 @@ class Store<St> {
     return action._status;
   }
 
-  FutureOr<void> _applyReducer(ReduxAction<St> action, {bool notify = true}) {
+  FutureOr<void> _applyReducer(ReduxAction<St, Environment> action, {bool notify = true}) {
     _reduceCount++;
 
-    Reducer<St?> reducer = action.wrapReduce(action.reduce);
+    Reducer<St?, Environment> reducer = action.wrapReduce(action.reduce);
 
     // Sync reducer.
-    if (reducer is St? Function()) {
-      St? result = reducer();
+    if (reducer is St? Function({required Environment environment})) {
+      St? result = reducer(environment: environment);
       _registerState(result, action, notify: notify);
     }
     //
     // Async reducer.
-    else if (reducer is Future<St?> Function()) {
+    else if (reducer is Future<St?> Function({required Environment environment})) {
       // Make sure it's NOT a completed future.
       Future<St?> result = (() async {
         await Future.microtask(() {});
-        return reducer();
+        return reducer(environment: environment);
       })();
 
       // The "then callback" will be applied synchronously,
@@ -394,7 +403,7 @@ class Store<St> {
   /// Note: We compare the state using `identical` (which is fast).
   void _registerState(
     St? state,
-    ReduxAction<St> action, {
+    ReduxAction<St, Environment> action, {
     bool notify = true,
   }) {
     if (_shutdown) return;
@@ -429,7 +438,7 @@ class Store<St> {
   Object? _processError(
     Object? error,
     StackTrace stackTrace,
-    ReduxAction<St> action,
+    ReduxAction<St, Environment> action,
     _Flag<bool> afterWasRun,
   ) {
     try {
@@ -485,14 +494,14 @@ class Store<St> {
   }
 
   void _finalize(
-    ReduxAction<St> action,
+    ReduxAction<St, Environment> action,
     Object? error,
     Object? processedError,
     _Flag<bool> afterWasRun,
   ) {
     if (!afterWasRun.value) _after(action);
 
-    createTestInfoSnapshot(state!, action, error, processedError, ini: false);
+    createTestInfoSnapshot(state!, environment, action, error, processedError, ini: false);
 
     if (_actionObservers != null)
       for (ActionObserver observer in _actionObservers!) {
@@ -500,7 +509,7 @@ class Store<St> {
       }
   }
 
-  void _after(ReduxAction<St> action) {
+  void _after(ReduxAction<St, Environment> action) {
     try {
       action.after();
       action._status._isAfterDone = true;

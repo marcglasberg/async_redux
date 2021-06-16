@@ -7,7 +7,7 @@ import 'package:http/http.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-late Store<AppState> store;
+late Store<AppState, AppEnvironment> store;
 
 /// This example is the same as the one in `main_before_and_after.dart`.
 /// However, instead of declaring a `MyWaitAction`, it uses the build-in
@@ -39,7 +39,8 @@ late Store<AppState> store;
 ///
 void main() {
   var state = AppState.initialState();
-  store = Store<AppState>(initialState: state);
+  var environment = AppEnvironment();
+  store = Store<AppState, AppEnvironment>(initialState: state, environment: environment);
   runApp(MyApp());
 }
 
@@ -80,11 +81,13 @@ class AppState {
   int get hashCode => counter.hashCode ^ description.hashCode ^ wait.hashCode;
 }
 
+class AppEnvironment {}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 class MyApp extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => StoreProvider<AppState>(
+  Widget build(BuildContext context) => StoreProvider<AppState, AppEnvironment>(
       store: store,
       child: MaterialApp(
         home: MyHomePageConnector(),
@@ -93,9 +96,9 @@ class MyApp extends StatelessWidget {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
+class IncrementAndGetDescriptionAction extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     dispatch(IncrementAction(amount: 1));
     String description =
         await read(Uri.http("numbersapi.com", "${state.counter}"));
@@ -115,13 +118,13 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class IncrementAction extends ReduxAction<AppState> {
+class IncrementAction extends ReduxAction<AppState, AppEnvironment> {
   final int amount;
 
   IncrementAction({required this.amount});
 
   @override
-  AppState reduce() => state.copy(counter: state.counter! + amount);
+  AppState reduce({required AppEnvironment environment}) => state.copy(counter: state.counter! + amount);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -132,7 +135,7 @@ class MyHomePageConnector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AppState, ViewModel>(
+    return StoreConnector<AppState, AppEnvironment, ViewModel>(
       vm: () => Factory(this),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         counter: vm.counter,
@@ -145,7 +148,7 @@ class MyHomePageConnector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class Factory extends VmFactory<AppState, MyHomePageConnector> {
+class Factory extends VmFactory<AppState, AppEnvironment, MyHomePageConnector> {
   Factory(widget) : super(widget);
 
   @override

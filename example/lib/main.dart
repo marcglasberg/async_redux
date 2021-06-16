@@ -4,7 +4,13 @@ import 'package:flutter/material.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-late Store<int> store;
+late Store<int, AppEnvironment> store;
+
+class AppEnvironment {
+  final int multiplier;
+
+  AppEnvironment({required this.multiplier});
+}
 
 /// This example shows a counter and a button.
 /// When the button is tapped, the counter will increment synchronously.
@@ -13,13 +19,13 @@ late Store<int> store;
 /// and thus the store is defined as `Store<int>`. The initial state is 0.
 ///
 void main() {
-  store = Store<int>(initialState: 0);
+  store = Store<int, AppEnvironment>(initialState: 0, environment: AppEnvironment(multiplier: 2));  
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => StoreProvider<int>(
+  Widget build(BuildContext context) => StoreProvider<int, AppEnvironment>(
       store: store,
       child: MaterialApp(
         home: MyHomePageConnector(),
@@ -29,13 +35,13 @@ class MyApp extends StatelessWidget {
 ///////////////////////////////////////////////////////////////////////////////
 
 /// This action increments the counter by [amount]].
-class IncrementAction extends ReduxAction<int> {
+class IncrementAction extends ReduxAction<int, AppEnvironment> {
   final int amount;
 
   IncrementAction({required this.amount});
 
   @override
-  int reduce() => state + amount;
+  int reduce({required AppEnvironment environment}) => state + (amount * environment.multiplier);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -50,7 +56,7 @@ class MyHomePageConnector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<int, ViewModel>(
+    return StoreConnector<int, AppEnvironment, ViewModel>(
       vm: () => Factory(this),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         counter: vm.counter,
@@ -61,7 +67,7 @@ class MyHomePageConnector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class Factory extends VmFactory<int, MyHomePageConnector> {
+class Factory extends VmFactory<int, AppEnvironment, MyHomePageConnector> {
   Factory(widget) : super(widget);
 
   @override

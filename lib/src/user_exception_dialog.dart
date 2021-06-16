@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 /// class MyApp extends StatelessWidget {
 ///   @override
 ///   Widget build(BuildContext context)
-///     => StoreProvider<AppState>(
+///     => StoreProvider<AppState, AppEnvironment>(
 ///       store: store,
 ///       child: MaterialApp(
 ///           home: UserExceptionDialog<AppState>(
@@ -24,7 +24,7 @@ import 'package:flutter/material.dart';
 ///
 /// For more info, see: https://pub.dartlang.org/packages/async_redux
 ///
-class UserExceptionDialog<St> extends StatelessWidget {
+class UserExceptionDialog<St, Environment> extends StatelessWidget {
   final Widget child;
   final ShowUserExceptionDialog? onShowUserExceptionDialog;
 
@@ -48,7 +48,7 @@ class UserExceptionDialog<St> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<St, _ViewModel>(
+    return StoreConnector<St, Environment, _ViewModel>(
       model: _ViewModel(),
       builder: (context, vm) {
         //

@@ -14,7 +14,7 @@ void main() {
   test('Test aborting an action.', () async {
     //
     info = [];
-    Store<String> store = Store<String>(initialState: "");
+    Store<String, int> store = Store<String, int>(initialState: "", environment: 0);
 
     store.dispatch(ActionA(abort: false));
     expect(store.state, "X");
@@ -35,7 +35,7 @@ void main() {
   test('Test aborting an action, where the abortDispatch method accesses the state.', () async {
     //
     info = [];
-    Store<String> store = Store<String>(initialState: "");
+    Store<String, int> store = Store<String, int>(initialState: "", environment: 0);
 
     store.dispatch(ActionB());
     expect(store.state, "X");
@@ -56,7 +56,7 @@ void main() {
 
 // ----------------------------------------------
 
-class ActionA extends ReduxAction<String> {
+class ActionA extends ReduxAction<String, int> {
   bool abort;
 
   ActionA({required this.abort});
@@ -70,7 +70,7 @@ class ActionA extends ReduxAction<String> {
   }
 
   @override
-  String reduce() {
+  String reduce({required int environment}) {
     info!.add('2');
     return state + 'X';
   }
@@ -83,7 +83,7 @@ class ActionA extends ReduxAction<String> {
 
 // ----------------------------------------------
 
-class ActionB extends ReduxAction<String> {
+class ActionB extends ReduxAction<String, int> {
   @override
   bool abortDispatch() => state.length >= 2;
 
@@ -93,7 +93,7 @@ class ActionB extends ReduxAction<String> {
   }
 
   @override
-  String reduce() {
+  String reduce({required int environment}) {
     info!.add('2');
     return state + 'X';
   }

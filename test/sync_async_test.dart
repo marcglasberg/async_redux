@@ -34,6 +34,8 @@ class AppState {
   String toString() => text.toString();
 }
 
+class AppEnvironment {}
+
 late List<AppState?> states;
 
 void main() {
@@ -128,10 +130,13 @@ void main() {
       'and no actions are dispatched inside of the reducer. '
       'It acts as a pure function, just like a regular reducer of "vanilla" Redux.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment(),
+    );
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action1B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action1B]));
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitAllUnorderedGetLast([Action1B]));
     expect(states, [AppState('A')]);
     expect(info.state!.text, 'AB');
   });
@@ -143,10 +148,13 @@ void main() {
       'which dispatches another sync action. '
       'They are both executed synchronously.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment(),
+    );
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action2B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action2B, Action2C]));
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitAllUnorderedGetLast([Action2B, Action2C]));
     expect(states, [AppState('A'), AppState('AC')]);
     expect(info.state!.text, 'ACB');
   });
@@ -157,10 +165,13 @@ void main() {
       '3) A sync reducer is called, '
       'which dispatches an ASYNC action.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment(),
+    );
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action3B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action3B, Action3C]));
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitAllUnorderedGetLast([Action3B, Action3C]));
     expect(states, [AppState('A'), AppState('A')]);
     expect(info.state!.text, 'ABC');
   });
@@ -172,10 +183,13 @@ void main() {
       'which dispatches another ASYNC action. '
       'The second reducer finishes BEFORE the first.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment(),
+    );
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action4B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action4B, Action4C]));
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitAllUnorderedGetLast([Action4B, Action4C]));
     expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('AC')]);
     expect(info.state!.text, 'ACB');
   });
@@ -187,10 +201,13 @@ void main() {
       'which dispatches another ASYNC action. '
       'The second reducer finishes AFTER the first.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment(),
+    );
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action5B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action5B, Action5C]));
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitAllUnorderedGetLast([Action5B, Action5C]));
     expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('A')]);
     expect(info.state!.text, 'ABC');
   });
@@ -204,11 +221,14 @@ void main() {
       'In other words, it will run the reducer later, '
       'when it can actually apply the new state right away.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment(),
+    );
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action6B());
 
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action6B, Action6C]));
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitAllUnorderedGetLast([Action6B, Action6C]));
     expect(states, [AppState('A'), AppState('A'), AppState('AB')]);
 
     // State 'C' is lost.
@@ -222,10 +242,13 @@ void main() {
       '7) Test 6 is fixed if the reducer executes an await '
       '(here we try putting it in the beginning).', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment(),
+    );
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action7B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action7B, Action7C]));
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitAllUnorderedGetLast([Action7B, Action7C]));
     expect(states, [AppState('A'), AppState('A'), AppState('AB'), AppState('AB')]);
     expect(info.state!.text, 'ABC');
   });
@@ -236,10 +259,13 @@ void main() {
       '8) Test 6 is fixed if the reducer executes an await '
       '(here we try putting it in the end).', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment(),
+    );
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action8B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action8B, Action8C]));
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitAllUnorderedGetLast([Action8B, Action8C]));
     expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('AB')]);
     expect(info.state!.text, 'ABC');
   });
@@ -250,10 +276,13 @@ void main() {
       '9) Test 6 is fixed if the reducer executes an await '
       '(here we try putting one in the beginning and one in the end).', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester = StoreTester<AppState, AppEnvironment>(
+      initialState: AppState.initialState(),
+      environment: AppEnvironment(),
+    );
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action9B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action9B, Action9C]));
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitAllUnorderedGetLast([Action9B, Action9C]));
     expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('A'), AppState('AB')]);
     expect(info.state!.text, 'ABC');
   });
@@ -278,9 +307,9 @@ void main() {
 
 // ----------------------------------------------
 
-class Action1B extends ReduxAction<AppState> {
+class Action1B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() {
+  AppState reduce({required AppEnvironment environment}) {
     states.add(state);
     return state.copy(state.text + 'B');
   }
@@ -288,9 +317,9 @@ class Action1B extends ReduxAction<AppState> {
 
 // ----------------------------------------------
 
-class Action2B extends ReduxAction<AppState> {
+class Action2B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() {
+  AppState reduce({required AppEnvironment environment}) {
     states.add(state);
     dispatch(Action2C());
     states.add(state);
@@ -298,18 +327,18 @@ class Action2B extends ReduxAction<AppState> {
   }
 }
 
-class Action2C extends ReduxAction<AppState> {
+class Action2C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() {
+  AppState reduce({required AppEnvironment environment}) {
     return state.copy(state.text + 'C');
   }
 }
 
 // ----------------------------------------------
 
-class Action3B extends ReduxAction<AppState> {
+class Action3B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() {
+  AppState reduce({required AppEnvironment environment}) {
     states.add(state);
     dispatch(Action3C());
     states.add(state);
@@ -317,9 +346,9 @@ class Action3B extends ReduxAction<AppState> {
   }
 }
 
-class Action3C extends ReduxAction<AppState> {
+class Action3C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     await Future.sync(() {});
     return state.copy(state.text + 'C');
   }
@@ -327,9 +356,9 @@ class Action3C extends ReduxAction<AppState> {
 
 // ----------------------------------------------
 
-class Action4B extends ReduxAction<AppState> {
+class Action4B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     states.add(state);
     await Future.delayed(const Duration(milliseconds: 100));
     states.add(state);
@@ -341,9 +370,9 @@ class Action4B extends ReduxAction<AppState> {
   }
 }
 
-class Action4C extends ReduxAction<AppState> {
+class Action4C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     await Future.delayed(const Duration(milliseconds: 50));
     return state.copy(state.text + 'C');
   }
@@ -351,9 +380,9 @@ class Action4C extends ReduxAction<AppState> {
 
 // ----------------------------------------------
 
-class Action5B extends ReduxAction<AppState> {
+class Action5B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     states.add(state);
     await Future.delayed(const Duration(milliseconds: 100));
     states.add(state);
@@ -365,9 +394,9 @@ class Action5B extends ReduxAction<AppState> {
   }
 }
 
-class Action5C extends ReduxAction<AppState> {
+class Action5C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     await Future.delayed(const Duration(milliseconds: 200));
     return state.copy(state.text + 'C');
   }
@@ -376,9 +405,9 @@ class Action5C extends ReduxAction<AppState> {
 // ----------------------------------------------
 
 /// Returns a COMPLETED Future.
-class Action6B extends ReduxAction<AppState> {
+class Action6B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     print('33333333333');
     states.add(state);
     dispatch(Action6C());
@@ -388,9 +417,9 @@ class Action6B extends ReduxAction<AppState> {
 }
 
 /// Returns an UNCOMPLETED Future.
-class Action6C extends ReduxAction<AppState> {
+class Action6C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     await Future.value(null);
     states.add(state);
     print('Action6C.reduce');
@@ -400,9 +429,9 @@ class Action6C extends ReduxAction<AppState> {
 
 // ----------------------------------------------
 
-class Action7B extends ReduxAction<AppState> {
+class Action7B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     await Future.value(null);
     states.add(state);
     dispatch(Action7C());
@@ -411,9 +440,9 @@ class Action7B extends ReduxAction<AppState> {
   }
 }
 
-class Action7C extends ReduxAction<AppState> {
+class Action7C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     states.add(state);
     await Future.value(null);
     states.add(state);
@@ -423,9 +452,9 @@ class Action7C extends ReduxAction<AppState> {
 
 // ----------------------------------------------
 
-class Action8B extends ReduxAction<AppState> {
+class Action8B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     states.add(state);
     dispatch(Action8C());
     states.add(state);
@@ -435,9 +464,9 @@ class Action8B extends ReduxAction<AppState> {
   }
 }
 
-class Action8C extends ReduxAction<AppState> {
+class Action8C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     await Future.value(null);
     states.add(state);
     return state.copy(state.text + 'C');
@@ -446,9 +475,9 @@ class Action8C extends ReduxAction<AppState> {
 
 // ----------------------------------------------
 
-class Action9B extends ReduxAction<AppState> {
+class Action9B extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     states.add(state);
     await Future.value(null);
     states.add(state);
@@ -460,9 +489,9 @@ class Action9B extends ReduxAction<AppState> {
   }
 }
 
-class Action9C extends ReduxAction<AppState> {
+class Action9C extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     await Future.value(null);
     states.add(state);
     return state.copy(state.text + 'C');

@@ -39,7 +39,7 @@ import 'package:logging/logging.dart';
 ///       // Print them out (or do something more interesting!)
 ///       .listen((LogRecord) => print(LogRecord));
 ///
-class Log<St> implements ActionObserver<St> {
+class Log<St, Environment> implements ActionObserver<St, Environment> {
   //
   final Logger logger;
 
@@ -47,7 +47,7 @@ class Log<St> implements ActionObserver<St> {
   final Level level;
 
   /// A function that formats the String for printing
-  final MessageFormatter<St> formatter;
+  final MessageFormatter<St, Environment> formatter;
 
   /// Logs actions to the given Logger, and does not print anything to the console.
   Log({
@@ -60,7 +60,7 @@ class Log<St> implements ActionObserver<St> {
   factory Log.printer({
     Logger? logger,
     Level level = Level.INFO,
-    MessageFormatter<St> formatter = singleLineFormatter,
+    MessageFormatter<St, Environment> formatter = singleLineFormatter,
   }) {
     final log = Log(logger: logger, level: level, formatter: formatter);
     log.logger.onRecord //
@@ -106,7 +106,7 @@ class Log<St> implements ActionObserver<St> {
   }
 
   @override
-  void observe(ReduxAction<St> action, int dispatchCount, {required bool ini}) {
+  void observe(ReduxAction<St, Environment> action, int dispatchCount, {required bool ini}) {
     logger.log(
       level,
       formatter(null, action, ini, dispatchCount, new DateTime.now()),
@@ -121,9 +121,9 @@ class Log<St> implements ActionObserver<St> {
 ///   final log = Log(formatter: onlyLogActionFormatter);
 ///   var store = new Store(initialState: 0, actionObservers:[log], stateObservers: [...]);
 ///
-typedef MessageFormatter<St> = String Function(
+typedef MessageFormatter<St, Environment> = String Function(
   St? state,
-  ReduxAction<St> action,
+  ReduxAction<St, Environment> action,
   bool ini,
   int dispatchCount,
   DateTime timestamp,

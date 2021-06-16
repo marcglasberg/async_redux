@@ -27,7 +27,7 @@ class MyObjVmEquals extends VmEquals<MyObjVmEquals> {
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class ViewModel_Deprecated extends BaseModel<List<int>> {
+class ViewModel_Deprecated extends BaseModel<List<int>, int> {
   String name;
   int age;
 

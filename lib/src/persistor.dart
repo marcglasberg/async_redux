@@ -20,7 +20,7 @@ import 'package:async_redux/async_redux.dart';
 /// await persistor.saveInitialState(initialState);
 /// }
 ///
-/// var store = Store<AppState>(
+/// var store = Store<AppState, AppEnvironment>(
 ///   initialState: initialState,
 ///   persistor: persistor,
 /// );
@@ -49,7 +49,7 @@ abstract class Persistor<St> {
 /// Use it like this:
 ///
 /// ```dart
-/// var store = Store<AppState>(...,  persistor: PersistorPrinterDecorator(persistor));
+/// var store = Store<AppState, AppEnvironment>(...,  persistor: PersistorPrinterDecorator(persistor));
 /// ```
 ///
 class PersistorPrinterDecorator<St> extends Persistor<St> {
@@ -136,9 +136,9 @@ class PersistException implements Exception {
 
 // /////////////////////////////////////////////////////////////////////////////
 
-class PersistAction<St> extends ReduxAction<St> {
+class PersistAction<St, Environment> extends ReduxAction<St, Environment> {
   @override
-  St? reduce() => null;
+  St? reduce({required Environment environment}) => null;
 }
 
 // /////////////////////////////////////////////////////////////////////////////

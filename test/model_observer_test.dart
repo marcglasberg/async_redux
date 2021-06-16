@@ -13,12 +13,13 @@ void main() {
     (WidgetTester tester) async {
       //
       var modelObserver = DefaultModelObserver<_MyViewModel>();
-      Store<_StateTest> store = Store<_StateTest>(
+      Store<_StateTest, _EnvironmentTest> store = Store<_StateTest, _EnvironmentTest>(
         initialState: _StateTest("A", 1),
+        environment: _EnvironmentTest(),
         modelObserver: modelObserver,
       );
 
-      StoreProvider<_StateTest> provider = StoreProvider<_StateTest>(
+      StoreProvider<_StateTest, _EnvironmentTest> provider = StoreProvider<_StateTest, _EnvironmentTest>(
         store: store,
         child: const _MyWidgetConnector(),
       );
@@ -77,7 +78,7 @@ void main() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class _TestApp extends StatelessWidget {
-  final StoreProvider<_StateTest> provider;
+  final StoreProvider<_StateTest, _EnvironmentTest> provider;
 
   _TestApp(this.provider);
 
@@ -95,20 +96,25 @@ class _StateTest {
   _StateTest(this.text, this.number);
 }
 
+@immutable
+class _EnvironmentTest {
+
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class _MyWidgetConnector extends StatelessWidget {
   const _MyWidgetConnector();
 
   @override
-  Widget build(BuildContext context) => StoreConnector<_StateTest, _MyViewModel>(
+  Widget build(BuildContext context) => StoreConnector<_StateTest, _EnvironmentTest, _MyViewModel>(
         debug: this,
         model: _MyViewModel(),
         builder: (BuildContext context, _MyViewModel vm) => Container(),
       );
 }
 
-class _MyViewModel extends BaseModel<_StateTest> {
+class _MyViewModel extends BaseModel<_StateTest, _EnvironmentTest> {
   _MyViewModel();
 
   String? text;
@@ -121,14 +127,14 @@ class _MyViewModel extends BaseModel<_StateTest> {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class _MyAction extends ReduxAction<_StateTest> {
+class _MyAction extends ReduxAction<_StateTest, _EnvironmentTest> {
   String text;
   int number;
 
   _MyAction(this.text, this.number);
 
   @override
-  _StateTest reduce() => _StateTest(text, number);
+  _StateTest reduce({required _EnvironmentTest environment}) => _StateTest(text, number);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

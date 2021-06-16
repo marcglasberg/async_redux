@@ -11,23 +11,23 @@ import 'package:flutter/material.dart';
 /// Provides a Redux [Store] to all ancestors of this Widget.
 /// This should generally be a root widget in your App.
 /// Connect to the Store provided by this Widget using a [StoreConnector].
-class StoreProvider<St> extends InheritedWidget {
-  final Store<St> _store;
+class StoreProvider<St, Environment> extends InheritedWidget {
+  final Store<St, Environment> _store;
 
   const StoreProvider({
     Key? key,
-    required Store<St> store,
+    required Store<St, Environment> store,
     required Widget child,
   })  : _store = store,
         super(key: key, child: child);
 
-  static Store<St> of<St>(BuildContext context, Object? debug) {
-    final StoreProvider<St>? provider =
-        context.dependOnInheritedWidgetOfExactType<StoreProvider<St>>();
+  static Store<St, Environment> of<St, Environment>(BuildContext context, Object? debug) {
+    final StoreProvider<St, Environment>? provider =
+        context.dependOnInheritedWidgetOfExactType<StoreProvider<St, Environment>>();
 
     if (provider == null)
       throw StoreConnectorError(
-        _typeOf<StoreProvider<St>>(),
+        _typeOf<StoreProvider<St, Environment>>(),
         debug,
       );
 
@@ -36,22 +36,22 @@ class StoreProvider<St> extends InheritedWidget {
 
   /// Dispatch an action without a StoreConnector,
   /// and get a `Future<void>` which completes when the action is done.
-  static FutureOr<ActionStatus> dispatch<St>(
+  static FutureOr<ActionStatus> dispatch<St, Environment>(
     BuildContext context,
-    ReduxAction<St> action, {
+    ReduxAction<St, Environment> action, {
     Object? debug,
   }) =>
-      of<St>(context, debug).dispatch(action);
+      of<St, Environment>(context, debug).dispatch(action);
 
   /// Get the state, without a StoreConnector.
-  static St? state<St>(BuildContext context, {Object? debug}) => //
-      of<St>(context, debug).state;
+  static St? state<St, Environment>(BuildContext context, {Object? debug}) => //
+      of<St, Environment>(context, debug).state;
 
   /// Workaround to capture generics.
   static Type _typeOf<T>() => T;
 
   @override
-  bool updateShouldNotify(StoreProvider<St> oldWidget) => //
+  bool updateShouldNotify(StoreProvider<St, Environment> oldWidget) => //
       _store != oldWidget._store;
 }
 

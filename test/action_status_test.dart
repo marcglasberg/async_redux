@@ -21,7 +21,7 @@ void main() {
   test('Test detecting that the BEFORE method of an action threw an error.', () async {
     //
     info = [];
-    Store<String> store = Store<String>(initialState: "");
+    Store<String, int> store = Store<String, int>(initialState: "", environment: 0);
 
     var actionA = MyAction(whenToThrow: When.before);
     store.dispatch(actionA);
@@ -36,7 +36,7 @@ void main() {
   test('Test detecting that the REDUCE method of an action threw an error.', () async {
     //
     info = [];
-    Store<String> store = Store<String>(initialState: "");
+    Store<String, int> store = Store<String, int>(initialState: "", environment: 0);
 
     var actionA = MyAction(whenToThrow: When.reduce);
     store.dispatch(actionA);
@@ -54,7 +54,7 @@ void main() {
       "thrown asynchronously (after the async gap).", () async {
     //
     info = [];
-    Store<String> store = Store<String>(initialState: "");
+    Store<String, int> store = Store<String, int>(initialState: "", environment: 0);
 
     var hasThrown = false;
     runZonedGuarded(() {
@@ -78,7 +78,7 @@ void main() {
   test('Test detecting that the action threw no errors.', () async {
     //
     info = [];
-    Store<String> store = Store<String>(initialState: "");
+    Store<String, int> store = Store<String, int>(initialState: "", environment: 0);
 
     var actionA = MyAction(whenToThrow: null);
     store.dispatch(actionA);
@@ -93,7 +93,7 @@ void main() {
 
 // ----------------------------------------------
 
-class MyAction extends ReduxAction<String> {
+class MyAction extends ReduxAction<String, int> {
   When? whenToThrow;
 
   MyAction({this.whenToThrow});
@@ -105,7 +105,7 @@ class MyAction extends ReduxAction<String> {
   }
 
   @override
-  String reduce() {
+  String reduce({required int environment}) {
     info.add('2');
     if (whenToThrow == When.reduce) throw const UserException("During reduce");
     return state + 'X';

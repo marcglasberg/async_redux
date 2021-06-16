@@ -13,12 +13,12 @@ import 'package:async_redux/async_redux.dart';
 /// Don't use the store to dispatch any actions, as this may have
 /// unpredictable results.
 ///
-abstract class ErrorObserver<St> {
+abstract class ErrorObserver<St, Environment> {
   bool observe(
     Object error,
     StackTrace stackTrace,
-    ReduxAction<St> action,
-    Store<St> store,
+    ReduxAction<St, Environment> action,
+    Store<St, Environment> store,
   );
 }
 
@@ -34,12 +34,12 @@ abstract class ErrorObserver<St> {
 ///
 /// `var store = Store(errorObserver:DevelopmentErrorObserver());`
 ///
-class DevelopmentErrorObserver<St> implements ErrorObserver<St> {
+class DevelopmentErrorObserver<St, Environment> implements ErrorObserver<St, Environment> {
   @override
   bool observe(
     Object error,
     StackTrace stackTrace,
-    ReduxAction<St> action,
+    ReduxAction<St, Environment> action,
     Store store,
   ) {
     if (error is UserException)
@@ -62,12 +62,12 @@ class DevelopmentErrorObserver<St> implements ErrorObserver<St> {
 ///
 /// `var store = Store(errorObserver:SwallowErrorObserver());`
 ///
-class SwallowErrorObserver<St> implements ErrorObserver<St> {
+class SwallowErrorObserver<St, Environment> implements ErrorObserver<St, Environment> {
   @override
   bool observe(
     Object error,
     StackTrace stackTrace,
-    ReduxAction<St> action,
+    ReduxAction<St, Environment> action,
     Store store,
   ) {
     return false;

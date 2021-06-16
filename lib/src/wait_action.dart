@@ -38,7 +38,7 @@ import '../async_redux.dart';
 /// 5) Don't use the [WaitAction], but instead create your own `MyWaitAction`
 /// that uses the [Wait] object in whatever way you want.
 ///
-class WaitAction<St> extends ReduxAction<St> {
+class WaitAction<St, Environment> extends ReduxAction<St, Environment> {
   //
 
   /// Works out-of-the-box for most use cases, but you can inject your
@@ -124,7 +124,7 @@ class WaitAction<St> extends ReduxAction<St> {
         ref = null;
 
   @override
-  St? reduce() => reducer(state, operation, flag, ref);
+  St? reduce({required Environment environment}) => reducer(state, operation, flag, ref);
 }
 
 typedef WaitReducer<St> = St? Function(

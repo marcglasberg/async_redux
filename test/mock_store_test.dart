@@ -7,13 +7,17 @@ class AppState {
   AppState(this.text);
 }
 
-class MyAction extends ReduxAction<AppState> {
+class AppEnvironment {
+  
+}
+
+class MyAction extends ReduxAction<AppState, AppEnvironment> {
   int value;
 
   MyAction(this.value);
 
   @override
-  AppState reduce() => AppState(state.text + value.toString());
+  AppState reduce({required AppEnvironment environment}) => AppState(state.text + value.toString());
 }
 
 class MyAction1 extends MyAction {
@@ -36,31 +40,31 @@ class MyAction5 extends MyAction {
   MyAction5() : super(5);
 }
 
-class MyMockAction extends MockAction<AppState> {
+class MyMockAction extends MockAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() => AppState(state.text + '[' + (action as MyAction).value.toString() + ']');
+  AppState reduce({required AppEnvironment environment}) => AppState(state.text + '[' + (action as MyAction).value.toString() + ']');
 }
 
 void main() {
-  StoreTester<AppState> createMockStoreTester() {
-    var store = MockStore<AppState>(initialState: AppState("0"));
+  StoreTester<AppState, AppEnvironment> createMockStoreTester() {
+    var store = MockStore<AppState, AppEnvironment>(initialState: AppState("0"), environment: AppEnvironment());
     return StoreTester.from(store);
   }
 
   ///////////////////////////////////////////////////////////////////////////////
 
   test('Store: mock a single sync action.', () async {
-    var store = MockStore<AppState>(initialState: AppState("0"));
+    var store = MockStore<AppState, AppEnvironment>(initialState: AppState("0"), environment: AppEnvironment());
     expect(store.state.text, "0");
     store.dispatch(MyAction1());
     expect(store.state.text, "01");
 
     // With mock:
-    store = MockStore<AppState>(initialState: AppState("0"));
+    store = MockStore<AppState, AppEnvironment>(initialState: AppState("0"), environment: AppEnvironment());
     expect(store.state.text, "0");
     store.addMock(
       MyAction1,
-      (ReduxAction<AppState> action, AppState state) => AppState(state.text + 'A'),
+      (ReduxAction<AppState, AppEnvironment> action, AppState state, AppEnvironment environment) => AppState(state.text + 'A'),
     );
     store.dispatch(MyAction1());
     expect(store.state.text, "0A");
@@ -79,7 +83,7 @@ void main() {
     storeTester = createMockStoreTester();
     expect(storeTester.state.text, "0");
     storeTester.addMock(
-        MyAction1, (ReduxAction<AppState> action, AppState state) => AppState(state.text + 'A'));
+        MyAction1, (ReduxAction<AppState, AppEnvironment> action, AppState state, AppEnvironment environment) => AppState(state.text + 'A'));
     storeTester.dispatch(MyAction1());
     expect(storeTester.state.text, "0A");
   });
@@ -88,7 +92,7 @@ void main() {
 
   test('Store: mock sync actions in different ways.', () async {
     // Without mock:
-    var store = MockStore<AppState>(initialState: AppState("0"));
+    var store = MockStore<AppState, AppEnvironment>(initialState: AppState("0"), environment: AppEnvironment());
     expect(store.state.text, "0");
     store.dispatch(MyAction1());
     store.dispatch(MyAction2());
@@ -98,7 +102,7 @@ void main() {
     expect(store.state.text, "012345");
 
     // With mock:
-    store = MockStore<AppState>(initialState: AppState("0"));
+    store = MockStore<AppState, AppEnvironment>(initialState: AppState("0"), environment: AppEnvironment());
     expect(store.state.text, "0");
     store.addMocks({
       /// 1) `null` to disable dispatching the action of a certain type.
@@ -113,10 +117,10 @@ void main() {
 
       /// 4) `ReduxAction<St> Function(ReduxAction<St>)` to create a mock
       /// from the original action,
-      MyAction4: (ReduxAction<AppState> action) => MyAction((action as MyAction).value + 4),
+      MyAction4: (ReduxAction<AppState, AppEnvironment> action) => MyAction((action as MyAction).value + 4),
 
       /// 5) `St Function(ReduxAction<St>, St)` to modify the state directly.
-      MyAction5: (ReduxAction<AppState> action, AppState state) =>
+      MyAction5: (ReduxAction<AppState, AppEnvironment> action, AppState state, AppEnvironment environment) =>
           AppState(state.text + '|' + (action as MyAction).value.toString()),
     });
     store.dispatch(MyAction1());
@@ -130,7 +134,7 @@ void main() {
   ///////////////////////////////////////////////////////////////////////////////
 
   test("Mock can't be of invalid type.", () async {
-    var store = MockStore<AppState>(initialState: AppState("0"));
+    var store = MockStore<AppState, AppEnvironment>(initialState: AppState("0"), environment: AppEnvironment());
     expect(store.state.text, "0");
     store.addMocks({MyAction1: 123});
 

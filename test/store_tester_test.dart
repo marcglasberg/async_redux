@@ -11,42 +11,44 @@ class AppState {
   AppState.add(AppState state, String text) : text = state.text + "," + text;
 }
 
-class Action1 extends ReduxAction<AppState> {
+class AppEnvironment {}
+
+class Action1 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() => AppState.add(state, "1");
+  AppState reduce({required AppEnvironment environment}) => AppState.add(state, "1");
 }
 
-class Action2 extends ReduxAction<AppState> {
+class Action2 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() => AppState.add(state, "2");
+  AppState reduce({required AppEnvironment environment}) => AppState.add(state, "2");
 }
 
-class Action3 extends ReduxAction<AppState> {
+class Action3 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() => AppState.add(state, "3");
+  AppState reduce({required AppEnvironment environment}) => AppState.add(state, "3");
 }
 
-class Action3b extends ReduxAction<AppState> {
+class Action3b extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() {
+  AppState reduce({required AppEnvironment environment}) {
     dispatch(Action4());
     return AppState.add(state, "3b");
   }
 }
 
-class Action4 extends ReduxAction<AppState> {
+class Action4 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() => AppState.add(state, "4");
+  AppState reduce({required AppEnvironment environment}) => AppState.add(state, "4");
 }
 
-class Action5 extends ReduxAction<AppState> {
+class Action5 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() => AppState.add(state, "5");
+  AppState reduce({required AppEnvironment environment}) => AppState.add(state, "5");
 }
 
-class Action6 extends ReduxAction<AppState> {
+class Action6 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() {
+  AppState reduce({required AppEnvironment environment}) {
     dispatch(Action1());
     dispatch(Action2());
     dispatch(Action3());
@@ -54,9 +56,9 @@ class Action6 extends ReduxAction<AppState> {
   }
 }
 
-class Action6b extends ReduxAction<AppState> {
+class Action6b extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     dispatch(Action1());
     await Future.delayed(const Duration(milliseconds: 10));
     dispatch(Action2());
@@ -65,9 +67,9 @@ class Action6b extends ReduxAction<AppState> {
   }
 }
 
-class Action6c extends ReduxAction<AppState> {
+class Action6c extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() {
+  AppState reduce({required AppEnvironment environment}) {
     dispatch(Action1());
     dispatch(Action2());
     dispatch(Action3b());
@@ -75,9 +77,9 @@ class Action6c extends ReduxAction<AppState> {
   }
 }
 
-class Action7 extends ReduxAction<AppState> {
+class Action7 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     dispatch(Action4());
     dispatch(Action6());
     dispatch(Action2());
@@ -86,9 +88,9 @@ class Action7 extends ReduxAction<AppState> {
   }
 }
 
-class Action7b extends ReduxAction<AppState> {
+class Action7b extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     dispatch(Action4());
     dispatch(Action6b());
     dispatch(Action2());
@@ -97,26 +99,26 @@ class Action7b extends ReduxAction<AppState> {
   }
 }
 
-class Action8 extends ReduxAction<AppState> {
+class Action8 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     await Future.delayed(const Duration(milliseconds: 50));
     dispatch(Action2());
     return AppState.add(state, "8");
   }
 }
 
-class Action9 extends ReduxAction<AppState> {
+class Action9 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     await Future.delayed(const Duration(milliseconds: 100));
     return AppState.add(state, "9");
   }
 }
 
-class Action10a extends ReduxAction<AppState> {
+class Action10a extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     dispatch(Action1());
     dispatch(Action2());
     dispatch(Action11a());
@@ -125,9 +127,9 @@ class Action10a extends ReduxAction<AppState> {
   }
 }
 
-class Action10b extends ReduxAction<AppState> {
+class Action10b extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     dispatch(Action1());
     dispatch(Action2());
     dispatch(Action11b());
@@ -136,39 +138,39 @@ class Action10b extends ReduxAction<AppState> {
   }
 }
 
-class Action11a extends ReduxAction<AppState> {
+class Action11a extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() {
+  AppState reduce({required AppEnvironment environment}) {
     throw const UserException("Hello!");
   }
 }
 
-class Action11b extends ReduxAction<AppState> {
+class Action11b extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     throw const UserException("Hello!");
   }
 }
 
-class Action12 extends ReduxAction<AppState> {
+class Action12 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() {
+  AppState reduce({required AppEnvironment environment}) {
     dispatch(Action13());
     return AppState.add(state, "12");
   }
 }
 
-class Action13 extends ReduxAction<AppState> {
+class Action13 extends ReduxAction<AppState, AppEnvironment> {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     await Future.delayed(const Duration(milliseconds: 1));
     return AppState.add(state, "13");
   }
 }
 
 void main() {
-  StoreTester<AppState> createStoreTester() {
-    var store = Store<AppState>(initialState: AppState("0"));
+  StoreTester<AppState, AppEnvironment> createStoreTester() {
+    var store = Store<AppState, AppEnvironment>(initialState: AppState("0"), environment: AppEnvironment());
     return StoreTester.from(store);
   }
 
@@ -223,12 +225,12 @@ void main() {
     storeTester.dispatch(Action3());
     storeTester.dispatch(Action4());
 
-    var condition = (TestInfo<AppState?>? info) => info!.state!.text == "0,1,2";
-    TestInfo<AppState?> info1 = await (storeTester.waitConditionGetLast(condition));
+    var condition = (TestInfo<AppState?, AppEnvironment>? info) => info!.state!.text == "0,1,2";
+    TestInfo<AppState?, AppEnvironment> info1 = await (storeTester.waitConditionGetLast(condition));
     expect(info1.state!.text, "0,1,2");
     expect(info1.ini, false);
 
-    TestInfo<AppState?> info2 =
+    TestInfo<AppState?, AppEnvironment> info2 =
         await (storeTester.waitConditionGetLast((info) => info.state.text == "0,1,2,3,4"));
     expect(info2.state!.text, "0,1,2,3,4");
     expect(info2.ini, false);
@@ -247,13 +249,13 @@ void main() {
     storeTester.dispatch(Action3());
     storeTester.dispatch(Action4());
 
-    var condition = (TestInfo<AppState?>? info) => info!.state!.text == "0,1,2" && info.ini;
-    TestInfo<AppState?> info1 =
+    var condition = (TestInfo<AppState?, AppEnvironment>? info) => info!.state!.text == "0,1,2" && info.ini;
+    TestInfo<AppState?, AppEnvironment> info1 =
         await (storeTester.waitConditionGetLast(condition, ignoreIni: false));
     expect(info1.state!.text, "0,1,2");
     expect(info1.ini, true);
 
-    TestInfo<AppState?> info2 = await (storeTester.waitConditionGetLast(
+    TestInfo<AppState?, AppEnvironment> info2 = await (storeTester.waitConditionGetLast(
         (info) => info.state.text == "0,1,2,3,4" && !info.ini,
         ignoreIni: false));
     expect(info2.state!.text, "0,1,2,3,4");
@@ -273,7 +275,7 @@ void main() {
     storeTester.dispatch(Action3());
     storeTester.dispatch(Action4());
 
-    TestInfoList<AppState?> infos =
+    TestInfoList<AppState?, AppEnvironment> infos =
         await storeTester.waitCondition((info) => info.state.text == "0,1,2");
 
     expect(infos.length, 2);
@@ -304,7 +306,7 @@ void main() {
     storeTester.dispatch(Action3());
     storeTester.dispatch(Action4());
 
-    TestInfoList<AppState?> infos =
+    TestInfoList<AppState?, AppEnvironment> infos =
         await storeTester.waitCondition((info) => info.state.text == "0,1,2", ignoreIni: false);
     expect(infos.length, 4);
     expect(infos.getIndex(0).state!.text, "0");
@@ -338,7 +340,7 @@ void main() {
     expect(storeTester.state.text, "0");
 
     storeTester.dispatch(Action1());
-    TestInfo<AppState?> info = await (storeTester.wait(Action1));
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.wait(Action1));
     expect(info.state!.text, "0,1");
     expect(info.errors, isEmpty);
   });
@@ -384,7 +386,7 @@ void main() {
     storeTester.dispatch(Action1());
     storeTester.dispatch(Action2());
     storeTester.dispatch(Action3());
-    TestInfo<AppState?> info = await (storeTester.waitAllGetLast([Action1, Action2, Action3]));
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitAllGetLast([Action1, Action2, Action3]));
     expect(info.state!.text, "0,1,2,3");
     expect(info.errors, isEmpty);
   });
@@ -400,7 +402,7 @@ void main() {
     // Action6 will dispatch actions 1, 2 and 3, and only then it will finish.
     storeTester.dispatch(Action6());
 
-    TestInfo<AppState?> info =
+    TestInfo<AppState?, AppEnvironment> info =
         await (storeTester.waitAllGetLast([Action6, Action1, Action2, Action3]));
     expect(info.state!.text, "0,1,2,3,6");
     expect(info.errors, isEmpty);
@@ -471,7 +473,7 @@ void main() {
     storeTester.dispatch(Action3());
     storeTester.dispatch(Action4());
 
-    TestInfo<AppState?> info = await storeTester.waitUntil(Action3);
+    TestInfo<AppState?, AppEnvironment> info = await storeTester.waitUntil(Action3);
     expect(info.state!.text, "0,1,2,3");
     expect(info.errors, isEmpty);
   });
@@ -512,7 +514,7 @@ void main() {
     storeTester.dispatch(action3);
     storeTester.dispatch(Action4());
 
-    TestInfo<AppState?> info = await storeTester.waitUntilAction(action3);
+    TestInfo<AppState?, AppEnvironment> info = await storeTester.waitUntilAction(action3);
     expect(info.state!.text, "0,1,2,3");
     expect(info.errors, isEmpty);
   });
@@ -549,7 +551,7 @@ void main() {
     storeTester.dispatch(Action1());
     storeTester.dispatch(Action2());
     storeTester.dispatch(Action3());
-    TestInfo<AppState?> info =
+    TestInfo<AppState?, AppEnvironment> info =
         await (storeTester.waitAllUnorderedGetLast([Action3, Action1, Action2]));
     expect(info.state!.text, "0,1,2,3");
     expect(info.errors, isEmpty);
@@ -587,7 +589,7 @@ void main() {
     storeTester.dispatch(Action1());
     storeTester.dispatch(Action2());
     storeTester.dispatch(Action3());
-    TestInfoList<AppState?> infos = await storeTester.waitAll([Action1, Action2, Action3]);
+    TestInfoList<AppState?, AppEnvironment> infos = await storeTester.waitAll([Action1, Action2, Action3]);
     expect(infos.getIndex(0).state!.text, "0,1");
     expect(infos.getIndex(1).state!.text, "0,1,2");
     expect(infos.getIndex(2).state!.text, "0,1,2,3");
@@ -608,7 +610,7 @@ void main() {
     storeTester.dispatch(Action2());
     storeTester.dispatch(Action2());
     storeTester.dispatch(Action3());
-    TestInfoList<AppState?> infos = await storeTester
+    TestInfoList<AppState?, AppEnvironment> infos = await storeTester
         .waitAllUnordered([Action1, Action2, Action3, Action2], timeoutInSeconds: 1);
 
     // The states are indexed by order of dispatching
@@ -653,7 +655,7 @@ void main() {
     expect(infos.get(Action3, 500), isNull);
 
     // Get repeated actions as list.
-    List<TestInfo<AppState?>?> action2s = infos.getAll(Action2);
+    List<TestInfo<AppState?, AppEnvironment>?> action2s = infos.getAll(Action2);
     expect(action2s.length, 2);
     expect(action2s[0]!.state!.text, "0,1,2");
     expect(action2s[1]!.state!.text, "0,1,2,2");
@@ -672,7 +674,7 @@ void main() {
     storeTester.dispatch(Action2());
     storeTester.dispatch(Action2());
     storeTester.dispatch(Action3());
-    TestInfoList<AppState?> infos = await storeTester.waitAllUnordered(
+    TestInfoList<AppState?, AppEnvironment> infos = await storeTester.waitAllUnordered(
       [Action1, Action3],
       timeoutInSeconds: 1,
       ignore: [Action2],
@@ -707,7 +709,7 @@ void main() {
     storeTester.dispatch(Action5());
     storeTester.dispatch(Action4());
 
-    TestInfo<AppState?> info = await (storeTester.waitAllGetLast(
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitAllGetLast(
       [Action1, Action3, Action5],
       ignore: [Action2, Action4],
     ));
@@ -738,7 +740,7 @@ void main() {
     storeTester.dispatch(Action5());
     storeTester.dispatch(Action4());
 
-    TestInfoList<AppState?> infos = await storeTester.waitAll(
+    TestInfoList<AppState?, AppEnvironment> infos = await storeTester.waitAll(
       [Action1, Action3, Action5],
       ignore: [Action2, Action4],
     );
@@ -771,7 +773,7 @@ void main() {
 
     storeTester.dispatch(Action3());
 
-    TestInfoList<AppState?> infos = await storeTester.waitAll(
+    TestInfoList<AppState?, AppEnvironment> infos = await storeTester.waitAll(
       [Action1, Action2, Action3],
       ignore: [Action2],
     );
@@ -811,7 +813,7 @@ void main() {
     storeTester.dispatch(Action5());
     storeTester.dispatch(Action4());
 
-    TestInfoList<AppState?> infos = await storeTester.waitAll(
+    TestInfoList<AppState?, AppEnvironment> infos = await storeTester.waitAll(
       [Action1, Action3, Action4, Action5],
       ignore: [Action2, Action4],
     );
@@ -842,7 +844,7 @@ void main() {
     // Action6 will dispatch actions 1, 2 and 3, and only then it will finish.
     storeTester.dispatch(Action6());
 
-    TestInfoList<AppState?> infos = await storeTester.waitAll(
+    TestInfoList<AppState?, AppEnvironment> infos = await storeTester.waitAll(
       [Action6, Action1, Action2, Action3],
       ignore: [Action6],
     );
@@ -871,7 +873,7 @@ void main() {
     // Action6 will dispatch actions 1, 2 and 3, and only then it will finish.
     storeTester.dispatch(Action7());
 
-    TestInfoList<AppState?> infos = await storeTester.waitAll(
+    TestInfoList<AppState?, AppEnvironment> infos = await storeTester.waitAll(
       [Action7, Action4, Action6, Action1, Action2, Action3, Action5],
       ignore: [Action2],
     );
@@ -904,7 +906,7 @@ void main() {
     // Action6b will dispatch actions 1, 2 and 3, and only then it will finish.
     storeTester.dispatch(Action7b());
 
-    TestInfoList<AppState?> infos = await storeTester.waitAll(
+    TestInfoList<AppState?, AppEnvironment> infos = await storeTester.waitAll(
       [Action7b, Action4, Action6b, Action2, Action5, Action1, Action2, Action3],
     );
 
@@ -930,7 +932,7 @@ void main() {
     // Action6b will dispatch actions 1, 2 and 3, and only then it will finish.
     storeTester.dispatch(Action7b());
 
-    TestInfoList<AppState?> infos = await storeTester.waitAll(
+    TestInfoList<AppState?, AppEnvironment> infos = await storeTester.waitAll(
       [Action7b, Action4, Action6b, Action2, Action5, Action1, Action3],
       ignore: [Action2],
     );
@@ -958,7 +960,7 @@ void main() {
 
     storeTester.dispatch(Action9());
 
-    TestInfoList<AppState?> infos = await storeTester.waitAll(
+    TestInfoList<AppState?, AppEnvironment> infos = await storeTester.waitAll(
       [
         Action9,
         Action2,
@@ -990,7 +992,7 @@ void main() {
     storeTester.dispatch(Action9());
     storeTester.dispatch(Action1());
 
-    TestInfoList<AppState?> infos = await storeTester.waitAll(
+    TestInfoList<AppState?, AppEnvironment> infos = await storeTester.waitAll(
       [
         Action9,
         Action9,
@@ -1045,7 +1047,7 @@ void main() {
     var storeTester = createStoreTester();
     expect(storeTester.state.text, "0");
     storeTester.dispatch(Action6());
-    TestInfo<AppState?> info = await (storeTester.waitAllGetLast(
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitAllGetLast(
       [
         Action1,
         Action2,
@@ -1074,7 +1076,7 @@ void main() {
     var storeTester = createStoreTester();
     expect(storeTester.state.text, "0");
     storeTester.dispatch(Action6());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast(
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitAllUnorderedGetLast(
       [
         Action1,
         Action2,
@@ -1102,7 +1104,7 @@ void main() {
     var storeTester = createStoreTester();
     expect(storeTester.state.text, "0");
     storeTester.dispatch(Action6());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast(
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitAllUnorderedGetLast(
       [
         Action1,
         Action2,
@@ -1162,7 +1164,7 @@ void main() {
       expect(error, const UserException("Hello!"));
     });
 
-    TestInfo<AppState?> info = await storeTester.waitUntil(Action11a);
+    TestInfo<AppState?, AppEnvironment> info = await storeTester.waitUntil(Action11a);
     expect(info.error, const UserException("Hello!"));
     expect(info.processedError, null);
     expect(info.state!.text, "0,1,2");
@@ -1183,7 +1185,7 @@ void main() {
       expect(error, const UserException("Hello!"));
     });
 
-    TestInfo<AppState?> info = await storeTester.waitUntil(Action11b);
+    TestInfo<AppState?, AppEnvironment> info = await storeTester.waitUntil(Action11b);
     expect(info.error, const UserException("Hello!"));
     expect(info.processedError, null);
     expect(info.state!.text, "0,1,2,3,10");
@@ -1203,7 +1205,7 @@ void main() {
       storeTester.dispatch(Action10a());
     }, (error, stackTrace) {});
 
-    TestInfo<AppState?> info = await (storeTester.waitUntilErrorGetLast(
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitUntilErrorGetLast(
       error: UserException,
       timeoutInSeconds: 1,
     ));
@@ -1227,7 +1229,7 @@ void main() {
       storeTester.dispatch(Action10a());
     }, (error, stackTrace) {});
 
-    TestInfo<AppState?> info = await (storeTester.waitUntilErrorGetLast(
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester.waitUntilErrorGetLast(
       error: const UserException("Hello!"),
       timeoutInSeconds: 1,
     ));
@@ -1249,7 +1251,7 @@ void main() {
     storeTester.dispatch(Action3());
     storeTester.dispatch(Action4());
 
-    var condition = (TestInfo<AppState?>? info) => info!.state!.text == "0,1,2";
+    var condition = (TestInfo<AppState?, AppEnvironment>? info) => info!.state!.text == "0,1,2";
     await storeTester.waitConditionGetLast(condition);
 
     // Same as expect(info1.state.text, "0,1,2");
@@ -1305,7 +1307,7 @@ void main() {
     storeTester.dispatch(Action3());
     storeTester.dispatch(Action4());
 
-    TestInfo<AppState?> info = await (storeTester
+    TestInfo<AppState?, AppEnvironment> info = await (storeTester
         .waitConditionGetLast((info) => info.state.text == "0", timeoutInSeconds: 1));
 
     expect(info.state!.text, "0");
@@ -1342,7 +1344,7 @@ void main() {
 
     storeTester.dispatch(Action1());
 
-    TestInfoList<AppState?> infos = await storeTester.waitCondition(
+    TestInfoList<AppState?, AppEnvironment> infos = await storeTester.waitCondition(
       (info) => info.state.text == "0,1",
       testImmediately: true,
     );
@@ -1369,7 +1371,7 @@ void main() {
 
     storeTester.dispatch(Action1());
 
-    TestInfoList<AppState?> infos = await storeTester.waitCondition(
+    TestInfoList<AppState?, AppEnvironment> infos = await storeTester.waitCondition(
       (info) => info.state.text == "0,1",
       testImmediately: true,
     );
@@ -1411,10 +1413,10 @@ void main() {
     storeTester1.dispatch(Action3());
     storeTester1.dispatch(Action4());
 
-    TestInfo<AppState?> info1 = await (storeTester1
+    TestInfo<AppState?, AppEnvironment> info1 = await (storeTester1
         .waitConditionGetLast((info) => info.state.text == "0,1,2,3", timeoutInSeconds: 1));
 
-    TestInfo<AppState?> info2 = await (storeTester2
+    TestInfo<AppState?, AppEnvironment> info2 = await (storeTester2
         .waitConditionGetLast((info) => info.state.text == "0,1", timeoutInSeconds: 1));
 
     expect(info1.state!.text, "0,1,2,3");

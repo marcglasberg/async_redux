@@ -5,11 +5,11 @@ import 'package:async_redux/async_redux.dart';
 // Uses code from package equatable by Felix Angelov.
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-abstract class ActionObserver<St> {
+abstract class ActionObserver<St, Environment> {
   /// If `ini==true` this is right before the action is dispatched.
   /// If `ini==false` this is right after the action finishes.
   void observe(
-    ReduxAction<St> action,
+    ReduxAction<St, Environment> action,
     int dispatchCount, {
     required bool ini,
   });

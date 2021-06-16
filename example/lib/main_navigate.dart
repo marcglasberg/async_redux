@@ -2,13 +2,13 @@ import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
-late Store<AppState> store;
+late Store<AppState, AppEnvironment> store;
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   NavigateAction.setNavigatorKey(navigatorKey);
-  store = Store<AppState>(initialState: AppState());
+  store = Store<AppState, AppEnvironment>(initialState: AppState(), environment: AppEnvironment());
   runApp(MyApp());
 }
 
@@ -19,12 +19,14 @@ final routes = {
 
 class AppState {}
 
+class AppEnvironment {}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return StoreProvider<AppState>(
+    return StoreProvider<AppState, AppEnvironment>(
       store: store,
       child: MaterialApp(
         routes: routes,
@@ -58,7 +60,7 @@ class Page extends StatelessWidget {
 class Page1Connector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AppState, ViewModel1>(
+    return StoreConnector<AppState, AppEnvironment, ViewModel1>(
       vm: () => Factory1(),
       builder: (BuildContext context, ViewModel1 vm) => Page(
         color: Colors.red,
@@ -70,7 +72,7 @@ class Page1Connector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class Factory1 extends VmFactory<AppState, Page1Connector> {
+class Factory1 extends VmFactory<AppState, AppEnvironment, Page1Connector> {
   @override
   ViewModel1 fromStore() =>
       ViewModel1(onChangePage: () => dispatch(NavigateAction.pushNamed("/myRoute")));
@@ -88,7 +90,7 @@ class ViewModel1 extends Vm {
 class Page2Connector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AppState, ViewModel2>(
+    return StoreConnector<AppState, AppEnvironment, ViewModel2>(
       vm: () => Factory2(),
       builder: (BuildContext context, ViewModel2 vm) => Page(
         color: Colors.blue,
@@ -100,7 +102,7 @@ class Page2Connector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class Factory2 extends VmFactory<AppState, Page1Connector> {
+class Factory2 extends VmFactory<AppState, AppEnvironment, Page1Connector> {
   @override
   ViewModel2 fromStore() => ViewModel2(
         onChangePage: () => dispatch(NavigateAction.pop()),

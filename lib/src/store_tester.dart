@@ -12,13 +12,13 @@ import '../async_redux.dart';
 
 /// Predicate used in [StoreTester.waitCondition].
 /// Return true to stop waiting, and get the last state.
-typedef StateCondition<St> = bool Function(TestInfo<St> info);
+typedef StateCondition<St, Environment> = bool Function(TestInfo<St, Environment> info);
 
 /// Helps testing the store, actions, and sync/async reducers.
 ///
 /// For more info, see: https://pub.dartlang.org/packages/async_redux
 ///
-class StoreTester<St> {
+class StoreTester<St, Environment> {
   //
   /// The global default timeout for the wait functions.
   static const defaultTimeout = 500;
@@ -34,22 +34,24 @@ class StoreTester<St> {
     if (printDefaultDebugInfo) print("New StoreTester.");
   };
 
-  final Store<St> _store;
+  final Store<St, Environment> _store;
   final List<Type> _ignore;
   late StreamSubscription _subscription;
-  late Completer<TestInfo<St>> _completer;
-  late Queue<Future<TestInfo<St>>> _futures;
+  late Completer<TestInfo<St, Environment>> _completer;
+  late Queue<Future<TestInfo<St, Environment>>> _futures;
 
-  Store<St> get store => _store;
+  Store<St, Environment> get store => _store;
 
   St get state => _store.state;
 
+  Environment get environment => _store.environment;
+
   /// The last TestInfo read after some wait method.
-  late TestInfo<St> lastInfo;
+  late TestInfo<St, Environment> lastInfo;
 
   /// The current TestInfo.
-  TestInfo<St> get currentTestInfo => _currentTestInfo;
-  late TestInfo<St> _currentTestInfo;
+  TestInfo<St, Environment> get currentTestInfo => _currentTestInfo;
+  late TestInfo<St, Environment> _currentTestInfo;
 
   /// The [StoreTester] makes it easy to test both sync and async reducers.
   /// You may dispatch some action, wait for it to finish or wait until some
@@ -69,6 +71,7 @@ class StoreTester<St> {
   ///
   StoreTester({
     required St initialState,
+    required Environment environment,
     TestInfoPrinter? testInfoPrinter,
     List<Type>? ignore,
     bool syncStream = false,
@@ -78,6 +81,7 @@ class StoreTester<St> {
   }) : this.from(
             MockStore(
               initialState: initialState,
+              environment: environment,
               syncStream: syncStream,
               errorObserver: errorObserver ?? //
                   (shouldThrowUserExceptions ? TestErrorObserver() : null),
@@ -88,7 +92,7 @@ class StoreTester<St> {
 
   /// Create a StoreTester from a store that already exists.
   StoreTester.from(
-    Store<St> store, {
+    Store<St, Environment> store, {
     TestInfoPrinter? testInfoPrinter,
     List<Type>? ignore,
   })  : _ignore = ignore ?? const [],
@@ -112,22 +116,22 @@ class StoreTester<St> {
 
   set mocks(Map<Type, dynamic>? _mocks) => (store as MockStore).mocks = _mocks;
 
-  MockStore<St> addMock(Type actionType, dynamic mock) {
+  MockStore<St, Environment> addMock(Type actionType, dynamic mock) {
     (store as MockStore).addMock(actionType, mock);
-    return store as MockStore<St>;
+    return store as MockStore<St, Environment>;
   }
 
-  MockStore<St> addMocks(Map<Type, dynamic> mocks) {
+  MockStore<St, Environment> addMocks(Map<Type, dynamic> mocks) {
     (store as MockStore).addMocks(mocks);
-    return store as MockStore<St>;
+    return store as MockStore<St, Environment>;
   }
 
-  MockStore<St> clearMocks() {
+  MockStore<St, Environment> clearMocks() {
     (store as MockStore).clearMocks();
-    return store as MockStore<St>;
+    return store as MockStore<St, Environment>;
   }
 
-  FutureOr<ActionStatus> dispatch(ReduxAction<St> action, {bool notify = true}) =>
+  FutureOr<ActionStatus> dispatch(ReduxAction<St, Environment> action, {bool notify = true}) =>
       store.dispatch(action, notify: notify);
 
   void defineState(St state) => _store.defineState(state);
@@ -141,11 +145,11 @@ class StoreTester<St> {
   ///   var info = await storeTester.dispatchState(MyState(123));
   ///   expect(info.state, MyState(123));
   ///
-  Future<TestInfo<St>> dispatchState(St state) async {
-    var action = _NewStateAction(state);
+  Future<TestInfo<St, Environment>> dispatchState(St state) async {
+    var action = _NewStateAction<St, Environment>(state);
     dispatch(action);
 
-    TestInfo<St>? testInfo;
+    TestInfo<St, Environment>? testInfo;
 
     while (testInfo == null || !identical(testInfo.action, action) || testInfo.isINI) {
       testInfo = await _next();
@@ -171,8 +175,8 @@ class StoreTester<St> {
   /// Only END states will be received, unless you pass [ignoreIni] as false.
   /// Returns the info after the condition is met.
   ///
-  Future<TestInfo<St>> waitConditionGetLast(
-    StateCondition<St> condition, {
+  Future<TestInfo<St, Environment>> waitConditionGetLast(
+    StateCondition<St, Environment> condition, {
     bool testImmediately = true,
     bool ignoreIni = true,
     int timeoutInSeconds = defaultTimeout,
@@ -199,17 +203,18 @@ class StoreTester<St> {
   /// Only END states will be received, unless you pass [ignoreIni] as false.
   /// Returns a list with all info until the condition is met.
   ///
-  Future<TestInfoList<St>> waitCondition(
-    StateCondition<St> condition, {
+  Future<TestInfoList<St, Environment>> waitCondition(
+    StateCondition<St, Environment> condition, {
     bool testImmediately = true,
     bool ignoreIni = true,
     int? timeoutInSeconds = defaultTimeout,
   }) async {
-    TestInfoList<St> infoList = TestInfoList<St>();
+    TestInfoList<St, Environment> infoList = TestInfoList<St, Environment>();
 
     if (testImmediately) {
-      var currentTestInfoWithoutAction = TestInfo<St>(
+      var currentTestInfoWithoutAction = TestInfo<St, Environment>(
         _currentTestInfo.state,
+        _currentTestInfo.environment,
         false,
         null,
         null,
@@ -225,7 +230,7 @@ class StoreTester<St> {
       }
     }
 
-    TestInfo<St> testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
+    TestInfo<St, Environment> testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
 
     while (true) {
       if (ignoreIni)
@@ -255,7 +260,7 @@ class StoreTester<St> {
   ///
   /// Returns the info after the error condition is met.
   ///
-  Future<TestInfo<St>> waitUntilErrorGetLast({
+  Future<TestInfo<St, Environment>> waitUntilErrorGetLast({
     Object? error,
     Object? processedError,
     int timeoutInSeconds = defaultTimeout,
@@ -278,14 +283,14 @@ class StoreTester<St> {
   ///
   /// Returns a list with all info until the error condition is met.
   ///
-  Future<TestInfoList<St>> waitUntilError({
+  Future<TestInfoList<St, Environment>> waitUntilError({
     Object? error,
     Object? processedError,
     int timeoutInSeconds = defaultTimeout,
   }) async {
     assert(error != null || processedError != null);
 
-    var condition = (TestInfo<St> info) =>
+    var condition = (TestInfo<St, Environment> info) =>
         (error == null ||
             (error is Type && info.error.runtimeType == error) ||
             (error is! Type && info.error == error)) &&
@@ -309,17 +314,17 @@ class StoreTester<St> {
   /// Expects **one action** of the given type to be dispatched, and waits until it finishes.
   /// Returns the info after the action finishes.
   /// Will fail with an exception if an unexpected action is seen.
-  Future<TestInfo<St>> wait(Type actionType) async => //
+  Future<TestInfo<St, Environment>> wait(Type actionType) async => //
       waitAllGetLast([actionType]);
 
   /// Runs until an action of the given type is dispatched, and then waits until it finishes.
   /// Returns the info after the action finishes. **Ignores other** actions types.
   ///
-  Future<TestInfo<St>> waitUntil(
+  Future<TestInfo<St, Environment>> waitUntil(
     Type actionType, {
     int timeoutInSeconds = defaultTimeout,
   }) async {
-    TestInfo<St>? testInfo;
+    TestInfo<St, Environment>? testInfo;
 
     while (testInfo == null || testInfo.type != actionType || testInfo.isINI) {
       testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
@@ -339,11 +344,11 @@ class StoreTester<St> {
   ///   storeTester.dispatch(action);
   ///   await storeTester.waitUntilAction(action);
   ///
-  Future<TestInfo<St>> waitUntilAction(
-    ReduxAction<St> action, {
+  Future<TestInfo<St, Environment>> waitUntilAction(
+    ReduxAction<St, Environment> action, {
     int timeoutInSeconds = defaultTimeout,
   }) async {
-    TestInfo<St>? testInfo;
+    TestInfo<St, Environment>? testInfo;
 
     while (testInfo == null || testInfo.action != action || testInfo.isINI) {
       testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
@@ -370,7 +375,7 @@ class StoreTester<St> {
   /// [StoreTester] constructor, if any. If [ignore] is an empty list, it
   /// will disable that global ignore.
   ///
-  Future<TestInfo<St>> waitAllGetLast(
+  Future<TestInfo<St, Environment>> waitAllGetLast(
     List<Type> actionTypes, {
     List<Type>? ignore,
   }) async {
@@ -393,7 +398,7 @@ class StoreTester<St> {
   /// ignored actions and wait for them to finish, so that they don't "leak" to the next wait.
   /// An action type cannot exist in both [actionTypes] and [ignore] lists.
   ///
-  Future<TestInfo<St>> waitAllUnorderedGetLast(
+  Future<TestInfo<St, Environment>> waitAllUnorderedGetLast(
     List<Type> actionTypes, {
     int timeoutInSeconds = defaultTimeout,
     List<Type>? ignore,
@@ -424,16 +429,16 @@ class StoreTester<St> {
   /// This method is the same as `waitAllGetLast`, but instead of returning
   /// just the last info, it returns a list with the end info for each action.
   ///
-  Future<TestInfoList<St>> waitAll(
+  Future<TestInfoList<St, Environment>> waitAll(
     List<Type> actionTypes, {
     List<Type>? ignore,
   }) async {
     assert(actionTypes.isNotEmpty);
     ignore ??= _ignore;
 
-    TestInfoList<St> infoList = TestInfoList<St>();
+    TestInfoList<St, Environment> infoList = TestInfoList<St, Environment>();
 
-    TestInfo<St>? testInfo;
+    TestInfo<St, Environment>? testInfo;
 
     Queue<Type> expectedActionTypesINI = Queue.from(actionTypes);
 
@@ -515,7 +520,7 @@ class StoreTester<St> {
   /// [StoreTester] constructor, if any. If [ignore] is an empty list, it
   /// will disable that global ignore.
   ///
-  Future<TestInfoList<St>> waitAllUnordered(
+  Future<TestInfoList<St, Environment>> waitAllUnordered(
     List<Type> actionTypes, {
     int timeoutInSeconds = defaultTimeout,
     List<Type>? ignore,
@@ -529,11 +534,11 @@ class StoreTester<St> {
       throw StoreException("Actions $intersection "
           "should not be expected and ignored.");
 
-    TestInfoList<St> infoList = TestInfoList<St>();
+    TestInfoList<St, Environment> infoList = TestInfoList<St, Environment>();
     List<Type> actionsIni = List.from(actionTypes);
     List<Type> actionsEnd = List.from(actionTypes);
 
-    TestInfo<St>? testInfo;
+    TestInfo<St, Environment>? testInfo;
 
     // Saves ignored actions INI.
     // Note: This relies on Actions not overriding operator ==.
@@ -609,8 +614,9 @@ class StoreTester<St> {
     _completer = Completer();
     _futures = Queue()..addLast(_completer.future);
 
-    _currentTestInfo = TestInfo<St>(
+    _currentTestInfo = TestInfo<St, Environment>(
       state,
+      environment,
       false,
       null,
       null,
@@ -621,7 +627,7 @@ class StoreTester<St> {
     );
   }
 
-  Future<TestInfo<St>> _next({
+  Future<TestInfo<St, Environment>> _next({
     int? timeoutInSeconds = defaultTimeout,
   }) async {
     if (_futures.isEmpty) {
@@ -641,7 +647,7 @@ class StoreTester<St> {
     return _currentTestInfo;
   }
 
-  void _completeFuture(TestInfo<St> reduceInfo) {
+  void _completeFuture(TestInfo<St, Environment> reduceInfo) {
     _completer.complete(reduceInfo);
     _completer = Completer();
     _futures.addLast(_completer.future);
@@ -653,76 +659,76 @@ class StoreTester<St> {
 // /////////////////////////////////////////////////////////////////////////////
 
 /// List of test information, before or after some actions are dispatched.
-class TestInfoList<St> {
-  final List<TestInfo<St>> _info = [];
+class TestInfoList<St, Environment> {
+  final List<TestInfo<St, Environment>> _info = [];
 
-  TestInfo<St> get last => _info.last;
+  TestInfo<St, Environment> get last => _info.last;
 
-  TestInfo<St> get first => _info.first;
+  TestInfo<St, Environment> get first => _info.first;
 
   /// The number of dispatched actions.
   int get length => _info.length;
 
   /// Returns info corresponding to the end of the index-th dispatched action type.
-  TestInfo<St> getIndex(int index) => _info[index];
+  TestInfo<St, Environment> getIndex(int index) => _info[index];
 
   /// Returns the first info corresponding to the end of the given action type.
-  TestInfo<St>? operator [](Type actionType) =>
+  TestInfo<St, Environment>? operator [](Type actionType) =>
       _info.firstWhereOrNull((info) => info.type == actionType);
 
   /// Returns the n-th info corresponding to the end of the given action type
   /// Note: N == 1 is the first one.
-  TestInfo<St>? get(Type actionType, [int n = 1]) => _info.firstWhereOrNull((info) {
+  TestInfo<St, Environment>? get(Type actionType, [int n = 1]) => _info.firstWhereOrNull((info) {
         var ifFound = (info.type == actionType);
         if (ifFound) n--;
         return ifFound && (n == 0);
       });
 
   /// Returns all info corresponding to the action type.
-  List<TestInfo<St>> getAll(Type actionType) {
+  List<TestInfo<St, Environment>> getAll(Type actionType) {
     return _info.where((info) => info.type == actionType).toList();
   }
 
-  void forEach(void action(TestInfo<St> element)) => _info.forEach(action);
+  void forEach(void action(TestInfo<St, Environment> element)) => _info.forEach(action);
 
-  TestInfo<St> firstWhere(
-    bool test(TestInfo<St> element), {
-    TestInfo<St> orElse()?,
+  TestInfo<St, Environment> firstWhere(
+    bool test(TestInfo<St, Environment> element), {
+    TestInfo<St, Environment> orElse()?,
   }) =>
       _info.firstWhere(test, orElse: orElse);
 
-  TestInfo<St> lastWhere(
-    bool test(TestInfo<St> element), {
-    TestInfo<St> orElse()?,
+  TestInfo<St, Environment> lastWhere(
+    bool test(TestInfo<St, Environment> element), {
+    TestInfo<St, Environment> orElse()?,
   }) =>
       _info.lastWhere(test, orElse: orElse);
 
-  TestInfo<St> singleWhere(
-    bool test(TestInfo<St> element), {
-    TestInfo<St> orElse()?,
+  TestInfo<St, Environment> singleWhere(
+    bool test(TestInfo<St, Environment> element), {
+    TestInfo<St, Environment> orElse()?,
   }) =>
       _info.singleWhere(test, orElse: orElse);
 
-  Iterable<TestInfo<St>> where(
+  Iterable<TestInfo<St, Environment>> where(
           bool test(
-    TestInfo<St> element,
+    TestInfo<St, Environment> element,
   )) =>
       _info.where(test);
 
-  Iterable<T> map<T>(T f(TestInfo<St> element)) => _info.map(f);
+  Iterable<T> map<T>(T f(TestInfo<St, Environment> element)) => _info.map(f);
 
-  List<TestInfo<St>> toList({
+  List<TestInfo<St, Environment>> toList({
     bool growable = true,
   }) =>
       _info.toList(growable: growable);
 
-  Set<TestInfo<St>> toSet() => _info.toSet();
+  Set<TestInfo<St, Environment>> toSet() => _info.toSet();
 
   bool get isEmpty => length == 0;
 
   bool get isNotEmpty => !isEmpty;
 
-  void _add(TestInfo<St> info) => _info.add(info);
+  void _add(TestInfo<St, Environment> info) => _info.add(info);
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -764,12 +770,12 @@ class StoreExceptionTimeout extends StoreException {
 /// (the `errors` field in the store), and then assert that the queue
 /// actually contains those errors.
 ///
-class TestErrorObserver<St> implements ErrorObserver<St> {
+class TestErrorObserver<St, Environment> implements ErrorObserver<St, Environment> {
   @override
   bool observe(
     Object error,
     StackTrace stackTrace,
-    ReduxAction<St> action,
+    ReduxAction<St, Environment> action,
     Store store,
   ) =>
       true;
@@ -777,13 +783,13 @@ class TestErrorObserver<St> implements ErrorObserver<St> {
 
 // /////////////////////////////////////////////////////////////////////////////
 
-class _NewStateAction<St> extends ReduxAction<St> {
+class _NewStateAction<St, Environment> extends ReduxAction<St, Environment> {
   final St newState;
 
   _NewStateAction(this.newState);
 
   @override
-  St reduce() => newState;
+  St reduce({required Environment environment}) => newState;
 }
 
 // /////////////////////////////////////////////////////////////////////////////

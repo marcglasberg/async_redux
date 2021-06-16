@@ -4,10 +4,12 @@ import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 
+import 'main_before_and_after.dart';
+
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-late Store<AppState> store;
+late Store<AppState, AppEnvironment> store;
 
 /// This example shows a text-field, and two buttons.
 /// When the first button is tapped, an async process downloads
@@ -26,7 +28,8 @@ late Store<AppState> store;
 ///
 void main() {
   var state = AppState.initialState();
-  store = Store<AppState>(initialState: state);
+  var environment = AppEnvironment();
+  store = Store<AppState, AppEnvironment>(initialState: state, environment: environment);
   runApp(MyApp());
 }
 
@@ -82,7 +85,7 @@ class AppState {
 
 class MyApp extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => StoreProvider<AppState>(
+  Widget build(BuildContext context) => StoreProvider<AppState, AppEnvironment>(
         store: store,
         child: MaterialApp(
           home: MyHomePageConnector(),
@@ -93,15 +96,15 @@ class MyApp extends StatelessWidget {
 ///////////////////////////////////////////////////////////////////////////////
 
 /// This action orders the text-controller to clear.
-class ClearTextAction extends ReduxAction<AppState> {
+class ClearTextAction extends ReduxAction<AppState, AppEnvironment> {
   @override
-  AppState reduce() => state.copy(clearTextEvt: Event());
+  AppState reduce({required AppEnvironment environment}) => state.copy(clearTextEvt: Event());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 /// Actions that extend [BarrierAction] show a modal barrier while their async processes run.
-abstract class BarrierAction extends ReduxAction<AppState> {
+abstract class BarrierAction extends ReduxAction<AppState, AppEnvironment> {
   @override
   void before() => dispatch(_WaitAction(true));
 
@@ -109,13 +112,13 @@ abstract class BarrierAction extends ReduxAction<AppState> {
   void after() => dispatch(_WaitAction(false));
 }
 
-class _WaitAction extends ReduxAction<AppState> {
+class _WaitAction extends ReduxAction<AppState, AppEnvironment> {
   final bool waiting;
 
   _WaitAction(this.waiting);
 
   @override
-  AppState reduce() => state.copy(waiting: waiting);
+  AppState reduce({required AppEnvironment environment}) => state.copy(waiting: waiting);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -124,7 +127,7 @@ class _WaitAction extends ReduxAction<AppState> {
 /// that tells the text-controller to display that new text.
 class ChangeTextAction extends BarrierAction {
   @override
-  Future<AppState> reduce() async {
+  Future<AppState> reduce({required AppEnvironment environment}) async {
     String newText = await read(Uri.http("numbersapi.com","${state.counter}"));
     return state.copy(
       counter: state.counter! + 1,
@@ -141,7 +144,7 @@ class MyHomePageConnector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AppState, ViewModel>(
+    return StoreConnector<AppState, AppEnvironment, ViewModel>(
       vm: () => Factory(this),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         waiting: vm.waiting,
@@ -155,7 +158,7 @@ class MyHomePageConnector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class Factory extends VmFactory<AppState, MyHomePageConnector> {
+class Factory extends VmFactory<AppState, AppEnvironment, MyHomePageConnector> {
   Factory(widget) : super(widget);
 
   @override
