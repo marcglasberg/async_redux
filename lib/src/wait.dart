@@ -59,7 +59,7 @@ class Wait {
       if (ref == null) {
         newFlags.remove(flag);
       } else {
-        Set<Object?> refs = newFlags[flag]!;
+        Set<Object?> refs = newFlags[flag] ?? {};
         refs.remove(ref);
         if (refs.isEmpty) newFlags.remove(flag);
       }

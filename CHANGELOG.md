@@ -4,7 +4,8 @@
   to `dispatch`, since now the `dispatch` function always returns a future, and you can await it or
   not, as desired.
 
-* Breaking change: `ReduxAction.hasFinished()` has been renamed to `isFinished`.
+* Breaking change: `ReduxAction.hasFinished()` has been deprecated. It should be renamed
+  to `isFinished`.
 
 * The `dispatch` function now returns an `ActionStatus`. Usually you will discard this info, but you
   may use it to know if the action completed with no errors. For example, suppose a `SaveAction`
