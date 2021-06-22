@@ -1,3 +1,12 @@
+# [11.0.1] - 2021/06/22
+
+* You can now provide callbacks `onOk` and `onCancel` to an `UserException`. This allows you to
+  dispatch actions when the user dismisses the error dialog. When using the
+  default `UserExceptionDialog`: (i) if only `onOk` is provided, it will be called when the dialog
+  is dismissed, no matter how. (ii) If both `onOk` and `onCancel` are provided, then `onOk` will be
+  called only when the OK button is pressed, while `onCancel` will be called when the dialog is
+  dismissed by any other means.
+
 # [11.0.0] - 2021/06/02
 
 * Breaking change: The `dispatchFuture` function is not necessary anymore. Just rename it

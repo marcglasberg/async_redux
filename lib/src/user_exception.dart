@@ -45,6 +45,10 @@ import 'package:async_redux/async_redux.dart';
 /// expect(() => someFunction(), throwsUserException);
 /// ```
 ///
+/// The [UserException] may be used with the [UserExceptionDialog] to display the
+/// exception to the user. In that case, you may also define callbacks [onOk] and
+/// [onCancel].
+///
 class UserException implements Exception {
   /// Some message shown to the user.
   final String? msg;
@@ -57,18 +61,59 @@ class UserException implements Exception {
   /// cloud-functions etc.
   final ExceptionCode? code;
 
-  const UserException(this.msg, {this.cause, this.code});
+  /// Callback to be called after the user views the error and taps OK.
+  final VoidCallback? _onOk;
+
+  /// Callback to be called after the user views the error and taps CANCEL.
+  final VoidCallback? _onCancel;
+
+  const UserException(this.msg, {this.cause, this.code, VoidCallback? onOk, VoidCallback? onCancel})
+      : _onOk = onOk,
+        _onCancel = onCancel;
 
   /// Adding `.debug` to the constructor will print the exception to the console.
   /// Use this for debugging purposes only.
   /// This constructor is marked as deprecated so that you don't forget to remove it.
   @deprecated
-  UserException.debug(this.msg, {this.cause, this.code}) {
+  UserException.debug(this.msg, {this.cause, this.code, VoidCallback? onOk, VoidCallback? onCancel})
+      : _onOk = onOk,
+        _onCancel = onCancel {
     print("================================================================\n"
         "UserException${code == null ? "" : " (code: $code)"}:\n"
         "Msg = $msg,\n"
         "${cause == null ? "" : "Cause = $cause,\n"}"
         "================================================================");
+  }
+
+  /// "OK" callback. If the exception has a cause, will return a merged callback.
+  VoidCallback? get onOk {
+    VoidCallback? onOkCause = (cause is UserException) ? (cause as UserException).onOk : null;
+
+    if (onOkCause == null)
+      return _onOk;
+    else if (_onOk == null)
+      return onOkCause;
+    else
+      return () {
+        _onOk!();
+        onOkCause();
+      };
+  }
+
+  /// "Cancel" callback. If the exception has a cause, will return a merged callback.
+  VoidCallback? get onCancel {
+    VoidCallback? onCancelCause =
+        (cause is UserException) ? (cause as UserException).onCancel : null;
+
+    if (onCancelCause == null)
+      return _onCancel;
+    else if (_onCancel == null)
+      return onCancelCause;
+    else
+      return () {
+        _onCancel!();
+        onCancelCause();
+      };
   }
 
   /// Returns the first cause which, recursively, is NOT a UserException.
@@ -89,24 +134,26 @@ class UserException implements Exception {
             (cause as UserException).withoutHardCause()
             : null,
         code: code,
+        onOk: _onOk,
+        onCancel: _onCancel,
       );
 
-  String? dialogTitle([Locale? locale]) => //
+  String dialogTitle([Locale? locale]) => //
       (cause is UserException || cause is String)
           ? //
           _codeAsTextOrMsg(locale)
           : "";
 
-  String? dialogContent([Locale? locale]) {
+  String dialogContent([Locale? locale]) {
     if (cause is UserException)
       return (cause as UserException)._dialogTitleAndContent(locale);
     else if (cause is String)
-      return cause as String?;
+      return cause as String;
     else
       return _codeAsTextOrMsg(locale);
   }
 
-  String? _dialogTitleAndContent([Locale? locale]) => (cause is UserException)
+  String _dialogTitleAndContent([Locale? locale]) => (cause is UserException)
       ? joinExceptionMainAndCause(
           locale,
           _codeAsTextOrMsg(locale),
@@ -156,15 +203,15 @@ class UserException implements Exception {
   /// Otherwise, if the [msg] is a non-empty text, return this [msg].
   /// Otherwise, if there is a [code], return the [code] itself.
   /// Otherwise, return an empty text.
-  String? _codeAsTextOrMsg(Locale? locale) {
+  String _codeAsTextOrMsg(Locale? locale) {
     String? codeAsText = code?.asText(locale);
     if (codeAsText != null && codeAsText.isNotEmpty) return codeAsText;
-    if (msg != null && msg!.isNotEmpty) return msg;
+    if (msg != null && msg!.isNotEmpty) return msg!;
     return code?.toString() ?? "";
   }
 
   @override
-  String toString() => _dialogTitleAndContent()!;
+  String toString() => _dialogTitleAndContent();
 
   @override
   bool operator ==(Object other) =>
@@ -173,10 +220,13 @@ class UserException implements Exception {
           runtimeType == other.runtimeType &&
           msg == other.msg &&
           cause == other.cause &&
-          code == other.code;
+          code == other.code &&
+          _onOk == other._onOk &&
+          _onCancel == other._onCancel;
 
   @override
-  int get hashCode => msg.hashCode ^ cause.hashCode ^ code.hashCode;
+  int get hashCode =>
+      msg.hashCode ^ cause.hashCode ^ code.hashCode ^ _onOk.hashCode ^ _onCancel.hashCode;
 }
 
 abstract class ExceptionCode {

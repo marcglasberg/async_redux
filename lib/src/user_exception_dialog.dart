@@ -1,3 +1,4 @@
+import 'package:assorted_layout_widgets/assorted_layout_widgets.dart';
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -91,29 +92,71 @@ class _UserExceptionDialogWidget extends StatefulWidget {
 
     defaultTargetPlatform;
     if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS)) {
-      showCupertinoDialog(
+      showCupertinoDialogSuper<int>(
         context: context,
+        onDismissed: (int? result) {
+          if (result == 1)
+            userException.onOk?.call();
+          else if (result == 2)
+            userException.onCancel?.call();
+          else {
+            if (userException.onCancel == null)
+              userException.onOk?.call();
+            else
+              userException.onCancel?.call();
+          }
+        },
         builder: (BuildContext context) => CupertinoAlertDialog(
-          title: Text(userException.dialogTitle()!),
-          content: Text(userException.dialogContent()!),
+          title: Text(userException.dialogTitle()),
+          content: Text(userException.dialogContent()),
           actions: [
             CupertinoDialogAction(
               child: const Text("OK"),
-              onPressed: () => Navigator.of(context).pop(),
-            )
+              onPressed: () {
+                Navigator.of(context).pop(1);
+              },
+            ),
+            if (userException.onCancel != null)
+              CupertinoDialogAction(
+                child: const Text("CANCEL"),
+                onPressed: () {
+                  Navigator.of(context).pop(2);
+                },
+              )
           ],
         ),
       );
     } else
-      showDialog(
+      showDialogSuper<int>(
         context: context,
+        onDismissed: (int? result) {
+          if (result == 1)
+            userException.onOk?.call();
+          else if (result == 2)
+            userException.onCancel?.call();
+          else {
+            if (userException.onCancel == null)
+              userException.onOk?.call();
+            else
+              userException.onCancel?.call();
+          }
+        },
         builder: (BuildContext context) => AlertDialog(
-          title: Text(userException.dialogTitle()!),
-          content: Text(userException.dialogContent()!),
+          title: Text(userException.dialogTitle()),
+          content: Text(userException.dialogContent()),
           actions: [
+            if (userException.onCancel != null)
+              TextButton(
+                child: const Text("CANCEL"),
+                onPressed: () {
+                  Navigator.of(context).pop(2);
+                },
+              ),
             TextButton(
               child: const Text("OK"),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                Navigator.of(context).pop(1);
+              },
             )
           ],
         ),

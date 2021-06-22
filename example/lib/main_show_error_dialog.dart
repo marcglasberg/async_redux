@@ -30,9 +30,7 @@ class AppState {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is AppState &&
-          runtimeType == other.runtimeType &&
-          name == other.name;
+      other is AppState && runtimeType == other.runtimeType && name == other.name;
 
   @override
   int get hashCode => name.hashCode;
@@ -63,13 +61,22 @@ class SaveUserAction extends ReduxAction<AppState> {
   @override
   AppState reduce() {
     print("Saving '$name'.");
-    if (name.length < 4)
-      throw const UserException("Name must have at least 4 letters.");
+    if (name.length < 4) throw const UserException("Name must have at least 4 letters.");
     return state.copy(name: name);
   }
 
   @override
-  Object wrapError(error) => UserException("Save failed", cause: error);
+  Object wrapError(error) => UserException(
+        "Save failed",
+        cause: error,
+        onOk: () {
+          print("Dialog was dismissed.");
+        },
+        //
+        // Note we could also have a CANCEL button:
+        // onOk: () { print("OK was pressed."); },
+        // onCancel: () { print("CANCEL was pressed, or dialog dismissed."); },
+      );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -147,11 +154,10 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                    'Type a name and save:\n(See error if less than 4 chars)',
+                const Text('Type a name and save:\n(See error if less than 4 chars)',
                     textAlign: TextAlign.center),
-                TextField(
-                    controller: controller, onSubmitted: widget.onSaveName),
+                TextField(controller: controller, onSubmitted: widget.onSaveName),
+                const SizedBox(height: 30),
                 Text('Current Name: ${widget.name}'),
               ],
             ),
