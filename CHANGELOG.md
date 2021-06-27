@@ -1,3 +1,7 @@
+# [11.0.2] - 2021/06/27
+
+* Downgraded dev_dependencies `test: ^1.16.0`
+
 # [11.0.1] - 2021/06/22
 
 * You can now provide callbacks `onOk` and `onCancel` to an `UserException`. This allows you to
