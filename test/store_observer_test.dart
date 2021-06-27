@@ -24,7 +24,7 @@ class _MyAsyncAction extends ReduxAction<num> {
   }
 }
 
-class _MyStateObserver extends StateObserver<num?> {
+class _MyStateObserver extends StateObserver<num> {
   num? iniValue;
   num? endValue;
 

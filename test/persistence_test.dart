@@ -686,7 +686,7 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class MyPersistor implements Persistor<AppState?> {
+class MyPersistor implements Persistor<AppState> {
   //
   final Duration? _throttle;
   final Duration? _saveDuration;

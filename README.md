@@ -2363,7 +2363,7 @@ This is the `Persistor` implementation:
 
 ```
 abstract class Persistor<St> {
-  Future<St> readState();  
+  Future<St?> readState();  
   Future<void> deleteState();  
   Future<void> persistDifference({@required St lastPersistedState, @required St newState});  
   Future<void> saveInitialState(St state) => persistDifference(lastPersistedState: null, newState: state);    

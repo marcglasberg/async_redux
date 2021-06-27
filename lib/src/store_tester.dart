@@ -72,7 +72,7 @@ class StoreTester<St> {
     TestInfoPrinter? testInfoPrinter,
     List<Type>? ignore,
     bool syncStream = false,
-    ErrorObserver? errorObserver,
+    ErrorObserver<St>? errorObserver,
     bool shouldThrowUserExceptions = false,
     Map<Type, dynamic>? mocks,
   }) : this.from(

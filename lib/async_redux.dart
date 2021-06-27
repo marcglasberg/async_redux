@@ -20,3 +20,4 @@ export 'src/view_model.dart';
 export 'src/wait.dart';
 export 'src/wait_action.dart';
 export 'src/wrap_error.dart';
+export 'src/wrap_reduce.dart';
