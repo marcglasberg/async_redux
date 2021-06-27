@@ -362,7 +362,7 @@ class Store<St> {
 
     Reducer<St?> reducer = action.wrapReduce(action.reduce);
 
-    if (_wrapReduce != null) reducer = _wrapReduce!.wrapReduce(reducer, _state);
+    if (_wrapReduce != null) reducer = _wrapReduce!.wrapReduce(reducer, this);
 
     // Sync reducer.
     if (reducer is St? Function()) {

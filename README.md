@@ -384,7 +384,7 @@ abort the reducer if the state changed since while the reducer was running:
 ```
 Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
    var oldState = state; // Remember: `state` is a getter for the current state.
-   AppState newState = await reduce(); // This may take some time, and meanwhile the state may change. 
+   AppState? newState = await reduce(); // This may take some time, and meanwhile the state may change. 
    return identical(oldState, state) ? newState : null;
 };
 ```

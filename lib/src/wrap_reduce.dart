@@ -10,5 +10,5 @@ import 'package:async_redux/async_redux.dart';
 /// will be called AFTER (it will wrap the action's wrapper which wraps the
 /// action's reducer).
 abstract class WrapReduce<St> {
-  Reducer<St?> wrapReduce(Reducer<St> reduce, St oldState);
+  Reducer<St?> wrapReduce(Reducer<St> reduce, Store<St> store);
 }

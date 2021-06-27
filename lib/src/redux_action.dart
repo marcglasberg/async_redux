@@ -66,7 +66,7 @@ abstract class ReduxAction<St> {
   /// ```
   /// Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
   ///    var oldState = state;
-  ///    AppState newState = await reduce();
+  ///    AppState? newState = await reduce();
   ///    return identical(oldState, state) ? newState : null;
   /// };
   /// ```
