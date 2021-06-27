@@ -1,6 +1,6 @@
 # [11.0.2] - 2021/06/27
 
-* Global WrapReduce in the store. You may globally wrap the reducer to allow for some pre or
+* Global `Store(wrapReduce: ...)`. You may now globally wrap the reducer to allow for some pre or
   post-processing. Note: if the action also have a wrapReduce method, this global wrapper will be
   called AFTER (it will wrap the action's wrapper which wraps the action's reducer).
 
