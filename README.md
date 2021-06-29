@@ -384,7 +384,7 @@ abort the reducer if the state changed since while the reducer was running:
 ```
 Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
    var oldState = state; // Remember: `state` is a getter for the current state.
-   AppState newState = await reduce(); // This may take some time, and meanwhile the state may change. 
+   AppState? newState = await reduce(); // This may take some time, and meanwhile the state may change. 
    return identical(oldState, state) ? newState : null;
 };
 ```
@@ -2363,7 +2363,7 @@ This is the `Persistor` implementation:
 
 ```
 abstract class Persistor<St> {
-  Future<St> readState();  
+  Future<St?> readState();  
   Future<void> deleteState();  
   Future<void> persistDifference({@required St lastPersistedState, @required St newState});  
   Future<void> saveInitialState(St state) => persistDifference(lastPersistedState: null, newState: state);    

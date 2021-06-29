@@ -4,6 +4,12 @@
   `Persistor<AppState>` instead of `Persistor`, and `WrapError<AppState>` instead of `WrapError`
   etc.
 
+* Global `Store(wrapReduce: ...)`. You may now globally wrap the reducer to allow for some pre or
+  post-processing. Note: if the action also have a wrapReduce method, this global wrapper will be
+  called AFTER (it will wrap the action's wrapper which wraps the action's reducer).
+
+* Downgraded dev_dependencies `test: ^1.16.0`
+
 # [11.0.1] - 2021/06/22
 
 * You can now provide callbacks `onOk` and `onCancel` to an `UserException`. This allows you to

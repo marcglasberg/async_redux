@@ -81,12 +81,13 @@ class Store<St> {
     required St initialState,
     bool syncStream = false,
     TestInfoPrinter? testInfoPrinter,
-    List<ActionObserver>? actionObservers,
-    List<StateObserver>? stateObservers,
-    Persistor? persistor,
+    List<ActionObserver<St>>? actionObservers,
+    List<StateObserver<St>>? stateObservers,
+    Persistor<St>? persistor,
     ModelObserver? modelObserver,
-    ErrorObserver? errorObserver,
-    WrapError? wrapError,
+    ErrorObserver<St>? errorObserver,
+    WrapReduce<St>? wrapReduce,
+    WrapError<St>? wrapError,
     bool? defaultDistinct,
     CompareBy? immutableCollectionEquality,
   })  : _state = initialState,
@@ -101,6 +102,7 @@ class Store<St> {
         _modelObserver = modelObserver,
         _errorObserver = errorObserver,
         _wrapError = wrapError,
+        _wrapReduce = wrapReduce,
         _defaultDistinct = defaultDistinct ?? true,
         _immutableCollectionEquality = immutableCollectionEquality,
         _errors = Queue<UserException>(),
@@ -151,13 +153,15 @@ class Store<St> {
 
   final List<StateObserver>? _stateObservers;
 
-  final ProcessPersistence? _processPersistence;
+  final ProcessPersistence<St>? _processPersistence;
 
   final ModelObserver? _modelObserver;
 
-  final ErrorObserver? _errorObserver;
+  final ErrorObserver<St>? _errorObserver;
 
-  final WrapError? _wrapError;
+  final WrapError<St>? _wrapError;
+
+  final WrapReduce<St>? _wrapReduce;
 
   final bool _defaultDistinct;
 
@@ -357,6 +361,8 @@ class Store<St> {
     _reduceCount++;
 
     Reducer<St?> reducer = action.wrapReduce(action.reduce);
+
+    if (_wrapReduce != null) reducer = _wrapReduce!.wrapReduce(reducer, this);
 
     // Sync reducer.
     if (reducer is St? Function()) {

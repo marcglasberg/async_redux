@@ -27,15 +27,20 @@ import 'package:async_redux/async_redux.dart';
 /// ```
 ///
 abstract class Persistor<St> {
-  Future<St> readState();
+  /// Read the saved state from the persistence.
+  /// Should return null if the state is not yet persisted.
+  Future<St?> readState();
 
+  /// Delete the saved state from the persistence.
   Future<void> deleteState();
 
+  /// Save the new state to the persistence.
   Future<void> persistDifference({
     required St? lastPersistedState,
     required St newState,
   });
 
+  /// Save an initial-state to the persistence.
   Future<void> saveInitialState(St state) =>
       persistDifference(lastPersistedState: null, newState: state);
 
@@ -58,7 +63,7 @@ class PersistorPrinterDecorator<St> extends Persistor<St> {
   PersistorPrinterDecorator(this._persistor);
 
   @override
-  Future<St> readState() async {
+  Future<St?> readState() async {
     print("Persistor: read state.");
     return _persistor.readState();
   }
