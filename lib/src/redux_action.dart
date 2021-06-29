@@ -20,6 +20,8 @@ abstract class ReduxAction<St> {
 
   ActionStatus get status => _status;
 
+  Object? get env  => _store._environment;
+
   St get state => _store.state;
 
   /// Returns true only if the action finished with no errors.

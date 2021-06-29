@@ -79,6 +79,7 @@ typedef Dispatch<St> = Future<ActionStatus> Function(
 class Store<St> {
   Store({
     required St initialState,
+    Object? environment,
     bool syncStream = false,
     TestInfoPrinter? testInfoPrinter,
     List<ActionObserver<St>>? actionObservers,
@@ -91,6 +92,7 @@ class Store<St> {
     bool? defaultDistinct,
     CompareBy? immutableCollectionEquality,
   })  : _state = initialState,
+        _environment = environment,
         _stateTimestamp = DateTime.now().toUtc(),
         _changeController = StreamController.broadcast(sync: syncStream),
         _actionObservers = actionObservers,
@@ -116,6 +118,10 @@ class Store<St> {
             : StreamController.broadcast(sync: syncStream);
 
   St _state;
+
+  final Object? _environment;
+
+  Object? get env => _environment;
 
   DateTime _stateTimestamp;
 

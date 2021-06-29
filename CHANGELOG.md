@@ -1,3 +1,8 @@
+# [12.0.1] - 2021/06/29
+
+* Experimental: Passing an environment to the store, to help with dependency injection:
+  `Store(environment: ...)`
+
 # [12.0.0] - 2021/06/29
 
 * Breaking change: Improved state typing for some `Store` parameters. You will now have to use

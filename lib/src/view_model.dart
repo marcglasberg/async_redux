@@ -154,8 +154,6 @@ abstract class VmFactory<St, T> {
 
   late final Store<St> _store;
   late final St _state;
-  late final Dispatch<St> _dispatch;
-  late final UserException? Function() _getAndRemoveFirstError;
 
   /// You need to pass the connector widget only if the view-model needs any info from it.
   VmFactory([this.widget]);
@@ -165,22 +163,22 @@ abstract class VmFactory<St, T> {
   void _setStore(St state, Store store) {
     _store = store as Store<St>;
     _state = state;
-    _dispatch = store.dispatch;
-    _getAndRemoveFirstError = store.getAndRemoveFirstError;
   }
 
   /// The state the store was holding when the factory and the view-model were created.
   /// This state is final inside of the factory.
   St get state => _state;
 
+  Object? get env => _store.env;
+
   /// The current (most recent) store state.
   /// This will return the current state the store holds at the time the method is called.
   St currentState() => _store.state;
 
   /// Dispatch an action, possibly changing the store state.
-  Dispatch<St> get dispatch => _dispatch;
+  Dispatch<St> get dispatch => _store.dispatch;
 
-  UserException? getAndRemoveFirstError() => _getAndRemoveFirstError();
+  UserException? getAndRemoveFirstError() => _store.getAndRemoveFirstError();
 }
 
 /// For internal use only. Please don't use this.
