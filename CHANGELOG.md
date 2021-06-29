@@ -1,3 +1,9 @@
+# [12.0.0] - 2021/06/29
+
+* Breaking change: Improved state typing for some `Store` parameters. You will now have to use
+  `Persistor<AppState>` instead of `Persistor`, and `WrapError<AppState>` instead of `WrapError`
+  etc.
+
 # [11.0.1] - 2021/06/22
 
 * You can now provide callbacks `onOk` and `onCancel` to an `UserException`. This allows you to
