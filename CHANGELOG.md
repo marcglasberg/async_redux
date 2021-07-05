@@ -1,3 +1,7 @@
+## [12.0.2] - 2020/05/06
+
+* New `StoreTester` methods: `waitUntilAll()` and `waitUntilAllGetLast()`.
+
 # [12.0.1] - 2021/06/29
 
 * Experimental: Passing an environment to the store, to help with dependency injection:

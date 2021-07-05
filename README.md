@@ -1134,35 +1134,45 @@ Let's see all the available methods of the `StoreTester`:
    the info after the action finishes.
    **Ignores other** actions types.
 
-3. `Future<TestInfo> waitUntilAction(ReduxAction action)`
+3. `Future<TestInfo> waitUntilAll(List<Type> actionTypes)`
+
+   Runs until all actions of the given types are dispatched and finish, in any order. Returns a list
+   with all info until the last action finishes. **Ignores other** actions types.
+
+4. `Future<TestInfo> waitUntilAllGetLast(List<Type> actionTypes)`
+
+   Runs until all actions of the given types are dispatched and finish, in any order. Returns the
+   info after they all finish. **Ignores other** actions types.
+
+5. `Future<TestInfo> waitUntilAction(ReduxAction action)`
 
    Runs until the exact given action is dispatched, and then waits until it finishes. Returns the
    info after the action finishes. **Ignores other** actions.
 
-4. `Future<TestInfo> waitAllGetLast(List<Type> actionTypes, {List<Type> ignore})`
+6. `Future<TestInfo> waitAllGetLast(List<Type> actionTypes, {List<Type> ignore})`
 
    Runs until **all** given actions types are dispatched, **in order**. Waits until all of them are
    finished. Returns the info after all actions finish. Will fail with an exception if an unexpected
    action is seen, or if any of the expected actions are dispatched in the wrong order. To ignore
    some actions, pass them to the `ignore` list.
 
-5. `Future<TestInfo> waitAllUnorderedGetLast(List<Type> actionTypes, {List<Type> ignore})`
+7. `Future<TestInfo> waitAllUnorderedGetLast(List<Type> actionTypes, {List<Type> ignore})`
 
    Runs until **all** given actions types are dispatched, in **any order**. Waits until all of them
    are finished. Returns the info after all actions finish. Will fail with an exception if an
    unexpected action is seen. To ignore some actions, pass them to the `ignore` list.
 
-6. `Future<TestInfoList> waitAll(List<Type> actionTypes, {List<Type> ignore})`
+8. `Future<TestInfoList> waitAll(List<Type> actionTypes, {List<Type> ignore})`
 
    The same as `waitAllGetLast`, but instead of returning just the last info, it returns a list with
    the end info for each action. To ignore some actions, pass them to the `ignore` list.
 
-7. `Future<TestInfoList> waitAllUnordered(List<Type> actionTypes, {List<Type> ignore})`
+9. `Future<TestInfoList> waitAllUnordered(List<Type> actionTypes, {List<Type> ignore})`
 
    The same as `waitAllUnorderedGetLast`, but instead of returning just the last info, it returns a
    list with the end info for each action. To ignore some actions, pass them to the `ignore` list.
 
-8. `Future<TestInfoList<St>> waitCondition(StateCondition<St> condition, {bool testImmediately = true, bool ignoreIni = true})`
+10. `Future<TestInfoList<St>> waitCondition(StateCondition<St> condition, {bool testImmediately = true, bool ignoreIni = true})`
 
    Runs until the predicate function `condition` returns true. This function will receive each
    testInfo, from where it can access the state, action, errors etc. When `testImmediately` is
@@ -1172,7 +1182,7 @@ Let's see all the available methods of the `StoreTester`:
    dispatched. Only END states will be received, unless you pass `ignoreIni` as false. Returns a
    list with all info until the condition is met.
 
-9. `Future<TestInfo<St>> waitConditionGetLast(StateCondition<St> condition, {bool testImmediately = true, bool ignoreIni = true})`
+11. `Future<TestInfo<St>> waitConditionGetLast(StateCondition<St> condition, {bool testImmediately = true, bool ignoreIni = true})`
 
    Runs until the predicate function `condition` returns true. This function will receive each
    testInfo, from where it can access the state, action, errors etc. When `testImmediately` is
@@ -1182,19 +1192,19 @@ Let's see all the available methods of the `StoreTester`:
    dispatched. Only END states will be received, unless you pass `ignoreIni` as false. Returns the
    info after the condition is met.
 
-10. `Future<TestInfoList<St>> waitUntilError({Object error, Object processedError})`
+12. `Future<TestInfoList<St>> waitUntilError({Object error, Object processedError})`
 
     Runs until after an action throws an error of this exact type, or this exact error (using
     equals). You can also, instead, define `processedError`, which is the error after wrapped by the
     action's `wrapError()` method. Returns a list with all info until the error condition is met.
 
-10. `Future<TestInfo> waitUntilErrorGetLast({Object error, Object processedError})`
+13. `Future<TestInfo> waitUntilErrorGetLast({Object error, Object processedError})`
 
     Runs until after an action throws an error of this exact type, or this exact error (using
     equals). You can also, instead, define `processedError`, which is the error after wrapped by the
     action's `wrapError()` method. Returns the info after the condition is met.
 
-11. `Future<TestInfo<St>> dispatchState(St state)`
+14. `Future<TestInfo<St>> dispatchState(St state)`
 
     Dispatches an action that changes the current state to the one provided by you. Then, runs until
     that action is dispatched and finished (ignoring other actions). Returns the info after the

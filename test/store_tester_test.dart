@@ -479,6 +479,50 @@ void main() {
   ///////////////////////////////////////////////////////////////////////////////
 
   test(
+      'Dispatch a few actions and wait until all of them finish, '
+      'ignoring the others.'
+      'Get the end state after all actions finish.', () async {
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+
+    storeTester.dispatch(Action1());
+    storeTester.dispatch(Action2());
+    storeTester.dispatch(Action1());
+    storeTester.dispatch(Action3());
+    storeTester.dispatch(Action4());
+
+    TestInfo<AppState?> info = await storeTester.waitUntilAllGetLast([Action3, Action2]);
+    expect(info.state!.text, "0,1,2,1,3");
+    expect(info.errors, isEmpty);
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      'Dispatch a few actions and wait until all of them finish, '
+      'ignoring the others.'
+      'Get all states until all actions finish.', () async {
+    var storeTester = createStoreTester();
+    expect(storeTester.state.text, "0");
+
+    storeTester.dispatch(Action1());
+    storeTester.dispatch(Action2());
+    storeTester.dispatch(Action1());
+    storeTester.dispatch(Action3());
+    storeTester.dispatch(Action4());
+
+    TestInfoList<AppState?> infos = await storeTester.waitUntilAll([Action3, Action2]);
+
+    expect(infos.length, 4);
+    expect(infos.getIndex(0).state!.text, "0,1");
+    expect(infos.getIndex(1).state!.text, "0,1,2");
+    expect(infos.getIndex(2).state!.text, "0,1,2,1");
+    expect(infos.getIndex(3).state!.text, "0,1,2,1,3");
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
       'Wait until some action that is never dispatched.'
       'Should timeout.', () async {
     var storeTester = createStoreTester();

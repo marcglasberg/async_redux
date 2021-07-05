@@ -330,6 +330,54 @@ class StoreTester<St> {
     return testInfo;
   }
 
+  /// Runs until all actions of the given types are dispatched and finish, in any order.
+  /// Returns a list with all info until the last action finishes. **Ignores other** actions types.
+  ///
+  Future<TestInfoList<St>> waitUntilAll(
+    List<Type> actionTypes, {
+    bool ignoreIni = true,
+    int timeoutInSeconds = defaultTimeout,
+  }) async {
+    assert(actionTypes.isNotEmpty);
+
+    TestInfoList<St> infoList = TestInfoList<St>();
+    Set<Type> actionsIni = Set.from(actionTypes);
+    Set<Type> actionsEnd = {};
+    TestInfo<St>? testInfo;
+
+    while (actionsIni.isNotEmpty || actionsEnd.isNotEmpty) {
+      testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
+      if (!ignoreIni || testInfo.isEND) infoList._add(testInfo);
+      Type actionType = testInfo.action.runtimeType;
+      if (testInfo.isINI) {
+        if (actionsIni.remove(actionType)) {
+          actionsEnd.add(actionType);
+        }
+      } else
+        actionsEnd.remove(actionType);
+    }
+
+    lastInfo = infoList.last;
+    return infoList;
+  }
+
+  /// Runs until all actions of the given types are dispatched and finish, in any order.
+  /// Returns the info after they all finish. **Ignores other** actions types.
+  ///
+  Future<TestInfo<St>> waitUntilAllGetLast(
+    List<Type> actionTypes, {
+    bool ignoreIni = true,
+    int timeoutInSeconds = defaultTimeout,
+  }) async {
+    var infoList = await waitUntilAll(
+      actionTypes,
+      ignoreIni: ignoreIni,
+      timeoutInSeconds: timeoutInSeconds,
+    );
+
+    return infoList.last;
+  }
+
   /// Runs until the exact given action is dispatched, and then waits until it finishes.
   /// Returns the info after the action finishes. **Ignores other** actions.
   ///
@@ -672,11 +720,13 @@ class TestInfoList<St> {
 
   /// Returns the n-th info corresponding to the end of the given action type
   /// Note: N == 1 is the first one.
-  TestInfo<St>? get(Type actionType, [int n = 1]) => _info.firstWhereOrNull((info) {
-        var ifFound = (info.type == actionType);
-        if (ifFound) n--;
-        return ifFound && (n == 0);
-      });
+  TestInfo<St>? get(Type actionType, [int n = 1]) => _info.firstWhereOrNull(
+        (info) {
+          var ifFound = (info.type == actionType);
+          if (ifFound) n--;
+          return ifFound && (n == 0);
+        },
+      );
 
   /// Returns all info corresponding to the action type.
   List<TestInfo<St>> getAll(Type actionType) {
