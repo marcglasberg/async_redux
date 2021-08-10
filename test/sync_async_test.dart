@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
+import 'package:meta/meta.dart';
 import "package:test/test.dart";
 
 // Developed by Marcelo Glasberg (Aug 2019).
@@ -13,6 +14,7 @@ import "package:test/test.dart";
 ///////////////////////////////////////////////////////////////////////////////
 
 /// The app state, which in this case is just a text.
+@immutable
 class AppState {
   final String text;
 

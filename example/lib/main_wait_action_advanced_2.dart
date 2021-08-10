@@ -26,6 +26,7 @@ void main() {
 ///////////////////////////////////////////////////////////////////////////////
 
 /// The app state contains a [wait] object of type [Wait].
+@immutable
 class AppState {
   final Map<int, String> descriptions;
   final Wait wait;

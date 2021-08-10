@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import "package:async_redux/async_redux.dart";
+import 'package:meta/meta.dart';
 import "package:test/test.dart";
 
 void main() {
@@ -467,8 +468,9 @@ String writeStateAndDb(StoreTester<AppState> storeTester, LocalDb localDb) => "(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+@immutable
 class AppState {
-  String? name;
+  final String? name;
 
   AppState({
     this.name,

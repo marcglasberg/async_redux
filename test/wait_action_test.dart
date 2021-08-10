@@ -2,11 +2,13 @@ import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/src/wait.dart';
 import 'package:async_redux/src/wait_action.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:meta/meta.dart';
 
 late Store<AppState> store;
 
 ///////////////////////////////////////////////////////////////////////////
 
+@immutable
 class AppState {
   final Wait wait;
 

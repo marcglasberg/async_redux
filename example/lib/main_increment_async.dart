@@ -27,6 +27,7 @@ void main() {
 ///////////////////////////////////////////////////////////////////////////////
 
 /// The app state, which in this case is a counter and a description.
+@immutable
 class AppState {
   final int? counter;
   final String? description;

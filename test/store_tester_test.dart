@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
+import 'package:meta/meta.dart';
 import "package:test/test.dart";
 
+@immutable
 class AppState {
-  String text;
+  final String text;
 
   AppState(this.text);
 

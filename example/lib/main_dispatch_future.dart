@@ -32,6 +32,7 @@ void main() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+@immutable
 class AppState {
   final List<String>? numTrivia;
   final bool? isLoading;

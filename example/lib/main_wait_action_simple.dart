@@ -46,6 +46,7 @@ void main() {
 ///////////////////////////////////////////////////////////////////////////////
 
 /// The app state contains a [wait] object of type [Wait].
+@immutable
 class AppState {
   final int? counter;
   final String? description;

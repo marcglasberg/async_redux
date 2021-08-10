@@ -18,6 +18,7 @@ void main() {
 ///////////////////////////////////////////////////////////////////////////////
 
 /// The app state, which in this case is the user name.
+@immutable
 class AppState {
   final String? name;
 

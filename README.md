@@ -1818,6 +1818,7 @@ For this to work, your store state must have a `Wait` field named `wait`, and th
 must have a `copy` or a `copyWith` method which copies this field as a named parameter. For example:
 
 ```
+@immutable
 class AppState {
   final Wait wait;
   ...
@@ -2001,6 +2002,7 @@ them to the main state class. For example, if you have some state for the login,
 state, and some *todos* in a To-Do app, you can organize it like this:
 
 ```
+@immutable
 class AppState {
 
   final LoginState loginState;

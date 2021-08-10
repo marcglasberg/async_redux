@@ -33,6 +33,7 @@ void main() {
 ///////////////////////////////////////////////////////////////////////////////
 
 /// The app state, which in this case is a counter and two events.
+@immutable
 class AppState {
   final int? counter;
   final bool? waiting;
