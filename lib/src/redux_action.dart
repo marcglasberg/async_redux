@@ -72,7 +72,7 @@ abstract class ReduxAction<St> {
   ///    return identical(oldState, state) ? newState : null;
   /// };
   /// ```
-  Reducer<St?> wrapReduce(Reducer<St> reduce) => reduce;
+  Reducer<St> wrapReduce(Reducer<St> reduce) => reduce;
 
   /// If any error is thrown by `reduce` or `before`, you have the chance
   /// to further process it by using `wrapError`. Usually this is used to wrap

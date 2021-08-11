@@ -366,7 +366,7 @@ class Store<St> {
   FutureOr<void> _applyReducer(ReduxAction<St> action, {bool notify = true}) {
     _reduceCount++;
 
-    Reducer<St?> reducer = action.wrapReduce(action.reduce);
+    Reducer<St> reducer = action.wrapReduce(action.reduce);
 
     if (_wrapReduce != null) reducer = _wrapReduce!.wrapReduce(reducer, this);
 

@@ -48,7 +48,7 @@ abstract class WrapReduce<St> {
     required St newState,
   });
 
-  Reducer<St?> wrapReduce(
+  Reducer<St> wrapReduce(
     Reducer<St> reduce,
     Store<St> store,
   ) {
