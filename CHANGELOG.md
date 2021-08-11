@@ -1,4 +1,4 @@
-## [12.0.2] - 2020/05/06
+# [12.0.2] - 2020/05/06
 
 * New `StoreTester` methods: `waitUntilAll()` and `waitUntilAllGetLast()`.
 
