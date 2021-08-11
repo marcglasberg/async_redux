@@ -363,10 +363,52 @@ class Store<St> {
     return action._status;
   }
 
+  static const _reducerTypeErrorMsg = "Reducer should return `St?` or `Future<St?>`. ";
+  static const _wrapReducerTypeErrorMsg = "WrapReduce should return `St?` or `Future<St?>`. ";
+
+  void _checkReducerType(FutureOr<St?> Function() reduce, bool wrapped) {
+    //
+    // Sync reducer is acceptable.
+    if (reduce is St? Function()) {
+      return;
+    }
+    //
+    // Async reducer is acceptable.
+    else if (reduce is Future<St?> Function()) {
+      return;
+    }
+    //
+    else if (reduce is Future<St>? Function()) {
+      throw StoreException((wrapped ? _wrapReducerTypeErrorMsg : _reducerTypeErrorMsg) +
+          "Do not return `Future<St>?`.");
+    }
+    //
+    else if (reduce is Future<St?>? Function()) {
+      throw StoreException((wrapped ? _wrapReducerTypeErrorMsg : _reducerTypeErrorMsg) +
+          "Do not return `Future<St?>?`.");
+    }
+    //
+    else if (reduce is FutureOr Function()) {
+      throw StoreException((wrapped ? _wrapReducerTypeErrorMsg : _reducerTypeErrorMsg) +
+          "Do not return `FutureOr`.");
+    }
+    //
+    else {
+      throw StoreException((wrapped ? _wrapReducerTypeErrorMsg : _reducerTypeErrorMsg) +
+          "Do not return `${reduce.runtimeType}`.");
+    }
+  }
+
   FutureOr<void> _applyReducer(ReduxAction<St> action, {bool notify = true}) {
     _reduceCount++;
 
+    // Make sure the action reducer returns an acceptable type.
+    _checkReducerType(action.reduce, false);
+
     Reducer<St> reducer = action.wrapReduce(action.reduce);
+
+    // Make sure the wrapReduce also returns an acceptable type.
+    _checkReducerType(action.reduce, true);
 
     if (_wrapReduce != null) reducer = _wrapReduce!.wrapReduce(reducer, this);
 
@@ -393,7 +435,7 @@ class Store<St> {
             notify: notify,
           ));
     }
-    // Not defined.
+    // Not accepted.
     else {
       throw StoreException("Reducer should return `St?` or `Future<St?>`. "
           "Do not return `FutureOr<St?>`. "
