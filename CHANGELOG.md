@@ -1,9 +1,15 @@
+# [12.0.4] - 2020/08/19
+
+* `NavigateAction.toString()` now return a better description, like `Action NavigateAction.pop()`.
+* Fixed `NavigateAction.popUntilRouteName` and `NavigateAction.pushNamedAndRemoveAll` to return the
+  correct `.type`.
+* Added section `Dependency Injection` in README.md.
+
 # [12.0.3] - 2020/08/11
 
-* Improved error messages when the reducer returns an invalid type. 
+* Improved error messages when the reducer returns an invalid type.
 * New `StoreTester` methods: `waitUntilAll()` and `waitUntilAllGetLast()`.
-* Experimental: Passing an environment to the store, to help with dependency injection:
-  `Store(environment: ...)`
+* Passing an environment to the store, to help with dependency injection: `Store(environment: ...)`
 
 # [12.0.0] - 2021/06/29
 

@@ -114,8 +114,7 @@ class NavigateAction<St> extends ReduxAction<St> {
   NavigateAction.pushNamedAndRemoveAll(
     String newRouteName, {
     Object? arguments,
-  }) : this._(NavigatorDetails_PushNamedAndRemoveUntil(newRouteName, (_) => false,
-            arguments: arguments));
+  }) : this._(NavigatorDetails_PushNamedAndRemoveAll(newRouteName, arguments: arguments));
 
   NavigateAction.popUntil(
     RoutePredicate predicate,
@@ -131,11 +130,14 @@ class NavigateAction<St> extends ReduxAction<St> {
 
   NavigateAction.popUntilRouteName(
     String routeName,
-  ) : this._(NavigatorDetails_PopUntil(((route) => route.settings.name == routeName)));
+  ) : this._(NavigatorDetails_PopUntilRouteName(routeName));
 
   NavigateAction.popUntilRoute(
     Route route,
-  ) : this._(NavigatorDetails_PopUntil(((_route) => _route == route)));
+  ) : this._(NavigatorDetails_PopUntilRoute(route));
+
+  @override
+  String toString() => '${super.toString()}${details.toString()}';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -152,6 +154,9 @@ class NavigatorDetails_Push implements NavigatorDetails {
 
   @override
   NavigateType get type => NavigateType.push;
+
+  @override
+  String toString() => '.push(${route.toStringLimited()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -168,6 +173,9 @@ class NavigatorDetails_Pop implements NavigatorDetails {
 
   @override
   NavigateType get type => NavigateType.pop;
+
+  @override
+  String toString() => '.pop(${result == null ? "" : result.toStringLimited()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -194,6 +202,11 @@ class NavigatorDetails_PopAndPushNamed implements NavigatorDetails {
 
   @override
   NavigateType get type => NavigateType.popAndPushNamed;
+
+  @override
+  String toString() => '.popAndPushNamed('
+      '$routeName'
+      '${result == null ? "" : ", result: " + result.toStringLimited()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -214,6 +227,9 @@ class NavigatorDetails_PushNamed implements NavigatorDetails {
 
   @override
   NavigateType get type => NavigateType.pushNamed;
+
+  @override
+  String toString() => '.pushNamed($routeName)';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -235,6 +251,9 @@ class NavigatorDetails_PushReplacementNamed implements NavigatorDetails {
 
   @override
   NavigateType get type => NavigateType.pushReplacementNamed;
+
+  @override
+  String toString() => '.pushReplacementNamed($routeName)';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -258,6 +277,33 @@ class NavigatorDetails_PushNamedAndRemoveUntil implements NavigatorDetails {
 
   @override
   NavigateType get type => NavigateType.pushNamedAndRemoveUntil;
+
+  @override
+  String toString() => '.pushNamedAndRemoveUntil($newRouteName, predicate)';
+}
+
+// ////////////////////////////////////////////////////////////////////////////
+
+class NavigatorDetails_PushNamedAndRemoveAll implements NavigatorDetails {
+  final String newRouteName;
+  final Object? arguments;
+
+  NavigatorDetails_PushNamedAndRemoveAll(
+    this.newRouteName, {
+    this.arguments,
+  });
+
+  @override
+  void navigate() {
+    NavigateAction._navigatorKey?.currentState
+        ?.pushNamedAndRemoveUntil(newRouteName, (_) => false, arguments: arguments);
+  }
+
+  @override
+  NavigateType get type => NavigateType.pushNamedAndRemoveAll;
+
+  @override
+  String toString() => '.pushNamedAndRemoveAll($newRouteName)';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -278,6 +324,11 @@ class NavigatorDetails_PushReplacement implements NavigatorDetails {
 
   @override
   NavigateType get type => NavigateType.pushReplacement;
+
+  @override
+  String toString() => '.pushReplacement('
+      '${route.toStringLimited()}'
+      '${result == null ? "" : ", result: " + result.toStringLimited()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -298,6 +349,11 @@ class NavigatorDetails_PushAndRemoveUntil implements NavigatorDetails {
 
   @override
   NavigateType get type => NavigateType.pushAndRemoveUntil;
+
+  @override
+  String toString() => '.pushAndRemoveUntil('
+      '${route.toStringLimited()}'
+      ', predicate)';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -321,6 +377,11 @@ class NavigatorDetails_Replace implements NavigatorDetails {
 
   @override
   NavigateType get type => NavigateType.replace;
+
+  @override
+  String toString() => '.replace('
+      'oldRoute: ${oldRoute.toStringLimited()}, '
+      'newRoute: ${newRoute.toStringLimited()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -344,6 +405,11 @@ class NavigatorDetails_ReplaceRouteBelow implements NavigatorDetails {
 
   @override
   NavigateType get type => NavigateType.replaceRouteBelow;
+
+  @override
+  String toString() => '.replaceRouteBelow('
+      'anchorRoute: ${anchorRoute.toStringLimited()}, '
+      'newRoute: ${newRoute.toStringLimited()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -360,6 +426,48 @@ class NavigatorDetails_PopUntil implements NavigatorDetails {
 
   @override
   NavigateType get type => NavigateType.popUntil;
+
+  @override
+  String toString() => '.popUntil(predicate)';
+}
+
+// ////////////////////////////////////////////////////////////////////////////
+
+class NavigatorDetails_PopUntilRouteName implements NavigatorDetails {
+  final String routeName;
+
+  NavigatorDetails_PopUntilRouteName(this.routeName);
+
+  @override
+  void navigate() {
+    NavigateAction._navigatorKey?.currentState
+        ?.popUntil(((route) => route.settings.name == routeName));
+  }
+
+  @override
+  NavigateType get type => NavigateType.popUntilRouteName;
+
+  @override
+  String toString() => '.popUntilRouteName($routeName)';
+}
+
+// ////////////////////////////////////////////////////////////////////////////
+
+class NavigatorDetails_PopUntilRoute implements NavigatorDetails {
+  final Route route;
+
+  NavigatorDetails_PopUntilRoute(this.route);
+
+  @override
+  void navigate() {
+    NavigateAction._navigatorKey?.currentState?.popUntil(((_route) => _route == route));
+  }
+
+  @override
+  NavigateType get type => NavigateType.popUntilRoute;
+
+  @override
+  String toString() => '.popUntilRoute(${route.toStringLimited()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -376,6 +484,9 @@ class NavigatorDetails_RemoveRoute implements NavigatorDetails {
 
   @override
   NavigateType get type => NavigateType.removeRoute;
+
+  @override
+  String toString() => '.removeRoute(${route.toStringLimited()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -392,6 +503,9 @@ class NavigatorDetails_RemoveRouteBelow implements NavigatorDetails {
 
   @override
   NavigateType get type => NavigateType.removeRouteBelow;
+
+  @override
+  String toString() => '.removeRouteBelow(${anchorRoute.toStringLimited()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -421,4 +535,20 @@ enum NavigateType {
   removeRouteBelow,
   popUntilRouteName,
   popUntilRoute,
+}
+
+// ////////////////////////////////////////////////////////////////////////////
+
+extension _StringExtension on Object? {
+  /// If the object can be represented with up to 50 chars, we print it.
+  /// Otherwise, we use the object's runtimeType without the generic part.
+  String toStringLimited() {
+    String text = toString();
+    if (text.length <= 50)
+      return text;
+    else {
+      text = runtimeType.toString();
+      return text.substring(0, text.indexOf('<'));
+    }
+  }
 }

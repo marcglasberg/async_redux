@@ -161,7 +161,7 @@ class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Increment Example')),
+      appBar: AppBar(title: const Text('Dependency Injection Example')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

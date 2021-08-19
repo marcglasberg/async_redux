@@ -50,6 +50,7 @@ Medium story</a>.
     * [Cache (Reselectors)](#cache-reselectors)
 * [Action Subclassing](#action-subclassing)
     * [Abstract Before and After](#abstract-before-and-after)
+* [Dependency Injection](#dependency-injection)
 * [IDE Navigation](#ide-navigation)
 * [Persistence](#persistence)
     * [Saving and Loading](#saving-and-loading)
@@ -1174,23 +1175,23 @@ Let's see all the available methods of the `StoreTester`:
 
 10. `Future<TestInfoList<St>> waitCondition(StateCondition<St> condition, {bool testImmediately = true, bool ignoreIni = true})`
 
-   Runs until the predicate function `condition` returns true. This function will receive each
-   testInfo, from where it can access the state, action, errors etc. When `testImmediately` is
-   true (the default), it will test the condition immediately when the method is called. If the
-   condition is true, the method will return immediately, without waiting for any actions to be
-   dispatched. When `testImmediately` is false, it will only test the condition once an action is
-   dispatched. Only END states will be received, unless you pass `ignoreIni` as false. Returns a
-   list with all info until the condition is met.
+Runs until the predicate function `condition` returns true. This function will receive each
+testInfo, from where it can access the state, action, errors etc. When `testImmediately` is true (
+the default), it will test the condition immediately when the method is called. If the condition is
+true, the method will return immediately, without waiting for any actions to be dispatched.
+When `testImmediately` is false, it will only test the condition once an action is dispatched. Only
+END states will be received, unless you pass `ignoreIni` as false. Returns a list with all info
+until the condition is met.
 
 11. `Future<TestInfo<St>> waitConditionGetLast(StateCondition<St> condition, {bool testImmediately = true, bool ignoreIni = true})`
 
-   Runs until the predicate function `condition` returns true. This function will receive each
-   testInfo, from where it can access the state, action, errors etc. When `testImmediately` is
-   true (the default), it will test the condition immediately when the method is called. If the
-   condition is true, the method will return immediately, without waiting for any actions to be
-   dispatched. When `testImmediately` is false, it will only test the condition once an action is
-   dispatched. Only END states will be received, unless you pass `ignoreIni` as false. Returns the
-   info after the condition is met.
+Runs until the predicate function `condition` returns true. This function will receive each
+testInfo, from where it can access the state, action, errors etc. When `testImmediately` is true (
+the default), it will test the condition immediately when the method is called. If the condition is
+true, the method will return immediately, without waiting for any actions to be dispatched.
+When `testImmediately` is false, it will only test the condition once an action is dispatched. Only
+END states will be received, unless you pass `ignoreIni` as false. Returns the info after the
+condition is met.
 
 12. `Future<TestInfoList<St>> waitUntilError({Object error, Object processedError})`
 
@@ -2330,6 +2331,73 @@ this example</a>.
 
 <br>
 
+## Dependency Injection
+
+While you can always use <a href="https://pub.dev/packages/get_it">get_it</a> or any other
+dependency injection solution, AsyncRedux lets you inject your dependencies directly in the
+**store**, and then access them in your actions and view-model factories.
+
+The dependency injection idea was contributed by <a href="https://github.com/craigomac">Craig
+McMahon</a>.
+
+To inject an environment object with the dependencies:
+
+```
+store = Store<AppState>(
+   initialState: ...,
+   environment: Environment(),
+);
+```
+
+You can then extend both `ReduxAction` and `VmFactory` to provide typed access to your environment:
+
+```
+abstract class AppFactory<T> extends VmFactory<int, T> {
+  AppFactory([T? widget]) : super(widget);
+
+  @override
+  Environment get env => super.env as Environment;
+}
+
+
+abstract class Action extends ReduxAction<int> {
+
+  @override
+  Environment get env => super.env as Environment;
+}
+```
+
+Then, use the environment when creating the view-model:
+
+```
+class Factory extends AppFactory<MyHomePageConnector> {
+  Factory(widget) : super(widget);
+
+  @override
+  ViewModel fromStore() => ViewModel(
+        counter: env.limit(state),
+        onIncrement: () => dispatch(IncrementAction(amount: 1)),
+      );
+}
+
+```
+
+And also in your actions:
+
+```
+class IncrementAction extends Action {
+  final int amount;
+  IncrementAction({required this.amount});
+
+  @override
+  int reduce() => env.incrementer(state, amount);
+}
+```
+
+Try running
+the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_environment.dart">
+Dependency Injection Example</a>.
+
 ## IDE Navigation
 
 How does AsyncRedux solve the IDE navigation problem?
@@ -2908,10 +2976,11 @@ making sense is much lower.
 *The AsyncRedux code is based upon packages <a href="https://pub.dev/packages/redux">redux</a> by
 Brian Egan, and <a href="https://pub.dev/packages/flutter_redux">flutter_redux</a> by Brian Egan and
 John Ryan. Also uses code from package <a href="https://pub.dev/packages/equatable">equatable</a> by
-Felix Angelov. Special thanks: Eduardo Yamauchi and Hugo Passos helped me with the async code,
-checking the documentation, testing everything and making suggestions. This work started after
-Thomas Burkhart explained to me why he didn't like Redux. Reducers as methods of action classes were
-shown to me by Scott Stoll and Simon Lightfoot.*
+Felix Angelov. The dependency injection idea in AsyncRedux was contributed by Craig McMahon. Special
+thanks: Eduardo Yamauchi and Hugo Passos helped me with the async code, checking the documentation,
+testing everything and making suggestions. This work started after Thomas Burkhart explained to me
+why he didn't like Redux. Reducers as methods of action classes were shown to me by Scott Stoll and
+Simon Lightfoot.*
 
 *The Flutter packages I've authored:*
 

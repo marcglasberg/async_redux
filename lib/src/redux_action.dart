@@ -111,8 +111,14 @@ abstract class ReduxAction<St> {
     return reduce();
   }
 
+  /// Returns the runtimeType, without the generic part.
+  String runtimeTypeString() {
+    var text = runtimeType.toString();
+    return text.substring(0, text.indexOf('<'));
+  }
+
   @override
-  String toString() => 'Action ' + runtimeType.toString();
+  String toString() => 'Action ${runtimeTypeString()}';
 }
 
 // /////////////////////////////////////////////////////////////////////////////
