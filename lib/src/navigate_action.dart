@@ -548,7 +548,8 @@ extension _StringExtension on Object? {
       return text;
     else {
       text = runtimeType.toString();
-      return text.substring(0, text.indexOf('<'));
+      var pos = text.indexOf('<');
+      return (pos == -1) ? text : text.substring(0, text.indexOf('<'));
     }
   }
 }

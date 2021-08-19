@@ -114,7 +114,8 @@ abstract class ReduxAction<St> {
   /// Returns the runtimeType, without the generic part.
   String runtimeTypeString() {
     var text = runtimeType.toString();
-    return text.substring(0, text.indexOf('<'));
+    var pos = text.indexOf('<');
+    return (pos == -1) ? text : text.substring(0, pos);
   }
 
   @override
