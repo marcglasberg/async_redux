@@ -178,6 +178,9 @@ abstract class VmFactory<St, T> {
   /// Dispatch an action, possibly changing the store state.
   Dispatch<St> get dispatch => _store.dispatch;
 
+  /// Dispatch an action, possibly changing the store state.
+  DispatchAsync<St> get dispatchAsync => _store.dispatchAsync;
+
   UserException? getAndRemoveFirstError() => _store.getAndRemoveFirstError();
 }
 

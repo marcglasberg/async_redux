@@ -1,3 +1,18 @@
+# [13.0.0-dev] - 2020/08/20
+
+* `dispatch` can be used to dispatch both sync and async actions. It returns a `FutureOr`. You can
+  await the result or not, as desired.
+
+* `dispatchAsync` can be used to dispatch both sync and async actions. But it always returns a
+  `Future` (not a `FutureOr`). Use this when you need a `Future`, for example when working with the
+  `RefreshIndicator` widget.
+
+* `dispatchSync` allows you to dispatch SYNC actions only. You can use this if you want to make sure
+  your action is sync. If your action is ASYNC, `dispatchSync` will throw an error. Please note this
+  method should only be used under rare circumstances when you need to make sure your action is
+  sync. Important: An action is sync if and only if both the `before` and `reduce` are sync. If any
+  or both these methods return a Future, then the action is async.
+
 # [12.0.4] - 2020/08/19
 
 * `NavigateAction.toString()` now return a better description, like `Action NavigateAction.pop()`.

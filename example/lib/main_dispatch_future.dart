@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
@@ -154,7 +156,7 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
       numTrivia: state.numTrivia,
       isLoading: state.isLoading,
       loadMore: () => dispatch(LoadMoreAction()),
-      onRefresh: () => dispatch(RefreshAction()),
+      onRefresh: () => dispatchAsync(RefreshAction()),
     );
   }
 }
@@ -205,8 +207,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _controller = ScrollController()
       ..addListener(() {
         if (!widget.isLoading! &&
-            _controller!.position.maxScrollExtent ==
-                _controller!.position.pixels) {
+            _controller!.position.maxScrollExtent == _controller!.position.pixels) {
           widget.loadMore!();
         }
       });

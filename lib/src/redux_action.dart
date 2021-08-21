@@ -36,10 +36,15 @@ abstract class ReduxAction<St> {
 
   Dispatch<St> get dispatch => _store.dispatch;
 
+  DispatchSync<St> get dispatchSync => _store.dispatchSync;
+
+  DispatchAsync<St> get dispatchAsync => _store.dispatchAsync;
+
   /// This is an optional method that may be overridden to run during action
   /// dispatching, before `reduce`. If this method throws an error, the
   /// `reduce` method will NOT run, but the method `after` will.
   /// It may be synchronous (returning `void`) ou async (returning `Future<void>`).
+  /// You should NOT return `FutureOr`.
   FutureOr<void> before() {}
 
   /// This is an optional method that may be overridden to run during action

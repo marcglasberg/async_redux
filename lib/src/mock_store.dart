@@ -70,7 +70,7 @@ class MockStore<St> extends Store<St> {
   }
 
   @override
-  Future<ActionStatus> dispatch(
+  FutureOr<ActionStatus> dispatch(
     ReduxAction<St> action, {
     bool notify = true,
   }) {

@@ -54,8 +54,8 @@ void main() {
     Store<String> store = Store<String>(initialState: "");
 
     // B is dispatched first, but will finish last, because it's async.
-    var f1 = store.dispatch(ActionB());
-    var f2 = store.dispatch(ActionA());
+    var f1 = store.dispatchAsync(ActionB());
+    var f2 = store.dispatchAsync(ActionA());
 
     await Future.wait([f1, f2]);
     expect(store.state, "AB");
@@ -80,8 +80,8 @@ void main() {
     Store<String> store = Store<String>(initialState: "");
 
     // C is dispatched first, but will finish last, because it's async.
-    var f1 = store.dispatch(ActionC());
-    var f2 = store.dispatch(ActionA());
+    var f1 = store.dispatchAsync(ActionC());
+    var f2 = store.dispatchAsync(ActionA());
 
     await Future.wait([f1, f2]);
     expect(store.state, "AC");
@@ -106,8 +106,8 @@ void main() {
     Store<String> store = Store<String>(initialState: "");
 
     // D is dispatched first, but will finish last, because it's async.
-    var f1 = store.dispatch(ActionD());
-    var f2 = store.dispatch(ActionA());
+    var f1 = store.dispatchAsync(ActionD());
+    var f2 = store.dispatchAsync(ActionA());
 
     await Future.wait([f1, f2]);
     expect(store.state, "AD");
@@ -262,7 +262,7 @@ class ActionD extends ReduxAction<String> {
 
 class ActionE extends ReduxAction<String> {
   @override
-  void before() async {
+  void before() {
     info.add('E.before state="$state"');
   }
 
@@ -284,7 +284,7 @@ class ActionE extends ReduxAction<String> {
 
 class ActionF extends ReduxAction<String> {
   @override
-  void before() async {
+  void before() {
     info.add('F.before state="$state"');
   }
 

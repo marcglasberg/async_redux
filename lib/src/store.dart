@@ -17,7 +17,17 @@ part 'redux_action.dart';
 
 typedef Reducer<St> = FutureOr<St?> Function();
 
-typedef Dispatch<St> = Future<ActionStatus> Function(
+typedef Dispatch<St> = FutureOr<ActionStatus> Function(
+  ReduxAction<St> action, {
+  bool notify,
+});
+
+typedef DispatchSync<St> = ActionStatus Function(
+  ReduxAction<St> action, {
+  bool notify,
+});
+
+typedef DispatchAsync<St> = Future<ActionStatus> Function(
   ReduxAction<St> action, {
   bool notify,
 });
@@ -265,10 +275,26 @@ class Store<St> {
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: store.dispatch is of type Dispatch.
-  Future<ActionStatus> dispatch(ReduxAction<St> action, {bool notify = true}) =>
+  FutureOr<ActionStatus> dispatch(ReduxAction<St> action, {bool notify = true}) =>
       _dispatch(action, notify: notify);
 
-  Future<ActionStatus> _dispatch(ReduxAction<St> action, {required bool notify}) async {
+  /// Runs the action, applying its reducer, and possibly changing the store state.
+  /// Note: store.dispatch is of type DispatchFuture.
+  Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) =>
+      Future.value(_dispatch(action, notify: notify));
+
+  /// Runs the action, applying its reducer, and possibly changing the store state.
+  /// Note: store.dispatch is of type DispatchFuture.
+  ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) {
+    if (!_ifActionIsSync(action)) {
+      throw StoreException(
+          "Can't dispatchSync(${action.runtimeType}) because ${action.runtimeType} is async.");
+    }
+
+    return _dispatch(action, notify: notify) as ActionStatus;
+  }
+
+  FutureOr<ActionStatus> _dispatch(ReduxAction<St> action, {required bool notify}) {
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 
@@ -313,6 +339,85 @@ class Store<St> {
   /// reducer is synchronous or asynchronous. It's important to run the reducer
   /// synchronously, if possible.
   FutureOr<ActionStatus> _processAction(
+    ReduxAction<St> action, {
+    bool notify = true,
+  }) {
+    //
+    if (_ifActionIsSync(action)) {
+      return _processAction_Sync(action, notify: notify);
+    } else
+      return _processAction_Async(action, notify: notify);
+  }
+
+  bool _ifActionIsSync(ReduxAction<St> action) {
+    //
+    /// Note: before MUST check that it's NOT Future<void> Function(),
+    /// because checking if it's void Function() doesn't work.
+    bool beforeMethodIsSync = action.before is! Future<void> Function();
+
+    bool reduceMethodIsSync = action.reduce is St? Function();
+
+    return (beforeMethodIsSync && reduceMethodIsSync);
+  }
+
+  /// We check the return type of methods `before` and `reduce` to decide if the
+  /// reducer is synchronous or asynchronous. It's important to run the reducer
+  /// synchronously, if possible.
+  ActionStatus _processAction_Sync(
+    ReduxAction<St> action, {
+    bool notify = true,
+  }) {
+    //
+    // Creates the "INI" test snapshot.
+    createTestInfoSnapshot(state!, action, null, null, ini: true);
+
+    // The action may access the store/state/dispatch as fields.
+    assert(action.store == this);
+
+    var afterWasRun = _Flag<bool>(false);
+
+    Object? originalError, processedError;
+
+    try {
+      action._status._clear();
+      var result = action.before();
+      if (result is Future) throw StoreException(_beforeTypeErrorMsg);
+
+      action._status._isBeforeDone = true;
+      if (_shutdown) return action._status;
+      _applyReducer(action, notify: notify);
+      action._status._isReduceDone = true;
+      if (_shutdown) return action._status;
+    }
+    //
+    catch (error, stackTrace) {
+      originalError = error;
+      processedError = _processError(error, stackTrace, action, afterWasRun);
+      // Error is meant to be "swallowed".
+      if (processedError == null)
+        return action._status;
+      // Error was not changed. Rethrows.
+      else if (identical(processedError, error))
+        rethrow;
+      // Error was wrapped. Rethrows, but loses stacktrace due to Dart architecture.
+      // See: https://groups.google.com/a/dartlang.org/forum/#!topic/misc/O1OKnYTUcoo
+      // See: https://github.com/dart-lang/sdk/issues/10297
+      // This should be fixed when this issue is solved: https://github.com/dart-lang/sdk/issues/30741
+      else
+        throw processedError;
+    }
+    //
+     finally {
+      _finalize(action, originalError, processedError, afterWasRun);
+    }
+
+    return action._status;
+  }
+
+  /// We check the return type of methods `before` and `reduce` to decide if the
+  /// reducer is synchronous or asynchronous. It's important to run the reducer
+  /// synchronously, if possible.
+  Future<ActionStatus> _processAction_Async(
     ReduxAction<St> action, {
     bool notify = true,
   }) async {
@@ -363,7 +468,11 @@ class Store<St> {
     return action._status;
   }
 
+  static const _beforeTypeErrorMsg =
+      "Before should return `void` or `Future<void>`. Do not return `FutureOr`.";
+
   static const _reducerTypeErrorMsg = "Reducer should return `St?` or `Future<St?>`. ";
+
   static const _wrapReducerTypeErrorMsg = "WrapReduce should return `St?` or `Future<St?>`. ";
 
   void _checkReducerType(FutureOr<St?> Function() reduce, bool wrapped) {
