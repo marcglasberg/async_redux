@@ -1,4 +1,4 @@
-# [13.0.0-dev] - 2020/08/20
+# [13.0.1-dev] - 2020/08/20
 
 * `dispatch` can be used to dispatch both sync and async actions. It returns a `FutureOr`. You can
   await the result or not, as desired.
@@ -20,17 +20,41 @@
 * In the `Store` constructor you can now set `maxErrorsQueued` to control the maximum number of
   errors the `UserExceptionDialog` error-queue can hold. Default is `10`.
 
+* `StoreTester.getConnectorTester` helps testing `StoreConnector`s methods, such as `onInit`
+  and `runOnWillChange`. For example, suppose you have a `StoreConnector` which dispatches
+  `SomeAction` in its `onInit`. You could test it like this:
+  ``` 
+  class MyConnector extends StatelessWidget { 
+     Widget build(BuildContext context) => StoreConnector<AppState, Vm>(
+        vm: () => _Factory(), 
+        onInit: _onInit, 
+        builder: (context, vm) { ... } 
+     } 
+  
+  void _onInit(Store<AppState> store) => store.dispatch(SomeAction()); 
+  } 
+  
+  var storeTester = StoreTester(...); 
+  var connectorTester = storeTester.getConnectorTester(MyConnector()); 
+  connectorTester.runOnInit(); 
+  var info = await tester.waitUntil(SomeAction);  
+  ```
+
 # [12.0.4] - 2020/08/19
 
 * `NavigateAction.toString()` now return a better description, like `Action NavigateAction.pop()`.
+
 * Fixed `NavigateAction.popUntilRouteName` and `NavigateAction.pushNamedAndRemoveAll` to return the
   correct `.type`.
+
 * Added section `Dependency Injection` in README.md.
 
 # [12.0.3] - 2020/08/11
 
 * Improved error messages when the reducer returns an invalid type.
+
 * New `StoreTester` methods: `waitUntilAll()` and `waitUntilAllGetLast()`.
+
 * Passing an environment to the store, to help with dependency injection: `Store(environment: ...)`
 
 # [12.0.0] - 2021/06/29

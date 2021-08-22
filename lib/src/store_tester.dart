@@ -696,6 +696,86 @@ class StoreTester<St> {
   }
 
   Future cancel() async => await _subscription.cancel();
+
+  /// Helps testing the `StoreConnector`s methods, such as `onInit`
+  /// and `runOnWillChange`.
+  ///
+  /// For example, suppose you have a `StoreConnector` which dispatches
+  /// `SomeAction` in its `onInit`. How could you test that?
+  ///
+  /// ```
+  /// class MyConnector extends StatelessWidget {
+  ///   Widget build(BuildContext context) => StoreConnector<AppState, Vm>(
+  ///         vm: () => _Factory(),
+  ///         onInit: _onInit,
+  ///         builder: (context, vm) { ... }
+  ///   }
+  ///
+  ///   void _onInit(Store<AppState> store) => store.dispatch(SomeAction());
+  /// }
+  ///
+  /// var storeTester = StoreTester(...);
+  /// var connectorTester = storeTester.getConnectorTester(MyConnector());
+  /// connectorTester.runOnInit();
+  /// var info = await tester.waitUntil(SomeAction);
+  /// ```
+  ///
+  ConnectorTester getConnectorTester(StatelessWidget widgetConnector) =>
+      ConnectorTester(this, widgetConnector);
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+
+/// Helps testing the `StoreConnector`s.
+///
+/// For more info, see: https://pub.dartlang.org/packages/async_redux
+///
+/// Example: Suppose you have a `StoreConnector` which dispatches `SomeAction`
+/// in its `onInit`. How could you test that?
+///
+/// ```
+/// class MyConnector extends StatelessWidget {
+///   Widget build(BuildContext context) => StoreConnector<AppState, Vm>(
+///         vm: () => _Factory(),
+///         onInit: _onInit,
+///         builder: (context, vm) { ... }
+///   }
+///
+///   void _onInit(Store<AppState> store) => store.dispatch(SomeAction());
+/// }
+///
+/// var storeTester = StoreTester(...);
+/// ConnectorTester(tester, MyConnector()).runOnInit();
+/// var info = await tester.waitUntil(SomeAction);
+/// ```
+///
+class ConnectorTester<St, Model> {
+  final StoreTester<St> tester;
+  final StatelessWidget widgetConnector;
+
+  ConnectorTester(this.tester, this.widgetConnector);
+
+  void runOnInit() {
+    StoreConnector<St, Model> storeConnector =
+        // ignore: invalid_use_of_protected_member
+        widgetConnector.build(StatelessElement(widgetConnector)) as StoreConnector<St, Model>;
+
+    final OnInitCallback<St>? onInit = storeConnector.onInit;
+    if (onInit != null) onInit(tester.store);
+  }
+
+  void runOnWillChange<Model>(
+    Model previousVm,
+    Model newVm,
+  ) {
+    StoreConnector<St, Model> storeConnector =
+        // ignore: invalid_use_of_protected_member
+        widgetConnector.build(StatelessElement(widgetConnector)) as StoreConnector<St, Model>;
+
+    final OnWillChangeCallback<St, Model>? onWillChange = storeConnector.onWillChange;
+    if (onWillChange != null)
+      onWillChange(StatelessElement(widgetConnector), tester.store, previousVm, newVm);
+  }
 }
 
 // /////////////////////////////////////////////////////////////////////////////
