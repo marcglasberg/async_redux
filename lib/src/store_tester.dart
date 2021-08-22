@@ -698,10 +698,10 @@ class StoreTester<St> {
   Future cancel() async => await _subscription.cancel();
 
   /// Helps testing the `StoreConnector`s methods, such as `onInit`,
-  /// `onDispose` and `runOnWillChange`.
+  /// `onDispose` and `onWillChange`.
   ///
   /// For example, suppose you have a `StoreConnector` which dispatches
-  /// `SomeAction` in its `onInit`. How could you test that?
+  /// `SomeAction` on its `onInit`. How could you test that?
   ///
   /// ```
   /// class MyConnector extends StatelessWidget {
@@ -727,12 +727,12 @@ class StoreTester<St> {
 // /////////////////////////////////////////////////////////////////////////////
 
 /// Helps testing the `StoreConnector`s methods, such as `onInit`,
-/// `onDispose` and `runOnWillChange`.
+/// `onDispose` and `onWillChange`.
 ///
 /// For more info, see: https://pub.dartlang.org/packages/async_redux
 ///
 /// Example: Suppose you have a `StoreConnector` which dispatches `SomeAction`
-/// in its `onInit`. How could you test that?
+/// on its `onInit`. How could you test that?
 ///
 /// ```
 /// class MyConnector extends StatelessWidget {

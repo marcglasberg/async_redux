@@ -14,15 +14,10 @@
   and only if both its `before` and `reduce` methods are sync. If any or both these methods return a
   Future, then the action is async and will throw an error when used with `dispatchSync`.
 
-* Fix: `UserExceptionDialog` now shows all `UserException`s. It was discarding some of them under
-  some circumstances, in a regression created in version 4.0.4.
+* `StoreTester.getConnectorTester` helps test `StoreConnector`s methods, such as `onInit`,
+  `onDispose` and `onWillChange`. For example, suppose you have a `StoreConnector` which
+  dispatches `SomeAction` on its `onInit`. You could test it like this:
 
-* In the `Store` constructor you can now set `maxErrorsQueued` to control the maximum number of
-  errors the `UserExceptionDialog` error-queue can hold. Default is `10`.
-
-* `StoreTester.getConnectorTester` helps testing `StoreConnector`s methods, such as `onInit`
-  and `runOnWillChange`. For example, suppose you have a `StoreConnector` which dispatches
-  `SomeAction` in its `onInit`. You could test it like this:
   ``` 
   class MyConnector extends StatelessWidget { 
      Widget build(BuildContext context) => StoreConnector<AppState, Vm>(
@@ -39,6 +34,13 @@
   connectorTester.runOnInit(); 
   var info = await tester.waitUntil(SomeAction);  
   ```
+  For more information, see section **Testing the StoreConnector** in the readme file.
+
+* Fix: `UserExceptionDialog` now shows all `UserException`s. It was discarding some of them under
+  some circumstances, in a regression created in version 4.0.4.
+
+* In the `Store` constructor you can now set `maxErrorsQueued` to control the maximum number of
+  errors the `UserExceptionDialog` error-queue can hold. Default is `10`.
 
 # [12.0.4] - 2020/08/19
 
