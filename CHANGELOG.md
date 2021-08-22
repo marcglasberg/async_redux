@@ -3,15 +3,22 @@
 * `dispatch` can be used to dispatch both sync and async actions. It returns a `FutureOr`. You can
   await the result or not, as desired.
 
-* `dispatchAsync` can be used to dispatch both sync and async actions. But it always returns a
-  `Future` (not a `FutureOr`). Use this when you need a `Future`, for example when working with the
-  `RefreshIndicator` widget.
+* `dispatchAsync` can also be used to dispatch both sync and async actions. But it always returns a
+  `Future` (not a `FutureOr`). Use this only when you explicitly need a `Future`, for example, when
+  working with the `RefreshIndicator` widget.
 
-* `dispatchSync` allows you to dispatch SYNC actions only. You can use this if you want to make sure
-  your action is sync. If your action is ASYNC, `dispatchSync` will throw an error. Please note this
-  method should only be used under rare circumstances when you need to make sure your action is
-  sync. Important: An action is sync if and only if both the `before` and `reduce` are sync. If any
-  or both these methods return a Future, then the action is async.
+* `dispatchSync` allows you to dispatch SYNC actions only. In that case, `dispatchSync(action)` is
+  exactly the same as `dispatch(action)`. However, if your action is ASYNC, `dispatchSync` will
+  throw an error. Use this only when you need to make sure an action is sync (meaning it impacts the
+  store state immediately when it returns). This is not very common. Important: An action is sync if
+  and only if both its `before` and `reduce` methods are sync. If any or both these methods return a
+  Future, then the action is async and will throw an error when used with `dispatchSync`.
+
+* Fix: `UserExceptionDialog` now shows all `UserException`s. It was discarding some of them under
+  some circumstances, in a regression created in version 4.0.4.
+
+* In the `Store` constructor you can now set `maxErrorsQueued` to control the maximum number of
+  errors the `UserExceptionDialog` error-queue can hold. Default is `10`.
 
 # [12.0.4] - 2020/08/19
 

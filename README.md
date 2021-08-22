@@ -985,7 +985,8 @@ you'd probably want to replicate this behavior.
 
 In any case, `UserException`s are put into a special error queue, from where they may be shown to
 the user, one by one. You may use `UserException` as is, or subclass it, returning title and message
-for the alert dialog shown to the user.
+for the alert dialog shown to the user. _Note: In the `Store` constructor you can set the maximum
+number of errors that queue can hold._
 
 As explained in the beginning of this section, if you use the build-in error handling you must wrap
 your home-page with `UserExceptionDialog`. There, you may pass the `onShowUserExceptionDialog`

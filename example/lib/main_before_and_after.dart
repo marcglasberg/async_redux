@@ -34,11 +34,15 @@ void main() {
 /// The app state, which in this case is a counter, a description, and a waiting flag.
 @immutable
 class AppState {
-  final int? counter;
-  final String? description;
-  final bool? waiting;
+  final int counter;
+  final String description;
+  final bool waiting;
 
-  AppState({this.counter, this.description, this.waiting});
+  AppState({
+    required this.counter,
+    required this.description,
+    required this.waiting,
+  });
 
   AppState copy({int? counter, String? description, bool? waiting}) => AppState(
         counter: counter ?? this.counter,
@@ -86,7 +90,7 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
     dispatch(IncrementAction(amount: 1));
 
     // Then, we start and wait for some asynchronous process.
-    String description = await read(Uri.http("numbersapi.com","${state.counter}"));
+    String description = await read(Uri.http("numbersapi.com", "${state.counter}"));
 
     // After we get the response, we can modify the state with it,
     // without having to dispatch another action.
@@ -127,7 +131,7 @@ class IncrementAction extends ReduxAction<AppState> {
 
   // Synchronous reducer.
   @override
-  AppState reduce() => state.copy(counter: state.counter! + amount);
+  AppState reduce() => state.copy(counter: state.counter + amount);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -165,9 +169,9 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
 
 /// The view-model holds the part of the Store state the dumb-widget needs.
 class ViewModel extends Vm {
-  final int? counter;
-  final String? description;
-  final bool? waiting;
+  final int counter;
+  final String description;
+  final bool waiting;
   final VoidCallback onIncrement;
 
   ViewModel({
@@ -175,7 +179,7 @@ class ViewModel extends Vm {
     required this.description,
     required this.waiting,
     required this.onIncrement,
-  }) : super(equals: [counter!, description!, waiting!]);
+  }) : super(equals: [counter, description, waiting]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

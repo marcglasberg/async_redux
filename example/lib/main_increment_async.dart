@@ -29,10 +29,13 @@ void main() {
 /// The app state, which in this case is a counter and a description.
 @immutable
 class AppState {
-  final int? counter;
-  final String? description;
+  final int counter;
+  final String description;
 
-  AppState({this.counter, this.description});
+  AppState({
+    required this.counter,
+    required this.description,
+  });
 
   AppState copy({int? counter, String? description}) => AppState(
         counter: counter ?? this.counter,
@@ -78,7 +81,7 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
     dispatch(IncrementAction(amount: 1));
 
     // Then, we start and wait for some asynchronous process.
-    String description = await read(Uri.http("numbersapi.com","${state.counter}"));
+    String description = await read(Uri.http("numbersapi.com", "${state.counter}"));
 
     // After we get the response, we can modify the state with it,
     // without having to dispatch another action.
@@ -96,7 +99,7 @@ class IncrementAction extends ReduxAction<AppState> {
 
   // Synchronous reducer.
   @override
-  AppState reduce() => state.copy(counter: state.counter! + amount);
+  AppState reduce() => state.copy(counter: state.counter + amount);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -132,15 +135,15 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
 
 /// The view-model holds the part of the Store state the dumb-widget needs.
 class ViewModel extends Vm {
-  final int? counter;
-  final String? description;
+  final int counter;
+  final String description;
   final VoidCallback onIncrement;
 
   ViewModel({
     required this.counter,
     required this.description,
     required this.onIncrement,
-  }) : super(equals: [counter!, description!]);
+  }) : super(equals: [counter, description]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -167,9 +170,7 @@ class MyHomePage extends StatelessWidget {
           children: [
             const Text('You have pushed the button this many times:'),
             Text('$counter', style: const TextStyle(fontSize: 30)),
-            Text(description!,
-                style: const TextStyle(fontSize: 15),
-                textAlign: TextAlign.center),
+            Text(description!, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
           ],
         ),
       ),

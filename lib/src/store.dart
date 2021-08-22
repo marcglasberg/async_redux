@@ -101,6 +101,7 @@ class Store<St> {
     WrapError<St>? wrapError,
     bool? defaultDistinct,
     CompareBy? immutableCollectionEquality,
+    int? maxErrorsQueued,
   })  : _state = initialState,
         _environment = environment,
         _stateTimestamp = DateTime.now().toUtc(),
@@ -118,6 +119,7 @@ class Store<St> {
         _defaultDistinct = defaultDistinct ?? true,
         _immutableCollectionEquality = immutableCollectionEquality,
         _errors = Queue<UserException>(),
+        _maxErrorsQueued = maxErrorsQueued ?? 10,
         _dispatchCount = 0,
         _reduceCount = 0,
         _shutdown = false,
@@ -184,6 +186,14 @@ class Store<St> {
   final CompareBy? _immutableCollectionEquality;
 
   final Queue<UserException> _errors;
+
+  /// [UserException]s may be queued to be shown to the user by a
+  /// [UserExceptionDialog] widgets. Usually, if you are not planning on using
+  /// that dialog (or something similar) you should probably not throw
+  /// [UserException]s, so this should not be a problem. Still, to further
+  /// prevent memory problems, there is a maximum number of exceptions the
+  /// queue can hold.
+  final int _maxErrorsQueued;
 
   bool _shutdown;
 
@@ -257,13 +267,16 @@ class Store<St> {
   }
 
   /// Adds an error at the end of the error queue.
-  void _addError(UserException error) => _errors.addLast(error);
+  void _addError(UserException error) {
+    if (_errors.length > _maxErrorsQueued) _errors.removeFirst();
+    _errors.addLast(error);
+  }
 
   /// Gets the first error from the error queue, and removes it from the queue.
-  UserException? getAndRemoveFirstError() => (_errors.isEmpty)
-      ? //
-      null
-      : _errors.removeFirst();
+  UserException? getAndRemoveFirstError() => //
+      (_errors.isEmpty) //
+          ? null
+          : _errors.removeFirst();
 
   /// Call this method to shut down the store.
   /// It won't accept dispatches or change the state anymore.

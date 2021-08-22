@@ -48,11 +48,15 @@ void main() {
 /// The app state contains a [wait] object of type [Wait].
 @immutable
 class AppState {
-  final int? counter;
-  final String? description;
-  final Wait? wait;
+  final int counter;
+  final String description;
+  final Wait wait;
 
-  AppState({this.counter, this.description, this.wait});
+  AppState({
+    required this.counter,
+    required this.description,
+    required this.wait,
+  });
 
   /// The copy method has a named [wait] parameter of type [Wait].
   AppState copy({int? counter, String? description, Wait? wait}) => AppState(
@@ -98,8 +102,7 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     dispatch(IncrementAction(amount: 1));
-    String description =
-        await read(Uri.http("numbersapi.com", "${state.counter}"));
+    String description = await read(Uri.http("numbersapi.com", "${state.counter}"));
     return state.copy(description: description);
   }
 
@@ -122,7 +125,7 @@ class IncrementAction extends ReduxAction<AppState> {
   IncrementAction({required this.amount});
 
   @override
-  AppState reduce() => state.copy(counter: state.counter! + amount);
+  AppState reduce() => state.copy(counter: state.counter + amount);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -155,7 +158,7 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
         description: state.description,
 
         /// If there is any waiting, `state.wait.isWaiting` will return true.
-        waiting: state.wait!.isWaiting,
+        waiting: state.wait.isWaiting,
 
         onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
       );
@@ -163,8 +166,8 @@ class Factory extends VmFactory<AppState, MyHomePageConnector> {
 
 /// The view-model holds the part of the Store state the dumb-widget needs.
 class ViewModel extends Vm {
-  final int? counter;
-  final String? description;
+  final int counter;
+  final String description;
   final bool waiting;
   final VoidCallback onIncrement;
 
@@ -173,7 +176,7 @@ class ViewModel extends Vm {
     required this.description,
     required this.waiting,
     required this.onIncrement,
-  }) : super(equals: [counter!, description!, waiting]);
+  }) : super(equals: [counter, description, waiting]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -205,8 +208,7 @@ class MyHomePage extends StatelessWidget {
                 const Text('You have pushed the button this many times:'),
                 Text('$counter', style: const TextStyle(fontSize: 30)),
                 Text(description!,
-                    style: const TextStyle(fontSize: 15),
-                    textAlign: TextAlign.center),
+                    style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
               ],
             ),
           ),

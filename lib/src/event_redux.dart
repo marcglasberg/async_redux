@@ -39,6 +39,7 @@
 ///
 /// For more info, see: https://pub.dartlang.org/packages/async_redux
 ///
+
 class Event<T> {
   bool _spent;
   final T? _evtInfo;
@@ -80,9 +81,10 @@ class Event<T> {
   }
 
   @override
-  String toString() {
-    return 'Event(${state.toString()})';
-  }
+  String toString() => 'Event('
+      '${state.toString()}'
+      '${_spent == true ? ', spent' : ''}'
+      ')';
 
   /// This is a convenience factory to create an event which is transformed by
   /// some function that, usually, needs the store state. You must provide the
@@ -252,8 +254,7 @@ class MappedEvent<V, T> extends Event<T> {
   Event<V> evt;
   T? Function(V?) mapFunction;
 
-  MappedEvent(Event<V>? evt, this.mapFunction)
-      : evt = evt ?? Event<V>.spent();
+  MappedEvent(Event<V>? evt, this.mapFunction) : evt = evt ?? Event<V>.spent();
 
   @override
   bool get isSpent => evt.isSpent;

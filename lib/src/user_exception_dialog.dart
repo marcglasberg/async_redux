@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -50,13 +52,19 @@ class UserExceptionDialog<St> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<St, _ViewModel>(
-      model: _ViewModel(),
+    //
+    return StoreConnector<St, _Vm>(
+      vm: () => _Factory<St>(),
       builder: (context, vm) {
         //
+        Event<UserException>? errorEvent = //
+            (_Factory._errorEvents.isEmpty) //
+                ? null
+                : _Factory._errorEvents.removeFirst();
+
         return _UserExceptionDialogWidget(
           child,
-          vm.error,
+          errorEvent,
           onShowUserExceptionDialog,
           useLocalContext,
         );
@@ -69,13 +77,13 @@ class UserExceptionDialog<St> extends StatelessWidget {
 
 class _UserExceptionDialogWidget extends StatefulWidget {
   final Widget child;
-  final Event<UserException>? error;
+  final Event<UserException>? errorEvent;
   final ShowUserExceptionDialog onShowUserExceptionDialog;
   final bool useLocalContext;
 
   _UserExceptionDialogWidget(
     this.child,
-    this.error,
+    this.errorEvent,
     ShowUserExceptionDialog? onShowUserExceptionDialog,
     this.useLocalContext,
   ) : onShowUserExceptionDialog = //
@@ -175,7 +183,7 @@ class _UserExceptionDialogState extends State<_UserExceptionDialogWidget> {
   void didUpdateWidget(_UserExceptionDialogWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    UserException? userException = widget.error!.consume();
+    UserException? userException = widget.errorEvent?.consume();
 
     if (userException != null)
       WidgetsBinding.instance!.addPostFrameCallback((_) {
@@ -189,27 +197,36 @@ class _UserExceptionDialogState extends State<_UserExceptionDialogWidget> {
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _ViewModel extends BaseModel {
-  _ViewModel();
-
-  Event<UserException>? error;
-
-  _ViewModel.build({required this.error});
+class _Factory<St> extends VmFactory<St, UserExceptionDialog> {
+  static final Queue<Event<UserException>> _errorEvents = Queue();
 
   @override
-  _ViewModel fromStore() => _ViewModel.build(
-        error: Event(getAndRemoveFirstError!()),
-      );
+  _Vm fromStore() {
+    UserException? error = getAndRemoveFirstError();
+
+    if (error != null) _errorEvents.add(Event(error));
+
+    return _Vm(
+      rebuild: (error != null),
+    );
+  }
+}
+
+// ////////////////////////////////////////////////////////////////////////////
+
+class _Vm extends Vm {
+  //
+  final bool rebuild;
+
+  _Vm({required this.rebuild});
 
   /// Does not respect equals contract:
-  /// A==B ➜ true only if B.error.state is not null.
+  /// Is not equal when it should rebuild.
   @override
-  bool operator ==(Object other) {
-    return error!.state == null;
-  }
+  bool operator ==(Object other) => !rebuild;
 
   @override
-  int get hashCode => error.hashCode;
+  int get hashCode => rebuild.hashCode;
 }
 
 // ////////////////////////////////////////////////////////////////////////////

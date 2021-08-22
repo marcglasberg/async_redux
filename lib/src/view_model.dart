@@ -244,7 +244,7 @@ abstract class BaseModel<St> {
 
   late St _state;
   Dispatch<St>? _dispatch;
-  UserException? Function()? _getAndRemoveFirstError;
+  late UserException? Function() _getAndRemoveFirstError;
 
   BaseModel fromStore();
 
@@ -252,7 +252,7 @@ abstract class BaseModel<St> {
 
   Dispatch<St>? get dispatch => _dispatch;
 
-  UserException? Function()? get getAndRemoveFirstError => //
+  UserException? Function() get getAndRemoveFirstError => //
       _getAndRemoveFirstError;
 
   @override

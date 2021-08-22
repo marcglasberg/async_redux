@@ -35,16 +35,16 @@ void main() {
 /// The app state, which in this case is a counter and two events.
 @immutable
 class AppState {
-  final int? counter;
-  final bool? waiting;
-  final Event? clearTextEvt;
-  final Event<String>? changeTextEvt;
+  final int counter;
+  final bool waiting;
+  final Event clearTextEvt;
+  final Event<String> changeTextEvt;
 
   AppState({
-    this.counter,
-    this.waiting,
-    this.clearTextEvt,
-    this.changeTextEvt,
+    required this.counter,
+    required this.waiting,
+    required this.clearTextEvt,
+    required this.changeTextEvt,
   });
 
   AppState copy({
@@ -126,9 +126,9 @@ class _WaitAction extends ReduxAction<AppState> {
 class ChangeTextAction extends BarrierAction {
   @override
   Future<AppState> reduce() async {
-    String newText = await read(Uri.http("numbersapi.com","${state.counter}"));
+    String newText = await read(Uri.http("numbersapi.com", "${state.counter}"));
     return state.copy(
-      counter: state.counter! + 1,
+      counter: state.counter + 1,
       changeTextEvt: Event<String>(newText),
     );
   }
