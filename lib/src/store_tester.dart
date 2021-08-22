@@ -697,8 +697,8 @@ class StoreTester<St> {
 
   Future cancel() async => await _subscription.cancel();
 
-  /// Helps testing the `StoreConnector`s methods, such as `onInit`
-  /// and `runOnWillChange`.
+  /// Helps testing the `StoreConnector`s methods, such as `onInit`,
+  /// `onDispose` and `runOnWillChange`.
   ///
   /// For example, suppose you have a `StoreConnector` which dispatches
   /// `SomeAction` in its `onInit`. How could you test that?
@@ -726,7 +726,8 @@ class StoreTester<St> {
 
 // /////////////////////////////////////////////////////////////////////////////
 
-/// Helps testing the `StoreConnector`s.
+/// Helps testing the `StoreConnector`s methods, such as `onInit`,
+/// `onDispose` and `runOnWillChange`.
 ///
 /// For more info, see: https://pub.dartlang.org/packages/async_redux
 ///
@@ -753,25 +754,28 @@ class ConnectorTester<St, Model> {
   final StoreTester<St> tester;
   final StatelessWidget widgetConnector;
 
+  StoreConnector<St, Model>? _storeConnector;
+
+  StoreConnector<St, Model> get storeConnector => _storeConnector ??=
+      // ignore: invalid_use_of_protected_member
+      widgetConnector.build(StatelessElement(widgetConnector)) as StoreConnector<St, Model>;
+
   ConnectorTester(this.tester, this.widgetConnector);
 
   void runOnInit() {
-    StoreConnector<St, Model> storeConnector =
-        // ignore: invalid_use_of_protected_member
-        widgetConnector.build(StatelessElement(widgetConnector)) as StoreConnector<St, Model>;
-
     final OnInitCallback<St>? onInit = storeConnector.onInit;
     if (onInit != null) onInit(tester.store);
   }
 
-  void runOnWillChange<Model>(
+  void runOnDispose() {
+    final OnDisposeCallback<St>? onDispose = storeConnector.onDispose;
+    if (onDispose != null) onDispose(tester.store);
+  }
+
+  void runOnWillChange(
     Model previousVm,
     Model newVm,
   ) {
-    StoreConnector<St, Model> storeConnector =
-        // ignore: invalid_use_of_protected_member
-        widgetConnector.build(StatelessElement(widgetConnector)) as StoreConnector<St, Model>;
-
     final OnWillChangeCallback<St, Model>? onWillChange = storeConnector.onWillChange;
     if (onWillChange != null)
       onWillChange(StatelessElement(widgetConnector), tester.store, previousVm, newVm);
