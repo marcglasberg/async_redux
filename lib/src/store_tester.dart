@@ -720,8 +720,8 @@ class StoreTester<St> {
   /// var info = await tester.waitUntil(SomeAction);
   /// ```
   ///
-  ConnectorTester getConnectorTester(StatelessWidget widgetConnector) =>
-      ConnectorTester(this, widgetConnector);
+  ConnectorTester<St, Model> getConnectorTester<Model>(StatelessWidget widgetConnector) =>
+      ConnectorTester<St, Model>(this, widgetConnector);
 }
 
 // /////////////////////////////////////////////////////////////////////////////
