@@ -112,7 +112,8 @@ class MyHomePage extends StatelessWidget {
           children: [
             const Padding(
               padding: const EdgeInsets.all(20.0),
-              child: Text('Each time you push the button it increments 5 times.\n\n'
+              child: Text(
+                  'Each time you push the button it increments 5 times.\n\n'
                   'But only even values are valid to appear in the UI.\n\n'
                   'This demonstrates the use of StoreConnector.shouldUpdateModel.'),
             ),

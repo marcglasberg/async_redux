@@ -174,7 +174,8 @@ void main() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  test('Dispatch multiple actions but only issue a single change event.', () async {
+  test('Dispatch multiple actions but only issue a single change event.',
+      () async {
     var storeTester = createStoreTester();
     expect(storeTester.state.text, "0");
 
@@ -224,12 +225,13 @@ void main() {
     storeTester.dispatch(Action4());
 
     var condition = (TestInfo<AppState?>? info) => info!.state!.text == "0,1,2";
-    TestInfo<AppState?> info1 = await (storeTester.waitConditionGetLast(condition));
+    TestInfo<AppState?> info1 =
+        await (storeTester.waitConditionGetLast(condition));
     expect(info1.state!.text, "0,1,2");
     expect(info1.ini, false);
 
-    TestInfo<AppState?> info2 =
-        await (storeTester.waitConditionGetLast((info) => info.state.text == "0,1,2,3,4"));
+    TestInfo<AppState?> info2 = await (storeTester
+        .waitConditionGetLast((info) => info.state.text == "0,1,2,3,4"));
     expect(info2.state!.text, "0,1,2,3,4");
     expect(info2.ini, false);
   });
@@ -247,7 +249,8 @@ void main() {
     storeTester.dispatch(Action3());
     storeTester.dispatch(Action4());
 
-    var condition = (TestInfo<AppState?>? info) => info!.state!.text == "0,1,2" && info.ini;
+    var condition =
+        (TestInfo<AppState?>? info) => info!.state!.text == "0,1,2" && info.ini;
     TestInfo<AppState?> info1 =
         await (storeTester.waitConditionGetLast(condition, ignoreIni: false));
     expect(info1.state!.text, "0,1,2");
@@ -282,7 +285,8 @@ void main() {
     expect(infos.getIndex(1).state!.text, "0,1,2");
     expect(infos.getIndex(1).ini, false);
 
-    infos = await storeTester.waitCondition((info) => info.state.text == "0,1,2,3,4");
+    infos = await storeTester
+        .waitCondition((info) => info.state.text == "0,1,2,3,4");
     expect(infos.length, 2);
     expect(infos.getIndex(0).state!.text, "0,1,2,3");
     expect(infos.getIndex(0).ini, false);
@@ -304,8 +308,8 @@ void main() {
     storeTester.dispatch(Action3());
     storeTester.dispatch(Action4());
 
-    TestInfoList<AppState?> infos =
-        await storeTester.waitCondition((info) => info.state.text == "0,1,2", ignoreIni: false);
+    TestInfoList<AppState?> infos = await storeTester
+        .waitCondition((info) => info.state.text == "0,1,2", ignoreIni: false);
     expect(infos.length, 4);
     expect(infos.getIndex(0).state!.text, "0");
     expect(infos.getIndex(0).ini, true);
@@ -316,8 +320,9 @@ void main() {
     expect(infos.getIndex(3).state!.text, "0,1,2");
     expect(infos.getIndex(3).ini, false);
 
-    infos =
-        await storeTester.waitCondition((info) => info.state.text == "0,1,2,3,4", ignoreIni: false);
+    infos = await storeTester.waitCondition(
+        (info) => info.state.text == "0,1,2,3,4",
+        ignoreIni: false);
     expect(infos.length, 4);
     expect(infos.getIndex(0).state!.text, "0,1,2");
     expect(infos.getIndex(0).ini, true);
@@ -384,7 +389,8 @@ void main() {
     storeTester.dispatch(Action1());
     storeTester.dispatch(Action2());
     storeTester.dispatch(Action3());
-    TestInfo<AppState?> info = await (storeTester.waitAllGetLast([Action1, Action2, Action3]));
+    TestInfo<AppState?> info =
+        await (storeTester.waitAllGetLast([Action1, Action2, Action3]));
     expect(info.state!.text, "0,1,2,3");
     expect(info.errors, isEmpty);
   });
@@ -400,8 +406,8 @@ void main() {
     // Action6 will dispatch actions 1, 2 and 3, and only then it will finish.
     storeTester.dispatch(Action6());
 
-    TestInfo<AppState?> info =
-        await (storeTester.waitAllGetLast([Action6, Action1, Action2, Action3]));
+    TestInfo<AppState?> info = await (storeTester
+        .waitAllGetLast([Action6, Action1, Action2, Action3]));
     expect(info.state!.text, "0,1,2,3,6");
     expect(info.errors, isEmpty);
   });
@@ -435,7 +441,8 @@ void main() {
 
   test(
       'Dispatch a few actions and wait for all of them, in order. '
-      'Gets an error because a different one was dispatched in the middle.', () async {
+      'Gets an error because a different one was dispatched in the middle.',
+      () async {
     var storeTester = createStoreTester();
 
     storeTester.dispatch(Action1());
@@ -549,8 +556,8 @@ void main() {
     storeTester.dispatch(Action1());
     storeTester.dispatch(Action2());
     storeTester.dispatch(Action3());
-    TestInfo<AppState?> info =
-        await (storeTester.waitAllUnorderedGetLast([Action3, Action1, Action2]));
+    TestInfo<AppState?> info = await (storeTester
+        .waitAllUnorderedGetLast([Action3, Action1, Action2]));
     expect(info.state!.text, "0,1,2,3");
     expect(info.errors, isEmpty);
   });
@@ -559,7 +566,8 @@ void main() {
 
   test(
       'Dispatch a few actions and wait for all of them, in ANY order. '
-      'Gets an error because there is a different one in the middle.', () async {
+      'Gets an error because there is a different one in the middle.',
+      () async {
     var storeTester = createStoreTester();
 
     storeTester.dispatch(Action1());
@@ -567,12 +575,14 @@ void main() {
     storeTester.dispatch(Action4());
     storeTester.dispatch(Action3());
 
-    await storeTester.waitAllUnorderedGetLast([Action1, Action2, Action3]).then((_) {
+    await storeTester.waitAllUnorderedGetLast([Action1, Action2, Action3]).then(
+        (_) {
       throw AssertionError();
       return null; // ignore: dead_code
     }, onError: expectAsync1((Object error) {
       expect(error, const TypeMatcher<StoreException>());
-      expect(error.toString(), "Unexpected action was dispatched: Action4 INI.");
+      expect(
+          error.toString(), "Unexpected action was dispatched: Action4 INI.");
     }));
   });
 
@@ -587,7 +597,8 @@ void main() {
     storeTester.dispatch(Action1());
     storeTester.dispatch(Action2());
     storeTester.dispatch(Action3());
-    TestInfoList<AppState?> infos = await storeTester.waitAll([Action1, Action2, Action3]);
+    TestInfoList<AppState?> infos =
+        await storeTester.waitAll([Action1, Action2, Action3]);
     expect(infos.getIndex(0).state!.text, "0,1");
     expect(infos.getIndex(1).state!.text, "0,1,2");
     expect(infos.getIndex(2).state!.text, "0,1,2,3");
@@ -608,8 +619,9 @@ void main() {
     storeTester.dispatch(Action2());
     storeTester.dispatch(Action2());
     storeTester.dispatch(Action3());
-    TestInfoList<AppState?> infos = await storeTester
-        .waitAllUnordered([Action1, Action2, Action3, Action2], timeoutInSeconds: 1);
+    TestInfoList<AppState?> infos = await storeTester.waitAllUnordered(
+        [Action1, Action2, Action3, Action2],
+        timeoutInSeconds: 1);
 
     // The states are indexed by order of dispatching
     // (doesn't matter the order we were expecting them).
@@ -905,7 +917,16 @@ void main() {
     storeTester.dispatch(Action7b());
 
     TestInfoList<AppState?> infos = await storeTester.waitAll(
-      [Action7b, Action4, Action6b, Action2, Action5, Action1, Action2, Action3],
+      [
+        Action7b,
+        Action4,
+        Action6b,
+        Action2,
+        Action5,
+        Action1,
+        Action2,
+        Action3
+      ],
     );
 
     // All actions affect the state, even the ones ignored by the store-tester.
@@ -1008,7 +1029,9 @@ void main() {
   ///////////////////////////////////////////////////////////////////////////////
 
   // TODO: THIS ONE IS FAILING. FIX!!!
-  test("Wait for a sync action that dispatches an async action which is ignored.", () async {
+  test(
+      "Wait for a sync action that dispatches an async action which is ignored.",
+      () async {
     var storeTester = createStoreTester();
 
     storeTester.dispatch(Action12());
@@ -1034,7 +1057,9 @@ void main() {
     expect(storeTester.state.text, "0");
     storeTester.dispatch(Action6());
 
-    expect(() async => await storeTester.waitAllGetLast([Action1, Action2], ignore: [Action6]),
+    expect(
+        () async => await storeTester
+            .waitAllGetLast([Action1, Action2], ignore: [Action6]),
         throwsA(anything));
   });
 
@@ -1130,8 +1155,9 @@ void main() {
     storeTester.dispatch(Action6c());
 
     expect(
-        () async => await storeTester
-            .waitAllUnorderedGetLast([Action1, Action2], ignore: [Action3b, Action6c]),
+        () async => await storeTester.waitAllUnorderedGetLast(
+            [Action1, Action2],
+            ignore: [Action3b, Action6c]),
         throwsA(StoreException("Got this unexpected action: Action4 INI.")));
   });
 
@@ -1140,7 +1166,8 @@ void main() {
   test('Error message when time is out.', () async {
     //
     var storeTester = createStoreTester();
-    await storeTester.waitAllUnordered([Action1], timeoutInSeconds: 1).then((_) {
+    await storeTester.waitAllUnordered([Action1], timeoutInSeconds: 1).then(
+        (_) {
       fail('There was no timeout.');
       return null; // ignore: dead_code
     }, onError: expectAsync1((dynamic error) {
@@ -1258,7 +1285,8 @@ void main() {
     // Same as expect(info1.ini, false);
     expect(storeTester.lastInfo.ini, false);
 
-    await storeTester.waitConditionGetLast((info) => info.state.text == "0,1,2,3,4");
+    await storeTester
+        .waitConditionGetLast((info) => info.state.text == "0,1,2,3,4");
 
     // Same as expect(info2.state.text, "0,1,2,3,4");
     expect(storeTester.lastInfo.state.text, "0,1,2,3,4");
@@ -1305,8 +1333,9 @@ void main() {
     storeTester.dispatch(Action3());
     storeTester.dispatch(Action4());
 
-    TestInfo<AppState?> info = await (storeTester
-        .waitConditionGetLast((info) => info.state.text == "0", timeoutInSeconds: 1));
+    TestInfo<AppState?> info = await (storeTester.waitConditionGetLast(
+        (info) => info.state.text == "0",
+        timeoutInSeconds: 1));
 
     expect(info.state!.text, "0");
     expect(storeTester.state.text, "0,1,2,3,4");
@@ -1314,7 +1343,8 @@ void main() {
     // ---
 
     // 3) Let's see if the current testInfo is kept.
-    info = await (storeTester.waitConditionGetLast((info) => info.state.text == "0,1,2,3,4",
+    info = await (storeTester.waitConditionGetLast(
+        (info) => info.state.text == "0,1,2,3,4",
         timeoutInSeconds: 1));
 
     expect(info.state!.text, "0,1,2,3,4");
@@ -1325,7 +1355,8 @@ void main() {
     // 4) Let's see if the current testInfo is kept.
     storeTester.dispatch(Action5());
 
-    info = await (storeTester.waitConditionGetLast((info) => info.state.text == "0,1,2,3,4",
+    info = await (storeTester.waitConditionGetLast(
+        (info) => info.state.text == "0,1,2,3,4",
         timeoutInSeconds: 1));
 
     expect(info.state!.text, "0,1,2,3,4");
@@ -1363,7 +1394,8 @@ void main() {
 
   test(
       "Wait condition with testImmediately true "
-      "should not see the action of previous test-infos (a more realistic test).", () async {
+      "should not see the action of previous test-infos (a more realistic test).",
+      () async {
     var storeTester = createStoreTester();
     expect(storeTester.state.text, "0");
 
@@ -1399,7 +1431,8 @@ void main() {
 
   ///////////////////////////////////////////////////////////////////////////////
 
-  test('Two simultaneous store testers will receive the same state changes.', () async {
+  test('Two simultaneous store testers will receive the same state changes.',
+      () async {
     var storeTester1 = createStoreTester();
     var storeTester2 = StoreTester.from(storeTester1.store);
 
@@ -1411,11 +1444,13 @@ void main() {
     storeTester1.dispatch(Action3());
     storeTester1.dispatch(Action4());
 
-    TestInfo<AppState?> info1 = await (storeTester1
-        .waitConditionGetLast((info) => info.state.text == "0,1,2,3", timeoutInSeconds: 1));
+    TestInfo<AppState?> info1 = await (storeTester1.waitConditionGetLast(
+        (info) => info.state.text == "0,1,2,3",
+        timeoutInSeconds: 1));
 
-    TestInfo<AppState?> info2 = await (storeTester2
-        .waitConditionGetLast((info) => info.state.text == "0,1", timeoutInSeconds: 1));
+    TestInfo<AppState?> info2 = await (storeTester2.waitConditionGetLast(
+        (info) => info.state.text == "0,1",
+        timeoutInSeconds: 1));
 
     expect(info1.state!.text, "0,1,2,3");
     expect(info2.state!.text, "0,1");

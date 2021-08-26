@@ -14,7 +14,8 @@ void main() {
 
   test('Initial state.', () {
     //
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester =
+        StoreTester<AppState>(initialState: AppState.initialState());
 
     expect(storeTester.state.counter, 0);
     expect(storeTester.state.description, "");
@@ -25,7 +26,8 @@ void main() {
 
   test('Increment counter.', () async {
     //
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester =
+        StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.counter, 0);
 
     storeTester.dispatch(IncrementAction(amount: 1));
@@ -41,13 +43,15 @@ void main() {
 
   test('Increment counter and download description.', () async {
     //
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester =
+        StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.counter, 0);
     expect(storeTester.state.description, isEmpty);
 
     storeTester.dispatch(IncrementAndGetDescriptionAction());
 
-    TestInfo<AppState> info = await storeTester.waitUntil(IncrementAndGetDescriptionAction);
+    TestInfo<AppState> info =
+        await storeTester.waitUntil(IncrementAndGetDescriptionAction);
     expect(info.state.counter, 1);
     expect(info.state.description, isNotEmpty);
   });
@@ -56,7 +60,8 @@ void main() {
 
   test('Turn on/off the modal barrier.', () async {
     //
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester =
+        StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.waiting, false);
 
     storeTester.dispatch(BarrierAction(true));
@@ -72,7 +77,8 @@ void main() {
 
   test('Modal barrier exists while downloading description.', () async {
     //
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester =
+        StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.counter, 0);
     expect(storeTester.state.description, isEmpty);
 

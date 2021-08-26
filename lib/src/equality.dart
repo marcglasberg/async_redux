@@ -11,7 +11,8 @@ class _ListEquality<E> implements _Equality<List<E>> {
 
   final _Equality<E> _elementEquality;
 
-  const _ListEquality([_Equality<E> elementEquality = const _DefaultEquality<Never>()])
+  const _ListEquality(
+      [_Equality<E> elementEquality = const _DefaultEquality<Never>()])
       : _elementEquality = elementEquality;
 
   @override

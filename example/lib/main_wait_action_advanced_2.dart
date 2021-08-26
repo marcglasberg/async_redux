@@ -80,8 +80,7 @@ class GetDescriptionAction extends ReduxAction<AppState> {
 
   @override
   Future<AppState> reduce() async {
-    String description =
-        await read(Uri.http("numbersapi.com", "$index"));
+    String description = await read(Uri.http("numbersapi.com", "$index"));
     await Future.delayed(const Duration(seconds: 2)); // Adds some more delay.
 
     Map<int, String> newDescriptions = Map.of(state.descriptions);
@@ -176,8 +175,7 @@ class ItemViewModelFactory extends VmFactory<AppState, MyItemConnector> {
         description: state.descriptions[widget!.index] ?? "",
 
         /// If index is waiting, `state.wait.isWaitingFor(index)` returns true.
-        waiting:
-            state.wait.isWaitingFor("button-download", ref: widget!.index),
+        waiting: state.wait.isWaitingFor("button-download", ref: widget!.index),
       );
 }
 

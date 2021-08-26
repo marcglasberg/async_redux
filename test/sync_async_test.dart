@@ -25,7 +25,9 @@ class AppState {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is AppState && runtimeType == other.runtimeType && text == other.text;
+      other is AppState &&
+          runtimeType == other.runtimeType &&
+          text == other.text;
 
   @override
   int get hashCode => text.hashCode;
@@ -66,7 +68,8 @@ void main() {
       'This tests the mechanism of a ASYNC Reducer: '
       'The reducer changes the state to A, and it will later be changed to B. '
       'It works if the reducer returns a `Future<AppState>` and contains the `await` keyword. '
-      'This works because the `then` is called synchronously after the `return`.', () async {
+      'This works because the `then` is called synchronously after the `return`.',
+      () async {
     //
     var state = "";
 
@@ -126,12 +129,15 @@ void main() {
   test(
       '1) A sync reducer is called, '
       'and no actions are dispatched inside of the reducer. '
-      'It acts as a pure function, just like a regular reducer of "vanilla" Redux.', () async {
+      'It acts as a pure function, just like a regular reducer of "vanilla" Redux.',
+      () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester =
+        StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action1B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action1B]));
+    TestInfo<AppState?> info =
+        await (storeTester.waitAllUnorderedGetLast([Action1B]));
     expect(states, [AppState('A')]);
     expect(info.state!.text, 'AB');
   });
@@ -143,10 +149,12 @@ void main() {
       'which dispatches another sync action. '
       'They are both executed synchronously.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester =
+        StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action2B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action2B, Action2C]));
+    TestInfo<AppState?> info =
+        await (storeTester.waitAllUnorderedGetLast([Action2B, Action2C]));
     expect(states, [AppState('A'), AppState('AC')]);
     expect(info.state!.text, 'ACB');
   });
@@ -157,10 +165,12 @@ void main() {
       '3) A sync reducer is called, '
       'which dispatches an ASYNC action.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester =
+        StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action3B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action3B, Action3C]));
+    TestInfo<AppState?> info =
+        await (storeTester.waitAllUnorderedGetLast([Action3B, Action3C]));
     expect(states, [AppState('A'), AppState('A')]);
     expect(info.state!.text, 'ABC');
   });
@@ -172,11 +182,14 @@ void main() {
       'which dispatches another ASYNC action. '
       'The second reducer finishes BEFORE the first.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester =
+        StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action4B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action4B, Action4C]));
-    expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('AC')]);
+    TestInfo<AppState?> info =
+        await (storeTester.waitAllUnorderedGetLast([Action4B, Action4C]));
+    expect(
+        states, [AppState('A'), AppState('A'), AppState('A'), AppState('AC')]);
     expect(info.state!.text, 'ACB');
   });
 
@@ -187,11 +200,14 @@ void main() {
       'which dispatches another ASYNC action. '
       'The second reducer finishes AFTER the first.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester =
+        StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action5B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action5B, Action5C]));
-    expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('A')]);
+    TestInfo<AppState?> info =
+        await (storeTester.waitAllUnorderedGetLast([Action5B, Action5C]));
+    expect(
+        states, [AppState('A'), AppState('A'), AppState('A'), AppState('A')]);
     expect(info.state!.text, 'ABC');
   });
 
@@ -204,11 +220,13 @@ void main() {
       'In other words, it will run the reducer later, '
       'when it can actually apply the new state right away.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester =
+        StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action6B());
 
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action6B, Action6C]));
+    TestInfo<AppState?> info =
+        await (storeTester.waitAllUnorderedGetLast([Action6B, Action6C]));
     expect(states, [AppState('A'), AppState('A'), AppState('AB')]);
 
     // State 'C' is lost.
@@ -222,11 +240,14 @@ void main() {
       '7) Test 6 is fixed if the reducer executes an await '
       '(here we try putting it in the beginning).', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester =
+        StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action7B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action7B, Action7C]));
-    expect(states, [AppState('A'), AppState('A'), AppState('AB'), AppState('AB')]);
+    TestInfo<AppState?> info =
+        await (storeTester.waitAllUnorderedGetLast([Action7B, Action7C]));
+    expect(
+        states, [AppState('A'), AppState('A'), AppState('AB'), AppState('AB')]);
     expect(info.state!.text, 'ABC');
   });
 
@@ -236,11 +257,14 @@ void main() {
       '8) Test 6 is fixed if the reducer executes an await '
       '(here we try putting it in the end).', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester =
+        StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action8B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action8B, Action8C]));
-    expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('AB')]);
+    TestInfo<AppState?> info =
+        await (storeTester.waitAllUnorderedGetLast([Action8B, Action8C]));
+    expect(
+        states, [AppState('A'), AppState('A'), AppState('A'), AppState('AB')]);
     expect(info.state!.text, 'ABC');
   });
 
@@ -248,13 +272,22 @@ void main() {
 
   test(
       '9) Test 6 is fixed if the reducer executes an await '
-      '(here we try putting one in the beginning and one in the end).', () async {
+      '(here we try putting one in the beginning and one in the end).',
+      () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var storeTester =
+        StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
     storeTester.dispatch(Action9B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action9B, Action9C]));
-    expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('A'), AppState('AB')]);
+    TestInfo<AppState?> info =
+        await (storeTester.waitAllUnorderedGetLast([Action9B, Action9C]));
+    expect(states, [
+      AppState('A'),
+      AppState('A'),
+      AppState('A'),
+      AppState('A'),
+      AppState('AB')
+    ]);
     expect(info.state!.text, 'ABC');
   });
 

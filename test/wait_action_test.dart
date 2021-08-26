@@ -23,7 +23,8 @@ class AppStateFreezed {
 
   AppStateFreezed({this.wait = Wait.empty});
 
-  AppStateFreezed copyWith({Wait? wait}) => AppStateFreezed(wait: wait ?? this.wait);
+  AppStateFreezed copyWith({Wait? wait}) =>
+      AppStateFreezed(wait: wait ?? this.wait);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -34,7 +35,8 @@ class AppStateBuiltValue {
 
   AppStateBuiltValue({this.wait = Wait.empty});
 
-  AppStateBuiltValue rebuild(dynamic func(dynamic state)) => func(AppStateBuiltValue(wait: Wait()));
+  AppStateBuiltValue rebuild(dynamic func(dynamic state)) =>
+      func(AppStateBuiltValue(wait: Wait()));
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -50,7 +52,8 @@ void main() {
 
   ///////////////////////////////////////////////////////////////////////////
 
-  test("Wait class is immutable. Empty object is always the same instance.", () {
+  test("Wait class is immutable. Empty object is always the same instance.",
+      () {
     var wait1 = Wait();
 
     var wait2 = wait1.add(flag: "x");
@@ -209,7 +212,8 @@ void main() {
 
   test("Test compatibility with the Freezed package.", () {
     Store<AppStateFreezed> freezedStore;
-    freezedStore = Store<AppStateFreezed>(initialState: AppStateFreezed(wait: Wait()));
+    freezedStore =
+        Store<AppStateFreezed>(initialState: AppStateFreezed(wait: Wait()));
 
     var action = MyAction();
     expect(freezedStore.state.wait.isWaiting, false);
@@ -228,7 +232,8 @@ void main() {
 
   test("Test compatibility with the BuiltValue package.", () {
     Store<AppStateBuiltValue> builtValueStore;
-    builtValueStore = Store<AppStateBuiltValue>(initialState: AppStateBuiltValue(wait: Wait()));
+    builtValueStore = Store<AppStateBuiltValue>(
+        initialState: AppStateBuiltValue(wait: Wait()));
 
     var action = MyAction();
     expect(builtValueStore.state.wait.isWaiting, false);
@@ -247,7 +252,8 @@ void main() {
 
   test("Test compatibility with the BuiltValue package.", () {
     Store<AppStateFreezed> freezedStore;
-    freezedStore = Store<AppStateFreezed>(initialState: AppStateFreezed(wait: Wait()));
+    freezedStore =
+        Store<AppStateFreezed>(initialState: AppStateFreezed(wait: Wait()));
 
     var action = MyAction();
     expect(freezedStore.state.wait.isWaiting, false);

@@ -125,7 +125,7 @@ class _WaitAction extends ReduxAction<AppState> {
 class ChangeTextAction extends BarrierAction {
   @override
   Future<AppState> reduce() async {
-    String newText = await read(Uri.http("numbersapi.com","${state.counter}"));
+    String newText = await read(Uri.http("numbersapi.com", "${state.counter}"));
     return state.copy(
       counter: state.counter! + 1,
       changeTextEvt: Event<String>(newText),
@@ -231,7 +231,8 @@ class _MyHomePageState extends State<MyHomePage> {
     String? newText = widget.changeTextEvt!.consume();
     if (newText != null)
       WidgetsBinding.instance!.addPostFrameCallback((_) {
-        if (mounted) controller!.value = controller!.value.copyWith(text: newText);
+        if (mounted)
+          controller!.value = controller!.value.copyWith(text: newText);
       });
   }
 
@@ -248,9 +249,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 const Text('This is a TextField. Click to edit it:'),
                 TextField(controller: controller),
                 const SizedBox(height: 20),
-                FloatingActionButton(onPressed: widget.onChange, child: const Text("Change")),
+                FloatingActionButton(
+                    onPressed: widget.onChange, child: const Text("Change")),
                 const SizedBox(height: 20),
-                FloatingActionButton(onPressed: widget.onClear, child: const Text("Clear")),
+                FloatingActionButton(
+                    onPressed: widget.onClear, child: const Text("Clear")),
               ],
             ),
           ),

@@ -38,7 +38,8 @@ class UserExceptionDialog<St> extends StatelessWidget {
     return StoreConnector<St, _ViewModel>(
       model: _ViewModel(),
       builder: (context, vm) {
-        return _UserExceptionDialogWidget(child, vm.error, onShowUserExceptionDialog);
+        return _UserExceptionDialogWidget(
+            child, vm.error, onShowUserExceptionDialog);
       },
     );
   }

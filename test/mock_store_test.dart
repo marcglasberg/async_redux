@@ -38,7 +38,8 @@ class MyAction5 extends MyAction {
 
 class MyMockAction extends MockAction<AppState> {
   @override
-  AppState reduce() => AppState(state.text + '[' + (action as MyAction).value.toString() + ']');
+  AppState reduce() =>
+      AppState(state.text + '[' + (action as MyAction).value.toString() + ']');
 }
 
 void main() {
@@ -60,7 +61,8 @@ void main() {
     expect(store.state.text, "0");
     store.addMock(
       MyAction1,
-      (ReduxAction<AppState> action, AppState state) => AppState(state.text + 'A'),
+      (ReduxAction<AppState> action, AppState state) =>
+          AppState(state.text + 'A'),
     );
     store.dispatch(MyAction1());
     expect(store.state.text, "0A");
@@ -79,7 +81,9 @@ void main() {
     storeTester = createMockStoreTester();
     expect(storeTester.state.text, "0");
     storeTester.addMock(
-        MyAction1, (ReduxAction<AppState> action, AppState state) => AppState(state.text + 'A'));
+        MyAction1,
+        (ReduxAction<AppState> action, AppState state) =>
+            AppState(state.text + 'A'));
     storeTester.dispatch(MyAction1());
     expect(storeTester.state.text, "0A");
   });
@@ -113,7 +117,8 @@ void main() {
 
       /// 4) `ReduxAction<St> Function(ReduxAction<St>)` to create a mock
       /// from the original action,
-      MyAction4: (ReduxAction<AppState> action) => MyAction((action as MyAction).value + 4),
+      MyAction4: (ReduxAction<AppState> action) =>
+          MyAction((action as MyAction).value + 4),
 
       /// 5) `St Function(ReduxAction<St>, St)` to modify the state directly.
       MyAction5: (ReduxAction<AppState> action, AppState state) =>

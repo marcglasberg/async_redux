@@ -16,7 +16,7 @@ class StoreProvider<St> extends InheritedWidget {
     Key? key,
     required Store<St> store,
     required Widget child,
-  })   : _store = store,
+  })  : _store = store,
         super(key: key, child: child);
 
   static Store<St> of<St>(BuildContext context, Object? debug) {

@@ -40,7 +40,8 @@ void main() {
     return StoreTester.from(store);
   }
 
-  void printResults(List<Object> results) => print("-\nRESULTS:\n${results.join("\n")}\n-");
+  void printResults(List<Object> results) =>
+      print("-\nRESULTS:\n${results.join("\n")}\n-");
 
   ///////////////////////////////////////////////////////////////////////////////
 
@@ -52,19 +53,22 @@ void main() {
     expect(await persistor.readState(), storeTester.state);
 
     storeTester.dispatch(ChangeNameAction("Mary"));
-    TestInfo<AppState> info1 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    TestInfo<AppState> info1 =
+        await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "Mary");
     expect(await persistor.readState(), info1.state);
 
     storeTester.dispatch(ChangeNameAction("Steve"));
-    TestInfo<AppState> info2 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    TestInfo<AppState> info2 =
+        await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "Steve");
     expect(await persistor.readState(), info2.state);
   });
 
   ///////////////////////////////////////////////////////////////////////////////
 
-  test('Create some simple state and persist, with a 1 second throttle.', () async {
+  test('Create some simple state and persist, with a 1 second throttle.',
+      () async {
     await setupPersistorAndLocalDb(throttle: const Duration(seconds: 1));
 
     var storeTester = await createStoreTester();
@@ -73,21 +77,24 @@ void main() {
 
     // 1) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Mary"));
-    TestInfo<AppState?> info1 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    TestInfo<AppState?> info1 =
+        await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "John");
     expect(info1.state!.name, "Mary");
     expect(await persistor.readState(), isNot(info1.state));
 
     // 2) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Steve"));
-    TestInfo<AppState?> info2 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    TestInfo<AppState?> info2 =
+        await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "John");
     expect(info2.state!.name, "Steve");
     expect(await persistor.readState(), isNot(info2.state));
 
     // 3) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Eve"));
-    TestInfo<AppState?> info3 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    TestInfo<AppState?> info3 =
+        await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "John");
     expect(info3.state!.name, "Eve");
     expect(await persistor.readState(), isNot(info3.state));
@@ -151,7 +158,8 @@ void main() {
       "The throttle period is 215 milliseconds. "
       "The state is changed each 60 milliseconds (at 0, 60, 120, 180, 240 etc). "
       "Here we test that the initial state is persisted, "
-      "and then that the state and the persistence occur when they should.", () async {
+      "and then that the state and the persistence occur when they should.",
+      () async {
     //
     List<String> results = [];
 
@@ -206,7 +214,8 @@ void main() {
       "Each save takes 215 milliseconds. "
       "The state is changed each 60 milliseconds. "
       "Here we test that the initial state is persisted, "
-      "and then that the state and the persistence occur when they should.", () async {
+      "and then that the state and the persistence occur when they should.",
+      () async {
     //
     List<String> results = [];
 
@@ -269,7 +278,8 @@ void main() {
       "A second state change happens 100 millis after the first. "
       "No other state changes happen. "
       "A second save will happen at 300 millis. "
-      "This second save is necessary to save the second state change.", () async {
+      "This second save is necessary to save the second state change.",
+      () async {
     //
     List<String> results = [];
 
@@ -331,7 +341,8 @@ void main() {
       "A second state change happens 100 millis after the first. "
       "No other state changes happen. "
       "A second save will happen at 300 millis. "
-      "This second save is necessary to save the second state change.", () async {
+      "This second save is necessary to save the second state change.",
+      () async {
     //
     List<String> results = [];
 
@@ -460,7 +471,8 @@ void main() {
   ///////////////////////////////////////////////////////////////////////////////
 }
 
-String writeStateAndDb(StoreTester<AppState> storeTester, LocalDb localDb) => "("
+String writeStateAndDb(StoreTester<AppState> storeTester, LocalDb localDb) =>
+    "("
     "state:${storeTester.state.name}, "
     "db: ${localDb.get(db: 'main', id: Id('name'))}"
     ")";
@@ -482,7 +494,9 @@ class AppState {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is AppState && runtimeType == other.runtimeType && name == other.name;
+      other is AppState &&
+          runtimeType == other.runtimeType &&
+          name == other.name;
 
   @override
   int get hashCode => name.hashCode;
@@ -504,7 +518,8 @@ class Id {
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) || other is Id && runtimeType == other.runtimeType && uid == other.uid;
+      identical(this, other) ||
+      other is Id && runtimeType == other.runtimeType && uid == other.uid;
 
   @override
   int get hashCode => uid.hashCode;
@@ -616,7 +631,8 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
   Future<void> createDatabases() => throw AssertionError();
 
   @override
-  Future<void> deleteDatabases() async => dbs.values.forEach((db) => db.clear());
+  Future<void> deleteDatabases() async =>
+      dbs.values.forEach((db) => db.clear());
 
   @override
   Future<void> save({
@@ -651,7 +667,9 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
     for (int i = dbObj.length - 1; i >= 0; i--) {
       var savedInfo = dbObj[i];
       if (savedInfo.id == id)
-        return (deserializer == null) ? savedInfo.info : deserializer(savedInfo.info);
+        return (deserializer == null)
+            ? savedInfo.info
+            : deserializer(savedInfo.info);
     }
     if (orElse != null)
       return orElse();
@@ -727,7 +745,8 @@ class MyPersistor implements Persistor<AppState?> {
 
     if (saveDuration != null) await Future.delayed(saveDuration!);
 
-    if (lastPersistedState == null || lastPersistedState.name != newState!.name) {
+    if (lastPersistedState == null ||
+        lastPersistedState.name != newState!.name) {
       await localDb.save(db: "main", id: Id("name"), info: newState!.name);
     }
   }
@@ -737,7 +756,8 @@ class MyPersistor implements Persistor<AppState?> {
     if (localDb.isEmpty)
       return null;
     else
-      return AppState(name: localDb.getOrThrow(db: "main", id: Id("name")) as String?);
+      return AppState(
+          name: localDb.getOrThrow(db: "main", id: Id("name")) as String?);
   }
 
   @override

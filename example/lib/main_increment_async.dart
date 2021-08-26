@@ -77,7 +77,8 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
     dispatch(IncrementAction(amount: 1));
 
     // Then, we start and wait for some asynchronous process.
-    String description = await read(Uri.http("numbersapi.com","${state.counter}"));
+    String description =
+        await read(Uri.http("numbersapi.com", "${state.counter}"));
 
     // After we get the response, we can modify the state with it,
     // without having to dispatch another action.

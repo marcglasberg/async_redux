@@ -82,8 +82,7 @@ class GetDescriptionAction extends ReduxAction<AppState> {
 
   @override
   Future<AppState> reduce() async {
-    String description =
-        await read(Uri.http("numbersapi.com", "$index"));
+    String description = await read(Uri.http("numbersapi.com", "$index"));
     await Future.delayed(const Duration(seconds: 2)); // Adds some more delay.
 
     Map<int, String> newDescriptions = Map.of(state.descriptions);

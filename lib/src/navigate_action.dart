@@ -66,7 +66,8 @@ class NavigateAction<St> extends ReduxAction<St> {
     String routeName, {
     Object? result,
     Object? arguments,
-  }) : this._(NavigatorDetails_PopAndPushNamed(routeName, result: result, arguments: arguments));
+  }) : this._(NavigatorDetails_PopAndPushNamed(routeName,
+            result: result, arguments: arguments));
 
   NavigateAction.pushNamed(
     String routeName, {
@@ -102,7 +103,8 @@ class NavigateAction<St> extends ReduxAction<St> {
   NavigateAction.pushReplacementNamed(
     String routeName, {
     Object? arguments,
-  }) : this._(NavigatorDetails_PushReplacementNamed(routeName, arguments: arguments));
+  }) : this._(NavigatorDetails_PushReplacementNamed(routeName,
+            arguments: arguments));
 
   NavigateAction.pushNamedAndRemoveUntil(
     String newRouteName,
@@ -114,7 +116,8 @@ class NavigateAction<St> extends ReduxAction<St> {
   NavigateAction.pushNamedAndRemoveAll(
     String newRouteName, {
     Object? arguments,
-  }) : this._(NavigatorDetails_PushNamedAndRemoveUntil(newRouteName, (_) => false,
+  }) : this._(NavigatorDetails_PushNamedAndRemoveUntil(
+            newRouteName, (_) => false,
             arguments: arguments));
 
   NavigateAction.popUntil(
@@ -131,7 +134,8 @@ class NavigateAction<St> extends ReduxAction<St> {
 
   NavigateAction.popUntilRouteName(
     String routeName,
-  ) : this._(NavigatorDetails_PopUntil(((route) => route.settings.name == routeName)));
+  ) : this._(NavigatorDetails_PopUntil(
+            ((route) => route.settings.name == routeName)));
 
   NavigateAction.popUntilRoute(
     Route route,
@@ -209,7 +213,8 @@ class NavigatorDetails_PushNamed implements NavigatorDetails {
 
   @override
   void navigate() {
-    NavigateAction._navigatorKey?.currentState?.pushNamed(routeName, arguments: arguments);
+    NavigateAction._navigatorKey?.currentState
+        ?.pushNamed(routeName, arguments: arguments);
   }
 
   @override
@@ -252,8 +257,9 @@ class NavigatorDetails_PushNamedAndRemoveUntil implements NavigatorDetails {
 
   @override
   void navigate() {
-    NavigateAction._navigatorKey?.currentState
-        ?.pushNamedAndRemoveUntil(newRouteName, predicate, arguments: arguments);
+    NavigateAction._navigatorKey?.currentState?.pushNamedAndRemoveUntil(
+        newRouteName, predicate,
+        arguments: arguments);
   }
 
   @override
@@ -273,7 +279,8 @@ class NavigatorDetails_PushReplacement implements NavigatorDetails {
 
   @override
   void navigate() {
-    NavigateAction._navigatorKey?.currentState?.pushReplacement(route, result: result);
+    NavigateAction._navigatorKey?.currentState
+        ?.pushReplacement(route, result: result);
   }
 
   @override
@@ -293,7 +300,8 @@ class NavigatorDetails_PushAndRemoveUntil implements NavigatorDetails {
 
   @override
   void navigate() {
-    NavigateAction._navigatorKey?.currentState?.pushAndRemoveUntil(route, predicate);
+    NavigateAction._navigatorKey?.currentState
+        ?.pushAndRemoveUntil(route, predicate);
   }
 
   @override

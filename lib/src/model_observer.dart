@@ -73,7 +73,7 @@ class DefaultModelObserver<Model> implements ModelObserver<Model> {
       print("Model D:$dispatchCount R:$reduceCount = "
           "Rebuild:${isDistinct == null || isDistinct}, "
           "${storeConnector!.debug == null ? "" : //
-      "Connector:${storeConnector.debug.runtimeType}"}, "
+              "Connector:${storeConnector.debug.runtimeType}"}, "
           "Model:$modelCurrent.");
   }
 }

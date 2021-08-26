@@ -77,7 +77,8 @@ class PersistorPrinterDecorator<St> extends Persistor<St> {
     print("Persistor: persist difference:\n"
         "lastPersistedState = $lastPersistedState\n"
         "newState = newState");
-    return _persistor.persistDifference(lastPersistedState: lastPersistedState, newState: newState);
+    return _persistor.persistDifference(
+        lastPersistedState: lastPersistedState, newState: newState);
   }
 
   @override

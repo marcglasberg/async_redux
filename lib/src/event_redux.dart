@@ -252,8 +252,7 @@ class MappedEvent<V, T> extends Event<T> {
   Event<V> evt;
   T? Function(V?) mapFunction;
 
-  MappedEvent(Event<V>? evt, this.mapFunction)
-      : evt = evt ?? Event<V>.spent();
+  MappedEvent(Event<V>? evt, this.mapFunction) : evt = evt ?? Event<V>.spent();
 
   @override
   bool get isSpent => evt.isSpent;

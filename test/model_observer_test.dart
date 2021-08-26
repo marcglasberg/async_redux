@@ -101,7 +101,8 @@ class _MyWidgetConnector extends StatelessWidget {
   const _MyWidgetConnector();
 
   @override
-  Widget build(BuildContext context) => StoreConnector<_StateTest, _MyViewModel>(
+  Widget build(BuildContext context) =>
+      StoreConnector<_StateTest, _MyViewModel>(
         debug: this,
         model: _MyViewModel(),
         builder: (BuildContext context, _MyViewModel vm) => Container(),

@@ -32,7 +32,9 @@ void main() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  test('Test aborting an action, where the abortDispatch method accesses the state.', () async {
+  test(
+      'Test aborting an action, where the abortDispatch method accesses the state.',
+      () async {
     //
     info = [];
     Store<String> store = Store<String>(initialState: "");

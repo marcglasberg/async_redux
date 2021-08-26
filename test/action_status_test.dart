@@ -18,7 +18,8 @@ enum When { before, reduce, after }
 void main() {
   /////////////////////////////////////////////////////////////////////////////
 
-  test('Test detecting that the BEFORE method of an action threw an error.', () async {
+  test('Test detecting that the BEFORE method of an action threw an error.',
+      () async {
     //
     info = [];
     Store<String> store = Store<String>(initialState: "");
@@ -33,7 +34,8 @@ void main() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  test('Test detecting that the REDUCE method of an action threw an error.', () async {
+  test('Test detecting that the REDUCE method of an action threw an error.',
+      () async {
     //
     info = [];
     Store<String> store = Store<String>(initialState: "");

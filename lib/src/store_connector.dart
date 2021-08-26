@@ -503,9 +503,11 @@ class _StoreStreamListenerState<St, Model> //
         (_latestModel is ImmutableCollection) &&
         widget.store.immutableCollectionEquality != null) {
       if (widget.store.immutableCollectionEquality == CompareBy.byIdentity)
-        return areSameImmutableCollection(vm, _latestModel as ImmutableCollection?);
+        return areSameImmutableCollection(
+            vm, _latestModel as ImmutableCollection?);
       if (widget.store.immutableCollectionEquality == CompareBy.byDeepEquals) {
-        return areImmutableCollectionsWithEqualItems(vm, _latestModel as ImmutableCollection?);
+        return areImmutableCollectionsWithEqualItems(
+            vm, _latestModel as ImmutableCollection?);
       } else
         throw AssertionError(widget.store.immutableCollectionEquality);
     } else

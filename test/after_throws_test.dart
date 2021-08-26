@@ -16,7 +16,8 @@ late List<String> info;
 void main() {
   /////////////////////////////////////////////////////////////////////////////
 
-  test('If the after method throws, the error will be thrown asynchronously.', () async {
+  test('If the after method throws, the error will be thrown asynchronously.',
+      () async {
     //
     dynamic error;
     dynamic asyncError;

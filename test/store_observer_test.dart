@@ -29,7 +29,8 @@ class _MyStateObserver extends StateObserver<num?> {
   num? endValue;
 
   @override
-  void observe(ReduxAction<num?> action, num? stateIni, num? stateEnd, int dispatchCount) {
+  void observe(ReduxAction<num?> action, num? stateIni, num? stateEnd,
+      int dispatchCount) {
     iniValue = stateIni;
     endValue = stateEnd;
   }
@@ -44,7 +45,8 @@ void main() {
 
   ///////////////////////////////////////////////////////////////////////////////
 
-  test('Dispatch a sync action, see what the StateObserver picks up. ', () async {
+  test('Dispatch a sync action, see what the StateObserver picks up. ',
+      () async {
     var storeTester = createStoreTester();
     expect(storeTester.state, 0);
 
@@ -57,7 +59,8 @@ void main() {
 
   ///////////////////////////////////////////////////////////////////////////////
 
-  test('Dispatch an async action, see what the StateObserver picks up.', () async {
+  test('Dispatch an async action, see what the StateObserver picks up.',
+      () async {
     var storeTester = createStoreTester();
     expect(storeTester.state, 0);
 

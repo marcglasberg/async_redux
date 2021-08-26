@@ -149,7 +149,9 @@ class StoreTester<St> {
 
     TestInfo<St>? testInfo;
 
-    while (testInfo == null || !identical(testInfo.action, action) || testInfo.isINI) {
+    while (testInfo == null ||
+        !identical(testInfo.action, action) ||
+        testInfo.isINI) {
       testInfo = await _next();
     }
 
@@ -674,7 +676,8 @@ class TestInfoList<St> {
 
   /// Returns the n-th info corresponding to the end of the given action type
   /// Note: N == 1 is the first one.
-  TestInfo<St>? get(Type actionType, [int n = 1]) => _info.firstWhereOrNull((info) {
+  TestInfo<St>? get(Type actionType, [int n = 1]) =>
+      _info.firstWhereOrNull((info) {
         var ifFound = (info.type == actionType);
         if (ifFound) n--;
         return ifFound && (n == 0);

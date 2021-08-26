@@ -45,7 +45,8 @@ class AppState {
         waiting: waiting ?? this.waiting,
       );
 
-  static AppState initialState() => AppState(counter: 0, description: "", waiting: false);
+  static AppState initialState() =>
+      AppState(counter: 0, description: "", waiting: false);
 
   @override
   bool operator ==(Object other) =>
@@ -57,7 +58,8 @@ class AppState {
           waiting == other.waiting;
 
   @override
-  int get hashCode => counter.hashCode ^ description.hashCode ^ waiting.hashCode;
+  int get hashCode =>
+      counter.hashCode ^ description.hashCode ^ waiting.hashCode;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -85,7 +87,8 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
     dispatch(IncrementAction(amount: 1));
 
     // Then, we start and wait for some asynchronous process.
-    String description = await read(Uri.http("numbersapi.com","${state.counter}"));
+    String description =
+        await read(Uri.http("numbersapi.com", "${state.counter}"));
 
     // After we get the response, we can modify the state with it,
     // without having to dispatch another action.

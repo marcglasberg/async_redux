@@ -80,7 +80,9 @@ class MockStore<St> extends Store<St> {
     bool notify = true,
   }) async {
     ReduxAction<St>? _action = _getMockedAction(action);
-    return (_action == null) ? null : super.dispatchFuture(_action, notify: notify);
+    return (_action == null)
+        ? null
+        : super.dispatchFuture(_action, notify: notify);
   }
 
   ReduxAction<St>? _getMockedAction(ReduxAction<St> action) {

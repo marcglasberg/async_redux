@@ -37,34 +37,41 @@ class MyPage extends StatelessWidget {
     return Scaffold(
       body: Column(
         children: <Widget>[
-          Text("Current route: ${NavigateAction.getCurrentNavigatorRouteName(context)}"),
+          Text(
+              "Current route: ${NavigateAction.getCurrentNavigatorRouteName(context)}"),
           //
           RawMaterialButton(
               key: const Key("pushNamedPage2"),
-              onPressed: () => store.dispatch(NavigateAction.pushNamed("/page2"))),
+              onPressed: () =>
+                  store.dispatch(NavigateAction.pushNamed("/page2"))),
           //
           RawMaterialButton(
               key: const Key("pushNamedPage3"),
-              onPressed: () => store.dispatch(NavigateAction.pushNamed("/page3"))),
+              onPressed: () =>
+                  store.dispatch(NavigateAction.pushNamed("/page3"))),
           //
           RawMaterialButton(
               key: const Key("pushNamedAndRemoveAllPage1"),
-              onPressed: () => store.dispatch(NavigateAction.pushNamedAndRemoveAll("/"))),
+              onPressed: () =>
+                  store.dispatch(NavigateAction.pushNamedAndRemoveAll("/"))),
           //
           RawMaterialButton(
               key: const Key("pushReplacementNamedPage2"),
-              onPressed: () => store.dispatch(NavigateAction.pushReplacementNamed("/page2"))),
+              onPressed: () => store
+                  .dispatch(NavigateAction.pushReplacementNamed("/page2"))),
           //
           RawMaterialButton(
               key: const Key("pushNamedAndRemoveUntilPage2"),
               onPressed: () => store.dispatch(
-                      NavigateAction.pushNamedAndRemoveUntil("/page2", (Route<dynamic> route) {
+                      NavigateAction.pushNamedAndRemoveUntil("/page2",
+                          (Route<dynamic> route) {
                     return route.settings.name == "/";
                   }))),
           //
           RawMaterialButton(
               key: const Key("popUntilPage1"),
-              onPressed: () => store.dispatch(NavigateAction.popUntilRouteName("/"))),
+              onPressed: () =>
+                  store.dispatch(NavigateAction.popUntilRouteName("/"))),
           //
           RawMaterialButton(
             key: const Key("pop"),
@@ -86,19 +93,24 @@ void main() {
   });
 
   final Finder page1Finder = find.byKey(const Key("page1"));
-  final Finder page1IncludeIfOffstageFinder = find.byKey(const Key("page1"), skipOffstage: false);
-  final Finder pushAndRemoveAllPage1Finder = find.byKey(const Key("pushNamedAndRemoveAllPage1"));
+  final Finder page1IncludeIfOffstageFinder =
+      find.byKey(const Key("page1"), skipOffstage: false);
+  final Finder pushAndRemoveAllPage1Finder =
+      find.byKey(const Key("pushNamedAndRemoveAllPage1"));
   final Finder popUntilPage1Finder = find.byKey(const Key("popUntilPage1"));
 
   final Finder page2Finder = find.byKey(const Key("page2"));
-  final Finder page2IncludeIfOffstageFinder = find.byKey(const Key("page2"), skipOffstage: false);
+  final Finder page2IncludeIfOffstageFinder =
+      find.byKey(const Key("page2"), skipOffstage: false);
   final Finder pushPage2Finder = find.byKey(const Key("pushNamedPage2"));
-  final Finder pushReplacementPage2Finder = find.byKey(const Key("pushReplacementNamedPage2"));
+  final Finder pushReplacementPage2Finder =
+      find.byKey(const Key("pushReplacementNamedPage2"));
   final Finder pushNamedAndRemoveUntilPage2Finder =
       find.byKey(const Key("pushNamedAndRemoveUntilPage2"));
 
   final Finder page3Finder = find.byKey(const Key("page3"));
-  final Finder page3IncludeIfOffstageFinder = find.byKey(const Key("page3"), skipOffstage: false);
+  final Finder page3IncludeIfOffstageFinder =
+      find.byKey(const Key("page3"), skipOffstage: false);
   final Finder pushPage3Finder = find.byKey(const Key("pushNamedPage3"));
 
   final Finder popFinder = find.byKey(const Key("pop"));
