@@ -35,6 +35,20 @@ class Wait {
 
   factory Wait() => empty;
 
+  /// Convenience flag that you can use when a `null` value means ALL.
+  /// For example, suppose if you want until an async process schedules an `appointment`
+  /// for specific `time`. However, if no time is selected, you want to schedule the whole
+  /// day (all "times"). You can do:
+  /// `dispatch(WaitAction.add(appointment, ref: time ?? Wait.ALL));`
+  ///
+  /// And then later check if you are waiting for a specific time:
+  /// `if (wait.isWaitingFor(appointment, ref: time) { ... }`
+  ///
+  /// Or if you are waiting for the whole day:
+  /// `if (wait.isWaitingFor(appointment, ref: Wait.ALL) { ... }`
+  ///
+  static const ALL = Object();
+
   const Wait._(Map<Object?, Set<Object?>> flags) : _flags = flags;
 
   Wait add({required Object? flag, Object? ref}) {
