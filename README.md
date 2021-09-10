@@ -2670,6 +2670,41 @@ state **directly**.
 
 <br>
 
+## Printing actions to the console
+
+If you use the provided `ConsoleActionObserver`, it will print all actions to the console, in
+yellow, like so:
+
+```
+I/flutter (15304): | Action MyAction
+```
+
+This helps with development, so you probably don't want to use it in release mode:
+
+```
+store = Store<AppState>(
+   ...
+   actionObservers: kReleaseMode ? null : [ConsoleActionObserver()],
+);
+```
+
+If you implement the action's `toString()`, you can display more information. For example, suppose a
+`LoginAction` which has a `username` field:
+
+```
+class LoginAction extends ReduxAction {
+  final String username;
+  ...
+  String toString() => super.toString() + '(username)';
+}
+```
+
+The above code will print something like this:
+
+```
+I/flutter (15304): | Action MyLogin(user32)
+```
+
 ## Observing rebuilds
 
 Your store optionally accepts a `modelObserver`, which lets you visualize rebuilds.

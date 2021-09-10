@@ -1,4 +1,4 @@
-# [13.0.1-dev] - 2020/08/20
+# [13.0.2-dev] - 2020/08/20
 
 * `dispatch` can be used to dispatch both sync and async actions. It returns a `FutureOr`. You can
   await the result or not, as desired.
@@ -41,6 +41,8 @@
 
 * In the `Store` constructor you can now set `maxErrorsQueued` to control the maximum number of
   errors the `UserExceptionDialog` error-queue can hold. Default is `10`.
+
+* A `ConsoleActionObserver` is now provided to print action details to the console.
 
 # [12.0.4] - 2020/08/19
 
