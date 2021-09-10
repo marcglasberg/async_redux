@@ -156,7 +156,7 @@ class NavigatorDetails_Push implements NavigatorDetails {
   NavigateType get type => NavigateType.push;
 
   @override
-  String toString() => '.push(${route.toStringLimited()})';
+  String toString() => '.push(${route.toStringOrRuntimeType()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -175,7 +175,7 @@ class NavigatorDetails_Pop implements NavigatorDetails {
   NavigateType get type => NavigateType.pop;
 
   @override
-  String toString() => '.pop(${result == null ? "" : result.toStringLimited()})';
+  String toString() => '.pop(${result == null ? "" : result.toStringOrRuntimeType()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -206,7 +206,7 @@ class NavigatorDetails_PopAndPushNamed implements NavigatorDetails {
   @override
   String toString() => '.popAndPushNamed('
       '$routeName'
-      '${result == null ? "" : ", result: " + result.toStringLimited()})';
+      '${result == null ? "" : ", result: " + result.toStringOrRuntimeType()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -327,8 +327,8 @@ class NavigatorDetails_PushReplacement implements NavigatorDetails {
 
   @override
   String toString() => '.pushReplacement('
-      '${route.toStringLimited()}'
-      '${result == null ? "" : ", result: " + result.toStringLimited()})';
+      '${route.toStringOrRuntimeType()}'
+      '${result == null ? "" : ", result: " + result.toStringOrRuntimeType()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -352,7 +352,7 @@ class NavigatorDetails_PushAndRemoveUntil implements NavigatorDetails {
 
   @override
   String toString() => '.pushAndRemoveUntil('
-      '${route.toStringLimited()}'
+      '${route.toStringOrRuntimeType()}'
       ', predicate)';
 }
 
@@ -380,8 +380,8 @@ class NavigatorDetails_Replace implements NavigatorDetails {
 
   @override
   String toString() => '.replace('
-      'oldRoute: ${oldRoute.toStringLimited()}, '
-      'newRoute: ${newRoute.toStringLimited()})';
+      'oldRoute: ${oldRoute.toStringOrRuntimeType()}, '
+      'newRoute: ${newRoute.toStringOrRuntimeType()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -408,8 +408,8 @@ class NavigatorDetails_ReplaceRouteBelow implements NavigatorDetails {
 
   @override
   String toString() => '.replaceRouteBelow('
-      'anchorRoute: ${anchorRoute.toStringLimited()}, '
-      'newRoute: ${newRoute.toStringLimited()})';
+      'anchorRoute: ${anchorRoute.toStringOrRuntimeType()}, '
+      'newRoute: ${newRoute.toStringOrRuntimeType()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -467,7 +467,7 @@ class NavigatorDetails_PopUntilRoute implements NavigatorDetails {
   NavigateType get type => NavigateType.popUntilRoute;
 
   @override
-  String toString() => '.popUntilRoute(${route.toStringLimited()})';
+  String toString() => '.popUntilRoute(${route.toStringOrRuntimeType()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -486,7 +486,7 @@ class NavigatorDetails_RemoveRoute implements NavigatorDetails {
   NavigateType get type => NavigateType.removeRoute;
 
   @override
-  String toString() => '.removeRoute(${route.toStringLimited()})';
+  String toString() => '.removeRoute(${route.toStringOrRuntimeType()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -505,7 +505,7 @@ class NavigatorDetails_RemoveRouteBelow implements NavigatorDetails {
   NavigateType get type => NavigateType.removeRouteBelow;
 
   @override
-  String toString() => '.removeRouteBelow(${anchorRoute.toStringLimited()})';
+  String toString() => '.removeRouteBelow(${anchorRoute.toStringOrRuntimeType()})';
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -542,7 +542,7 @@ enum NavigateType {
 extension _StringExtension on Object? {
   /// If the object can be represented with up to 50 chars, we print it.
   /// Otherwise, we use the object's runtimeType without the generic part.
-  String toStringLimited() {
+  String toStringOrRuntimeType() {
     String text = toString();
     if (text.length <= 50)
       return text;

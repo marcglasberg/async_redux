@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart';
+
 import '../async_redux.dart';
 
 // Developed by Marcelo Glasberg (Apr 2020).
@@ -125,6 +127,11 @@ class WaitAction<St> extends ReduxAction<St> {
 
   @override
   St? reduce() => reducer(state, operation, flag, ref);
+
+  @override
+  String toString() => 'WaitAction.$operation('
+      'flag: ${flag.toStringLimited}, '
+      'ref: ${ref.toStringLimited})';
 }
 
 typedef WaitReducer<St> = St? Function(
@@ -133,3 +140,14 @@ typedef WaitReducer<St> = St? Function(
   Object? flag,
   Object? ref,
 );
+
+// ////////////////////////////////////////////////////////////////////////////
+
+extension _StringExtension on Object? {
+  /// If the object can be represented with up to 50 chars, we print it.
+  /// Otherwise, we cut the text (using the Characters lib) and add an ellipsis.
+  String toStringLimited() {
+    String text = toString();
+    return (text.length <= 50) ? text : "${Characters(text).take(49)}…";
+  }
+}

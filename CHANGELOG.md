@@ -1,4 +1,4 @@
-# [13.0.3-dev] - 2020/08/20
+# [13.0.4-dev] - 2020/08/20
 
 * `dispatch` can be used to dispatch both sync and async actions. It returns a `FutureOr`. You can
   await the result or not, as desired.
@@ -42,11 +42,13 @@
 * In the `Store` constructor you can now set `maxErrorsQueued` to control the maximum number of
   errors the `UserExceptionDialog` error-queue can hold. Default is `10`.
 
-* A `ConsoleActionObserver` is now provided to print action details to the console.
+* `ConsoleActionObserver` is now provided to print action details to the console.
+
+* `WaitAction.toString()` now returns a better description.
 
 # [12.0.4] - 2020/08/19
 
-* `NavigateAction.toString()` now return a better description, like `Action NavigateAction.pop()`.
+* `NavigateAction.toString()` now returns a better description, like `Action NavigateAction.pop()`.
 
 * Fixed `NavigateAction.popUntilRouteName` and `NavigateAction.pushNamedAndRemoveAll` to return the
   correct `.type`.
