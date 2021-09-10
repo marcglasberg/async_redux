@@ -17,7 +17,7 @@ abstract class ActionObserver<St> {
 
 // ////////////////////////////////////////////////////////////////////////////
 
-/// This action-observer will print all actions to the console, in yellow,
+/// This action-observer will print all actions to the console, with color,
 /// like so:
 ///
 /// ```
@@ -48,14 +48,21 @@ abstract class ActionObserver<St> {
 /// The above code will print something like this:
 ///
 /// ```
-/// I/flutter (15304): | Action MyLogin(user32)
+/// I/flutter (15304): | Action LoginAction(user32)
 /// ```
 ///
 class ConsoleActionObserver<St> extends ActionObserver<St> {
   @override
   void observe(ReduxAction<St> action, int dispatchCount, {required bool ini}) {
-    if (ini) print('$yellow|$italic $action$reset');
+    if (ini) print('${color(action)}|$italic $action$reset');
   }
+
+  /// Callback that chooses the color to print in the console.
+  static String Function(ReduxAction action) color = //
+      (ReduxAction action) => //
+          (action is WaitAction || action is NavigateAction) //
+              ? green
+              : yellow;
 
   // See ANSI Colors here: https://pub.dev/packages/ansicolor
   static const white = "\x1B[38;5;255m";
@@ -63,6 +70,7 @@ class ConsoleActionObserver<St> extends ActionObserver<St> {
   static const red = "\x1B[38;5;9m";
   static const blue = "\x1B[38;5;45m";
   static const yellow = "\x1B[38;5;226m";
+  static const green = "\x1B[38;5;118m";
   static const grey = "\x1B[38;5;246m";
   static const dark = "\x1B[38;5;238m";
   static const bold = "\u001b[1m";
