@@ -1,4 +1,4 @@
-# [13.0.4-dev] - 2020/08/20
+# [13.0.4] - 2020/09/20
 
 * `dispatch` can be used to dispatch both sync and async actions. It returns a `FutureOr`. You can
   await the result or not, as desired.
