@@ -109,7 +109,7 @@ class MyHomePageConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, PageViewModel>(
-      vm: () => PageViewModelFactory(this),
+      vm: () => PageVmFactory(this),
       builder: (BuildContext context, PageViewModel vm) => MyHomePage(
         onGetDescription: vm.onGetDescription,
         waiting: vm.waiting,
@@ -119,8 +119,8 @@ class MyHomePageConnector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class PageViewModelFactory extends VmFactory<AppState, MyHomePageConnector> {
-  PageViewModelFactory(widget) : super(widget);
+class PageVmFactory extends VmFactory<AppState, MyHomePageConnector> {
+  PageVmFactory(widget) : super(widget);
 
   @override
   PageViewModel fromStore() => PageViewModel(
@@ -157,7 +157,7 @@ class MyItemConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ItemViewModel>(
-      vm: () => ItemViewModelFactory(this),
+      vm: () => ItemVmFactory(this),
       builder: (BuildContext context, ItemViewModel vm) => MyItem(
         description: vm.description,
         waiting: vm.waiting,
@@ -169,8 +169,8 @@ class MyItemConnector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class ItemViewModelFactory extends VmFactory<AppState, MyItemConnector> {
-  ItemViewModelFactory(widget) : super(widget);
+class ItemVmFactory extends VmFactory<AppState, MyItemConnector> {
+  ItemVmFactory(widget) : super(widget);
 
   @override
   ItemViewModel fromStore() => ItemViewModel(

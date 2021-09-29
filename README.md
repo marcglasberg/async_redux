@@ -596,13 +596,15 @@ class MyObj extends VmEquals<MyObj> {
 ### How to provide the ViewModel to the StoreConnector
 
 The `StoreConnector` actually accepts two parameters for the `ViewModel`, of which **only one**
-should be provided in the `StoreConnector` constructor:
-`vm` or `converter`.
+should be provided in the `StoreConnector` constructor: `vm` or `converter`.
 
 1. the `vm` parameter
 
+   Most examples in the [example tab](https://pub.dartlang.org/packages/async_redux#-example-tab-)
+   use the `vm` parameter.
+
    The `vm` parameter expects a function that creates a `Factory` object that extends
-   `ViewModelFactory`. This class should implement a method `fromStore` that returns a `ViewModel`
+   `VmFactory`. This class should implement a method `fromStore` that returns a `ViewModel`
    that extends `Vm`:
 
    ```
@@ -633,7 +635,7 @@ should be provided in the `StoreConnector` constructor:
    **Note:**
 
     * `state` getter: The state the store was holding when the factory and the view-model were
-      created. This state is final inside of the factory.
+      created. This state is final inside the factory.
 
     * `currentState()` method: The current (most recent) store state. This will return the current
       state the store holds at the time the method is called.
@@ -688,11 +690,40 @@ should be provided in the `StoreConnector` constructor:
    }
     ```
 
-   Most examples in the [example tab](https://pub.dartlang.org/packages/async_redux#-example-tab-)
-   use the `vm` parameter.
+   Note: If for some reason your state is such that it may be impossible to create a view-model, you
+   can return a `null` view-model. To that end, declare the view-model as nullable (`ViewModel?`) in
+   these 3 places: the `StoreConnector`, the `builder`, and the `fromStore` method. Then, check for
+   `null` in the `builder`. For example:
+
+   ```                               
+   return StoreConnector<AppState, ViewModel?>( // 1. Use `ViewModel?` here!
+     vm: () => Factory(this),       
+     builder: (BuildContext context, ViewModel? vm) { // 2. Use `ViewModel?` here!
+       return (vm == null) // 3. Check for null view-model here.
+         ? Text("The user is not logged in")
+         : MyHomePage(user: vm.user)
+   
+   ...                         
+   
+   class Factory extends VmFactory<AppState, MyHomePageConnector> {   
+   ViewModel? fromStore() { // 4. Use `ViewModel?` here!
+     return (store.state.user == null)
+         ? null
+         : ViewModel(user: store.state.user)
+   
+   ...
+   
+   class ViewModel extends Vm {
+     final User user;  
+     ViewModel({required this.user}) : super(equals: [user]);
+   ```         
+
+   Try running
+   the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_null_viewmodel.dart">
+   Null ViewModel Example</a>.
 
 
-2. The `converter` parameter
+3. The `converter` parameter
 
    If you are migrating from `flutter_redux` to `async_redux`, you can keep using `flutter_redux`'s
    good old `converter` parameter:

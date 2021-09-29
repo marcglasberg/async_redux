@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-
 import 'package:async_redux/async_redux.dart';
 import 'package:file/file.dart' as f;
 import 'package:file/local.dart';

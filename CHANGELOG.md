@@ -1,3 +1,33 @@
+# [13.0.5] - 2020/09/29
+
+* Sometimes, the store state is such that it's not possible to create a view-model. In those cases,
+  the `fromStore()` method in the `Factory` can now return a `null` view-model. In that case,
+  the `builder()` method in the `StoreConnector` can detect that the view-model is `null`, and then
+  return some widget that does not depend on the view-model. For example:
+
+  ```
+  return StoreConnector<AppState, ViewModel?>(
+    vm: () => Factory(this),
+    builder: (BuildContext context, ViewModel? vm) {
+      return (vm == null)
+        ? Text("The user is not logged in")
+        : MyHomePage(user: vm.user)
+  
+  ...              
+         
+  class Factory extends VmFactory<AppState, MyHomePageConnector> {   
+  ViewModel? fromStore() {
+    return (store.state.user == null)
+        ? null
+        : ViewModel(user: store.state.user)
+  
+  ...
+  
+  class ViewModel extends Vm {
+    final User user;  
+    ViewModel({required this.user}) : super(equals: [user]);
+  ```
+
 # [13.0.4] - 2020/09/20
 
 * `dispatch` can be used to dispatch both sync and async actions. It returns a `FutureOr`. You can

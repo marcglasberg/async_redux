@@ -158,7 +158,7 @@ abstract class VmFactory<St, T> {
   /// You need to pass the connector widget only if the view-model needs any info from it.
   VmFactory([this.widget]);
 
-  Vm fromStore();
+  Vm? fromStore();
 
   void _setStore(St state, Store store) {
     _store = store as Store<St>;

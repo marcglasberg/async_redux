@@ -39,8 +39,7 @@ class AppState {
   AppState({required this.descriptions, required this.wait});
 
   /// The copy method has a named [wait] parameter of type [Wait].
-  AppState copy({int? counter, Map<int, String>? descriptions, Wait? wait}) =>
-      AppState(
+  AppState copy({int? counter, Map<int, String>? descriptions, Wait? wait}) => AppState(
         descriptions: descriptions ?? this.descriptions,
         wait: wait ?? this.wait,
       );
@@ -83,8 +82,7 @@ class GetDescriptionAction extends ReduxAction<AppState> {
 
   @override
   Future<AppState> reduce() async {
-    String description =
-        await read(Uri.http("numbersapi.com", "$index"));
+    String description = await read(Uri.http("numbersapi.com", "$index"));
     await Future.delayed(const Duration(seconds: 2)); // Adds some more delay.
 
     Map<int, String> newDescriptions = Map.of(state.descriptions);
@@ -111,7 +109,7 @@ class MyHomePageConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, PageViewModel>(
-      vm: () => PageViewModelFactory(this),
+      vm: () => PageVmFactory(this),
       builder: (BuildContext context, PageViewModel vm) => MyHomePage(
         onGetDescription: vm.onGetDescription,
         waiting: vm.waiting,
@@ -121,8 +119,8 @@ class MyHomePageConnector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class PageViewModelFactory extends VmFactory<AppState, MyHomePageConnector> {
-  PageViewModelFactory(widget) : super(widget);
+class PageVmFactory extends VmFactory<AppState, MyHomePageConnector> {
+  PageVmFactory(widget) : super(widget);
 
   @override
   PageViewModel fromStore() => PageViewModel(
@@ -159,7 +157,7 @@ class MyItemConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ItemViewModel>(
-      vm: () => ItemViewModelFactory(this),
+      vm: () => ItemVmFactory(this),
       builder: (BuildContext context, ItemViewModel vm) => MyItem(
         description: vm.description,
         waiting: vm.waiting,
@@ -171,8 +169,8 @@ class MyItemConnector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class ItemViewModelFactory extends VmFactory<AppState, MyItemConnector> {
-  ItemViewModelFactory(widget) : super(widget);
+class ItemVmFactory extends VmFactory<AppState, MyItemConnector> {
+  ItemVmFactory(widget) : super(widget);
 
   @override
   ItemViewModel fromStore() => ItemViewModel(
@@ -224,16 +222,15 @@ class MyItem extends StatelessWidget {
 
   MaterialButton _button() => MaterialButton(
         color: Colors.blue,
-        child: Text("CLICK $index",
-            style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
+        child:
+            Text("CLICK $index", style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
         onPressed: () => onGetDescription(index),
       );
 
-  Text _indexDescription() => Text(description,
-      style: const TextStyle(fontSize: 15), textAlign: TextAlign.center);
+  Text _indexDescription() =>
+      Text(description, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center);
 
-  CircularProgressIndicator _progressIndicator() =>
-      const CircularProgressIndicator(
+  CircularProgressIndicator _progressIndicator() => const CircularProgressIndicator(
         valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
       );
 }
@@ -255,10 +252,7 @@ class MyHomePage extends StatelessWidget {
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(
-              title: Text(waiting
-                  ? "Downloading..."
-                  : "Advanced WaitAction Example 1")),
+          appBar: AppBar(title: Text(waiting ? "Downloading..." : "Advanced WaitAction Example 1")),
           body: ListView.builder(
             itemCount: 10,
             itemBuilder: (context, index) => MyItemConnector(
