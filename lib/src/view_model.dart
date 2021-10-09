@@ -175,12 +175,19 @@ abstract class VmFactory<St, T> {
   /// This will return the current state the store holds at the time the method is called.
   St currentState() => _store.state;
 
-  /// Dispatch an action, possibly changing the store state.
+  /// Runs the action, applying its reducer, and possibly changing the store state.
+  /// Note: [dispatch] is of type [Dispatch].
   Dispatch<St> get dispatch => _store.dispatch;
 
-  /// Dispatch an action, possibly changing the store state.
+  /// Runs the action, applying its reducer, and possibly changing the store state.
+  /// Note: [dispatchAsync] is of type [DispatchAsync].
   DispatchAsync<St> get dispatchAsync => _store.dispatchAsync;
 
+  /// Runs the action, applying its reducer, and possibly changing the store state.
+  /// Note: [dispatchSync] is of type [DispatchSync].
+  DispatchSync<St> get dispatchSync => _store.dispatchSync;
+
+  /// Gets the first error from the error queue, and removes it from the queue.
   UserException? getAndRemoveFirstError() => _store.getAndRemoveFirstError();
 }
 

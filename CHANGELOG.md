@@ -1,3 +1,7 @@
+# [13.0.6] - 2020/09/10
+
+* Added missing `dispatchSync` to `VmFactory`.
+
 # [13.0.5] - 2020/09/29
 
 * Sometimes, the store state is such that it's not possible to create a view-model. In those cases,
