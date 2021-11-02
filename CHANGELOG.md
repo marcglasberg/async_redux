@@ -1,3 +1,7 @@
+# [13.1.0] - 2020/11/02
+
+* Added missing `dispatchSync` and `dispatchAsync` to `StoreTester`.
+
 # [13.0.6] - 2020/09/10
 
 * Added missing `dispatchSync` to `VmFactory`.
