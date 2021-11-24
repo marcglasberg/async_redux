@@ -1,12 +1,12 @@
-# [13.1.0] - 2020/11/02
+# [13.1.0] - 2021/11/02
 
 * Added missing `dispatchSync` and `dispatchAsync` to `StoreTester`.
 
-# [13.0.6] - 2020/09/10
+# [13.0.6] - 2021/09/10
 
 * Added missing `dispatchSync` to `VmFactory`.
 
-# [13.0.5] - 2020/09/29
+# [13.0.5] - 2021/09/29
 
 * Sometimes, the store state is such that it's not possible to create a view-model. In those cases,
   the `fromStore()` method in the `Factory` can now return a `null` view-model. In that case,
@@ -36,7 +36,7 @@
     ViewModel({required this.user}) : super(equals: [user]);
   ```
 
-# [13.0.4] - 2020/09/20
+# [13.0.4] - 2021/09/20
 
 * `dispatch` can be used to dispatch both sync and async actions. It returns a `FutureOr`. You can
   await the result or not, as desired.
@@ -84,7 +84,7 @@
 
 * `WaitAction.toString()` now returns a better description.
 
-# [12.0.4] - 2020/08/19
+# [12.0.4] - 2021/08/19
 
 * `NavigateAction.toString()` now returns a better description, like `Action NavigateAction.pop()`.
 
@@ -93,7 +93,7 @@
 
 * Added section `Dependency Injection` in README.md.
 
-# [12.0.3] - 2020/08/11
+# [12.0.3] - 2021/08/11
 
 * Improved error messages when the reducer returns an invalid type.
 
