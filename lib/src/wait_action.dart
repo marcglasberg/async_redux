@@ -6,8 +6,9 @@ import '../async_redux.dart';
 // Developed by Marcelo Glasberg (Apr 2020).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-/// For this to work your store state must have a `Wait` field named `wait`,
-/// and then:
+/// [WaitAction] and [Wait] work together to help you create boolean flags that
+/// indicate some process is currently running. For this to work your store state
+/// must have a `Wait` field named `wait`, and then:
 ///
 /// 1) The state must have a `copy` or `copyWith` method that copies this
 /// field as a named parameter. For example:
@@ -109,25 +110,87 @@ class WaitAction<St> extends ReduxAction<St> {
   final WaitOperation operation;
 
   final Object? flag, ref;
+  final Duration? delay;
 
-  /// [flag] and [ref] must be immutable objects.
+  /// Adds a [flag] that indicates some process is currently running.
+  /// Optionally, you can also have a flag-reference called [ref].
+  ///
+  /// Note: [flag] and [ref] must be immutable objects.
+  ///
+  /// ```
+  /// // Add a wait state, using this as the flag.
+  /// dispatch(WaitAction.add(this));
+  ///
+  /// // Add a wait state, using this as the flag, and 123 as a reference.
+  /// dispatch(WaitAction.add(this, ref: 123));
+  /// ```
+  /// Note: When the process finishes running, you will have to remove
+  /// the [flag] by using the [remove] or [clear] methods.
+  ///
+  /// If you pass a [delay], the flag will be added only after that
+  /// duration has passed, after the [add] method is called.
+  ///
   WaitAction.add(
     this.flag, {
     this.ref,
+    this.delay,
   }) : operation = WaitOperation.add;
 
+  /// Removes a [flag] previously added with the [add] method.
+  /// Removing the flag indicating some process finished running.
+  ///
+  /// If you added the flag with a reference [ref], you must also pass the
+  /// same reference here to remove it. Alternatively, if you want to
+  /// remove all references to that flag, use the [clear] method instead.
+  ///
+  /// ```
+  /// // Add and remove a wait state, using this as the flag.
+  /// dispatch(WaitAction.add(this));
+  /// dispatch(WaitAction.remove(this));
+  ///
+  /// // Adds and remove a wait state, using this as the flag, and 123 as a reference.
+  /// dispatch(WaitAction.add(this, ref: 123));
+  /// dispatch(WaitAction.remove(this, ref: 123));
+  /// ```
+  ///
+  /// If you pass a [delay], the flag will be removed only after that
+  /// duration has passed, after the [add] method is called. Example:
+  ///
+  /// ```
+  /// // Add a wait state that will be automatically removed after 3 seconds.
+  /// dispatch(WaitAction.add(this));
+  /// dispatch(WaitAction.remove(this, delay: Duration(seconds: 3)));
+  /// ```
+  ///
   WaitAction.remove(
     this.flag, {
     this.ref,
+    this.delay,
   }) : operation = WaitOperation.remove;
 
+  /// Clears (removes) the [flag], with all its references.
+  /// Removing the flag indicating some process finished running.
+  ///
+  /// ```
+  /// dispatch(WaitAction.add(this, flag: 123));
+  /// dispatch(WaitAction.add(this, flag: "xyz"));
+  /// dispatch(WaitAction.clear(this);
+  /// ```
   WaitAction.clear([
     this.flag,
   ])  : operation = WaitOperation.clear,
+        delay = null,
         ref = null;
 
   @override
-  St? reduce() => reducer(state, operation, flag, ref);
+  St? reduce() {
+    if (delay == null)
+      return reducer(state, operation, flag, ref);
+    else
+      Future.delayed(delay!, () {
+        reducer(state, operation, flag, ref);
+      });
+  }
 
   @override
   String toString() => 'WaitAction.${describeEnum(operation)}('

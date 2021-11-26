@@ -1916,10 +1916,10 @@ In the `ViewModel`, if there's any waiting, then `state.wait.isWaiting` will ret
 
 <br>
 
-The flag can be any convenient **immutable object**, like an URL, an user id, an index, an enum, a
+The flag can be any convenient **immutable object**, like a URL, a user id, an index, an enum, a
 String, a number, or other.
 
-When you are inside of an async action, you can use its `before` and `after` methods do dispatch
+When you are inside an async action, you can use its `before` and `after` methods do dispatch
 the `WaitAction`:
 
 ```
@@ -1986,6 +1986,9 @@ Now, to check a button's wait flag, you must pass both the flag and the referenc
 
 Note: If necessary, you can clear all references of that flag by
 doing `dispatch(WaitAction.clear("button-download"))`.
+
+You can also pass a delay to `WaitAction.add()` and `WaitAction.remove()` methods. Please refer to
+their method documentation for more information.
 
 ### Using BuiltValue, Freezed, or other similar code generator packages
 

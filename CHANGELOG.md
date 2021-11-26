@@ -1,4 +1,8 @@
-# [13.1.0] - 2021/11/02
+# [13.2.0] - 2021/11/26
+
+* `delay` parameter for `WaitAction.add()` and `WaitAction.remove()` methods.
+
+## [13.1.0] - 2021/11/02
 
 * Added missing `dispatchSync` and `dispatchAsync` to `StoreTester`.
 
