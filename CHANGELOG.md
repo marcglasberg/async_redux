@@ -1,3 +1,7 @@
+# [13.2.1] - 2021/12/16
+
+* Fixed `MockStore.dispatchAsync()` and `MockStore.dispatchSync()` methods.
+
 # [13.2.0] - 2021/11/26
 
 * `delay` parameter for `WaitAction.add()` and `WaitAction.remove()` methods.

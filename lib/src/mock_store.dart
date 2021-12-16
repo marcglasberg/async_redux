@@ -69,6 +69,8 @@ class MockStore<St> extends Store<St> {
     return this;
   }
 
+  /// Runs the action, applying its reducer, and possibly changing the store state.
+  /// Note: [dispatch] is of type [Dispatch].
   @override
   FutureOr<ActionStatus> dispatch(
     ReduxAction<St> action, {
@@ -76,10 +78,31 @@ class MockStore<St> extends Store<St> {
   }) {
     ReduxAction<St>? _action = _getMockedAction(action);
 
-    if (_action == null)
-      return Future.value(ActionStatus());
-    else
-      return super.dispatch(_action, notify: notify);
+    return (_action == null) //
+        ? Future.value(ActionStatus())
+        : super.dispatch(_action, notify: notify);
+  }
+
+  /// Runs the action, applying its reducer, and possibly changing the store state.
+  /// Note: [dispatchAsync] is of type [DispatchAsync].
+  @override
+  Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) {
+    ReduxAction<St>? _action = _getMockedAction(action);
+
+    return (_action == null) //
+        ? Future.value(ActionStatus())
+        : super.dispatchAsync(_action, notify: notify);
+  }
+
+  /// Runs the action, applying its reducer, and possibly changing the store state.
+  /// Note: [dispatchSync] is of type [DispatchSync].
+  @override
+  ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) {
+    ReduxAction<St>? _action = _getMockedAction(action);
+
+    return (_action == null) //
+        ? ActionStatus()
+        : super.dispatchSync(_action, notify: notify);
   }
 
   ReduxAction<St>? _getMockedAction(ReduxAction<St> action) {
