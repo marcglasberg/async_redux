@@ -1,7 +1,7 @@
 library async_redux_view_model;
 
 import 'package:async_redux/async_redux.dart';
-import 'package:meta/meta.dart';
+import 'package:flutter/material.dart';
 
 part 'equality.dart';
 
