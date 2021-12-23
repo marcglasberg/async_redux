@@ -1,5 +1,4 @@
 import 'package:async_redux/async_redux.dart';
-import 'package:async_redux/src/store_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

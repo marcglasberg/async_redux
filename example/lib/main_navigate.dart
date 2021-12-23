@@ -1,6 +1,5 @@
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 late Store<AppState> store;
 

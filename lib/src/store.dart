@@ -510,6 +510,7 @@ class Store<St> {
           "Do not return `Future<St?>?`.");
     }
     //
+    // ignore: unnecessary_type_check
     else if (reduce is FutureOr Function()) {
       throw StoreException((wrapped ? _wrapReducerTypeErrorMsg : _reducerTypeErrorMsg) +
           "Do not return `FutureOr`.");

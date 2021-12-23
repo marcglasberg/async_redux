@@ -1,3 +1,7 @@
+# [13.2.2] - 2021/12/23
+
+* Version bump of dependencies.
+
 # [13.2.1] - 2021/12/16
 
 * Fixed `MockStore.dispatchAsync()` and `MockStore.dispatchSync()` methods.
