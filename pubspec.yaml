@@ -13,6 +13,8 @@ dependencies:
   weak_map: ^2.0.3
   fast_immutable_collections: ^7.1.2
   collection: ^1.15.0
+  logging: ^1.0.2
+  path: ^1.8.0
   flutter:
     sdk: flutter
 
