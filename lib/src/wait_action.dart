@@ -186,10 +186,12 @@ class WaitAction<St> extends ReduxAction<St> {
   St? reduce() {
     if (delay == null)
       return reducer(state, operation, flag, ref);
-    else
+    else {
       Future.delayed(delay!, () {
         reducer(state, operation, flag, ref);
       });
+      return null;
+    }
   }
 
   @override
