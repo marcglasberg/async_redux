@@ -72,7 +72,7 @@ typedef DispatchAsync<St> = Future<ActionStatus> Function(
 /// is used to wrap the error inside of another that better describes the failed action.
 /// For example, if some action converts a String into a number, then instead of
 /// throwing a FormatException you could do:
-/// `wrapError(error) => UserException("Please enter a valid number.", error: error)`
+/// `wrapError(error) => UserException("Please enter a valid number.", cause: error)`
 ///
 /// ---
 ///

@@ -85,7 +85,7 @@ abstract class ReduxAction<St> {
   /// For example, if some action converts a String into a number, then instead of
   /// throwing a FormatException you could do:
   ///
-  ///     wrapError(error) => UserException("Please enter a valid number.", error: error)
+  ///     wrapError(error) => UserException("Please enter a valid number.", cause: error)
   ///
   /// If you want to disable the error you can return `null`. For example, if you want
   /// to disable errors of type `MyException`:
