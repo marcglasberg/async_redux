@@ -27,8 +27,14 @@ import 'package:async_redux/async_redux.dart';
 /// ```
 ///
 abstract class Persistor<St> {
-  /// Read the saved state from the persistence.
-  /// Should return null if the state is not yet persisted.
+  //
+
+  /// Read the saved state from the persistence. Should return null if the state is not yet
+  /// persisted. This method should be called only once, the app starts, before the store is
+  /// created. The state it returns may become the store's initial state. If some error
+  /// occurs while loading the info, we have to deal with it, by fixing the problem. In the worse
+  /// case, if we think the state is corrupted and cannot be fixed, one alternative is deleting
+  /// all persisted files and returning null.
   Future<St?> readState();
 
   /// Delete the saved state from the persistence.
