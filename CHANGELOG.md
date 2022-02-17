@@ -355,8 +355,8 @@ class ViewModel extends Vm {
   final String description;
 
   ViewModel({
-    @required this.counter,
-    @required this.onIncrement,
+    required this.counter,
+    required this.onIncrement,
   }) : super(equals: [counter]);
 }
 ```

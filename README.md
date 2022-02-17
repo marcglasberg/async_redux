@@ -76,8 +76,8 @@ Medium story</a>.
 
 A single **store** holds all the **state**, which is immutable. When you need to modify some state
 you **dispatch** an **action**. Then a **reducer** creates a new copy of the state, with the desired
-changes. Your widgets are **connected** to the store (through **store-connectors** and **view-models**),
-so they know that the state changed, and rebuild as needed.
+changes. Your widgets are **connected** to the store (through **store-connectors** and **
+view-models**), so they know that the state changed, and rebuild as needed.
 
 <br>
 
@@ -532,9 +532,9 @@ class ViewModel extends Vm {
   final String description;
   final VoidCallback onIncrement;
   ViewModel({
-       @required this.counter,
-       @required this.description,
-       @required this.onIncrement,
+       required this.counter,
+       required this.description,
+       required this.onIncrement,
   }) : super(equals: [counter, description]);
 }
 ```
@@ -557,8 +557,8 @@ The equals/hashcode can be done in three ways:
 
 ```
 ViewModel({
-  @required this.field1,
-  @required this.field2,
+  required this.field1,
+  required this.field2,
 }) : super(equals: [field1, field2]);
 ```      
 
@@ -577,8 +577,8 @@ class ViewModel extends Vm {
   final MyObj myObj;  
 
   ViewModel({
-    @required this.description,
-    @required this.myObj,
+    required this.description,
+    required this.myObj,
   }) : super(equals: [description, myObj]);
 }
 
@@ -746,8 +746,8 @@ should be provided in the `StoreConnector` constructor: `vm` or `converter`.
        final VoidCallback onSave;
     
        ViewModel({
-          @required this.name,
-          @required this.onSave,
+          required this.name,
+          required this.onSave,
        });
     
        static ViewModel fromStore(Store<AppState> store) {
@@ -776,8 +776,8 @@ create `operator ==` and `hashcode` manually:
        final VoidCallback onSave;
     
        ViewModel({
-          @required this.name,
-          @required this.onSave,
+          required this.name,
+          required this.onSave,
        }) : super(equals: [name]);
     
        static ViewModel fromStore(Store<AppState> store) {
@@ -1711,9 +1711,9 @@ class ViewModel extends BaseModel<AppState> {
   Event<String> changeTextEvt;
 
   ViewModel.build({
-	@required this.initialText,
-	@required this.clearTextEvt,
-	@required this.changeTextEvt,
+	required this.initialText,
+	required this.clearTextEvt,
+	required this.changeTextEvt,
   }) : super(equals: [initialText, clearTextEvt, changeTextEvt]);
 
   @override
@@ -2521,7 +2521,7 @@ This is the `Persistor` implementation:
 abstract class Persistor<St> {
   Future<St?> readState();  
   Future<void> deleteState();  
-  Future<void> persistDifference({@required St lastPersistedState, @required St newState});  
+  Future<void> persistDifference({required St? lastPersistedState, required St newState});  
   Future<void> saveInitialState(St state) => persistDifference(lastPersistedState: null, newState: state);    
   Duration get throttle => const Duration(seconds: 2);
 }
@@ -2553,6 +2553,40 @@ the `persistDifference` method right away to save the current state.
 ```
 store.dispatch(PersistAction());
 ```      
+
+You can use this code to help you start extending the abstract `Persistor` class:
+
+```
+class MyPersistor extends Persistor<AppState> {
+  
+  @override
+  Future<AppState?> readState() async {
+    // TODO: Put here the code to read the state from disk.
+    return null;
+  }
+
+  @override
+  Future<void> deleteState() async {
+    // TODO: Put here the code to delete the state from disk.
+  }
+
+  @override
+  Future<void> persistDifference({
+    required AppState? lastPersistedState,
+    required AppState newState,
+  }) async {
+    // TODO: Put here the code to save the state to disk.
+  }
+
+  @override
+  Future<void> saveInitialState(AppState state) =>
+      persistDifference(lastPersistedState: null, newState: state);
+
+  @override
+  Duration get throttle => const Duration(seconds: 2);
+}
+
+```
 
 Have a look at
 the: <a href="https://github.com/marcglasberg/async_redux/blob/master/test/persistence_test.dart">
@@ -2658,7 +2692,7 @@ abstract class ActionObserver<St> {
    void observe(
       ReduxAction<St> action, 
       int dispatchCount, {
-      @required bool ini,
+      required bool ini,
       }
    );
 }
