@@ -1,3 +1,9 @@
+# [13.3.0] - 2021/02/17
+
+* Please visit the <href="https://github.com/marcglasberg/async_redux_project_template">AsyncRedux
+  Project Template</a> repository in GitHub for a full-fledged example with a complete app
+  showcasing the fundamentals and best practices described in the AsyncRedux Readme.
+
 # [13.2.2] - 2021/12/23
 
 * Version bump of dependencies.

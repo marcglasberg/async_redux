@@ -14,6 +14,12 @@ The below documentation is very detailed. For an overview, go to
 the <a href="https://medium.com/@marcglasberg/https-medium-com-marcglasberg-async-redux-33ac5e27d5f6?sk=87aefd759273920d444185aa9d447ba0">
 Medium story</a>.
 
+# Example project
+
+Please visit the <href="https://github.com/marcglasberg/async_redux_project_template">AsyncRedux
+Project Template</a> repository in GitHub for a full-fledged example with a complete app showcasing
+the fundamentals and best practices described in this Readme.
+
 # Table of Contents
 
 * [What is Redux?](#what-is-redux)
