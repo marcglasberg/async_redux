@@ -1,6 +1,6 @@
-# [13.3.0] - 2021/02/17
+# [13.3.1] - 2021/02/17
 
-* Please visit the <href="https://github.com/marcglasberg/redux_app_example">Redux App Example</a>
+* Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Redux App Example</a>
   repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals
   and best practices described in the AsyncRedux Readme.
 
