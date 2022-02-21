@@ -16,9 +16,9 @@ Medium story</a>.
 
 # Example project
 
-Please visit the <href="https://github.com/marcglasberg/async_redux_project_template">AsyncRedux
-Project Template</a> repository in GitHub for a full-fledged example with a complete app showcasing
-the fundamentals and best practices described in this Readme.
+Please visit the <href="https://github.com/marcglasberg/redux_app_example">Redux App Example</a>
+repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
+best practices described in this Readme.
 
 # Table of Contents
 
