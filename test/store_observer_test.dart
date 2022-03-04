@@ -1,7 +1,5 @@
-import 'dart:async';
-
 import 'package:async_redux/async_redux.dart';
-import "package:test/test.dart";
+import 'package:flutter_test/flutter_test.dart';
 
 class _MyAction extends ReduxAction<num> {
   final num number;

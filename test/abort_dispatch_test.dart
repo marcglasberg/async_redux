@@ -1,5 +1,5 @@
 import 'package:async_redux/async_redux.dart';
-import "package:test/test.dart";
+import 'package:flutter_test/flutter_test.dart';
 
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
