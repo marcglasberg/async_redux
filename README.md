@@ -2344,39 +2344,6 @@ class AddTodoAction extends BaseAction {
 As you can see above, instead of writing `List.of(state.todoState.todos)` you can simply
 write `List.of(todos)`. It may seem a small reduction of boilerplate, but it adds up.
 
-Another thing you may do is creating more specialized **abstract** actions, that modify only some
-part of the state. For example:
-
-```
-abstract class TodoAction extends BaseAction {
-  
-  TodoState reduceTodoState();
-      
-  @override
-  Future<AppState> reduce() {
-    Future<TodoState> todoState = reduceTodoState();
-    if (todoState is Future) return todoState.then((_todoState) => state.copy(todoState: _todoState));   
-    else return (todoState == null) ? null : state.copy(todoState: todoState);
-  }
-}
-```
-
-If you declare those specialized abstract actions, you can have specialized reducers that only need
-to return that part of the state that changed:
-
-```
-class AddTodoAction extends TodoAction {
-  final Todo todo;
-  AddTodoAction(this.todo);
-
-  @override
-  TodoState reduceTodoState() {
-    if (todo == null) return null;
-    else return List.of(todos)..add(todo);
-  }
-}
-```
-
 <br>
 
 ### Abstract Before and After
