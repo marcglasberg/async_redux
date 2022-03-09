@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:async_redux/async_redux.dart';
-import "package:test/test.dart";
+import 'package:flutter_test/flutter_test.dart';
 
 class UserExceptionCode extends ExceptionCode {
   final String? id, pt, en;
