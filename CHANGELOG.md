@@ -1,4 +1,13 @@
-# [14.0.0] - 2021/03/04
+# [15.0.0] - 2022/04/03
+
+* Small fix: Context is now nullable for some StoreConnector methods:
+  ```
+  void onInitialBuildCallback(BuildContext? context, Store<St> store, Model viewModel);
+  void onDidChangeCallback(BuildContext? context, Store<St> store, Model viewModel);
+  void onWillChangeCallback(BuildContext? context, Store<St> store, Model previousVm, Model newVm);
+  ```
+
+# [14.0.0] - 2022/03/04
 
 * Breaking change: This is a very minor change, unlikely to affect you. The signature for
   the `Action.wrapError` method has changed from `Object? wrapError(error)`

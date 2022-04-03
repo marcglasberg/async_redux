@@ -45,11 +45,7 @@ typedef ShouldUpdateModel<St> = bool Function(St state);
 /// `Navigator` or `TabController`, in response to state changes.
 /// It can also be used to trigger an action based on the previous state.
 typedef OnWillChangeCallback<St, Model> = void Function(
-  BuildContext context,
-  Store<St> store,
-  Model previousVm,
-  Model newVm,
-);
+    BuildContext? context, Store<St> store, Model previousVm, Model newVm);
 
 /// A function that will be run on State change, after the build method.
 ///
@@ -60,14 +56,14 @@ typedef OnWillChangeCallback<St, Model> = void Function(
 /// the callback performs navigation. For navigation purposes, please use
 /// an [OnWillChangeCallback].
 typedef OnDidChangeCallback<St, Model> = void Function(
-    BuildContext context, Store<St> store, Model viewModel);
+    BuildContext? context, Store<St> store, Model viewModel);
 
 /// A function that will be run after the Widget is built the first time.
 /// This function is passed the store and the initial `Model` created by the [vm]
 /// or the [converter] function. This can be useful for starting certain animations,
 /// such as showing Snackbars, after the Widget is built the first time.
 typedef OnInitialBuildCallback<St, Model> = void Function(
-    BuildContext context, Store<St> store, Model viewModel);
+    BuildContext? context, Store<St> store, Model viewModel);
 
 /// Build a Widget using the [BuildContext] and [Model].
 /// The [Model] is derived from the [Store] using a [StoreConverter].
@@ -385,7 +381,11 @@ class _StoreStreamListenerState<St, Model> //
 
     if ((widget.onInitialBuild != null) && (_latestModel != null)) {
       WidgetsBinding.instance!.addPostFrameCallback((_) {
-        widget.onInitialBuild!(context, widget.store, _latestModel!);
+        widget.onInitialBuild!(
+          mounted ? context : null,
+          widget.store,
+          _latestModel!,
+        );
       });
     }
 
@@ -528,14 +528,23 @@ class _StoreStreamListenerState<St, Model> //
     _latestError = null;
 
     if ((widget.onWillChange != null) && (_latestModel != null)) {
-      widget.onWillChange!(context, widget.store, _latestModel!, vm);
+      widget.onWillChange!(
+        mounted ? context : null,
+        widget.store,
+        _latestModel!,
+        vm,
+      );
     }
 
     _latestModel = vm;
 
     if ((widget.onDidChange != null) && (_latestModel != null)) {
       WidgetsBinding.instance!.addPostFrameCallback((_) {
-        widget.onDidChange!(context, widget.store, _latestModel!);
+        widget.onDidChange!(
+          mounted ? context : null,
+          widget.store,
+          _latestModel!,
+        );
       });
     }
 
