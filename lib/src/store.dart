@@ -604,34 +604,35 @@ class Store<St> {
 
   /// Returns the processed error. Returns `null` if the error is meant to be "swallowed".
   Object? _processError(
-    Object? error,
+    Object error,
     StackTrace stackTrace,
     ReduxAction<St> action,
     _Flag<bool> afterWasRun,
   ) {
+    Object? errorOrNull = error;
     try {
-      error = action.wrapError(error);
+      errorOrNull = action.wrapError(errorOrNull);
     } catch (_error, stackTrace) {
       // Errors thrown by the action's wrapError.
       // WrapError should never throw. It should return an error.
       _throws(
         "Method '${action.runtimeType}.wrapError()' "
         "has thrown an error:\n '$_error'.",
-        error,
+        errorOrNull,
         stackTrace,
       );
     }
 
-    if (_wrapError != null && error != null) {
+    if (_wrapError != null && errorOrNull != null) {
       try {
-        error = _wrapError!.wrap(error, stackTrace, action) ?? error;
+        errorOrNull = _wrapError!.wrap(errorOrNull, stackTrace, action) ?? errorOrNull;
       } catch (_error) {
         // Errors thrown by the global wrapError.
         // WrapError should never throw. It should return an error.
         _throws(
           "Method 'WrapError.wrap()' "
           "has thrown an error:\n '$_error'.",
-          error,
+          errorOrNull,
           stackTrace,
         );
       }
@@ -642,20 +643,20 @@ class Store<St> {
 
     // Memorizes errors of type UserException (in the error queue).
     // These errors are usually shown to the user in a modal dialog, and are not logged.
-    if (error is UserException) {
-      _addError(error);
+    if (errorOrNull is UserException) {
+      _addError(errorOrNull);
       _changeController.add(state);
     }
 
     // If an errorObserver was NOT defined, return (to throw) errors which are not UserException.
     if (_errorObserver == null) {
-      if (error is! UserException) return error;
+      if (errorOrNull is! UserException) return errorOrNull;
     }
     // If an errorObserver was defined, observe the error.
     // Then, if the observer returns true, return the error to be thrown.
-    else if (error != null) {
-      if (_errorObserver!.observe(error, stackTrace, action, this)) //
-        return error;
+    else if (errorOrNull != null) {
+      if (_errorObserver!.observe(errorOrNull, stackTrace, action, this)) //
+        return errorOrNull;
     }
 
     return null;

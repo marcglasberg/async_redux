@@ -96,7 +96,7 @@ abstract class ReduxAction<St> {
   /// because returning `null` will DISABLE the error, while in the global [WrapError]
   /// returning `null` will keep the error unchanged. This difference is confusing,
   /// and I will, in the future, change the global [WrapError] to match the action.
-  Object? wrapError(error) => error;
+  Object? wrapError(Object error) => error;
 
   /// If this returns true, the action will not be dispatched: `before`, `reduce`
   /// and `after` will not be called, and the action will not be visible to the

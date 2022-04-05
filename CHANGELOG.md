@@ -1,3 +1,7 @@
+Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Redux App Example</a>
+repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
+best practices described in the AsyncRedux Readme.
+
 # [15.0.0] - 2022/04/03
 
 * Small fix: Context is now nullable for some StoreConnector methods:
@@ -5,7 +9,7 @@
   void onInitialBuildCallback(BuildContext? context, Store<St> store, Model viewModel);
   void onDidChangeCallback(BuildContext? context, Store<St> store, Model viewModel);
   void onWillChangeCallback(BuildContext? context, Store<St> store, Model previousVm, Model newVm);
-  ```
+  ```   
 
 # [14.0.0] - 2022/03/04
 
@@ -13,10 +17,6 @@
   the `Action.wrapError` method has changed from `Object? wrapError(error)`
   to `Object? wrapError(Object error)`. If you get an error when you upgrade, you can fix it by
   changing the method that broke into `Object? wrapError(dynamic error)`.
-
-* Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Redux App Example</a>
-  repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals
-  and best practices described in the AsyncRedux Readme.
 
 # [13.3.1] - 2021/12/23
 
