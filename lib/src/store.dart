@@ -231,6 +231,23 @@ class Store<St> {
       _testInfoController!.stream
       : Stream<TestInfo<St>>.empty();
 
+  /// Pause the [Persistor] temporarily.
+  ///
+  /// In more detail, it will pause starting a persistence process. But if a persistence process is
+  /// currently running (the [persistDifference] method was called and has not yet finished) it
+  /// will first finish it.
+  ///
+  /// Persistence will resume when you call [resumePersistor].
+  ///
+  void pausePersistor() {
+    _processPersistence?.pausePersistor();
+  }
+
+  /// Call this to resume the [Persistor], after calling [pausePersistor].
+  void resumePersistor() {
+    _processPersistence?.resumePersistor();
+  }
+
   /// Turns on testing capabilities, if not already.
   void initTestInfoController() {
     _testInfoController ??= StreamController.broadcast(sync: false);

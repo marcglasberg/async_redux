@@ -11,6 +11,29 @@ best practices described in the AsyncRedux Readme.
   void onWillChangeCallback(BuildContext? context, Store<St> store, Model previousVm, Model newVm);
   ```   
 
+* The local persistor can now be paused and resumed, with methods `store.pausePersistor()`
+  and `store.resumePersistor()`. This may be used together with the app lifecycle, to prevent
+  a persistence to start when the app is being shut down. For example:
+
+  ```
+  class ProcessLifecycleChangeAction extends ReduxAction<AppState> {
+     final AppLifecycleState lifecycle;
+     ProcessLifecycleChangeAction(this.lifecycle);
+
+     @override
+     Future<AppState?> reduce() async {
+       if (lifecycle == AppLifecycleState.resumed || lifecycle == AppLifecycleState.inactive) {
+         store.resumePersistor();
+       } else if (lifecycle == AppLifecycleState.paused || lifecycle == AppLifecycleState.detached) {
+         store.stopPersistor();
+       } else
+         throw AssertionError(lifecycle);
+
+       return null;
+     }
+   }
+  ```
+
 # [14.0.0] - 2022/03/04
 
 * Breaking change: This is a very minor change, unlikely to affect you. The signature for
