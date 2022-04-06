@@ -2,20 +2,45 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
-# [15.0.0] - 2022/04/03
+# [14.1.0] - 2022/04/03
 
-* Small fix: Context is now nullable for some StoreConnector methods:
-  ```
-  void onInitialBuildCallback(BuildContext? context, Store<St> store, Model viewModel);
-  void onDidChangeCallback(BuildContext? context, Store<St> store, Model viewModel);
-  void onWillChangeCallback(BuildContext? context, Store<St> store, Model previousVm, Model newVm);
-  ```   
+* The store persistor can now be paused and resumed, with methods `store.pausePersistor()`,
+  `store.persistAndPausePersistor()` and `store.resumePersistor()`. This may be used together with
+  the app lifecycle, to prevent a persistence process to start when the app is being shut down. For
+  example:
 
-* The local persistor can now be paused and resumed, with methods `store.pausePersistor()`
-  and `store.resumePersistor()`. This may be used together with the app lifecycle, to prevent
-  a persistence to start when the app is being shut down. For example:
+  ```     
+  child: StoreProvider<AppState>(
+  store: store,
+    child: AppLifecycleManager( // Add this widget here to capture lifecycle events.
+      child: MaterialApp( 
+  ...     
+  
+  class AppLifecycleManager extends StatefulWidget {
+    final Widget child;
+    const AppLifecycleManager({Key? key, required this.child}) : super(key: key);  
+    _AppLifecycleManagerState createState() => _AppLifecycleManagerState();
+  }
+  
+  class _AppLifecycleManagerState extends State<AppLifecycleManager> with WidgetsBindingObserver {
+  
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance!.addObserver(this);
+  }
+  
+  void dispose() {
+    WidgetsBinding.instance!.removeObserver(this);
+    super.dispose();
+  }
+  
+  void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
+    store.dispatch(ProcessLifecycleChange_Action(lifecycle));
+  }
+  
+  Widget build(BuildContext context) => widget.child;
+  }
 
-  ```
   class ProcessLifecycleChangeAction extends ReduxAction<AppState> {
      final AppLifecycleState lifecycle;
      ProcessLifecycleChangeAction(this.lifecycle);
@@ -23,9 +48,9 @@ best practices described in the AsyncRedux Readme.
      @override
      Future<AppState?> reduce() async {
        if (lifecycle == AppLifecycleState.resumed || lifecycle == AppLifecycleState.inactive) {
-         store.resumePersistor();
+         store.resumePersistor();  
        } else if (lifecycle == AppLifecycleState.paused || lifecycle == AppLifecycleState.detached) {
-         store.stopPersistor();
+         store.persistAndPausePersistor();
        } else
          throw AssertionError(lifecycle);
 
@@ -34,12 +59,17 @@ best practices described in the AsyncRedux Readme.
    }
   ```
 
-# [14.0.0] - 2022/03/04
-
 * Breaking change: This is a very minor change, unlikely to affect you. The signature for
   the `Action.wrapError` method has changed from `Object? wrapError(error)`
   to `Object? wrapError(Object error)`. If you get an error when you upgrade, you can fix it by
   changing the method that broke into `Object? wrapError(dynamic error)`.
+
+* Breaking change: Context is now nullable for these StoreConnector methods:
+  ```
+  void onInitialBuildCallback(BuildContext? context, Store<St> store, Model viewModel);
+  void onDidChangeCallback(BuildContext? context, Store<St> store, Model viewModel);
+  void onWillChangeCallback(BuildContext? context, Store<St> store, Model previousVm, Model newVm);
+  ```   
 
 # [13.3.1] - 2021/12/23
 

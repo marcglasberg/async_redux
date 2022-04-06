@@ -6,34 +6,39 @@ class ProcessPersistence<St> {
   //
   ProcessPersistence(this.persistor)
       : isPersisting = false,
-        newStateAvailable = false,
-        lastPersistTime = DateTime.now().toUtc();
+        isANewStateAvailable = false,
+        lastPersistTime = DateTime.now().toUtc(),
+        isPaused = false;
 
-  Persistor persistor;
+  final Persistor persistor;
   St? lastPersistedState;
   late St newestState;
   bool isPersisting;
-  bool newStateAvailable;
+  bool isANewStateAvailable;
   DateTime lastPersistTime;
   Timer? timer;
+  bool isPaused;
 
   Duration get throttle => persistor.throttle ?? const Duration();
 
   /// 1) If we're still persisting the last time, don't persist no matter what.
-  /// 2) If action is PersistAction, persist immediately.
-  /// 3) If throttle period is done, persist.
-  /// 4) If throttle period is NOT done, create a timer to persist as soon as it finishes.
+  /// 2) If throttle period is done (or if action is PersistAction), persist.
+  /// 3) If throttle period is NOT done, create a timer to persist as soon as it finishes.
+  ///
   /// Return true if the persist process started.
   /// Return false if persistence was postponed.
+  ///
   bool process(
     ReduxAction<St>? action,
     St newState,
   ) {
     newestState = newState;
 
+    if (isPaused || identical(lastPersistedState, newState)) return false;
+
     // 1) If we're still persisting the last time, don't persist no matter what.
     if (isPersisting) {
-      newStateAvailable = true;
+      isANewStateAvailable = true;
       return false;
     }
     //
@@ -41,24 +46,24 @@ class ProcessPersistence<St> {
       //
       var now = DateTime.now().toUtc();
 
-      // 2) If action is PersistAction, persist immediately.
-      if (action is PersistAction) {
+      // 2) If throttle period is done (or if action is PersistAction), persist.
+      if ( //
+          (now.difference(lastPersistTime) >= throttle) //
+              ||
+              (action is PersistAction) //
+          ) {
         _cancelTimer();
-        _persist(now, newState);
+        _persist(now, newestState);
         return true;
       }
       //
-      // 3) If throttle period is done, persist.
-      else if (now.difference(lastPersistTime) >= throttle) {
-        _persist(now, newState);
-        return true;
-      }
-      //
-      // 4) If throttle period is NOT done, create a timer to persist as soon as it finishes.
+      // 3) If throttle period is NOT done, create a timer to persist as soon as it finishes.
       else {
         if (timer == null) {
-          Duration duration = throttle - now.difference(lastPersistTime);
-          timer = Timer(duration, () {
+          //
+          Duration asSoonAsThrottleFinishes = throttle - now.difference(lastPersistTime);
+
+          timer = Timer(asSoonAsThrottleFinishes, () {
             timer = null;
             process(null, newestState);
           });
@@ -75,38 +80,84 @@ class ProcessPersistence<St> {
     }
   }
 
-  void _persist(DateTime now, newState) {
+  void _persist(DateTime now, newState) async {
     isPersisting = true;
     lastPersistTime = now;
-    newStateAvailable = false;
+    isANewStateAvailable = false;
 
-    persistor
-        .persistDifference(
-      lastPersistedState: lastPersistedState,
-      newState: newState,
-    )
-        .whenComplete(() {
+    try {
+      await persistor.persistDifference(
+        lastPersistedState: lastPersistedState,
+        newState: newState,
+      );
+    }
+    //
+     finally {
       lastPersistedState = newState;
       isPersisting = false;
 
       // If a new state became available while the present state was saving, save again.
-      if (newStateAvailable) {
-        newStateAvailable = false;
+      if (isANewStateAvailable) {
+        isANewStateAvailable = false;
         process(null, newestState);
       }
-    });
+    }
   }
 
   /// Pause the [Persistor] temporarily.
   ///
-  /// In more detail, it will pause starting a persistence process. But if a persistence process is
-  /// currently running (the [persistDifference] method was called and has not yet finished) it
-  /// will first finish it.
+  /// When [pause] is called, the Persistor will not start a new persistence process, until method
+  /// [resume] is called. This will not affect the current persistence process, if one is currently
+  /// running.
   ///
-  /// Persistence will resume when you call [resumePersistor].
+  /// Note: A persistence process starts when the [persistDifference] method is called, and
+  /// finishes when the future returned by that method completes.
   ///
-  void pausePersistor() {}
+  void pause() {
+    isPaused = true;
+    // TODO: REMOVER
+    print('\n\n---------- ProcessPersistence.pause ----------');
+    print('newestState = ${newestState}');
+    print('\n\n----------------------------------------------');
+  }
 
-  /// Call this to resume the [Persistor], after calling [pausePersistor].
-  void resumePersistor() {}
+  /// Persists the current state (if it's not yet persisted), then pauses the [Persistor]
+  /// temporarily.
+  ///
+  ///
+  /// When [persistAndPause] is called, this will not affect the current persistence process, if
+  /// one is currently running. If no persistence process was running, it will immediately start a
+  /// new persistence process (ignoring [throttle]).
+  ///
+  /// Then, the Persistor will not start another persistence process, until method [resume] is
+  /// called.
+  ///
+  /// Note: A persistence process starts when the [persistDifference] method is called, and
+  /// finishes when the future returned by that method completes.
+  ///
+  void persistAndPause() {
+    isPaused = true;
+
+    _cancelTimer();
+
+    if (!isPersisting && !identical(lastPersistedState, newestState)) {
+      var now = DateTime.now().toUtc();
+      _persist(now, newestState);
+    }
+
+    // TODO: REMOVER
+    print('\n\n---------- ProcessPersistence.pause ----------');
+    print('newestState = ${newestState}');
+    print('\n\n----------------------------------------------');
+  }
+
+  /// Resumes persistence by the [Persistor], after calling [pause] or [persistAndPause].
+  void resume() {
+    isPaused = false;
+    // TODO: REMOVER
+    print('\n\n---------- ProcessPersistence.resume ----------');
+    print('newestState = ${newestState}');
+    print('\n\n----------------------------------------------');
+    process(null, newestState);
+  }
 }

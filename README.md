@@ -2525,7 +2525,7 @@ the `persistDifference` method right away to save the current state.
 
 ```
 store.dispatch(PersistAction());
-```      
+```  
 
 You can use this code to help you start extending the abstract `Persistor` class:
 
@@ -2559,6 +2559,71 @@ class MyPersistor extends Persistor<AppState> {
   Duration get throttle => const Duration(seconds: 2);
 }
 
+```
+
+The persistor can also be paused and resumed, with methods `store.pausePersistor()`,
+`store.persistAndPausePersistor()` and `store.resumePersistor()`. This may be used together with the
+app lifecycle, to prevent a persistence process to start when the app is being shut down.
+
+First, add an `AppLifecycleManager` to your widget tree:
+
+```
+...
+child: StoreProvider<AppState>(
+  store: store,
+    child: AppLifecycleManager(
+      child: MaterialApp( ...
+```
+
+Then, create the `AppLifecycleManager` with a `WidgetsBindingObserver` that dispatches
+a `ProcessLifecycleChange_Action`:
+
+```
+class AppLifecycleManager extends StatefulWidget {
+  final Widget child;
+  const AppLifecycleManager({Key? key, required this.child}) : super(key: key);  
+  _AppLifecycleManagerState createState() => _AppLifecycleManagerState();
+}
+
+class _AppLifecycleManagerState extends State<AppLifecycleManager> with WidgetsBindingObserver {  
+
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance!.addObserver(this);
+  }
+
+  void dispose() {
+    WidgetsBinding.instance!.removeObserver(this);
+    super.dispose();
+  }
+
+  void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
+    store.dispatch(ProcessLifecycleChange_Action(lifecycle));
+  }
+  
+  Widget build(BuildContext context) => widget.child;
+}
+```
+
+Finally, define your `ProcessLifecycleChange_Action` to pause and resume the persistor:
+
+```
+class ProcessLifecycleChangeAction extends ReduxAction<AppState> {
+  final AppLifecycleState lifecycle;
+  ProcessLifecycleChangeAction(this.lifecycle);
+
+  @override
+  Future<AppState?> reduce() async {
+    if (lifecycle == AppLifecycleState.resumed || lifecycle == AppLifecycleState.inactive) {
+      store.resumePersistor();  
+    } else if (lifecycle == AppLifecycleState.paused || lifecycle == AppLifecycleState.detached) {
+      store.persistAndPausePersistor();
+    } else
+      throw AssertionError(lifecycle);
+
+    return null;
+  }
+}
 ```
 
 Have a look at

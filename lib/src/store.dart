@@ -233,19 +233,39 @@ class Store<St> {
 
   /// Pause the [Persistor] temporarily.
   ///
-  /// In more detail, it will pause starting a persistence process. But if a persistence process is
-  /// currently running (the [persistDifference] method was called and has not yet finished) it
-  /// will first finish it.
+  /// When [pausePersistor] is called, the Persistor will not start a new persistence process, until method
+  /// [resumePersistor] is called. This will not affect the current persistence process, if one is currently
+  /// running.
   ///
-  /// Persistence will resume when you call [resumePersistor].
+  /// Note: A persistence process starts when the [Persistor.persistDifference] method is called,
+  /// and finishes when the future returned by that method completes.
   ///
   void pausePersistor() {
-    _processPersistence?.pausePersistor();
+    _processPersistence?.pause();
   }
 
-  /// Call this to resume the [Persistor], after calling [pausePersistor].
+  /// Persists the current state (if it's not yet persisted), then pauses the [Persistor]
+  /// temporarily.
+  ///
+  ///
+  /// When [persistAndPausePersistor] is called, this will not affect the current persistence
+  /// process, if one is currently running. If no persistence process was running, it will
+  /// immediately start a new persistence process (ignoring [Persistor.throttle]).
+  ///
+  /// Then, the Persistor will not start another persistence process, until method
+  /// [resumePersistor] is called.
+  ///
+  /// Note: A persistence process starts when the [Persistor.persistDifference] method is called,
+  /// and finishes when the future returned by that method completes.
+  ///
+  void persistAndPausePersistor() {
+    _processPersistence?.persistAndPause();
+  }
+
+  /// Resumes persistence by the [Persistor],
+  /// after calling [pausePersistor] or [persistAndPausePersistor].
   void resumePersistor() {
-    _processPersistence?.resumePersistor();
+    _processPersistence?.resume();
   }
 
   /// Turns on testing capabilities, if not already.
