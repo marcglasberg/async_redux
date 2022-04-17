@@ -80,30 +80,29 @@ best practices described in this Readme.
 
 ## What is Redux?
 
-A single **store** holds all the **state**, which is immutable. When you need to modify some state
-you **dispatch** an **action**. Then a **reducer** creates a new copy of the state, with the desired
-changes. Your widgets are **connected** to the store (through **store-connectors** and **
-view-models**), so they know that the state changed, and rebuild as needed.
+A single **store** object holds all the **state**, which is immutable. When you need to modify some
+state, you **dispatch** an **action**. Then a **reducer** creates a new copy of the state, with the
+desired changes. Your widgets are **connected** to the store (through **store-connectors** and
+**view-models**), so they know that the state changed, and rebuild as needed.
 
 <br>
 
 ## Why use this Redux version over others?
 
 Plain vanilla Redux is too low-level, which makes it very flexible but results in a lot of
-boilerplate, and a steep learning curve.
+boilerplate, and a steep learning curve. Combining reducers is a manual task, and you have to list
+them one by one. If you forget to list some reducer, you will not know it until your tests point out
+that some state is not changing as you expected.
 
-Combining reducers is a manual task, and you have to list them one by one. If you forget to list
-some reducer, you will not know it until your tests point out that some state is not changing as you
-expected.
-
-Reducers can't be async, so you need to create middleware, which is also difficult to setup and use.
-You have to list them one by one, and if you forget one of them you will also not know it until your
-tests point it out. The `redux_thunk` package can help with that, but adds some more complexity.
+Reducers can't be async, so you need to create middleware, which is also difficult to set up and
+use. You have to list them one by one, and if you forget one of them you will also not know it until
+your tests point it out. The `redux_thunk` package can help with that, but adds some more
+complexity.
 
 It's difficult to know which actions fire which reducers, and hard to navigate the code in the IDE.
-In IntelliJ you may press CTRL+B to navigate between a method use and its declaration. However, this
-is of no use if actions and reducers are independent classes. You have to search for action "usages"
-, which is not so convenient since it also list dispatches.
+In IntelliJ, you may press CTRL+B to navigate between a method use and its declaration. However,
+this is of no use if actions and reducers are independent classes. You have to search for action
+"usages", which is not so convenient since it also list dispatches.
 
 It's also difficult to list all actions and reducers, and you may end up implementing some reducer
 just to realize it already exists with another name.
@@ -114,9 +113,9 @@ with intermediate state changes that you want to test for. Especially if you are
 Acceptance Tests you may need to wait for some middleware to finish, and then dispatch some other
 actions, and test for intermediate states.
 
-Another problem is that vanilla Redux assumes it holds all of the application state, and this is not
+Another problem is that vanilla Redux assumes it holds all the application state, and this is not
 practical in a real Flutter app. If you add a simple `TextField` with a `TextEditingController`, or
-a `ListView` with a `ScrollController`, then you have state outside of the Redux store. Suppose your
+a `ListView` with a `ScrollController`, then you have state outside the Redux store. Suppose your
 middleware is downloading some information, and it wishes to scroll a `ListView` as soon as the info
 arrives. This would be simple if the list scroll position is saved in the Redux store. However, this
 state must be in the `ScrollController`, not the store.
@@ -124,7 +123,7 @@ state must be in the `ScrollController`, not the store.
 **AsyncRedux solves all of these problems and more:**
 
 * It's much easier to learn and use than regular Redux.
-* It comes with its own testing tools that make even complex tests easy to setup and run.
+* It comes with its own testing tools that make even complex tests easy to set up and run.
 * You can navigate between action dispatches and their corresponding reducers with a single IDE
   command or click.
 * You can also use your IDE to list all actions/reducers.
@@ -1037,8 +1036,16 @@ UserExceptionDialog<AppState>(
 );
 ``` 
 
-> Note: The `UserExceptionDialog` can display any error widget you want in front of all the others on the screen. If this is not what you want, you can easily create your own `MyUserExceptionWidget` to intercept the errors and do whatever you want. Start by copying `user_exception_dialog.dart`
-(which contains `UserExceptionDialog` and its `_ViewModel`) into another file, and search for the `didUpdateWidget` method. This method will be called each time an error is available, and there you can record this information in the widget's own state. You can then change the screen in any way you want, according to that saved state, in this widget's `build` method.
+> Note: The `UserExceptionDialog` can display any error widget you want in front of all the others
+> on the screen. If this is not what you want, you can easily create your
+> own `MyUserExceptionWidget`
+> to intercept the errors and do whatever you want. Start by copying `user_exception_dialog.dart`
+(which contains `UserExceptionDialog` and its `_ViewModel`) into another file, and search for
+> the `didUpdateWidget` method. This method will be called each time an error is available, and
+> there
+> you can record this information in the widget's own state. You can then change the screen in any
+> way
+> you want, according to that saved state, in this widget's `build` method.
 
 <br>
 
@@ -2739,8 +2746,8 @@ abstract class ActionObserver<St> {
 The above observer will actually be called twice, one with `ini==true` for the INITIAL action
 observation, and one with `ini==false` for the END action observation,
 
-Meanwhile, the `StateObserver` is an abstract class which you can implement to be notified of **
-state changes**:
+Meanwhile, the `StateObserver` is an abstract class which you can implement to be notified of
+**state changes**:
 
 ```
 abstract class StateObserver<St> {
@@ -2860,8 +2867,8 @@ The following advice works for any Redux version, including AsyncRedux.
 Pretend the user presses a button in the dumb-widget, running a callback which was passed in its
 constructor. This callback, which was created by the Connector widget, will dispatch an action.
 
-This action's async reducer will connect to the database and get the desired information. You can **
-directly** connect to the database from the async reducer, or have a **DAO** to abstract the
+This action's async reducer will connect to the database and get the desired information. You can
+**directly** connect to the database from the async reducer, or have a **DAO** to abstract the
 database implementation details.
 
 This would be your reducer:
@@ -3002,8 +3009,8 @@ dependencies:
 ```
 
 However, `business/pubspec.yaml` should contain no references to the **client**. This guarantees
-the **client** code can use the **business** code, but the **business** code can't access the **
-client** code.
+the **client** code can use the **business** code, but the **business** code can't access the
+**client** code.
 
 In `business/lib` create separate directories for your main features, and only then create
 directories like `actions`, `models`, `dao` or other.
