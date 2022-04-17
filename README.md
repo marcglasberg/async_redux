@@ -3212,6 +3212,9 @@ Simon Lightfoot.*
 
 <br>_Marcelo Glasberg:_<br>
 _https://github.com/marcglasberg_<br>
+_https://linkedin.com/in/marcglasberg/_<br>
 _https://twitter.com/glasbergmarcelo_<br>
 _https://stackoverflow.com/users/3411681/marcg_<br>
 _https://medium.com/@marcglasberg_<br>
+
+
