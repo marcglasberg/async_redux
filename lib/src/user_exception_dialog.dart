@@ -186,7 +186,7 @@ class _UserExceptionDialogState extends State<_UserExceptionDialogWidget> {
     UserException? userException = widget.errorEvent?.consume();
 
     if (userException != null)
-      WidgetsBinding.instance!.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         widget.onShowUserExceptionDialog(context, userException, widget.useLocalContext);
       });
   }
