@@ -268,6 +268,11 @@ class Store<St> {
     _processPersistence?.resume();
   }
 
+  /// Asks the [Persistor] to delete the saved state from the persistence.
+  void deletePersistedState() {
+    _processPersistence?.deletePersistedState();
+  }
+
   /// Turns on testing capabilities, if not already.
   void initTestInfoController() {
     _testInfoController ??= StreamController.broadcast(sync: false);

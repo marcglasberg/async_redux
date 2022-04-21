@@ -2572,6 +2572,9 @@ The persistor can also be paused and resumed, with methods `store.pausePersistor
 `store.persistAndPausePersistor()` and `store.resumePersistor()`. This may be used together with the
 app lifecycle, to prevent a persistence process to start when the app is being shut down.
 
+When logging out of the app, you can call `store.deletePersistedState()` to ask the persistor to
+delete the state from disk.
+
 First, add an `AppLifecycleManager` to your widget tree:
 
 ```
@@ -2596,11 +2599,11 @@ class _AppLifecycleManagerState extends State<AppLifecycleManager> with WidgetsB
 
   void initState() {
     super.initState();
-    WidgetsBinding.instance!.addObserver(this);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   void dispose() {
-    WidgetsBinding.instance!.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 

@@ -26,11 +26,11 @@ best practices described in the AsyncRedux Readme.
   
   void initState() {
     super.initState();
-    WidgetsBinding.instance!.addObserver(this);
+    WidgetsBinding.instance.addObserver(this);
   }
   
   void dispose() {
-    WidgetsBinding.instance!.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
   
@@ -57,7 +57,10 @@ best practices described in the AsyncRedux Readme.
        return null;
      }
    }
-  ```
+  ```  
+
+* When logging out of the app, you can call `store.deletePersistedState()` to ask the persistor to
+  delete the state from disk.
 
 * Breaking change: This is a very minor change, unlikely to affect you. The signature for
   the `Action.wrapError` method has changed from `Object? wrapError(error)`

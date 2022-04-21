@@ -292,23 +292,23 @@ void main() {
     printResults(results);
 
     expect(
-        results.join(),
-        "(state:John, db: John)" // It starts with state and db in the initial state: John.
-        "(state:0, db: John)" // Changed state in 60 millis.
-        "(state:1, db: John)" // Changed state in 120 millis.
-        "(state:2, db: John)" // Changed state in 180 millis.
-        "(state:3, db: 2)" // Changed state in 240 millis. Saved db em 215 millis.
-        "(state:4, db: 4)" // Changed state in 300 millis. PERSIST AND PAUSE here.
-        "(state:5, db: 4)" // Changed state in 360 millis.
-        "(state:6, db: 4)" // Changed state in 420 millis.
-        "(state:7, db: 4)" // Changed state in 480 millis. Saved db em 430 millis.
-        "(state:8, db: 4)" // Changed state in 540 millis.
-        "(state:9, db: 4)" // Changed state in 600 millis.
-        "(state:10, db: 4)" // Changed state in 660 millis. Saved db em 645 millis.
-        "(state:11, db: 4)" // Changed state in 720 millis. RESUME here.
-        "(state:12, db: 11)" // Changed state in 780 millis.
-        "(state:13, db: 11)" // Changed state in 840 millis.
-        "(state:14, db: 11)"); // Changed state in 900 millis. Saved db em 860 millis.
+        results.join('\n'),
+        "(state:John, db: John)\n" // It starts with state and db in the initial state: John.
+        "(state:0, db: John)\n" // Changed state in 60 millis.
+        "(state:1, db: John)\n" // Changed state in 120 millis.
+        "(state:2, db: John)\n" // Changed state in 180 millis.
+        "(state:3, db: 2)\n" // Changed state in 240 millis. Saved db em 215 millis.
+        "(state:4, db: 4)\n" // Changed state in 300 millis. PERSIST AND PAUSE here.
+        "(state:5, db: 4)\n" // Changed state in 360 millis.
+        "(state:6, db: 4)\n" // Changed state in 420 millis.
+        "(state:7, db: 4)\n" // Changed state in 480 millis. Saved db em 430 millis.
+        "(state:8, db: 4)\n" // Changed state in 540 millis.
+        "(state:9, db: 4)\n" // Changed state in 600 millis.
+        "(state:10, db: 4)\n" // Changed state in 660 millis. Saved db em 645 millis.
+        "(state:11, db: 4)\n" // Changed state in 720 millis. RESUME here.
+        "(state:12, db: 11)\n" // Changed state in 780 millis.
+        "(state:13, db: 11)\n" // Changed state in 840 millis.
+        "(state:14, db: 11)\n"); // Changed state in 900 millis. Saved db em 860 millis.
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -354,23 +354,23 @@ void main() {
     // Actual: ... te:5, db: 4)(state:6 ...
 
     expect(
-        results.join(),
-        "(state:John, db: John)" // It starts with state and db in the initial state: John.
-        "(state:0, db: John)" // Changed state in 60 millis.
-        "(state:1, db: John)" // Changed state in 120 millis.
-        "(state:2, db: John)" // Changed state in 180 millis.
-        "(state:3, db: 2)" // Changed state in 240 millis. Saved db em 215 millis.
-        "(state:4, db: 2)" // Changed state in 300 millis. PAUSE here.
-        "(state:5, db: 2)" // Changed state in 360 millis.
-        "(state:6, db: 2)" // Changed state in 420 millis.
-        "(state:7, db: 2)" // Changed state in 480 millis. Saved db em 430 millis.
-        "(state:8, db: 2)" // Changed state in 540 millis.
-        "(state:9, db: 2)" // Changed state in 600 millis.
-        "(state:10, db: 2)" // Changed state in 660 millis. Saved db em 645 millis.
-        "(state:11, db: 2)" // Changed state in 720 millis. RESUME here.
-        "(state:12, db: 11)" // Changed state in 780 millis.
-        "(state:13, db: 11)" // Changed state in 840 millis.
-        "(state:14, db: 11)"); // Changed state in 900 millis. Saved db em 860 millis.
+        results.join('\n'),
+        "(state:John, db: John)\n" // It starts with state and db in the initial state: John.
+        "(state:0, db: John)\n" // Changed state in 60 millis.
+        "(state:1, db: John)\n" // Changed state in 120 millis.
+        "(state:2, db: John)\n" // Changed state in 180 millis.
+        "(state:3, db: 2)\n" // Changed state in 240 millis. Saved db em 215 millis.
+        "(state:4, db: 2)\n" // Changed state in 300 millis. PAUSE here.
+        "(state:5, db: 2)\n" // Changed state in 360 millis.
+        "(state:6, db: 2)\n" // Changed state in 420 millis.
+        "(state:7, db: 2)\n" // Changed state in 480 millis. Saved db em 430 millis.
+        "(state:8, db: 2)\n" // Changed state in 540 millis.
+        "(state:9, db: 2)\n" // Changed state in 600 millis.
+        "(state:10, db: 2)\n" // Changed state in 660 millis. Saved db em 645 millis.
+        "(state:11, db: 2)\n" // Changed state in 720 millis. RESUME here.
+        "(state:12, db: 11)\n" // Changed state in 780 millis.
+        "(state:13, db: 11)\n" // Changed state in 840 millis.
+        "(state:14, db: 11)\n"); // Changed state in 900 millis. Saved db em 860 millis.
   });
 
   /////////////////////////////////////////////////////////////////////////////

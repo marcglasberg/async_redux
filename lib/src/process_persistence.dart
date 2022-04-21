@@ -115,10 +115,6 @@ class ProcessPersistence<St> {
   ///
   void pause() {
     isPaused = true;
-    // TODO: REMOVER
-    print('\n\n---------- ProcessPersistence.pause ----------');
-    print('newestState = ${newestState}');
-    print('\n\n----------------------------------------------');
   }
 
   /// Persists the current state (if it's not yet persisted), then pauses the [Persistor]
@@ -144,20 +140,16 @@ class ProcessPersistence<St> {
       var now = DateTime.now().toUtc();
       _persist(now, newestState);
     }
-
-    // TODO: REMOVER
-    print('\n\n---------- ProcessPersistence.pause ----------');
-    print('newestState = ${newestState}');
-    print('\n\n----------------------------------------------');
   }
 
   /// Resumes persistence by the [Persistor], after calling [pause] or [persistAndPause].
   void resume() {
     isPaused = false;
-    // TODO: REMOVER
-    print('\n\n---------- ProcessPersistence.resume ----------');
-    print('newestState = ${newestState}');
-    print('\n\n----------------------------------------------');
     process(null, newestState);
+  }
+
+  /// Asks the [Persistor] to delete the saved state from the persistence.
+  void deletePersistedState() {
+    persistor.deleteState();
   }
 }
