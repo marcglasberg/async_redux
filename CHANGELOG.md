@@ -2,7 +2,7 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
-# [14.1.0] - 2022/04/03
+# [14.1.1] - 2022/04/21
 
 * The store persistor can now be paused and resumed, with methods `store.pausePersistor()`,
   `store.persistAndPausePersistor()` and `store.resumePersistor()`. This may be used together with

@@ -269,8 +269,8 @@ class Store<St> {
   }
 
   /// Asks the [Persistor] to delete the saved state from the persistence.
-  void deletePersistedState() {
-    _processPersistence?.deletePersistedState();
+  Future<void> deletePersistedState() async {
+    return _processPersistence?.deletePersistedState();
   }
 
   /// Turns on testing capabilities, if not already.

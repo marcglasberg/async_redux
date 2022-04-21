@@ -149,7 +149,7 @@ class ProcessPersistence<St> {
   }
 
   /// Asks the [Persistor] to delete the saved state from the persistence.
-  void deletePersistedState() {
-    persistor.deleteState();
+  Future<void> deletePersistedState() {
+    return persistor.deleteState();
   }
 }
