@@ -448,13 +448,16 @@ class Store<St> {
     catch (error, stackTrace) {
       originalError = error;
       processedError = _processError(error, stackTrace, action, afterWasRun);
+
       // Error is meant to be "swallowed".
       if (processedError == null)
         return action._status;
-      // Error was not changed. Rethrows.
+      //
+      // Error was not changed. Rethrow.
       else if (identical(processedError, error))
         rethrow;
-      // Error was wrapped. Rethrows, but loses stacktrace due to Dart architecture.
+      //
+      // Error was wrapped. Throw.
       else
         Error.throwWithStackTrace(processedError, stackTrace);
     }
