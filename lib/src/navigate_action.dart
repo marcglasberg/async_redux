@@ -446,8 +446,9 @@ class NavigatorDetails_PopUntilRouteName implements NavigatorDetails {
   @override
   void navigate() {
     NavigateAction._navigatorKey?.currentState?.popUntil(((route) {
-      if (ifPrintRoutes) print(route.settings.name);
-      return route.settings.name == routeName;
+      bool result = (route.settings.name == routeName);
+      if (ifPrintRoutes) print('${route.settings.name} == $routeName ($result)');
+      return result;
     }));
   }
 
