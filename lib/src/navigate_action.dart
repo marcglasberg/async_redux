@@ -129,8 +129,9 @@ class NavigateAction<St> extends ReduxAction<St> {
   ) : this._(NavigatorDetails_RemoveRouteBelow(anchorRoute));
 
   NavigateAction.popUntilRouteName(
-    String routeName,
-  ) : this._(NavigatorDetails_PopUntilRouteName(routeName));
+    String routeName, {
+    bool ifPrintRoutes = false,
+  }) : this._(NavigatorDetails_PopUntilRouteName(routeName, ifPrintRoutes: ifPrintRoutes));
 
   NavigateAction.popUntilRoute(
     Route route,
@@ -436,12 +437,18 @@ class NavigatorDetails_PopUntil implements NavigatorDetails {
 class NavigatorDetails_PopUntilRouteName implements NavigatorDetails {
   final String routeName;
 
-  NavigatorDetails_PopUntilRouteName(this.routeName);
+  /// Make this true if you want to see all the routes printed to the console.
+  /// This doesn't affect the navigation itself.
+  final bool ifPrintRoutes;
+
+  NavigatorDetails_PopUntilRouteName(this.routeName, {this.ifPrintRoutes = false});
 
   @override
   void navigate() {
-    NavigateAction._navigatorKey?.currentState
-        ?.popUntil(((route) => route.settings.name == routeName));
+    NavigateAction._navigatorKey?.currentState?.popUntil(((route) {
+      if (ifPrintRoutes) print(route.settings.name);
+      return route.settings.name == routeName;
+    }));
   }
 
   @override

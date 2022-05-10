@@ -2,6 +2,10 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
+# [14.1.3] - 2022/05/10
+
+* `NavigateAction.popUntilRouteName()` can print the routes (for debugging).
+
 # [14.1.2] - 2022/04/21
 
 * Better stacktrace for wrapped errors in actions.
