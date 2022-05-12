@@ -380,7 +380,7 @@ class _StoreStreamListenerState<St, Model> //
     _computeLatestModel();
 
     if ((widget.onInitialBuild != null) && (_latestModel != null)) {
-      WidgetsBinding.instance!.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         widget.onInitialBuild!(
           mounted ? context : null,
           widget.store,
@@ -539,7 +539,7 @@ class _StoreStreamListenerState<St, Model> //
     _latestModel = vm;
 
     if ((widget.onDidChange != null) && (_latestModel != null)) {
-      WidgetsBinding.instance!.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         widget.onDidChange!(
           mounted ? context : null,
           widget.store,

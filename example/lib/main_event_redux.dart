@@ -225,13 +225,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void consumeEvents() {
     if (widget.clearTextEvt!.consume())
-      WidgetsBinding.instance!.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) controller!.clear();
       });
 
     String? newText = widget.changeTextEvt!.consume();
     if (newText != null)
-      WidgetsBinding.instance!.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) controller!.value = controller!.value.copyWith(text: newText);
       });
   }
