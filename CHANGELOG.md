@@ -2,9 +2,9 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
-# [14.1.5] - 2022/05/12
+# [15.0.0] - 2022/05/12
 
-* Implemented Flutter 3.0 support
+* Flutter 3.0 support.
 
 # [14.1.4] - 2022/05/10
 
