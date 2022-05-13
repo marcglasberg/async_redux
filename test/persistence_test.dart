@@ -1008,6 +1008,6 @@ class X {
   int value = 0;
 
   void printValue(int v) {
-    print('v = ${v}');
+    print('v = $v');
   }
 }
