@@ -275,7 +275,10 @@ void main() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  test("Test xxxx", () async {
+  test(
+      "Test that dispatching a sync action works just the same as calling a sync function, "
+      "and dispatching an async action works just the same as calling an async function.",
+      () async {
     //
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
 

@@ -8,7 +8,7 @@ best practices described in the AsyncRedux Readme.
   synchronously (in the same microtask of their dispatch), just like a regular async function is.
   In other words, now dispatching a sync action works just the same as calling a sync function,
   and dispatching an async action works just the same as calling an async function.
-
+  
   ```
   // Example: The below code will print: "BEFORE a1 f1 AFTER a2 f2"  
   
