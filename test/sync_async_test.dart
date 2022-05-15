@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,36 +7,12 @@ import 'package:flutter_test/flutter_test.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-/// This tests show that both sync and async reducers work as they should,
-/// and that no state is lost. This works no matter if an async reducer returns
-/// a completed or uncompleted future.
+/// This tests show that both sync and async reducers work as they should.
+/// Async reducers work as long as we return uncompleted futures.
+/// https://www.woolha.com/articles/dart-event-loop-microtask-event-queue
+/// https://steemit.com/utopian-io/@tensor/the-fundamentals-of-zones-microtasks-and-event-loops-in-the-dart-programming-language-dart-tutorial-part-3
 
 ///////////////////////////////////////////////////////////////////////////////
-
-/// The app state, which in this case is just a text.
-@immutable
-class AppState {
-  final String text;
-
-  AppState(this.text);
-
-  AppState copy(String? text) => AppState(text ?? this.text);
-
-  static AppState initialState() => AppState('A');
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is AppState && runtimeType == other.runtimeType && text == other.text;
-
-  @override
-  int get hashCode => text.hashCode;
-
-  @override
-  String toString() => text.toString();
-}
-
-late List<AppState?> states;
 
 void main() {
   /////////////////////////////////////////////////////////////////////////////
@@ -47,17 +25,17 @@ void main() {
     var state = "";
 
     String reducer() {
-      Future.microtask(() {
-        state = "B";
-      });
-      return "A";
+      Future.microtask(() => state += "A");
+      return "B";
     }
 
+    /// There is no 'A' after calling the reducer, because it ran SYNC.
     state = reducer();
-    expect(state, "A");
-
-    await Future.delayed(const Duration(milliseconds: 0));
     expect(state, "B");
+
+    /// After a microtask, 'A' appears.
+    await Future.microtask(() {});
+    expect(state, "BA");
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -71,26 +49,29 @@ void main() {
     var state = "";
 
     Future<String> reducer() async {
-      await Future.value(null);
-      Future.microtask(() {
-        state = "B";
-      });
-      return "A";
+      state += "A";
+      Future.microtask(() => state += "B");
+      state += "C";
+      await Future.microtask(() {});
+      state += "D";
+      Future.microtask(() => state += "E");
+      return "F";
     }
 
-    await reducer().then((newState) {
-      state = newState;
-    });
-    expect(state, "A");
+    /// There is no 'E' yet, because even if the reducer is async,
+    /// the then() method ran SYNC after the value was returned.
+    await reducer().then((newState) => state += newState);
+    expect(state, "ACBDF");
 
-    await Future.delayed(const Duration(milliseconds: 0));
-    expect(state, "B");
+    /// After a microtask, 'E' appears.
+    await Future.microtask(() {});
+    expect(state, "ACBDFE");
   });
 
   /////////////////////////////////////////////////////////////////////////////
 
   test(
-      "Tests what would happen if we allowed AsyncRedux to process COMPLETED Futures:"
+      "Tests what happens when we do it wrong, and return COMPLETED Futures."
       "The reducer changes the state to A, and it should later be changed to B."
       "It fails if the reducer returns a Future<AppState> and it does NOT contain the await keyword."
       "If the reducer does NOT contain the `await` keyword, it means it was created as a completed Future."
@@ -105,20 +86,18 @@ void main() {
     var state = "";
 
     Future<String> reducer() async {
-      Future.microtask(() {
-        state = "B";
-      });
+      Future.microtask(() => state += "B");
       return "A";
     }
 
-    await reducer().then((newState) {
-      state = newState;
-    });
-    expect(state, "A");
+    // The reducer returned 'A', but the microtask that adds 'B'
+    // ran before the then() method had the chance to run.
+    await reducer().then((newState) => state += newState);
+    expect(state, "BA");
 
-    // State 'B' is lost.
-    await Future.delayed(const Duration(milliseconds: 0));
-    expect(state, "A");
+    // It's all finished by now, nothing yet to run.
+    await Future.microtask(() {});
+    expect(state, "BA");
   });
 
   /////////////////////////////////////////////////////////////////////////////
@@ -151,7 +130,7 @@ void main() {
     expect(info.state!.text, 'ACB');
   });
 
-  /////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////
 
   test(
       '3) A sync reducer is called, '
@@ -198,83 +177,166 @@ void main() {
   /////////////////////////////////////////////////////////////////////////////
 
   test(
-      '6) Tests what happens if the developer returns a COMPLETED Future: '
-      'AsyncRedux adds await `Future.microtask(() {});` '
-      'to convert it into an uncompleted future. '
-      'In other words, it will run the reducer later, '
-      'when it can actually apply the new state right away.', () async {
-    states = [];
+      "This tests the mechanism of ASYNC Reducers: "
+      "1) Completed then Completed = state gets swallowed. "
+      "2) Completed then Uncompleted = wrong, but works because of order. "
+      "3) Uncompleted then Completed = state gets swallowed. "
+      "4) Uncompleted then Uncompleted = correct and works. "
+      "Note: "
+      "* An async reducer that returns a COMPLETED future's will:"
+      "   - Apply the state in the very next microtask after it is dispatched."
+      "   - Apply the state in the very next microtask after the reducer returned (which is bad)."
+      "* An async reducer that returns an UNCOMPLETED future's will:"
+      "   - Apply the state in the very next microtask after it is dispatched, or after that."
+      "   - Apply the state in the SAME microtask when the reducer returned (which is good).",
+      () async {
+    //
+    // 1) Completed then Completed = state gets swallowed.
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
-    storeTester.dispatch(Action6B());
+    storeTester.dispatch(Action6ACompleted());
+    storeTester.dispatch(Action6BCompleted());
+    var info = await (storeTester.waitAllUnordered([Action6ACompleted, Action6BCompleted]));
+    expect(info.first.action.runtimeType, Action6ACompleted);
+    expect(info.last.action.runtimeType, Action6BCompleted);
+    expect(info.first.state.text, 'AX');
+    expect(info.last.state.text, 'A'); // The X was swallowed.
 
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action6B, Action6C]));
-    expect(states, [AppState('A'), AppState('A'), AppState('AB')]);
-
-    // State 'C' is lost.
-    expect(info.state!.text, 'ABC');
-    print('info.state.text = ${info.state!.text}');
-  });
-
-  ///////////////////////////////////////////////////////////////////////////
-
-  test(
-      '7) Test 6 is fixed if the reducer executes an await '
-      '(here we try putting it in the beginning).', () async {
-    states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    // 2) Completed then Uncompleted = wrong, but works because of order.
+    storeTester = StoreTester<AppState>(initialState: AppState.initialState());
     expect(storeTester.state.text, 'A');
-    storeTester.dispatch(Action7B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action7B, Action7C]));
-    expect(states, [AppState('A'), AppState('A'), AppState('AB'), AppState('AB')]);
-    expect(info.state!.text, 'ABC');
+    storeTester.dispatch(Action6ACompleted());
+    storeTester.dispatch(Action6BUncompleted());
+    info = await storeTester.waitAllUnordered([Action6ACompleted, Action6BUncompleted]);
+    expect(info.first.action.runtimeType, Action6ACompleted);
+    expect(info.last.action.runtimeType, Action6BUncompleted);
+    expect(info.first.state.text, 'AX');
+    expect(info.last.state.text, 'AX');
+
+    // 3) Uncompleted then Completed = state gets swallowed.
+    storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    expect(storeTester.state.text, 'A');
+    storeTester.dispatch(Action6AUncompleted());
+    storeTester.dispatch(Action6BCompleted());
+    info = await storeTester.waitAllUnordered([Action6AUncompleted, Action6BCompleted]);
+    expect(info.first.action.runtimeType, Action6AUncompleted);
+    expect(info.last.action.runtimeType, Action6BCompleted);
+    expect(info.first.state.text, 'AX');
+    expect(info.last.state.text, 'A'); // The X was swallowed.
+
+    // 4) Uncompleted then Uncompleted = correct and works.
+    storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    expect(storeTester.state.text, 'A');
+    storeTester.dispatch(Action6AUncompleted());
+    storeTester.dispatch(Action6BUncompleted());
+    info = await storeTester.waitAllUnordered([Action6AUncompleted, Action6BUncompleted]);
+    expect(info.first.action.runtimeType, Action6AUncompleted);
+    expect(info.last.action.runtimeType, Action6BUncompleted);
+    expect(info.first.state.text, 'AX');
+    expect(info.last.state.text, 'AX');
   });
 
   /////////////////////////////////////////////////////////////////////////////
 
   test(
-      '8) Test 6 is fixed if the reducer executes an await '
-      '(here we try putting it in the end).', () async {
-    states = [];
+      "Test that if you add method assertUncompletedFuture() to the end of reducers, "
+      "it's capable of detecting completed futures.", () async {
+    //
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
-    expect(storeTester.state.text, 'A');
-    storeTester.dispatch(Action8B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action8B, Action8C]));
-    expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('AB')]);
-    expect(info.state!.text, 'ABC');
+
+    // ---
+
+    dynamic error1 = "";
+
+    runZonedGuarded(() async {
+      storeTester.dispatch(Action7Completed());
+    }, (_error, stackTrace) {
+      error1 = _error;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    expect(error1.toString(), contains("This may result in state changes being lost"));
+
+    // ---
+
+    dynamic error2 = "";
+
+    runZonedGuarded(() async {
+      storeTester.dispatch(Action7Uncompleted());
+    }, (_error, stackTrace) {
+      error2 = _error;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    expect(error2, "");
   });
 
   /////////////////////////////////////////////////////////////////////////////
 
-  test(
-      '9) Test 6 is fixed if the reducer executes an await '
-      '(here we try putting one in the beginning and one in the end).', () async {
-    states = [];
+  test("Test xxxx", () async {
+    //
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
-    expect(storeTester.state.text, 'A');
-    storeTester.dispatch(Action9B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action9B, Action9C]));
-    expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('A'), AppState('AB')]);
-    expect(info.state!.text, 'ABC');
+
+    // ---
+
+    states = [];
+
+    Future<void> asyncFunction() async {
+      states.add(AppState('f1'));
+      await Future.microtask(() {});
+      states.add(AppState('f2'));
+    }
+
+    /// The below code will print: 1 3 5 2 4 6
+
+    states.add(AppState('BEFORE'));
+    storeTester.dispatch(MyAsyncAction());
+    asyncFunction();
+    states.add(AppState('AFTER'));
+
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    expect(states, [
+      AppState('BEFORE'),
+      AppState('a1'),
+      AppState('f1'),
+      AppState('AFTER'),
+      AppState('a2'),
+      AppState('f2'),
+    ]);
   });
 
   /////////////////////////////////////////////////////////////////////////////
 }
 
-/// Note:
-///
-/// These wait for microtasks:
-///   await Future.value(null);
-///   await Future.sync((){});
-///   await Future.microtask((){});
-///
-/// These wait for tasks (run only after all pending microtasks):
-///   await Future((){});
-///   await Future.delayed(Duration(seconds: 1));
-///
-/// More info:
-/// https://www.woolha.com/articles/dart-event-loop-microtask-event-queue
-/// https://steemit.com/utopian-io/@tensor/the-fundamentals-of-zones-microtasks-and-event-loops-in-the-dart-programming-language-dart-tutorial-part-3
+// ----------------------------------------------
+
+/// The app state, which in this case is just a text.
+@immutable
+class AppState {
+  final String text;
+
+  AppState(this.text);
+
+  AppState copy(String? text) => AppState(text ?? this.text);
+
+  static AppState initialState() => AppState('A');
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AppState && runtimeType == other.runtimeType && text == other.text;
+
+  @override
+  int get hashCode => text.hashCode;
+
+  @override
+  String toString() => text.toString();
+}
+
+late List<AppState?> states;
 
 // ----------------------------------------------
 
@@ -320,7 +382,7 @@ class Action3B extends ReduxAction<AppState> {
 class Action3C extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    await Future.sync(() {});
+    await Future.microtask(() {});
     return state.copy(state.text + 'C');
   }
 }
@@ -375,97 +437,60 @@ class Action5C extends ReduxAction<AppState> {
 
 // ----------------------------------------------
 
-/// Returns a COMPLETED Future.
-class Action6B extends ReduxAction<AppState> {
+class Action6ACompleted extends ReduxAction<AppState> {
   @override
-  Future<AppState> reduce() async {
-    print('33333333333');
-    states.add(state);
-    dispatch(Action6C());
-    states.add(state);
-    return state.copy(state.text + 'B');
+  Future<AppState?> reduce() async => state.copy(state.text + 'X');
+}
+
+class Action6BCompleted extends ReduxAction<AppState> {
+  @override
+  Future<AppState?> reduce() async => state;
+}
+
+class Action6AUncompleted extends ReduxAction<AppState> {
+  @override
+  Future<AppState?> reduce() async {
+    await microtask;
+    return state.copy(state.text + 'X');
   }
 }
 
-/// Returns an UNCOMPLETED Future.
-class Action6C extends ReduxAction<AppState> {
+class Action6BUncompleted extends ReduxAction<AppState> {
   @override
-  Future<AppState> reduce() async {
-    await Future.value(null);
-    states.add(state);
-    print('Action6C.reduce');
-    return state.copy(state.text + 'C');
-  }
-}
-
-// ----------------------------------------------
-
-class Action7B extends ReduxAction<AppState> {
-  @override
-  Future<AppState> reduce() async {
-    await Future.value(null);
-    states.add(state);
-    dispatch(Action7C());
-    states.add(state);
-    return state.copy(state.text + 'B');
-  }
-}
-
-class Action7C extends ReduxAction<AppState> {
-  @override
-  Future<AppState> reduce() async {
-    states.add(state);
-    await Future.value(null);
-    states.add(state);
-    return state.copy(state.text + 'C');
+  Future<AppState?> reduce() async {
+    await microtask;
+    return state;
   }
 }
 
 // ----------------------------------------------
 
-class Action8B extends ReduxAction<AppState> {
+class Action7Completed extends ReduxAction<AppState> {
   @override
-  Future<AppState> reduce() async {
-    states.add(state);
-    dispatch(Action8C());
-    states.add(state);
-    await Future.value(null);
-    states.add(state);
-    return state.copy(state.text + 'B');
+  Future<AppState?> reduce() async {
+    assertUncompletedFuture();
+    return state;
   }
 }
 
-class Action8C extends ReduxAction<AppState> {
+class Action7Uncompleted extends ReduxAction<AppState> {
   @override
-  Future<AppState> reduce() async {
-    await Future.value(null);
-    states.add(state);
-    return state.copy(state.text + 'C');
+  Future<AppState?> reduce() async {
+    await microtask;
+    assertUncompletedFuture();
+    return state;
   }
 }
 
 // ----------------------------------------------
 
-class Action9B extends ReduxAction<AppState> {
+class MyAsyncAction extends ReduxAction<AppState> {
   @override
-  Future<AppState> reduce() async {
-    states.add(state);
-    await Future.value(null);
-    states.add(state);
-    dispatch(Action9C());
-    states.add(state);
-    await Future.value(null);
-    states.add(state);
-    return state.copy(state.text + 'B');
-  }
-}
-
-class Action9C extends ReduxAction<AppState> {
-  @override
-  Future<AppState> reduce() async {
-    await Future.value(null);
-    states.add(state);
-    return state.copy(state.text + 'C');
+  Future<AppState?> reduce() async {
+    states.add(AppState('a1'));
+    await microtask;
+    states.add(AppState('a2'));
+    return state;
   }
 }
 

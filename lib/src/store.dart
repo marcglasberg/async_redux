@@ -576,26 +576,58 @@ class Store<St> {
 
     // Sync reducer.
     if (reducer is St? Function()) {
-      St? result = reducer();
-      _registerState(result, action, notify: notify);
+      _registerState(reducer(), action, notify: notify);
     }
     //
     // Async reducer.
     else if (reducer is Future<St?> Function()) {
-      // Make sure it's NOT a completed future.
-      Future<St?> result = (() async {
-        await Future.microtask(() {});
-        return reducer();
-      })();
+      /// When a reducer returns a state, we need to apply that state immediately in the store.
+      /// If we wait even a single microtask, another reducer may change the store-state before we
+      /// have the chance to apply the state. This would result in the later reducer overriding the
+      /// value of the other reducer, and state changes will be lost.
+      ///
+      /// To fix this we'll depend on the behavior described below, which was confirmed by the Dart
+      /// team:
+      ///
+      /// 1) When a future returned by an async function completes, it will call the `then` method
+      /// synchronously (in the same microtask), as long as the function returns a value (not a
+      /// Future) AND this happens AFTER at least one await. This means we then have the chance to
+      /// apply the returned state to the store right away.
+      ///
+      /// 2) When a future returned by an async function completes, it will call the `then` method
+      /// asynchronously (delayed to a later microtask) if there was no await in the async
+      /// function. When that happens, the future is created "completed", and Dart will wait for
+      /// the next microtask before calling the `then` method (they do this because they want to
+      /// enforce that a listener on a future is always notified in a later microtask than the one
+      /// where it was registered). This means we will only be able to apply the returned state to
+      /// the store during the next microtask. There is now a chance state will be lost.
+      /// This situation must be avoided at all cost, and it's actually simple to solve it:
+      /// An async reducer must never complete without at least one await.
+      /// Unfortunately, if the developer forgets to add the await, there is no way for AsyncRedux
+      /// to let them know about it, because there is no way for us to know if a Future is
+      /// completed. The completion information exists in the `FutureImpl` class but it's not
+      /// exposed. I have asked the Dart team to expose this information, but they refused. The
+      /// only solution is to document this and trust the developer.
+      ///
+      /// Important: The behavior described above was confirmed by the Dart team, but it's NOT
+      /// documented. In other words, they make no promise that it will be kept in the future.
+      /// If that ever changes, AsyncRedux will need to change too, so that reducers return
+      /// `St? Function(state)` instead of returning `state`. For example, instead of a reducer
+      /// ending with `return state.copy(123)` it would be `return (state) => state.copy(123)`.
+      /// Hopefully, the tests in `sync_async_test.dart` will catch this, if it ever changes.
 
-      // The "then callback" will be applied synchronously,
-      // immediately after we get the result,
-      // only because we're sure the future is NOT completed.
-      return result.then((state) => _registerState(
-            state,
-            action,
-            notify: notify,
-          ));
+      action._completedFuture = false;
+
+      return reducer().then((state) {
+        _registerState(state, action, notify: notify);
+
+        if (action._completedFuture) {
+          Future.error("The reducer of action ${action.runtimeType} returned a completed Future. "
+              "This may result in state changes being lost. "
+              "Please make sure all code paths in the reducer pass through at least one `await`. "
+              "If necessary, add `await microtask;` to the start of the reducer.");
+        }
+      });
     }
     // Not accepted.
     else {
@@ -744,23 +776,13 @@ class Store<St> {
     return _changeController.close();
   }
 
-  /// Prints the error/stacktrace information to the console,
-  /// then throws the error after an asynchronous gap.
-  /// Note: We print the stacktrace because the rethrow loses
-  /// the stacktrace due to Dart architecture.
-  ///  See: https://groups.google.com/a/dartlang.org/forum/#!topic/misc/O1OKnYTUcoo
-  ///  See: https://github.com/dart-lang/sdk/issues/10297
-  ///  This should be fixed when this issue is solved: https://github.com/dart-lang/sdk/issues/30741
-  ///
-  void _throws(errorMsg, error, StackTrace? stackTrace) {
-    if (errorMsg != null) print(errorMsg);
-    if (stackTrace != null) {
-      print("\nStackTrace:\n$stackTrace");
-      print("--- End of the StackTrace\n\n");
-    }
-
+  /// Throws the error after an asynchronous gap.
+  void _throws(errorMsg, Object? error, StackTrace stackTrace) {
     Future(() {
-      throw error;
+      Error.throwWithStackTrace(
+        (error == null) ? errorMsg : "$errorMsg:\n  $error",
+        stackTrace,
+      );
     });
   }
 }

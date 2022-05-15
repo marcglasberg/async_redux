@@ -13,6 +13,7 @@ part of async_redux_store;
 abstract class ReduxAction<St> {
   late Store<St> _store;
   final ActionStatus _status = ActionStatus();
+  bool _completedFuture = false;
 
   void setStore(Store<St> store) => _store = store;
 
@@ -21,6 +22,9 @@ abstract class ReduxAction<St> {
   ActionStatus get status => _status;
 
   Object? get env => _store._environment;
+
+  /// To wait for the next microtask: `await microtask;`
+  Future get microtask => Future.microtask(() {});
 
   St get state => _store.state;
 
@@ -103,6 +107,34 @@ abstract class ReduxAction<St> {
   /// `StoreTester`. This is only useful under rare circumstances, and you should
   /// only use it if you know what you are doing.
   bool abortDispatch() => false;
+
+  /// An async reducer (one that returns Future<AppState?>) must never complete without at least
+  /// one await, because this may result in state changes being lost. It's up to you to make sure
+  /// all code paths in the reducer pass through at least one `await`.
+  ///
+  /// Futures defined by async functions with no `await` are called "completed futures".
+  /// It's generally easy to make sure an async reducer does not return a completed future.
+  /// In the rare case when your reducer function is complex and you are unsure that all
+  /// code paths pass through an await, there are 3 possible solutions:
+  ///
+  ///
+  /// * Simplify your reducer, by applying clean-code techniques. That will make it easier for you
+  /// to make sure all code paths have 'await'.
+  ///
+  /// * Add `await microtask;` to the very START of the reducer.
+  ///
+  /// * Call method [assertUncompletedFuture] at the very END of your [reduce] method, right before
+  /// the return. If you do that, an error will be shown in the console in case the reduce method
+  /// ever returns a completed future. Note there is no other way for AsyncRedux to warn you if
+  /// your reducer returned a completed future, because although the completion information exists
+  /// in the `FutureImpl` class, it's not exposed. Also note, the error will be thrown
+  /// asynchronously (will not stop the action from returning a state).
+  ///
+  void assertUncompletedFuture() {
+    scheduleMicrotask(() {
+      _completedFuture = true;
+    });
+  }
 
   /// Nest state reducers without dispatching another action.
   /// Example: return AddTaskAction(demoTask).reduceWithState(state);

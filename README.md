@@ -174,6 +174,17 @@ The reducer has direct access to:
 
 <br>
 
+The abstract `reduce()` method signature has a return type of `FutureOr<AppState?>`, but
+your concrete reducers must return one or the other: `AppState?` or `Future<AppState?>`.
+
+That's necessary because AsyncRedux knows if a reducer is sync or async by checking your `reducer()`
+method signature. If it is `FutureOr<AppState?>`, it can't know if it's sync or async,
+and will throw a `StoreException`:
+
+```
+Reducer should return `St?` or `Future<St?>`. Do not return `FutureOr<St?>`.
+```
+
 ### Sync Reducer
 
 If you want to do some synchronous work, simply declare the reducer to return `AppState?`, then
@@ -242,8 +253,8 @@ store.dispatch(QueryAndIncrementAction());
 ```
 
 Please note: While the `reduce()` method of a *sync* reducer runs synchronously with the dispatch,
-the `reduce()` method of an *async* reducer will not be called immediately, but will be scheduled in
-a later task.
+the `reduce()` method of an *async* reducer will be called synchronously, but will always return
+the state in a later microtask.
 
 We will show you later how to easily test async reducers, using the **StoreTester**.
 
@@ -253,16 +264,38 @@ Increment Async Example</a>.
 
 #### One important rule
 
-The abstract `ReduxAction.reduce()` method signature has a return type of `FutureOr<AppState?>`, but
-your concrete reducers must return one or the other: `AppState?` or `Future<AppState?>`.
+When your reducer is async (i.e., returns `Future<AppState>`) you must make sure you **do not return
+a completed future**, meaning all execution paths of the reducer must pass through at least
+one `await` keyword. In other words, don't return a Future if you don't need it.
 
-That's necessary because AsyncRedux knows if a reducer is sync or async not by checking the returned
-type, but by checking your `reducer()` method signature. If it is `FutureOr<AppState?>`, AsyncRedux
-can't know if it's sync or async, and will throw a `StoreException`:
+If you don't follow this rule, AsyncRedux may seem to work ok, but will eventually misbehave.
 
+If your reducer has no `await`s, you must return `AppState?` instead of `Future<AppState?>`,
+or simply add `await microtask;` to the start of your reducer, or return `null`. For example:
+
+```dart 
+// These are right:
+AppState? reduce() { return state; }
+AppState? reduce() { someFunc(); return state; }
+Future<AppState?> reduce() async { await someFuture(); return state; }
+Future<AppState?> reduce() async { await microtask; return state; }
+Future<AppState?> reduce() async { if (state.someBool) return await calculation(); return null; }
+
+// But these are wrong:
+Future<AppState?> reduce() async { return state; }
+Future<AppState?> reduce() async { someFunc(); return state; }
+Future<AppState?> reduce() async { if (state.someBool) return await calculation(); return state; }
 ```
-Reducer should return `St?` or `Future<St?>`. Do not return `FutureOr<St?>`.
-```
+
+It's generally easy to make sure you are not returning a completed future.
+In the rare case your reducer function is very complex, and you are unsure that all code paths
+pass through an `await`, just add `assertUncompletedFuture();` at the very END of your `reduce`
+method, right before the `return`. If you do that, an error will be shown in the console if
+the `reduce` method ever returns a completed future.
+
+If you're an advanced user interested in the details, check the
+<a href="https://github.com/marcglasberg/async_redux/blob/master/test/sync_async_test.dart">
+sync/async tests</a>.
 
 <br>
 
@@ -1302,7 +1335,7 @@ tests of the StoreTester</a> can also serve as examples.
 
 **Important:** The `StoreTester` has access to the current store state via `StoreTester.state`, but
 you should not try to assert directly from this state. This would seem to work most of the time, but
-by the time you do the assert the state could already have been changed by some other action. To
+by the time you do the assert, the state could already have been changed by some other action. To
 avoid that, always assert from the `info` you get from the `StoreTester` methods, which is
 guaranteed to be the one right after your *wait condition* is achieved. For example:
 

@@ -2,6 +2,79 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
+# [16.0.0] - 2022/05/15
+
+* Breaking change: Async `reduce()` methods (those that return Futures) are now called
+  synchronously (in the same microtask of their dispatch), just like a regular async function is.
+  In other words, now dispatching a sync action works just the same as calling a sync function,
+  and dispatching an async action works just the same as calling an async function.
+
+  ```
+  // Example: The below code will print: "BEFORE a1 f1 AFTER a2 f2"  
+  
+  print('BEFORE');
+  dispatch(MyAsyncAction());
+  asyncFunction();
+  print('AFTER');     
+          
+  class MyAsyncAction extends ReduxAction<AppState> {
+     Future<AppState?> reduce() async {
+        print('a1');
+        await microtask;
+        print('a2');
+        return state;
+        }  
+  }
+  
+  Future<void> asyncFunction() async {
+     print('f1');
+     await Future.microtask((){});
+     print('f2');     
+     } 
+
+  ```  
+
+  Before version `16.0.0`, the `reduce()` method was called in a later microtask. Please note, the
+  async `reduce()` methods continue to return and apply the state in a later microtask (this did
+  not change).
+
+  The above breaking change is unlikely to affect you in any way, but if you want the old behavior,
+  just add `await microtask;` to the first line of your `reduce()` method.
+
+<br>
+
+* Breaking change: When your reducer is async (i.e., returns `Future<AppState>`) you must make sure
+  you **do not return a completed future**, meaning all execution paths of the reducer must pass
+  through at least one `await` keyword. In other words, don't return a Future if you don't need it.
+  If your reducer has no `await`s, you must return `AppState?` instead of `Future<AppState?>`, or
+  add `await microtask;` to the start of your reducer, or return `null`. For example:
+
+  ```dart 
+  // These are right:
+  AppState? reduce() { return state; }
+  AppState? reduce() { someFunc(); return state; }
+  Future<AppState?> reduce() async { await someFuture(); return state; }
+  Future<AppState?> reduce() async { await microtask; return state; }
+  Future<AppState?> reduce() async { if (state.someBool) return await calculation(); return null; }
+  
+  // But these are wrong:
+  Future<AppState?> reduce() async { return state; }
+  Future<AppState?> reduce() async { someFunc(); return state; }
+  Future<AppState?> reduce() async { if (state.someBool) return await calculation(); return state; }
+  ```
+
+  If you don't follow this rule, AsyncRedux may seem to work ok, but will eventually misbehave.
+
+  It's generally easy to make sure you are not returning a completed future.
+  In the rare case your reducer function is very complex, and you are unsure that all code paths
+  pass through an `await`, just add `assertUncompletedFuture();` at the very END of your `reduce`
+  method, right before the `return`. If you do that, an error will be shown in the console if
+  the `reduce` method ever returns a completed future.
+
+  If you're an advanced user interested in the details, check the
+  <a href="https://github.com/marcglasberg/async_redux/blob/master/test/sync_async_test.dart">
+  sync/async tests</a>.
+
 # [15.0.0] - 2022/05/12
 
 * Flutter 3.0 support.
@@ -324,7 +397,7 @@ best practices described in the AsyncRedux Readme.
   will have access to:
 
     1) `state` getter: The state the store was holding when the factory and the view-model were
-       created. This state is final inside of the factory.
+       created. This state is final inside the factory.
 
     2) `currentState()` method: The current (most recent) store state. This will return the current
        state the store holds at the time the method is called.
