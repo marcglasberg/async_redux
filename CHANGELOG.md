@@ -8,7 +8,7 @@ best practices described in the AsyncRedux Readme.
   synchronously (in the same microtask of their dispatch), just like a regular async function is.
   In other words, now dispatching a sync action works just the same as calling a sync function,
   and dispatching an async action works just the same as calling an async function.
-  
+
   ```
   // Example: The below code will print: "BEFORE a1 f1 AFTER a2 f2"  
   
@@ -74,6 +74,21 @@ best practices described in the AsyncRedux Readme.
   If you're an advanced user interested in the details, check the
   <a href="https://github.com/marcglasberg/async_redux/blob/master/test/sync_async_test.dart">
   sync/async tests</a>.
+
+<br>
+
+* When the `Event` class was created, Flutter did not have another class with that name.
+  Now there is. For this reason, a typedef now allows you to use `Evt` instead.
+  If you need, you can hide one of them, by importing AsyncRedux like this:
+
+  ```dart
+  import 'package:async_redux/async_redux.dart' hide Event;
+  ```
+  or
+
+  ```dart
+  import 'package:async_redux/async_redux.dart' hide Evt;  
+  ```
 
 # [15.0.0] - 2022/05/12
 

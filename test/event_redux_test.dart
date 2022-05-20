@@ -4,9 +4,18 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   /////////////////////////////////////////////////////////////////////////////
 
+  test('Typedef Evt.', () {
+    expect(Event.spent(), Evt.spent());
+    expect((Event).toString(), 'Event<dynamic>');
+    expect((Evt).toString(), 'Event<dynamic>');
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
   test('Boolean event equals.', () {
     // Spent events are always equal.
     expect(Event.spent(), Event.spent());
+    expect(Event.spent(), Evt.spent());
 
     // Not-spent events are always different.
     expect(Event(), isNot(Event()));

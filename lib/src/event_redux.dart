@@ -1,6 +1,14 @@
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
+/// When the [Event] class was created, Flutter did not have any class named `Event`.
+/// Now there is. For this reason, this typedef allows you to use Evt instead.
+/// You can hide one of them, by importing AsyncRedux like this:
+/// import 'package:async_redux/async_redux.dart' hide Event;
+/// or
+/// import 'package:async_redux/async_redux.dart' hide Evt;
+typedef Evt<T> = Event<T>;
+
 /// The `Event` class can be used as a Redux state with *flutter_redux* , usually to change the
 /// internal state of a stateful widget. When creating the `ViewModel` with the `StoreConnector`,
 /// the event is "consumed" only once, and is then automatically considered "spent".
