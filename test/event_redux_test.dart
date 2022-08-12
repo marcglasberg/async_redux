@@ -112,4 +112,44 @@ void main() {
   });
 
   /////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+
+  test('Typedef EvtState.', () {
+    expect((EvtState).toString(), 'EvtState<dynamic>');
+    expect((EvtState<String>()).runtimeType.toString(), 'EvtState<String>');
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  test('Boolean event equals.', () {
+    expect(EvtState() == EvtState(), isFalse);
+    expect(EvtState<String>('abc') == EvtState<String>('abc'), isFalse);
+    expect(EvtState<String>('abc') == EvtState<String>('123'), isFalse);
+
+    expect(EvtState().hashCode == EvtState().hashCode, isFalse);
+    expect(EvtState<String>('abc').hashCode == EvtState<String>('abc').hashCode, isFalse);
+    expect(EvtState<String>('abc').hashCode == EvtState<String>('123').hashCode, isFalse);
+
+    var x = EvtState();
+    var y = x;
+    expect(x == y, isTrue);
+    expect(x.hashCode == y.hashCode, isTrue);
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  test('Getting the value. It is not consumed.', () {
+    expect(EvtState().value, isNull);
+
+    expect(EvtState<String>('abc').value, 'abc');
+    expect(EvtState<String>('abc').value, 'abc');
+
+    expect(EvtState<int>(123).value, 123);
+    expect(EvtState<int>(123).value, 123);
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
 }

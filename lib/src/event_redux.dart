@@ -1,6 +1,10 @@
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
+import 'dart:math';
+
+import 'package:flutter/foundation.dart';
+
 /// When the [Event] class was created, Flutter did not have any class named `Event`.
 /// Now there is. For this reason, this typedef allows you to use Evt instead.
 /// You can hide one of them, by importing AsyncRedux like this:
@@ -274,6 +278,56 @@ class MappedEvent<V, T> extends Event<T> {
   /// Returns the event state.
   @override
   T? get state => mapFunction(evt.state);
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+
+/// The [EventState] can be used with stateful widgets to generate a "pulse" that
+/// you can use to change something.
+///
+/// Whenever you create a new event, you give it a [value]. Two different events are always
+/// different, even if they are created with the same value:
+///
+/// ```
+/// print(Event() == Event()) // false
+/// print(Event<String>('abc') == Event<String>('abc')) // false
+/// ```
+///
+/// This will trigger a widget rebuild in the connector (don't forget to include the event in the
+/// view-model). Then, the `didUpdateWidget` method will be called. Since `evt` is now different
+/// from `oldWidget.evt`, it will run the `doSomething` method:
+///
+/// ```
+/// @override
+/// void didUpdateWidget(MyWidget oldWidget) {
+///   super.didUpdateWidget(oldWidget);
+///
+///   if (evt != oldWidget.evt) doSomethingWith(evt.value);
+/// }
+/// ```
+///
+/// The [EvtState] class is never "consumed" (like the [Event] class is), which means you can use
+/// it with more than one widget.
+///
+@immutable
+class EvtState<T> {
+  static final _random = Random.secure();
+
+  final T? value;
+  final int _rand;
+
+  EvtState([this.value]) : _rand = _random.nextInt(1 << 32);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is EvtState &&
+          runtimeType == other.runtimeType &&
+          value == other.value &&
+          _rand == other._rand;
+
+  @override
+  int get hashCode => value.hashCode ^ _rand.hashCode;
 }
 
 // /////////////////////////////////////////////////////////////////////////////
