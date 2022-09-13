@@ -66,7 +66,11 @@ void main() {
       expect(actionA.isFinished, false);
     }, (error, stackTrace) {
       hasThrown = true;
-      expect(error, const UserException("During after"));
+      expect(
+          error,
+          "Method 'MyAction.after()' has thrown an error:\n"
+          " 'During after'.:\n"
+          "  During after");
     });
 
     await Future.delayed(const Duration(milliseconds: 10));

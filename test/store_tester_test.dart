@@ -132,6 +132,17 @@ class Action10b extends ReduxAction<AppState> {
   Future<AppState> reduce() async {
     dispatch(Action1());
     dispatch(Action2());
+    await dispatch(Action11b());
+    dispatch(Action3());
+    return AppState.add(state, "10");
+  }
+}
+
+class Action10c extends ReduxAction<AppState> {
+  @override
+  Future<AppState> reduce() async {
+    dispatch(Action1());
+    dispatch(Action2());
     dispatch(Action11b());
     dispatch(Action3());
     return AppState.add(state, "10");
@@ -951,12 +962,12 @@ void main() {
     storeTester.dispatch(Action7b());
 
     TestInfoList<AppState?> infos = await storeTester.waitAll(
-      [Action7b, Action4, Action6b, Action2, Action5, Action1, Action2, Action3],
+      [Action7b, Action4, Action6b, Action1, Action2, Action5, Action2, Action3],
     );
 
     // All actions affect the state, even the ones ignored by the store-tester.
     // However, ignored action can run any number of times.
-    expect(infos.last.state!.text, "0,4,2,5,7b,2,3,6b");
+    expect(infos.last.state!.text, "0,4,1,2,5,7b,2,3,6b");
     expect(infos.last.errors, isEmpty);
 
     // All 8 states were collected.
@@ -977,13 +988,13 @@ void main() {
     storeTester.dispatch(Action7b());
 
     TestInfoList<AppState?> infos = await storeTester.waitAll(
-      [Action7b, Action4, Action6b, Action2, Action5, Action1, Action3],
+      [Action7b, Action4, Action6b, Action1, Action2, Action5, Action3],
       ignore: [Action2],
     );
 
     // All actions affect the state, even the ones ignored by the store-tester.
     // However, ignored action can run any number of times.
-    expect(infos.last.state!.text, "0,4,2,5,7b,2,3,6b");
+    expect(infos.last.state!.text, "0,4,1,2,5,7b,2,3,6b");
     expect(infos.last.errors, isEmpty);
 
     // Only 7 states were collected. The ignored action doesn't generate info.
@@ -1232,7 +1243,28 @@ void main() {
     TestInfo<AppState?> info = await storeTester.waitUntil(Action11b);
     expect(info.error, const UserException("Hello!"));
     expect(info.processedError, null);
-    expect(info.state!.text, "0,1,2,3,10");
+    expect(info.state!.text, "0,1,2");
+    expect(info.ini, false);
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test(
+      'An action dispatches other actions, and one of them throws an error. '
+      'Wait until that action finishes, '
+      'and check the error.', () async {
+    var storeTester = createStoreTester();
+
+    runZonedGuarded(() {
+      storeTester.dispatch(Action10c());
+    }, (error, stackTrace) {
+      expect(error, const UserException("Hello!"));
+    });
+
+    TestInfo<AppState?> info = await storeTester.waitUntil(Action11b);
+    expect(info.error, const UserException("Hello!"));
+    expect(info.processedError, null);
+    expect(info.state!.text, "0,1,2,3");
     expect(info.ini, false);
   });
 

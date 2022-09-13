@@ -59,10 +59,10 @@ void main() {
     expect(store.state, "AB");
     expect(info, [
       'B.before state=""',
+      'B.reduce1 state=""',
       'A.before state=""',
       'A.reduce state=""',
       'A.after state="A"',
-      'B.reduce1 state="A"',
       'B.reduce2 state="A"',
       'B.after state="AB"'
     ]);
