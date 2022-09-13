@@ -46,7 +46,11 @@ void main() {
 
     expect(error, isNull);
 
-    expect(asyncError, "some-error");
+    expect(
+        asyncError,
+        "Method 'ActionA.after()' has thrown an error:\n"
+        " 'some-error'.:\n"
+        "  some-error");
   });
 
   /////////////////////////////////////////////////////////////////////////////
