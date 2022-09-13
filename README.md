@@ -760,6 +760,46 @@ should be provided in the `StoreConnector` constructor: `vm` or `converter`.
    the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_null_viewmodel.dart">
    Null ViewModel Example</a>.
 
+   <br>
+
+   **What if you can't generate the view-model?**
+
+   Sometimes you don't have enough information to generate the view-model. For example, some
+   information may still be loading, or the state is inconsistent for some reason. In that case,
+   your Factory can return `null` instead of the `vm`, and the connector can return an alternative
+   placeholder widget.
+
+   To accomplish that, make sure your connector is declared with a nullable `vm`
+   type, such as `StoreConnector<AppState, _Vm?>`, so that your builder can check if the `vm`
+   is `null`. For example:
+
+   ```
+   class MyWidgetConnector extends StatelessWidget {
+
+   @override
+   Widget build(BuildContext context) => StoreConnector<AppState, _Vm?>(
+      vm: () => _Factory(this),
+      builder: (context, vm) {
+         return (vm == null)
+         ? MyPlaceHolder()
+         : MyWidget(user: vm.user);
+      },
+   );
+
+   class _Factory extends AppVmFactory<MyWidgetConnector> {
+      _Factory(MyWidgetConnector widget) : super(widget);
+
+      @override
+      _Vm? fromStore() {
+         User user = state.user;            
+         return (user == null) ? null : _Vm(user: user);
+      }
+
+   class _Vm extends Vm {
+      final User user;
+      _Vm({required this.user}) : super(equals: [user]);
+   }
+   ```
 
 3. The `converter` parameter
 
