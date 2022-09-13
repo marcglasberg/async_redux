@@ -2,6 +2,10 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
+## [16.1.0] - 2021/09/13
+
+* Added another cache function, for 2 states and 3 parameters: `cache2states_3params`.
+
 # [16.0.0] - 2022/05/15
 
 * Breaking change: Async `reduce()` methods (those that return Futures) are now called

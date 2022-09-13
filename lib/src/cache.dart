@@ -142,6 +142,35 @@ Result Function(Param1, Param2) Function(State1, State2)
 ) =>
         c.cache2states_2params(f);
 
+/// Cache for 2 immutable states, and 3 parameters.
+///
+/// When this function is called with some states and parameters, it will check if it has
+/// the cached result for this states/parameters combination. If so, it will return it from the
+/// cache, without having to recalculate it again. If the result for this states/parameters
+/// combination is not yet cached, it will calculate it, cache it, and then return it. Note: The
+/// cache has one entry for each different parameter combination (comparing the parameters in the
+/// combination by EQUALITY).
+///
+/// Cache eviction: Each time this function is called with some states, it will compare them (by
+/// IDENTITY) with the states from the previous time the function was called. If any of the states
+/// is different, the cache (for all parameters) will be evicted. In other words, as soon as one
+/// of the states (or both) change, it will clear all cached results and start all over again.
+///
+/// Example:
+/// ```
+/// var selector =
+///    cache2states_3params((List<String> names, int limit) => (String startString, String endString) {
+///       return names
+///          .where((str) => str.startsWith(startString) && str.endsWith(endString))
+///          .take(limit).toList();
+///    });
+/// ```
+Result Function(Param1, Param2, Param3) Function(State1, State2)
+    cache2states_3params<Result, State1, State2, Param1, Param2, Param3>(
+  Result Function(Param1, Param2, Param3) Function(State1, State2) f,
+) =>
+        c.cache2states_3params(f);
+
 /// Cache for 3 immutable states, and no parameters.
 /// Example:
 ///
