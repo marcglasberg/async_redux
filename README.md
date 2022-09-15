@@ -906,7 +906,7 @@ The `StoreConnector` forces you to cleanly separate the widgets from the way the
 This is better for clean code and will help a lot when you are writing tests.
 
 However, if you want **and you know what you are doing**, here is how to access the store directly
-from inside of your widgets (for example in the `build` method):
+from inside your widgets (for example in the `build` method):
 
 ```
 /// Dispatch an action without a StoreConnector.
@@ -1088,8 +1088,8 @@ class SaveUserAction extends ReduxAction<AppState> {
 ```
 
 The special `UserException` error class represents "user errors" which are meant as warnings to the
-user, and not as code errors to be logged. By default (if you don't define your own `errorObserver`)
-, only errors which are not `UserException` are thrown. And if you do define an `errorObserver`,
+user, and not as code errors to be logged. By default, if you don't define your own `errorObserver`,
+only errors which are not `UserException` are thrown. And if you do define an `errorObserver`,
 you'd probably want to replicate this behavior.
 
 In any case, `UserException`s are put into a special error queue, from where they may be shown to
@@ -1188,7 +1188,7 @@ provided `UserExceptionAction`, which will then simply throw the exception in it
 method.
 
 The `UserExceptionAction` is also useful even inside of actions, when you want to display an error
-dialog to the user but you don't want to interrupt the action by throwing an exception.
+dialog to the user, but you don't want to interrupt the action by throwing an exception.
 
 <br>
 
@@ -1599,7 +1599,7 @@ In tests there are two possibilities:
    the `errors` queue. If this happens, the test will continue running, and may even pass. The only
    way to make sure no errors were thrown would be asserting that the `errors` queue is still empty
    at the end of the test. This is even more problematic if the unexpected `UserException` is thrown
-   inside of a `before()` method. In this case it will prevent the reducer to run, and the test will
+   inside a `before()` method. In this case it will prevent the reducer to run, and the test will
    probably fail with wrong state but no errors in the console.
 
 The solution is to use the `shouldThrowUserExceptions` parameter in the `StoreTester` constructor.
@@ -1736,7 +1736,7 @@ expect((navigateAction.details as NavigatorDetails_PushNamed).routeName, "myRout
 
 ## Events
 
-In a real Flutter app it's not practical to assume that a Redux store can hold all of the
+In a real Flutter app it's not practical to assume that a Redux store can hold all the
 application state. Widgets like `TextField` and `ListView` make use of controllers, which hold
 state, and the store must be able to work alongside these. For example, in response to the
 dispatching of some action you may want to clear the text-field, or you may want to scroll the
@@ -1888,7 +1888,7 @@ state. You should just remember **not to persist them** when you persist the sto
 
 ### When should I use events?
 
-The short answer is that you'll know it when you see it. When you want to do something and it's not
+The short answer is that you'll know it when you see it. When you want to do something, and it's not
 obvious how to do it by changing regular store state, it's probably easy to solve it if you try
 using events instead.
 
@@ -2159,7 +2159,7 @@ will add the appointment to the calendar.
 
 ## State Declaration
 
-While your main state class, usually called `AppState`, may be simple and contain all of the state
+While your main state class, usually called `AppState`, may be simple and contain all the state
 directly, in a real world application you will probably want to create many state classes and add
 them to the main state class. For example, if you have some state for the login, some user related
 state, and some *todos* in a To-Do app, you can organize it like this:
@@ -2825,8 +2825,8 @@ observation, and one with `ini==false` for the END action observation,
 In more detail:
 
 1. The INI action observation means the action was just dispatched and haven't changed anything yet.
-   After that, it may do sync stuff, and it may or may not start async processes, depending if its
-   reducer is sync or async.
+   After that, it may do sync stuff, and it may or may not start async processes, depending on its
+   reducer being sync or async.
 
 2. The END action observation means the action reducer has just finished returning a new state, thus
    changing the store state. Only after getting END states you may see store changes.
@@ -3071,9 +3071,10 @@ and `CancelListenUserNameAction`.
 
 ### Where the stream subscriptions themselves are stored
 
-As discussed above, you should NOT put them in the store state. Instead save them in some convenient
-place elsewhere, where your reducers may access them. Remember you **only** need to access them from
-the reducers. If you have separate business and client layers, put them into the business layer.
+As discussed above, you should NOT put them in the store state. Instead, save them in some
+convenient place elsewhere, where your reducers may access them. Remember you **only** need to
+access them from the reducers. If you have separate business and client layers, put them into the
+business layer.
 
 Some ideas:
 
@@ -3115,7 +3116,7 @@ streamSub = stream.listen((QuerySnapshot querySnapshot) {
 
 ### To sum up:
 
-1. Put your stream subscriptions where they can be accessed by the reducers, but NOT inside of the
+1. Put your stream subscriptions where they can be accessed by the reducers, but NOT inside the
    store state.
 
 2. Don't use streams directly in widgets (not in the Connector widget, and not in the dumb-widget).
@@ -3273,7 +3274,7 @@ According to redux.js.org there are three principles to Redux:
    reducers+middleware code to the AsyncRedux sync+async reducers code. The same async code will
    call the same pure code. You just organize it differently to avoid boilerplate. Another way to
    look at it is that at first glance the AsyncRedux reducer doesn't appear to be a pure function.
-   Pure function reducers are the wall of sanity against the side-effects managed by middleware via
+   Pure function reducers are the wall of sanity against the side effects managed by middleware via
    thunks, sagas, observables, etc. But when you take a second look, `return state.copy(...)` is the
    pure reducer, and everything else in `reduce()` is essentially middleware.
 
@@ -3296,10 +3297,10 @@ catch errors and maybe even dispatch actions do deal with them.
 ### Is AsyncRedux a minimalist or lightweight Redux version?
 
 No. AsyncRedux is concerned with being "easy to use", not with being lightweight. In terms of
-library code size it's larger than the original Redux implementation. However it's still very small,
-and will make the total application code smaller than with the vanilla implementation, because of
-the boilerplate reduction. In terms of speed/performance there should be no differences in respect
-to the vanilla implementation.
+library code size it's larger than the original Redux implementation. However, it's still very
+small, and will make the total application code smaller than with the vanilla implementation,
+because of the boilerplate reduction. In terms of speed/performance there should be no differences
+in respect to the vanilla implementation.
 
 ### Is the AsyncRedux architecture useful for small projects?
 

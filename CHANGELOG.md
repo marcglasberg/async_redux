@@ -18,7 +18,7 @@ best practices described in the AsyncRedux Readme.
 
   The state-observers are now also called when the action reducer complete with a error.
   In this case, the `error` object will not be null. This makes it easier to use state-observers
-  for metrics. Please se the documentation for the recommended clean-code way to do this.
+  for metrics. Please, see the documentation for the recommended clean-code way to do this.
 
 ## [16.1.0] - 2021/09/13
 
