@@ -2,6 +2,24 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
+## [17.0.0] - 2021/09/15
+
+* The `StateObserver.observe()` method signature changed to include an `error` parameter:
+
+  ```
+  void observe(
+     ReduxAction<St> action,
+     St stateIni,
+     St stateEnd,
+     Object? error,
+     int dispatchCount,
+     );
+  ```
+
+  The state-observers are now also called when the action reducer complete with a error.
+  In this case, the `error` object will not be null. This makes it easier to use state-observers
+  for metrics. Please se the documentation for the recommended clean-code way to do this.
+
 ## [16.1.0] - 2021/09/13
 
 * Added another cache function, for 2 states and 3 parameters: `cache2states_3params`.

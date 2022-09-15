@@ -447,7 +447,7 @@ class Store<St> {
     //
     catch (error, stackTrace) {
       originalError = error;
-      processedError = _processError(error, stackTrace, action, afterWasRun);
+      processedError = _processError(action, error, stackTrace, afterWasRun);
 
       // Error is meant to be "swallowed".
       if (processedError == null)
@@ -501,7 +501,7 @@ class Store<St> {
     //
     catch (error, stackTrace) {
       originalError = error;
-      processedError = _processError(error, stackTrace, action, afterWasRun);
+      processedError = _processError(action, error, stackTrace, afterWasRun);
       // Error is meant to be "swallowed".
       if (processedError == null)
         return action._status;
@@ -639,7 +639,11 @@ class Store<St> {
 
   /// Adds the state to the changeController, but only if the `reduce` method
   /// did not returned null, and if it did not return the same identical state.
+  ///
   /// Note: We compare the state using `identical` (which is fast).
+  ///
+  /// The [StateObserver]s are always called (if defined). If you need to know if the state was
+  /// changed or not, you can compare `bool ifStateChanged = identical(stateIni, stateEnd)`
   void _registerState(
     St? state,
     ReduxAction<St> action, {
@@ -663,7 +667,7 @@ class Store<St> {
 
     if (_stateObservers != null)
       for (StateObserver observer in _stateObservers!) {
-        observer.observe(action, stateIni, stateEnd, dispatchCount);
+        observer.observe(action, stateIni, stateEnd, null, dispatchCount);
       }
 
     if (_processPersistence != null)
@@ -675,11 +679,16 @@ class Store<St> {
 
   /// Returns the processed error. Returns `null` if the error is meant to be "swallowed".
   Object? _processError(
+    ReduxAction<St> action,
     Object error,
     StackTrace stackTrace,
-    ReduxAction<St> action,
     _Flag<bool> afterWasRun,
   ) {
+    if (_stateObservers != null)
+      for (StateObserver observer in _stateObservers!) {
+        observer.observe(action, _state, _state, error, dispatchCount);
+      }
+
     Object? errorOrNull = error;
     try {
       errorOrNull = action.wrapError(errorOrNull);

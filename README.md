@@ -2822,21 +2822,6 @@ abstract class ActionObserver<St> {
 The above observer will actually be called twice, one with `ini==true` for the INITIAL action
 observation, and one with `ini==false` for the END action observation,
 
-Meanwhile, the `StateObserver` is an abstract class which you can implement to be notified of
-**state changes**:
-
-```
-abstract class StateObserver<St> {
-
-   void observe(
-      ReduxAction<St> action, 
-      St stateIni, 
-      St stateEnd, 
-      int dispatchCount,
-      );
-}
-```
-
 In more detail:
 
 1. The INI action observation means the action was just dispatched and haven't changed anything yet.
@@ -2852,10 +2837,96 @@ In more detail:
    compare them.
 
 Please note, unless the action reducer is synchronous, getting an END action observation doesn't
-mean that all of the action effects have finished, because the action may have started async
+mean that all the action effects have finished, because the action may have started async
 processes that may well last into the future. And these processes may later dispatch other actions
 that will change the store state. However, it does mean that the action can no longer change the
 state **directly**.
+
+Meanwhile, the `StateObserver` is an abstract class which you can implement to be notified of
+**state changes**. This observer can be used for logging, but it can also be used for metrics.
+
+<br>
+
+## Metrics
+
+The recommended place to add metrics is in the `stateObservers`:
+
+```
+var store = Store<AppState>(
+  initialState: state,  
+  stateObservers: [MetricsObserver()],
+);
+```
+
+The `StateObserver` is an abstract class which you can implement to be notified of
+**state changes**:
+
+```
+abstract class StateObserver<St> {
+
+   void observe(
+      ReduxAction<St> action, 
+      St stateIni, 
+      St stateEnd, 
+      Object? error,
+      int dispatchCount,
+      );
+}
+```
+
+One or more `StateObserver`s can be set during the `Store` creation. Those observers are
+called for all dispatched actions, right after the reducer returns. That happens before the
+`after()` method is called, and before the action's `wrapError()` and the global `wrapError()`
+methods are called.
+
+The parameters are:
+
+* `action` = The action itself.
+
+* `stateIni` = The state right before the new state returned by the reducer is applied. Note this
+  may be different from the state when the reducer was called.
+
+* `stateEnd` = The state returned by the reducer. Note: If you need to know if the state was
+  changed or not by the reducer, you can compare both states:
+  `bool ifStateChanged = !identical(stateIni, stateEnd);`
+
+* `error` = Is `null` if the reducer completed with no error and returned. Otherwise, will be the
+  error thrown by the reducer (before any `wrapError` is applied). Note that, in case of
+  error, both `stateIni` and `stateEnd` will be the current store state when the error is
+  thrown.
+
+* `dispatchCount` = The sequential number of the dispatch.
+
+Among other uses, the state-observer is a good place to add **metrics** to your application.
+For example:
+
+```
+ abstract class AppAction extends ReduxAction<AppState> {
+   void trackEvent(AppState stateIni, AppState stateEnd) { // Don't to anything }
+ }
+
+ class AppStateObserver implements StateObserver<AppState> {
+   @override
+   void observe(
+     ReduxAction<AppState> action,
+     AppState stateIni,
+     AppState stateEnd,
+     Object? error,
+     int dispatchCount,
+   ) {
+     if (action is AppAction) action.trackEvent(stateIni, stateEnd, error);
+   }
+ }
+
+ class MyAction extends AppAction {
+    @override
+    AppState? reduce() { // Do something }
+
+    @override
+    void trackEvent(AppState stateIni, AppState stateEnd, Object? error) =>
+       MyMetrics().track(this, stateEnd, error);
+ }
+```
 
 <br>
 

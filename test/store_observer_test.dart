@@ -27,7 +27,13 @@ class _MyStateObserver extends StateObserver<num> {
   num? endValue;
 
   @override
-  void observe(ReduxAction<num?> action, num? stateIni, num? stateEnd, int dispatchCount) {
+  void observe(
+    ReduxAction<num?> action,
+    num? stateIni,
+    num? stateEnd,
+    Object? error,
+    int dispatchCount,
+  ) {
     iniValue = stateIni;
     endValue = stateEnd;
   }

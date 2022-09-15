@@ -44,9 +44,7 @@ class Page extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          primary: color,
-        ),
+        style: ElevatedButton.styleFrom(backgroundColor: color),
         child: Text(text!),
         onPressed: onChangePage,
       );
