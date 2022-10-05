@@ -68,6 +68,7 @@ best practices described in this Readme.
     * [Where the stream subscriptions themselves are stored](#where-the-stream-subscriptions-themselves-are-stored)
     * [How do streams pass their information to the store and ultimately to the widgets?](#how-do-streams-pass-their-information-to-the-store-and-ultimately-to-the-widgets)
     * [To sum up:](#to-sum-up)
+* [Undo and Redo](#undo-and-redo)
 * [Recommended Directory Structure](#recommended-directory-structure)
 * [Where to put your business logic](#where-to-put-your-business-logic)
 * [Architectural discussion](#architectural-discussion)
@@ -3124,6 +3125,37 @@ streamSub = stream.listen((QuerySnapshot querySnapshot) {
 3. Create actions to start and cancel streams, and call them when necessary.
 
 4. The stream callback should dispatch actions to put the snapshot data into the store state.
+
+<br>
+
+## Undo and Redo
+
+It's easy to create undo/redo features in AsyncRedux. When you create the store, add a
+state-observer called `UndoRedoObserver`:
+
+```
+var store = Store<AppState>(
+  initialState: state,  
+  stateObservers: [UndoRedoObserver()],
+);
+```
+
+That observer should add all the states it gets to a list. When you want to recover one of the
+states, simple call an action called `RecoverStateAction`, like so:
+
+```
+class RecoverStateAction extends ReduxAction<AppState> {
+   final AppState recoveredState;
+
+   RecoverStateAction(this.recoveredState);
+
+   @override
+   AppState reduce() => recoveredState;
+}
+```
+
+Note: This also works to undo/redo only part of the state. If you are only interested in undoing
+part of the state, your observer can save only that part, and your action can revert only that part.
 
 <br>
 
