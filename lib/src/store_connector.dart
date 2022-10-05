@@ -417,7 +417,7 @@ class _StoreStreamListenerState<St, Model> //
   void _computeLatestModel() {
     try {
       _latestError = null;
-      _latestModel = getLatestModel(widget.store.state);
+      _latestModel = getLatestModel(_forceLastValidStreamState ?? widget.store.state);
     } catch (error, stacktrace) {
       _latestModel = null;
       _latestError = _ConverterError(error, stacktrace, widget.debug);
