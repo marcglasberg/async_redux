@@ -380,7 +380,7 @@ class _StoreStreamListenerState<St, Model> //
     _computeLatestModel();
     if (widget.shouldUpdateModel != null) {
       // The initial state has to be valid at this point.
-      // This is need so that the first stream event
+      // This is needed so that the first stream event
       // can be compared against a baseline.
       _mostRecentValidState = widget.store.state;
     }
