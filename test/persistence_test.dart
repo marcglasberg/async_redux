@@ -1,3 +1,4 @@
+@Skip('Requires precise timing')
 import 'dart:async';
 
 import "package:async_redux/async_redux.dart";
