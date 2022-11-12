@@ -8,7 +8,8 @@ class ProcessPersistence<St> {
       : isPersisting = false,
         isANewStateAvailable = false,
         lastPersistTime = DateTime.now().toUtc(),
-        isPaused = false;
+        isPaused = false,
+        isInit = false;
 
   final Persistor persistor;
   St? lastPersistedState;
@@ -18,6 +19,7 @@ class ProcessPersistence<St> {
   DateTime lastPersistTime;
   Timer? timer;
   bool isPaused;
+  bool isInit;
 
   Duration get throttle => persistor.throttle ?? const Duration();
 
@@ -32,6 +34,7 @@ class ProcessPersistence<St> {
     ReduxAction<St>? action,
     St newState,
   ) {
+    isInit = true;
     newestState = newState;
 
     if (isPaused || identical(lastPersistedState, newState)) return false;
@@ -136,7 +139,7 @@ class ProcessPersistence<St> {
 
     _cancelTimer();
 
-    if (!isPersisting && !identical(lastPersistedState, newestState)) {
+    if (isInit && !isPersisting && !identical(lastPersistedState, newestState)) {
       var now = DateTime.now().toUtc();
       _persist(now, newestState);
     }
@@ -145,7 +148,7 @@ class ProcessPersistence<St> {
   /// Resumes persistence by the [Persistor], after calling [pause] or [persistAndPause].
   void resume() {
     isPaused = false;
-    process(null, newestState);
+    if (isInit) process(null, newestState);
   }
 
   /// Asks the [Persistor] to delete the saved state from the persistence.

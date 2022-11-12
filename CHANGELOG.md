@@ -2,15 +2,19 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
-# [18.0.0] - 2021/12/23
+# [18.0.1] - 2022/12/11
+
+* Fixed small bug when persistor is paused before being used once.
+
+# [18.0.0] - 2022/10/23
 
 * Version bump of dependencies.
 
-## [17.0.1] - 2021/10/09
+## [17.0.1] - 2022/10/09
 
 * Fixed issue with the StoreConnector.shouldUpdateModel method when the widget updates.
 
-## [17.0.0] - 2021/09/15
+## [17.0.0] - 2022/09/15
 
 * The `StateObserver.observe()` method signature changed to include an `error` parameter:
 
@@ -28,7 +32,7 @@ best practices described in the AsyncRedux Readme.
   In this case, the `error` object will not be null. This makes it easier to use state-observers
   for metrics. Please, see the documentation for the recommended clean-code way to do this.
 
-## [16.1.0] - 2021/09/13
+## [16.1.0] - 2022/09/13
 
 * Added another cache function, for 2 states and 3 parameters: `cache2states_3params`.
 
