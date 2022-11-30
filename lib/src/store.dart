@@ -691,7 +691,7 @@ class Store<St> {
 
     Object? errorOrNull = error;
     try {
-      errorOrNull = action.wrapError(errorOrNull);
+      errorOrNull = action.wrapError(errorOrNull, stackTrace);
     } catch (_error, stackTrace) {
       // Errors thrown by the action's wrapError.
       // WrapError should never throw. It should return an error.

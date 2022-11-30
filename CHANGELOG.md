@@ -2,6 +2,12 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
+# [19.0.0-dev.1] - 2022/11/29
+
+* Breaking change: The `Action.wrapError(error, stackTrace)` method now gets the stacktrace instead
+  of just the error. Where it breaks, just add the parameter, like so:
+  `Object wrapError(error) => ...` turns into `Object wrapError(error, _) => ...`
+
 # [18.0.2] - 2022/12/11
 
 * Fixed small bug when persistor is paused before being used once.

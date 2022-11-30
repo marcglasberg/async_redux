@@ -253,7 +253,7 @@ class ActionSyncBeforeThrowsErrorWithWrapError extends ReduxAction<String> {
   }
 
   @override
-  Object? wrapError(Object error) {
+  Object? wrapError(Object error, StackTrace stackTrace) {
     return WrappedError(error);
   }
 }
@@ -273,7 +273,7 @@ class ActionAsyncBeforeThrowsErrorWithWrapError extends ReduxAction<String> {
   }
 
   @override
-  Object? wrapError(Object error) {
+  Object? wrapError(Object error, StackTrace stackTrace) {
     return WrappedError(error);
   }
 }
@@ -293,7 +293,7 @@ class ActionAsyncBeforeThrowsErrorAsyncWithWrapError extends ReduxAction<String>
   }
 
   @override
-  Object? wrapError(Object error) => WrappedError(error);
+  Object? wrapError(Object error, StackTrace stackTrace) => WrappedError(error);
 }
 
 // 7) ----------------------------------------------
@@ -309,7 +309,7 @@ class ActionWithBeforeAndReducerThatThrowsErrorWithWrapError extends ReduxAction
   }
 
   @override
-  Object? wrapError(Object error) => WrappedError(error);
+  Object? wrapError(Object error, StackTrace stackTrace) => WrappedError(error);
 }
 
 // ----------------------------------------------

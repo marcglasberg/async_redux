@@ -89,18 +89,18 @@ abstract class ReduxAction<St> {
   /// For example, if some action converts a String into a number, then instead of
   /// throwing a FormatException you could do:
   ///
-  ///     wrapError(error) => UserException("Please enter a valid number.", cause: error)
+  ///     wrapError(error, _) => UserException("Please enter a valid number.", cause: error)
   ///
   /// If you want to disable the error you can return `null`. For example, if you want
   /// to disable errors of type `MyException`:
   ///
-  ///     wrapError(error) => (error is MyException) ? null : error
+  ///     wrapError(error, _) => (error is MyException) ? null : error
   ///
   /// IMPORTANT: The action [wrapError] behaves differently from the global [WrapError]
   /// because returning `null` will DISABLE the error, while in the global [WrapError]
   /// returning `null` will keep the error unchanged. This difference is confusing,
   /// and I will, in the future, change the global [WrapError] to match the action.
-  Object? wrapError(Object error) => error;
+  Object? wrapError(Object error, StackTrace stackTrace) => error;
 
   /// If this returns true, the action will not be dispatched: `before`, `reduce`
   /// and `after` will not be called, and the action will not be visible to the

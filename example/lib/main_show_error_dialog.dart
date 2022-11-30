@@ -67,7 +67,7 @@ class SaveUserAction extends ReduxAction<AppState> {
   }
 
   @override
-  Object wrapError(error) => UserException(
+  Object wrapError(error, stackTrace) => UserException(
         "Save failed",
         cause: error,
         onOk: () {
