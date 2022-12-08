@@ -1,4 +1,3 @@
-@Skip('Requires precise timing')
 import 'dart:async';
 
 import "package:async_redux/async_redux.dart";
@@ -47,57 +46,59 @@ void main() {
   ///////////////////////////////////////////////////////////////////////////////
 
   test('Create some simple state and persist, without throttle.', () async {
+    //
     await setupPersistorAndLocalDb();
 
     var storeTester = await createStoreTester();
     expect(storeTester.state.name, "John");
-    expect(await persistor.readState(), storeTester.state);
+    expect(await storeTester.store.readStateFromPersistence(), storeTester.state);
 
     storeTester.dispatch(ChangeNameAction("Mary"));
     TestInfo<AppState> info1 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "Mary");
-    expect(await persistor.readState(), info1.state);
+    expect(await storeTester.store.readStateFromPersistence(), info1.state);
 
     storeTester.dispatch(ChangeNameAction("Steve"));
     TestInfo<AppState> info2 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "Steve");
-    expect(await persistor.readState(), info2.state);
+    expect(await storeTester.store.readStateFromPersistence(), info2.state);
   });
 
   ///////////////////////////////////////////////////////////////////////////////
 
   test('Create some simple state and persist, with a 1 second throttle.', () async {
+    //
     await setupPersistorAndLocalDb(throttle: const Duration(seconds: 1));
 
     var storeTester = await createStoreTester();
     expect(storeTester.state.name, "John");
-    expect(await persistor.readState(), storeTester.state);
+    expect(await storeTester.store.readStateFromPersistence(), storeTester.state);
 
     // 1) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Mary"));
     TestInfo<AppState?> info1 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "John");
     expect(info1.state!.name, "Mary");
-    expect(await persistor.readState(), isNot(info1.state));
+    expect(await storeTester.store.readStateFromPersistence(), isNot(info1.state));
 
     // 2) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Steve"));
     TestInfo<AppState?> info2 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "John");
     expect(info2.state!.name, "Steve");
-    expect(await persistor.readState(), isNot(info2.state));
+    expect(await storeTester.store.readStateFromPersistence(), isNot(info2.state));
 
     // 3) The state is changed, but the persisted AppState is not.
     storeTester.dispatch(ChangeNameAction("Eve"));
     TestInfo<AppState?> info3 = await (storeTester.waitAllGetLast([ChangeNameAction]));
     expect(localDb.get(db: "main", id: Id("name")), "John");
     expect(info3.state!.name, "Eve");
-    expect(await persistor.readState(), isNot(info3.state));
+    expect(await storeTester.store.readStateFromPersistence(), isNot(info3.state));
 
     // 4) Now lets wait until the save is done.
     await Future.delayed(duration(1500));
     expect(localDb.get(db: "main", id: Id("name")), "Eve");
-    expect(await persistor.readState(), storeTester.state);
+    expect(await storeTester.store.readStateFromPersistence(), storeTester.state);
   });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -256,123 +257,129 @@ void main() {
   /////////////////////////////////////////////////////////////////////////////
 
   test(
-      "Pausing then resuming: "
-      "The throttle period is 215 milliseconds. "
-      "The state is changed each 60 milliseconds (at 0, 60, 120, 180, 240 etc). "
-      "We pause the persistor at the 5th change, and resume it at the 12th. "
-      "Here we test that the initial state is persisted, "
-      "and then that the state and the persistence occur when they should.", () async {
-    //
-    List<String> results = [];
+    "Pausing then resuming: "
+    "The throttle period is 215 milliseconds. "
+    "The state is changed each 60 milliseconds (at 0, 60, 120, 180, 240 etc). "
+    "We pause the persistor at the 5th change, and resume it at the 12th. "
+    "Here we test that the initial state is persisted, "
+    "and then that the state and the persistence occur when they should.",
+    () async {
+      //
+      List<String> results = [];
 
-    await setupPersistorAndLocalDb(throttle: duration(215));
-    var storeTester = await createStoreTester();
+      await setupPersistorAndLocalDb(throttle: duration(215));
+      var storeTester = await createStoreTester();
 
-    String result = writeStateAndDb(storeTester, localDb);
-    results.add(result);
-
-    int count = 0;
-    Completer completer = Completer();
-
-    Timer.periodic(duration(60), (timer) {
-      storeTester.dispatch(ChangeNameAction(count.toString()));
       String result = writeStateAndDb(storeTester, localDb);
       results.add(result);
-      count++;
-      if (count == 15) {
-        timer.cancel();
-        completer.complete();
-      }
 
-      if (count == 5) storeTester.store.pausePersistor();
-      if (count == 12) storeTester.store.resumePersistor();
-    });
+      int count = 0;
+      Completer completer = Completer();
 
-    await completer.future;
+      Timer.periodic(duration(60), (timer) {
+        storeTester.dispatch(ChangeNameAction(count.toString()));
+        String result = writeStateAndDb(storeTester, localDb);
+        results.add(result);
+        count++;
+        if (count == 15) {
+          timer.cancel();
+          completer.complete();
+        }
 
-    printResults(results);
+        if (count == 5) storeTester.store.pausePersistor();
+        if (count == 12) storeTester.store.resumePersistor();
+      });
 
-    expect(
-        results.join('\n'),
-        "(state:John, db: John)\n" // It starts with state and db in the initial state: John.
-        "(state:0, db: John)\n" // Changed state in 60 millis.
-        "(state:1, db: John)\n" // Changed state in 120 millis.
-        "(state:2, db: John)\n" // Changed state in 180 millis.
-        "(state:3, db: 2)\n" // Changed state in 240 millis. Saved db em 215 millis.
-        "(state:4, db: 4)\n" // Changed state in 300 millis. PERSIST AND PAUSE here.
-        "(state:5, db: 4)\n" // Changed state in 360 millis.
-        "(state:6, db: 4)\n" // Changed state in 420 millis.
-        "(state:7, db: 4)\n" // Changed state in 480 millis. Saved db em 430 millis.
-        "(state:8, db: 4)\n" // Changed state in 540 millis.
-        "(state:9, db: 4)\n" // Changed state in 600 millis.
-        "(state:10, db: 4)\n" // Changed state in 660 millis. Saved db em 645 millis.
-        "(state:11, db: 4)\n" // Changed state in 720 millis. RESUME here.
-        "(state:12, db: 11)\n" // Changed state in 780 millis.
-        "(state:13, db: 11)\n" // Changed state in 840 millis.
-        "(state:14, db: 11)\n"); // Changed state in 900 millis. Saved db em 860 millis.
-  });
+      await completer.future;
+
+      printResults(results);
+
+      expect(
+          results.join('\n'),
+          "(state:John, db: John)\n" // It starts with state and db in the initial state: John.
+          "(state:0, db: John)\n" // Changed state in 60 millis.
+          "(state:1, db: John)\n" // Changed state in 120 millis.
+          "(state:2, db: John)\n" // Changed state in 180 millis.
+          "(state:3, db: 2)\n" // Changed state in 240 millis. Saved db em 215 millis.
+          "(state:4, db: 4)\n" // Changed state in 300 millis. PERSIST AND PAUSE here.
+          "(state:5, db: 4)\n" // Changed state in 360 millis.
+          "(state:6, db: 4)\n" // Changed state in 420 millis.
+          "(state:7, db: 4)\n" // Changed state in 480 millis. Saved db em 430 millis.
+          "(state:8, db: 4)\n" // Changed state in 540 millis.
+          "(state:9, db: 4)\n" // Changed state in 600 millis.
+          "(state:10, db: 4)\n" // Changed state in 660 millis. Saved db em 645 millis.
+          "(state:11, db: 4)\n" // Changed state in 720 millis. RESUME here.
+          "(state:12, db: 11)\n" // Changed state in 780 millis.
+          "(state:13, db: 11)\n" // Changed state in 840 millis.
+          "(state:14, db: 11)\n"); // Changed state in 900 millis. Saved db em 860 millis.
+    },
+    skip: 'Requires precise timing',
+  );
 
   /////////////////////////////////////////////////////////////////////////////
 
   test(
-      "Persisting and pausing, then resuming: "
-      "The throttle period is 215 milliseconds. "
-      "The state is changed each 60 milliseconds (at 0, 60, 120, 180, 240 etc). "
-      "We pause the persistor at the 5th change, and resume it at the 12th. "
-      "Here we test that the initial state is persisted, "
-      "and then that the state and the persistence occur when they should.", () async {
-    //
-    List<String> results = [];
+    "Persisting and pausing, then resuming: "
+    "The throttle period is 215 milliseconds. "
+    "The state is changed each 60 milliseconds (at 0, 60, 120, 180, 240 etc). "
+    "We pause the persistor at the 5th change, and resume it at the 12th. "
+    "Here we test that the initial state is persisted, "
+    "and then that the state and the persistence occur when they should.",
+    () async {
+      //
+      List<String> results = [];
 
-    await setupPersistorAndLocalDb(throttle: duration(215));
-    var storeTester = await createStoreTester();
+      await setupPersistorAndLocalDb(throttle: duration(215));
+      var storeTester = await createStoreTester();
 
-    String result = writeStateAndDb(storeTester, localDb);
-    results.add(result);
-
-    int count = 0;
-    Completer completer = Completer();
-
-    Timer.periodic(duration(60), (timer) {
-      storeTester.dispatch(ChangeNameAction(count.toString()));
       String result = writeStateAndDb(storeTester, localDb);
       results.add(result);
-      count++;
-      if (count == 15) {
-        timer.cancel();
-        completer.complete();
-      }
 
-      if (count == 5) storeTester.store.persistAndPausePersistor();
-      if (count == 12) storeTester.store.resumePersistor();
-    });
+      int count = 0;
+      Completer completer = Completer();
 
-    await completer.future;
+      Timer.periodic(duration(60), (timer) {
+        storeTester.dispatch(ChangeNameAction(count.toString()));
+        String result = writeStateAndDb(storeTester, localDb);
+        results.add(result);
+        count++;
+        if (count == 15) {
+          timer.cancel();
+          completer.complete();
+        }
 
-    printResults(results);
+        if (count == 5) storeTester.store.persistAndPausePersistor();
+        if (count == 12) storeTester.store.resumePersistor();
+      });
 
-    // Expected: ... te:5, db: 2)(state:6 ...
-    // Actual: ... te:5, db: 4)(state:6 ...
+      await completer.future;
 
-    expect(
-        results.join('\n'),
-        "(state:John, db: John)\n" // It starts with state and db in the initial state: John.
-        "(state:0, db: John)\n" // Changed state in 60 millis.
-        "(state:1, db: John)\n" // Changed state in 120 millis.
-        "(state:2, db: John)\n" // Changed state in 180 millis.
-        "(state:3, db: 2)\n" // Changed state in 240 millis. Saved db em 215 millis.
-        "(state:4, db: 2)\n" // Changed state in 300 millis. PAUSE here.
-        "(state:5, db: 2)\n" // Changed state in 360 millis.
-        "(state:6, db: 2)\n" // Changed state in 420 millis.
-        "(state:7, db: 2)\n" // Changed state in 480 millis. Saved db em 430 millis.
-        "(state:8, db: 2)\n" // Changed state in 540 millis.
-        "(state:9, db: 2)\n" // Changed state in 600 millis.
-        "(state:10, db: 2)\n" // Changed state in 660 millis. Saved db em 645 millis.
-        "(state:11, db: 2)\n" // Changed state in 720 millis. RESUME here.
-        "(state:12, db: 11)\n" // Changed state in 780 millis.
-        "(state:13, db: 11)\n" // Changed state in 840 millis.
-        "(state:14, db: 11)\n"); // Changed state in 900 millis. Saved db em 860 millis.
-  });
+      printResults(results);
+
+      // Expected: ... te:5, db: 2)(state:6 ...
+      // Actual: ... te:5, db: 4)(state:6 ...
+
+      expect(
+          results.join('\n'),
+          "(state:John, db: John)\n" // It starts with state and db in the initial state: John.
+          "(state:0, db: John)\n" // Changed state in 60 millis.
+          "(state:1, db: John)\n" // Changed state in 120 millis.
+          "(state:2, db: John)\n" // Changed state in 180 millis.
+          "(state:3, db: 2)\n" // Changed state in 240 millis. Saved db em 215 millis.
+          "(state:4, db: 2)\n" // Changed state in 300 millis. PAUSE here.
+          "(state:5, db: 2)\n" // Changed state in 360 millis.
+          "(state:6, db: 2)\n" // Changed state in 420 millis.
+          "(state:7, db: 2)\n" // Changed state in 480 millis. Saved db em 430 millis.
+          "(state:8, db: 2)\n" // Changed state in 540 millis.
+          "(state:9, db: 2)\n" // Changed state in 600 millis.
+          "(state:10, db: 2)\n" // Changed state in 660 millis. Saved db em 645 millis.
+          "(state:11, db: 2)\n" // Changed state in 720 millis. RESUME here.
+          "(state:12, db: 11)\n" // Changed state in 780 millis.
+          "(state:13, db: 11)\n" // Changed state in 840 millis.
+          "(state:14, db: 11)\n"); // Changed state in 900 millis. Saved db em 860 millis.
+    },
+    skip: 'Requires precise timing',
+  );
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -697,6 +704,39 @@ void main() {
         "(state:2nd, db: 1st)"
         "(state:2nd, db: 2nd)"
         "(state:2nd, db: 2nd)");
+  });
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  test('Test the persistor in the store holds the correct state.', () async {
+    //
+    await setupPersistorAndLocalDb();
+
+    var initialState = AppState.initialState();
+
+    var store = Store<AppState>(
+      initialState: initialState,
+      persistor: persistor,
+    );
+
+    // When the store is created with a Persistor, the store considers that the
+    // provided initial-state was already persisted. You have to make sure this is the case.
+    expect(store.getLastPersistedStateFromPersistor(), AppState.initialState());
+
+    // Which means it doesn't save the initial-state automatically.
+    var persistedState = await persistor.readState();
+    expect(persistedState, isNull);
+
+    var storeTester = StoreTester.from(store);
+
+    storeTester.dispatch(ChangeNameAction("Mary"));
+    TestInfo<AppState> info1 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    expect(await storeTester.store.readStateFromPersistence(), info1.state);
+    expect(store.getLastPersistedStateFromPersistor(), initialState.copy(name: "Mary"));
+
+    /// If we delete it, it will be null.
+    storeTester.store.deleteStateFromPersistence();
+    expect(store.getLastPersistedStateFromPersistor(), isNull);
   });
 
   ///////////////////////////////////////////////////////////////////////////////

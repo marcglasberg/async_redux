@@ -4,7 +4,7 @@ import 'package:async_redux/async_redux.dart';
 
 class ProcessPersistence<St> {
   //
-  ProcessPersistence(this.persistor)
+  ProcessPersistence(this.persistor, this.lastPersistedState)
       : isPersisting = false,
         isANewStateAvailable = false,
         lastPersistTime = DateTime.now().toUtc(),
@@ -22,6 +22,25 @@ class ProcessPersistence<St> {
   bool isInit;
 
   Duration get throttle => persistor.throttle ?? const Duration();
+
+  /// Same as [Persistor.saveInitialState] but will remember [initialState] as the [lastPersistedState].
+  Future<void> saveInitialState(St initialState) {
+    lastPersistedState = initialState;
+    return persistor.saveInitialState(initialState);
+  }
+
+  /// Same as [Persistor.readState] but will remember the read state as the [lastPersistedState].
+  Future<St?> readState() async {
+    St? state = await persistor.readState();
+    lastPersistedState = state;
+    return state;
+  }
+
+  /// Same as [Persistor.deleteState] but will clear the [lastPersistedState].
+  Future<void> deleteState() async {
+    lastPersistedState = null;
+    return persistor.deleteState();
+  }
 
   /// 1) If we're still persisting the last time, don't persist no matter what.
   /// 2) If throttle period is done (or if action is PersistAction), persist.
@@ -149,10 +168,5 @@ class ProcessPersistence<St> {
   void resume() {
     isPaused = false;
     if (isInit) process(null, newestState);
-  }
-
-  /// Asks the [Persistor] to delete the saved state from the persistence.
-  Future<void> deletePersistedState() {
-    return persistor.deleteState();
   }
 }

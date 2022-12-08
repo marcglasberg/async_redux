@@ -99,6 +99,13 @@ class _UserExceptionDialogWidget extends StatefulWidget {
       if (navigatorContext != null) context = navigatorContext;
     }
 
+    Locale? locale;
+    try {
+      locale = Localizations.localeOf(context);
+    } catch (error) {
+      // This works when the MaterialApp widget is initialized.
+    }
+
     defaultTargetPlatform;
     if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS)) {
       showCupertinoDialogSuper<int>(
@@ -116,8 +123,8 @@ class _UserExceptionDialogWidget extends StatefulWidget {
           }
         },
         builder: (BuildContext context) => CupertinoAlertDialog(
-          title: Text(userException.dialogTitle()),
-          content: Text(userException.dialogContent()),
+          title: Text(userException.dialogTitle(locale)),
+          content: Text(userException.dialogContent(locale)),
           actions: [
             CupertinoDialogAction(
               child: const Text("OK"),
@@ -151,8 +158,8 @@ class _UserExceptionDialogWidget extends StatefulWidget {
           }
         },
         builder: (BuildContext context) => AlertDialog(
-          title: Text(userException.dialogTitle()),
-          content: Text(userException.dialogContent()),
+          title: Text(userException.dialogTitle(locale)),
+          content: Text(userException.dialogContent(locale)),
           actions: [
             if (userException.onCancel != null)
               TextButton(

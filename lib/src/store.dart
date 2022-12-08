@@ -111,7 +111,7 @@ class Store<St> {
         _processPersistence = persistor == null
             ? //
             null
-            : ProcessPersistence(persistor),
+            : ProcessPersistence(persistor, initialState),
         _modelObserver = modelObserver,
         _errorObserver = errorObserver,
         _wrapError = wrapError,
@@ -268,10 +268,25 @@ class Store<St> {
     _processPersistence?.resume();
   }
 
-  /// Asks the [Persistor] to delete the saved state from the persistence.
-  Future<void> deletePersistedState() async {
-    return _processPersistence?.deletePersistedState();
+  /// Asks the [Persistor] to save the [initialState] in the local persistence.
+  Future<void> saveInitialStateInPersistence(St initialState) async {
+    return _processPersistence?.saveInitialState(initialState);
   }
+
+  /// Asks the [Persistor] to read the state from the local persistence.
+  /// Important: If you use this, you MUST put this state into the store.
+  /// The Persistor will assume that's the case, and will not work properly otherwise.
+  Future<St?> readStateFromPersistence() async {
+    return _processPersistence?.readState();
+  }
+
+  /// Asks the [Persistor] to delete the saved state from the local persistence.
+  Future<void> deleteStateFromPersistence() async {
+    return _processPersistence?.deleteState();
+  }
+
+  /// Gets, from the [Persistor], the last state that was saved to the local persistence.
+  St? getLastPersistedStateFromPersistor() => _processPersistence?.lastPersistedState;
 
   /// Turns on testing capabilities, if not already.
   void initTestInfoController() {

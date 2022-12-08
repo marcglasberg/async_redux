@@ -2,11 +2,25 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
-# [19.0.0-dev.1] - 2022/11/29
+# [19.0.0-dev.2] - 2022/12/07
 
 * Breaking change: The `Action.wrapError(error, stackTrace)` method now gets the stacktrace instead
   of just the error. Where it breaks, just add the parameter, like so:
   `Object wrapError(error) => ...` turns into `Object wrapError(error, _) => ...`
+
+* Breaking change: When a `Persistor` is provided to the Store, it now considers the
+  `initialState` is already persisted. Before this change, it considered nothing was
+  persisted. Note: Before you create the store, you are allowed to call the `Persistor` methods
+  directly: `Persistor.saveInitialState()`, `readState()` and `deleteState()`.
+  However, after you create the store, please don't call those methods yourself anymore.
+  If you do it, AsyncRedux cannot keep track of which state was persisted. After store creation,
+  if necessary you should use the corresponding methods `Store.saveInitialStateInPersistence()`,
+  `Store.readStateFromPersistence()` and `Store.deleteStateFromPersistence()`. These methods let
+  AsyncRedux keep track of the persisted state, so that it's able to call
+  `Persistor.persistDifference()` with the appropriate parameters.
+
+* Method `Store.getLastPersistedStateFromPersistor()` returns the state that was last persisted
+  to the local persistence. It's unlikely you will use this method yourself.
 
 # [18.0.2] - 2022/12/11
 
