@@ -47,8 +47,8 @@ class EnvironmentImpl implements Environment {
 // ////////////////////////////////////////////////////////////////////////////
 
 /// We extend [VmFactory] to provide typed access to the [Environment].
-abstract class AppFactory<T extends Widget?, Model> extends VmFactory<int, T, Model> {
-  AppFactory([T? widget]) : super(widget);
+abstract class AppFactory<T extends Widget?, Model extends Vm> extends VmFactory<int, T, Model> {
+  AppFactory([T? connector]) : super(connector);
 
   @override
   Environment get env => super.env as Environment;
@@ -109,7 +109,7 @@ class MyHomePageConnector extends StatelessWidget {
 
 /// Factory that creates a view-model for the StoreConnector.
 class Factory extends AppFactory<MyHomePageConnector, ViewModel> {
-  Factory(widget) : super(widget);
+  Factory(connector) : super(connector);
 
   @override
   ViewModel fromStore() => ViewModel(

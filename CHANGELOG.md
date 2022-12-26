@@ -2,7 +2,7 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
-# [19.0.0-dev.5] - 2022/12/26
+# [19.0.0-dev.6] - 2022/12/26
 
 * Breaking change: The `Action.wrapError(error, stackTrace)` method now also gets the stacktrace
   instead of just the error. If your code breaks, just add the extra parameter, like so:
@@ -46,15 +46,11 @@ best practices described in the AsyncRedux Readme.
   you cannot reference the `vm` inside of the `fromStore()` method itself. If you do that,
   you'll get a `StoreException`. You also cannot use the `vm` getter if the view-model is null.
 
-  Note 2: To reduce boilerplate, I recommend you define a base Factory, like so:
+  Note 2: To reduce boilerplate, and not having to pass the `AppState` type parameter whenever you
+  create a Factory, I recommend you define a base Factory, like so:
     ```
-    abstract class BaseFactory<Model extends Vm, T extends Widget?> 
-                   extends VmFactory<AppState, T, Model> {
-  
-        BaseFactory([Widget? widget]) : super(widget as T?);  
-  
-        @override
-        T get widget => super.widget!;  
+    abstract class BaseFactory<T extends Widget?, Model extends Vm> extends VmFactory<AppState, T, Model> {
+        BaseFactory([T? connector]) : super(connector);
     }
     ```
 
@@ -609,7 +605,7 @@ class MyHomePageConnector extends StatelessWidget {
 }
 
 class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
-  Factory(widget) : super(widget);
+  Factory(connector) : super(connector);
 
   @override
   ViewModel fromStore() =>

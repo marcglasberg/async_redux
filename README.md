@@ -585,7 +585,7 @@ class MyHomePageConnector extends StatelessWidget {
   }}
 
 class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
-  Factory(widget) : super(widget);
+  Factory(connector) : super(connector);
   @override
   ViewModel fromStore() => ViewModel(
       counter: state.counter,
@@ -717,7 +717,7 @@ should be provided in the `StoreConnector` constructor: `vm` or `converter`.
    ...
    
    class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
-      Factory(widget) : super(widget);
+      Factory(connector) : super(connector);
    
       @override
       ViewModel fromStore() => ViewModel(
@@ -759,61 +759,75 @@ should be provided in the `StoreConnector` constructor: `vm` or `converter`.
    means you cannot use it inside the `fromStore()` method itself. If you do that,
    you'll get a `StoreException`.
 
-   Another idea is to subclass `Vm` to provide additional features to your model. For example, you
-   could add extra getters to help you access state:
+   <br>
+
+   Another idea is to subclass `VmFactory` to:
+
+    * Reduce boilerplate, and not having to pass the `AppState` type parameter whenever you
+      create a Factory.
+
+    * Provide additional features to your model. For example, you could add extra getters to help
+      you access state.
+
+   Example:
 
    ```       
-   class BaseViewModel extends Vm {
-       User user => state.user;        
-    }
+   abstract class BaseFactory<T extends Widget?, Model extends Vm> 
+     extends VmFactory<AppState, T, Model> {
+          
+     BaseFactory([T? connector]) : super(connector);
+         
+     User get user => state.user;        
+   }
     
-   class ViewModel extends BaseViewModel { 
-       @override
-       ViewModel fromStore() => ViewModel.build(
-          name: user.name,       
-       );                                    
+   class _Factory extends BaseFactory {
+    
+     @override
+     ViewModel fromStore() => ViewModel(
+        name: user.name, // Instead of `name: state.user.name`       
+     );                                    
    }
    ```   
 
    <br>
 
-   **What if you can't generate the view-model?**
+**What if you can't generate the view-model?**
 
-   Note: Sometimes you don't have enough information to generate the view-model. For example, some
-   information may still be loading, or the state is inconsistent for some reason. In that case,
-   your Factory can return `null` instead of the `vm`, and the connector can return an alternative
-   placeholder widget.
+Note: Sometimes you don't have enough information to generate the view-model. For example, some
+information may still be loading, or the state is inconsistent for some reason. In that case,
+your Factory can return `null` instead of the `vm`, and the connector can return an alternative
+placeholder widget.
 
-   To that end, declare the view-model as nullable (`ViewModel?`) in these 3 places:
-   the `StoreConnector`, the `builder`, and the `fromStore` method. Then, check for `null` in
-   the `builder`. For example:
+To that end, declare the view-model as nullable (`ViewModel?`) in these 3 places:
+the `StoreConnector`, the `builder`, and the `fromStore` method. Then, check for `null` in
+the `builder`. For example:
 
    ```                               
    return StoreConnector<AppState, ViewModel?>( // 1. Use `ViewModel?` here!
-     vm: () => Factory(this),       
-     builder: (BuildContext context, ViewModel? vm) { // 2. Use `ViewModel?` here!
-       return (vm == null) // 3. Check for null view-model here.
-         ? Text("The user is not logged in")
-         : MyHomePage(user: vm.user)
+   vm: () => Factory(this),       
+   builder: (BuildContext context, ViewModel? vm) { // 2. Use `ViewModel?` here!
+     return (vm == null) // 3. Check for null view-model here.
+       ? Text("The user is not logged in")
+       : MyHomePage(user: vm.user)
    
    ...                         
    
    class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {   
    ViewModel? fromStore() { // 4. Use `ViewModel?` here!
-     return (store.state.user == null)
-         ? null
-         : ViewModel(user: store.state.user)
+   return (store.state.user == null)
+       ? null
+       : ViewModel(user: store.state.user)
    
    ...
    
    class ViewModel extends Vm {
-     final User user;  
-     ViewModel({required this.user}) : super(equals: [user]);
+   final User user;  
+   ViewModel({required this.user}) : super(equals: [user]);
    ```         
 
-   Try running
-   the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_null_viewmodel.dart">
-   Null ViewModel Example</a>.
+Try running
+the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_null_viewmodel.dart">
+Null ViewModel Example</a>.
 
    <br>
 
@@ -2497,8 +2511,8 @@ store = Store<AppState>(
 You can then extend both `ReduxAction` and `VmFactory` to provide typed access to your environment:
 
 ```
-abstract class AppFactory<T, Model> extends VmFactory<int, T, Model> {
-  AppFactory([T? widget]) : super(widget);
+abstract class AppFactory<T extends Widget?, Model extends Vm> extends VmFactory<int, T, Model> {
+  AppFactory([T? connector]) : super(connector);
 
   @override
   Environment get env => super.env as Environment;
@@ -2516,7 +2530,7 @@ Then, use the environment when creating the view-model:
 
 ```
 class Factory extends AppFactory<MyHomePageConnector> {
-  Factory(widget) : super(widget);
+  Factory(connector) : super(connector);
 
   @override
   ViewModel fromStore() => ViewModel(

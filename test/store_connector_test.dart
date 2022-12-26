@@ -122,7 +122,7 @@ class _TestContent extends StatelessWidget {
 }
 
 class Factory extends VmFactory<int, _TestContent, ViewModel> {
-  Factory(widget) : super(widget);
+  Factory(connector) : super(connector);
 
   @override
   ViewModel fromStore() {

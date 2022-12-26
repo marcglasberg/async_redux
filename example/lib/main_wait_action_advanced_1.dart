@@ -120,7 +120,7 @@ class MyHomePageConnector extends StatelessWidget {
 
 /// Factory that creates a view-model for the StoreConnector.
 class PageVmFactory extends VmFactory<AppState, MyHomePageConnector, PageViewModel> {
-  PageVmFactory(widget) : super(widget);
+  PageVmFactory(connector) : super(connector);
 
   @override
   PageViewModel fromStore() => PageViewModel(
@@ -170,14 +170,14 @@ class MyItemConnector extends StatelessWidget {
 
 /// Factory that creates a view-model for the StoreConnector.
 class ItemVmFactory extends VmFactory<AppState, MyItemConnector, ItemViewModel> {
-  ItemVmFactory(widget) : super(widget);
+  ItemVmFactory(connector) : super(connector);
 
   @override
   ItemViewModel fromStore() => ItemViewModel(
-        description: state.descriptions[widget!.index] ?? "",
+        description: state.descriptions[connector.index] ?? "",
 
         /// If index is waiting, `state.wait.isWaitingFor(index)` returns true.
-        waiting: state.wait.isWaitingFor(widget!.index),
+        waiting: state.wait.isWaitingFor(connector.index),
       );
 }
 

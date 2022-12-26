@@ -141,21 +141,27 @@ abstract class Vm {
 ///
 /// ...
 /// class _Factory extends VmFactory<AppState, MyHomePageConnector> {
-///    _Factory(widget) : super(widget);
+///    _Factory(connector) : super(connector);
 ///    _ViewModel fromStore() => _ViewModel(
 ///        counter: state,
 ///        onIncrement: () => dispatch(IncrementAction(amount: widget.amount)));
 /// }
 /// ```
 ///
-abstract class VmFactory<St, T, Model> {
+abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// You need to pass the connector widget only if the view-model needs any info from it.
-  VmFactory([this.widget]);
+  VmFactory([this._connector]);
 
   Model? fromStore();
 
-  /// A reference to the connector widget that will instantiate the view-model.
-  final T? widget;
+  final T? _connector;
+
+  /// The connector widget that will instantiate the view-model.
+  @Deprecated("Use `connector` instead")
+  T? get widget => _connector;
+
+  /// The connector widget that will instantiate the view-model.
+  T get connector => _connector!;
 
   late final Store<St> _store;
   late final St _state;
