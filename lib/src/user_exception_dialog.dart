@@ -204,7 +204,7 @@ class _UserExceptionDialogState extends State<_UserExceptionDialogWidget> {
 
 // ////////////////////////////////////////////////////////////////////////////
 
-class _Factory<St> extends VmFactory<St, UserExceptionDialog> {
+class _Factory<St> extends VmFactory<St, UserExceptionDialog, _Vm> {
   static final Queue<Event<UserException>> _errorEvents = Queue();
 
   @override

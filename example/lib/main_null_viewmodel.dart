@@ -67,7 +67,7 @@ class MyHomePageConnector extends StatelessWidget {
   }
 }
 
-class Factory extends VmFactory<int, MyHomePageConnector> {
+class Factory extends VmFactory<int, MyHomePageConnector, ViewModel> {
   Factory(widget) : super(widget);
 
   /// 3) The `fromStore` method uses `ViewModel?` instead of `ViewModel`.

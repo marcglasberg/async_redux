@@ -61,7 +61,7 @@ class MyHomePageConnector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class Factory extends VmFactory<int, MyHomePageConnector> {
+class Factory extends VmFactory<int, MyHomePageConnector, ViewModel> {
   Factory(widget) : super(widget);
 
   @override

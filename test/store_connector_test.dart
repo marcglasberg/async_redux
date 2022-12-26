@@ -121,7 +121,7 @@ class _TestContent extends StatelessWidget {
   }
 }
 
-class Factory extends VmFactory<int, _TestContent> {
+class Factory extends VmFactory<int, _TestContent, ViewModel> {
   Factory(widget) : super(widget);
 
   @override

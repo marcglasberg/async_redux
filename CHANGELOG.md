@@ -2,7 +2,7 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
-# [19.0.0-dev.3] - 2022/12/07
+# [19.0.0-dev.5] - 2022/12/26
 
 * Breaking change: The `Action.wrapError(error, stackTrace)` method now also gets the stacktrace
   instead of just the error. If your code breaks, just add the extra parameter, like so:
@@ -28,26 +28,35 @@ best practices described in the AsyncRedux Readme.
 
 <br>
 
-* In a Factory, once the view-model is created, and as long as it's not null, you can reference
-  the view-model by using the `vm` getter. This is meant to be used inside the Factory methods.
-  Example:
+* Breaking change: The factory declaration used to have two type parameters, but now it has three:
+  `class Factory extends VmFactory<AppState, MyConnector, MyViewModel>`
+  With that change, you can now reference the view-model inside the Factory methods, by using
+  the `vm` getter. Example:
     ```
     ViewModel fromStore() =>
       ViewModel(
         value: _calculateValue(),
         onTap: _onTap);
-    }
-  
-    // Here we use the value, without having to recalculate it.
-    void _onTap() => dispatch(SaveValueAction(vm.value));
+    }  
+    
+    void _onTap() => dispatch(SaveValueAction(vm.value)); // Use the value from the vm.
     ```
-  Note you can only use the `vm` getter after the `fromStore()` method is called, which means
+
+  Note 1: You can only use the `vm` getter after the `fromStore()` method is called, which means
   you cannot reference the `vm` inside of the `fromStore()` method itself. If you do that,
-  you'll get a `StoreException`.
-  Also note, this new feature will be a breaking change in case you were already defining a variable
-  called `vm` in the Factory. Usually that will be the case ony if you were already saving the
-  view-model to some variable. If that's the case, simply remove the creation of this variable, as
-  AsyncRedux now does this automatically for you.
+  you'll get a `StoreException`. You also cannot use the `vm` getter if the view-model is null.
+
+  Note 2: To reduce boilerplate, I recommend you define a base Factory, like so:
+    ```
+    abstract class BaseFactory<Model extends Vm, T extends Widget?> 
+                   extends VmFactory<AppState, T, Model> {
+  
+        BaseFactory([Widget? widget]) : super(widget as T?);  
+  
+        @override
+        T get widget => super.widget!;  
+    }
+    ```
 
 # [18.0.2] - 2022/12/11
 
@@ -295,7 +304,7 @@ best practices described in the AsyncRedux Readme.
   
   ...              
          
-  class Factory extends VmFactory<AppState, MyHomePageConnector> {   
+  class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {   
   ViewModel? fromStore() {
     return (store.state.user == null)
         ? null
@@ -599,7 +608,7 @@ class MyHomePageConnector extends StatelessWidget {
   }
 }
 
-class Factory extends VmFactory<AppState, MyHomePageConnector> {
+class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
   Factory(widget) : super(widget);
 
   @override

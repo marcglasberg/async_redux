@@ -67,7 +67,7 @@ class Page1Connector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class Factory1 extends VmFactory<AppState, Page1Connector> {
+class Factory1 extends VmFactory<AppState, Page1Connector, ViewModel1> {
   @override
   ViewModel1 fromStore() =>
       ViewModel1(onChangePage: () => dispatch(NavigateAction.pushNamed("/myRoute")));
@@ -97,7 +97,7 @@ class Page2Connector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class Factory2 extends VmFactory<AppState, Page1Connector> {
+class Factory2 extends VmFactory<AppState, Page1Connector, ViewModel2> {
   @override
   ViewModel2 fromStore() => ViewModel2(
         onChangePage: () => dispatch(NavigateAction.pop()),

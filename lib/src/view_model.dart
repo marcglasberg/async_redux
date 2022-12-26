@@ -148,11 +148,11 @@ abstract class Vm {
 /// }
 /// ```
 ///
-abstract class VmFactory<St, T> {
+abstract class VmFactory<St, T, Model> {
   /// You need to pass the connector widget only if the view-model needs any info from it.
   VmFactory([this.widget]);
 
-  Vm? fromStore();
+  Model? fromStore();
 
   /// A reference to the connector widget that will instantiate the view-model.
   final T? widget;
@@ -161,7 +161,7 @@ abstract class VmFactory<St, T> {
   late final St _state;
 
   /// Once the Vm is created, we save it so that it can be used by factory methods.
-  Vm? _vm;
+  Model? _vm;
   bool _vmCreated = false;
 
   /// Once the view-model is created, and as long as it's not null, you can reference
@@ -180,7 +180,7 @@ abstract class VmFactory<St, T> {
   /// void _onTap() => dispatch(SaveValueAction(vm.value));
   /// ```
   ///
-  Vm get vm {
+  Model get vm {
     if (!_vmCreated)
       throw StoreException("You can't reference the view-model "
           "before it's created and returned by the fromStore method.");
@@ -232,14 +232,15 @@ abstract class VmFactory<St, T> {
 }
 
 /// For internal use only. Please don't use this.
-Vm? internalsVmFactoryFromStore(VmFactory vmFactory) {
+Vm? internalsVmFactoryFromStore(VmFactory<dynamic, dynamic, dynamic> vmFactory) {
   vmFactory._vm = vmFactory.fromStore();
   vmFactory._vmCreated = true;
   return vmFactory._vm;
 }
 
 /// For internal use only. Please don't use this.
-void internalsVmFactoryInject<St>(VmFactory vmFactory, St state, Store store) {
+void internalsVmFactoryInject<St>(
+    VmFactory<St, dynamic, dynamic> vmFactory, St state, Store store) {
   vmFactory._setStore(state, store);
 }
 

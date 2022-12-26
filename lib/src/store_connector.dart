@@ -75,7 +75,7 @@ typedef ViewModelBuilder<Model> = Widget Function(
 // /////////////////////////////////////////////////////////////////////////////
 
 abstract class StoreConnectorInterface<St, Model> {
-  VmFactory<St, dynamic> Function()? get vm;
+  VmFactory<St, dynamic, dynamic> Function()? get vm;
 
   StoreConverter<St, Model>? get converter;
 
@@ -121,7 +121,7 @@ class StoreConnector<St, Model> extends StatelessWidget
   /// Convert the [Store] into a [Model]. The resulting [Model] will be
   /// passed to the [builder] function.
   @override
-  final VmFactory<St, dynamic> Function()? vm;
+  final VmFactory<St, dynamic, dynamic> Function()? vm;
 
   /// Convert the [Store] into a [Model]. The resulting [Model] will be
   /// passed to the [builder] function.
@@ -290,7 +290,7 @@ class StoreConnector<St, Model> extends StatelessWidget
 class _StoreStreamListener<St, Model> extends StatefulWidget {
   final ViewModelBuilder<Model> builder;
   final StoreConverter<St, Model>? converter;
-  final VmFactory Function()? vm;
+  final VmFactory<St, dynamic, dynamic> Function()? vm;
   final BaseModel? model; // Deprecated.
   final Store<St> store;
   final Object? debug;

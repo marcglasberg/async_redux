@@ -111,7 +111,7 @@ class MyHomePageConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ViewModel>(
-      vm: () => Factory(this),
+      vm: () => Factory(),
       builder: (BuildContext context, ViewModel vm) => MyHomePage(
         counter: vm.counter,
         description: vm.description,
@@ -122,15 +122,21 @@ class MyHomePageConnector extends StatelessWidget {
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class Factory extends VmFactory<AppState, MyHomePageConnector> {
-  Factory(widget) : super(widget);
-
+class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
   @override
   ViewModel fromStore() => ViewModel(
         counter: state.counter,
         description: state.description,
-        onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
+        onIncrement: _onIncrement,
       );
+
+  void _onIncrement() {
+    dispatch(IncrementAndGetDescriptionAction());
+
+    print('Counter in the the view-model = ${vm.counter}');
+    print('Counter in the state when the view-model was created = ${state.counter}');
+    print('Counter in the current state = ${currentState().counter}');
+  }
 }
 
 /// The view-model holds the part of the Store state the dumb-widget needs.

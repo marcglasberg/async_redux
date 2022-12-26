@@ -584,7 +584,7 @@ class MyHomePageConnector extends StatelessWidget {
 	  ));
   }}
 
-class Factory extends VmFactory<AppState, MyHomePageConnector> {
+class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
   Factory(widget) : super(widget);
   @override
   ViewModel fromStore() => ViewModel(
@@ -688,7 +688,7 @@ should be provided in the `StoreConnector` constructor: `vm` or `converter`.
    instance, so that boilerplate is reduced in your `fromStore` method. For example:
 
    ```
-   class Factory extends VmFactory<AppState, MyHomePageConnector> {
+   class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
               
         @override
         ViewModel fromStore() => ViewModel(
@@ -716,7 +716,7 @@ should be provided in the `StoreConnector` constructor: `vm` or `converter`.
    
    ...
    
-   class Factory extends VmFactory<AppState, MyHomePageConnector> {
+   class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
       Factory(widget) : super(widget);
    
       @override
@@ -798,7 +798,7 @@ should be provided in the `StoreConnector` constructor: `vm` or `converter`.
    
    ...                         
    
-   class Factory extends VmFactory<AppState, MyHomePageConnector> {   
+   class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {   
    ViewModel? fromStore() { // 4. Use `ViewModel?` here!
      return (store.state.user == null)
          ? null
@@ -2497,7 +2497,7 @@ store = Store<AppState>(
 You can then extend both `ReduxAction` and `VmFactory` to provide typed access to your environment:
 
 ```
-abstract class AppFactory<T> extends VmFactory<int, T> {
+abstract class AppFactory<T, Model> extends VmFactory<int, T, Model> {
   AppFactory([T? widget]) : super(widget);
 
   @override
