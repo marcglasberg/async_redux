@@ -2,11 +2,13 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
-# [19.0.0-dev.2] - 2022/12/07
+# [19.0.0-dev.3] - 2022/12/07
 
-* Breaking change: The `Action.wrapError(error, stackTrace)` method now gets the stacktrace instead
-  of just the error. Where it breaks, just add the parameter, like so:
+* Breaking change: The `Action.wrapError(error, stackTrace)` method now also gets the stacktrace
+  instead of just the error. If your code breaks, just add the extra parameter, like so:
   `Object wrapError(error) => ...` turns into `Object wrapError(error, _) => ...`
+
+<br>
 
 * Breaking change: When a `Persistor` is provided to the Store, it now considers the
   `initialState` is already persisted. Before this change, it considered nothing was
@@ -14,13 +16,38 @@ best practices described in the AsyncRedux Readme.
   directly: `Persistor.saveInitialState()`, `readState()` and `deleteState()`.
   However, after you create the store, please don't call those methods yourself anymore.
   If you do it, AsyncRedux cannot keep track of which state was persisted. After store creation,
-  if necessary you should use the corresponding methods `Store.saveInitialStateInPersistence()`,
+  if necessary, you should use the corresponding methods `Store.saveInitialStateInPersistence()`,
   `Store.readStateFromPersistence()` and `Store.deleteStateFromPersistence()`. These methods let
   AsyncRedux keep track of the persisted state, so that it's able to call
   `Persistor.persistDifference()` with the appropriate parameters.
 
+<br>
+
 * Method `Store.getLastPersistedStateFromPersistor()` returns the state that was last persisted
   to the local persistence. It's unlikely you will use this method yourself.
+
+<br>
+
+* In a Factory, once the view-model is created, and as long as it's not null, you can reference
+  the view-model by using the `vm` getter. This is meant to be used inside the Factory methods.
+  Example:
+    ```
+    ViewModel fromStore() =>
+      ViewModel(
+        value: _calculateValue(),
+        onTap: _onTap);
+    }
+  
+    // Here we use the value, without having to recalculate it.
+    void _onTap() => dispatch(SaveValueAction(vm.value));
+    ```
+  Note you can only use the `vm` getter after the `fromStore()` method is called, which means
+  you cannot reference the `vm` inside of the `fromStore()` method itself. If you do that,
+  you'll get a `StoreException`.
+  Also note, this new feature will be a breaking change in case you were already defining a variable
+  called `vm` in the Factory. Usually that will be the case ony if you were already saving the
+  view-model to some variable. If that's the case, simply remove the creation of this variable, as
+  AsyncRedux now does this automatically for you.
 
 # [18.0.2] - 2022/12/11
 
@@ -37,7 +64,6 @@ best practices described in the AsyncRedux Readme.
 # [17.0.0] - 2022/09/15
 
 * The `StateObserver.observe()` method signature changed to include an `error` parameter:
-
   ```
   void observe(
      ReduxAction<St> action,

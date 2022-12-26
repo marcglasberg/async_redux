@@ -149,16 +149,56 @@ abstract class Vm {
 /// ```
 ///
 abstract class VmFactory<St, T> {
+  /// You need to pass the connector widget only if the view-model needs any info from it.
+  VmFactory([this.widget]);
+
+  Vm? fromStore();
+
   /// A reference to the connector widget that will instantiate the view-model.
   final T? widget;
 
   late final Store<St> _store;
   late final St _state;
 
-  /// You need to pass the connector widget only if the view-model needs any info from it.
-  VmFactory([this.widget]);
+  /// Once the Vm is created, we save it so that it can be used by factory methods.
+  Vm? _vm;
+  bool _vmCreated = false;
 
-  Vm? fromStore();
+  /// Once the view-model is created, and as long as it's not null, you can reference
+  /// it by using the [vm] getter. This is meant to be used inside of Factory methods.
+  ///
+  /// Example:
+  ///
+  /// ```
+  /// ViewModel fromStore() =>
+  ///   ViewModel(
+  ///     value: _calculateValue(),
+  ///     onTap: _onTap);
+  ///   }
+  ///
+  /// // Here we use the value, without having to recalculate it.
+  /// void _onTap() => dispatch(SaveValueAction(vm.value));
+  /// ```
+  ///
+  Vm get vm {
+    if (!_vmCreated)
+      throw StoreException("You can't reference the view-model "
+          "before it's created and returned by the fromStore method.");
+
+    if (_vm == null)
+      throw StoreException("You can't reference the view-model, "
+          "because it's null.");
+
+    return _vm!;
+  }
+
+  bool get ifVmIsNull {
+    if (!_vmCreated)
+      throw StoreException("You can't reference the view-model "
+          "before it's created and returned by the fromStore method.");
+
+    return (_vm == null);
+  }
 
   void _setStore(St state, Store store) {
     _store = store as Store<St>;
@@ -189,6 +229,13 @@ abstract class VmFactory<St, T> {
 
   /// Gets the first error from the error queue, and removes it from the queue.
   UserException? getAndRemoveFirstError() => _store.getAndRemoveFirstError();
+}
+
+/// For internal use only. Please don't use this.
+Vm? internalsVmFactoryFromStore(VmFactory vmFactory) {
+  vmFactory._vm = vmFactory.fromStore();
+  vmFactory._vmCreated = true;
+  return vmFactory._vm;
 }
 
 /// For internal use only. Please don't use this.

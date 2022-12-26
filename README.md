@@ -276,16 +276,44 @@ or simply add `await microtask;` to the start of your reducer, or return `null`.
 
 ```dart 
 // These are right:
-AppState? reduce() { return state; }
-AppState? reduce() { someFunc(); return state; }
-Future<AppState?> reduce() async { await someFuture(); return state; }
-Future<AppState?> reduce() async { await microtask; return state; }
-Future<AppState?> reduce() async { if (state.someBool) return await calculation(); return null; }
+AppState? reduce() {
+  return state;
+}
+
+AppState? reduce() {
+  someFunc();
+  return state;
+}
+
+Future<AppState?> reduce() async {
+  await someFuture();
+  return state;
+}
+
+Future<AppState?> reduce() async {
+  await microtask;
+  return state;
+}
+
+Future<AppState?> reduce() async {
+  if (state.someBool) return await calculation();
+  return null;
+}
 
 // But these are wrong:
-Future<AppState?> reduce() async { return state; }
-Future<AppState?> reduce() async { someFunc(); return state; }
-Future<AppState?> reduce() async { if (state.someBool) return await calculation(); return state; }
+Future<AppState?> reduce() async {
+  return state;
+}
+
+Future<AppState?> reduce() async {
+  someFunc();
+  return state;
+}
+
+Future<AppState?> reduce() async {
+  if (state.someBool) return await calculation();
+  return state;
+}
 ```
 
 It's generally easy to make sure you are not returning a completed future.
@@ -657,11 +685,11 @@ should be provided in the `StoreConnector` constructor: `vm` or `converter`.
    ```   
 
    AsyncRedux will automatically inject `state`, `currentState()` and `dispatch()` into your model
-   instance, so that boilerplate is reduced in your `fromStore`
-   method. For example:
+   instance, so that boilerplate is reduced in your `fromStore` method. For example:
 
    ```
-   class Factory extends VmFactory<AppState, MyHomePageConnector> {           
+   class Factory extends VmFactory<AppState, MyHomePageConnector> {
+              
         @override
         ViewModel fromStore() => ViewModel(
             counter: state.counter,
@@ -692,9 +720,9 @@ should be provided in the `StoreConnector` constructor: `vm` or `converter`.
       Factory(widget) : super(widget);
    
       @override
-         ViewModel fromStore() => ViewModel(
-             name: state.names[widget.user],             
-             );
+      ViewModel fromStore() => ViewModel(
+          name: state.names[widget.user],             
+          );
       }
    ```
 
@@ -711,13 +739,31 @@ should be provided in the `StoreConnector` constructor: `vm` or `converter`.
    String _name() => state.user.name;
     
    VoidCallback _onSave: () => dispatch(SaveUserAction()),
+   ```  
+
+   You can reference the view-model inside the Factory methods, by using the `vm` getter.
+   For example:
+
    ```
+   @override
+   ViewModel fromStore() => ViewModel(
+       name: state.user.name,
+       onSave: _onSaveName,
+   );       
+   
+   // Use `vm.name` here.  
+   VoidCallback _onSaveName: () => dispatch(SaveUserAction(vm.name)),
+   ```            
+
+   Please note, you can only use the `vm` getter after the `fromStore()` method returns, which
+   means you cannot use it inside the `fromStore()` method itself. If you do that,
+   you'll get a `StoreException`.
 
    Another idea is to subclass `Vm` to provide additional features to your model. For example, you
    could add extra getters to help you access state:
 
-    ```       
-    class BaseViewModel extends Vm {
+   ```       
+   class BaseViewModel extends Vm {
        User user => state.user;        
     }
     
@@ -727,12 +773,20 @@ should be provided in the `StoreConnector` constructor: `vm` or `converter`.
           name: user.name,       
        );                                    
    }
-    ```
+   ```   
 
-   Note: If for some reason your state is such that it may be impossible to create a view-model, you
-   can return a `null` view-model. To that end, declare the view-model as nullable (`ViewModel?`) in
-   these 3 places: the `StoreConnector`, the `builder`, and the `fromStore` method. Then, check for
-   `null` in the `builder`. For example:
+   <br>
+
+   **What if you can't generate the view-model?**
+
+   Note: Sometimes you don't have enough information to generate the view-model. For example, some
+   information may still be loading, or the state is inconsistent for some reason. In that case,
+   your Factory can return `null` instead of the `vm`, and the connector can return an alternative
+   placeholder widget.
+
+   To that end, declare the view-model as nullable (`ViewModel?`) in these 3 places:
+   the `StoreConnector`, the `builder`, and the `fromStore` method. Then, check for `null` in
+   the `builder`. For example:
 
    ```                               
    return StoreConnector<AppState, ViewModel?>( // 1. Use `ViewModel?` here!
@@ -763,46 +817,7 @@ should be provided in the `StoreConnector` constructor: `vm` or `converter`.
 
    <br>
 
-   **What if you can't generate the view-model?**
-
-   Sometimes you don't have enough information to generate the view-model. For example, some
-   information may still be loading, or the state is inconsistent for some reason. In that case,
-   your Factory can return `null` instead of the `vm`, and the connector can return an alternative
-   placeholder widget.
-
-   To accomplish that, make sure your connector is declared with a nullable `vm`
-   type, such as `StoreConnector<AppState, _Vm?>`, so that your builder can check if the `vm`
-   is `null`. For example:
-
-   ```
-   class MyWidgetConnector extends StatelessWidget {
-
-   @override
-   Widget build(BuildContext context) => StoreConnector<AppState, _Vm?>(
-      vm: () => _Factory(this),
-      builder: (context, vm) {
-         return (vm == null)
-         ? MyPlaceHolder()
-         : MyWidget(user: vm.user);
-      },
-   );
-
-   class _Factory extends AppVmFactory<MyWidgetConnector> {
-      _Factory(MyWidgetConnector widget) : super(widget);
-
-      @override
-      _Vm? fromStore() {
-         User user = state.user;            
-         return (user == null) ? null : _Vm(user: user);
-      }
-
-   class _Vm extends Vm {
-      final User user;
-      _Vm({required this.user}) : super(equals: [user]);
-   }
-   ```
-
-3. The `converter` parameter
+2. The `converter` parameter
 
    If you are migrating from `flutter_redux` to `async_redux`, you can keep using `flutter_redux`'s
    good old `converter` parameter:

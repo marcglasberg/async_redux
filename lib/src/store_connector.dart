@@ -261,7 +261,7 @@ class StoreConnector<St, Model> extends StatelessWidget
     if (vm != null) {
       var factory = vm!();
       internalsVmFactoryInject(factory, store.state, store);
-      return factory.fromStore() as Model;
+      return internalsVmFactoryFromStore(factory) as Model;
     }
     //
     // The `converter` parameter can be used instead of `vm`.
@@ -598,7 +598,7 @@ class _StoreStreamListenerState<St, Model> //
     if (widget.vm != null) {
       var factory = widget.vm!();
       internalsVmFactoryInject(factory, state, widget.store);
-      return factory.fromStore() as Model;
+      return internalsVmFactoryFromStore(factory) as Model;
     }
     //
     // The `converter` parameter can be used instead of `vm`.
