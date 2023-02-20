@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:async_redux/async_redux.dart';
 import 'package:file/file.dart' as f;
 import 'package:file/local.dart';
@@ -197,18 +198,17 @@ class LocalPersist {
     _checkIfFileSystemIsTheSame();
     File file = _file ?? await this.file();
 
-    if (!file.existsSync())
-      return false;
-    else {
+    if (file.existsSync()) {
       try {
-        await file.delete(recursive: true);
+        file.deleteSync(recursive: true);
         return true;
       } catch (error) {
         if ((error is FileSystemException) && //
             error.message.contains("No such file or directory")) return false;
         rethrow;
       }
-    }
+    } else
+      return false;
   }
 
   /// Returns the file length.
