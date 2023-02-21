@@ -2,7 +2,7 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
-# [19.0.0-dev.6] - 2022/12/26
+# [19.0.0-dev.7] - 2022/02/21
 
 * Breaking change: The `Action.wrapError(error, stackTrace)` method now also gets the stacktrace
   instead of just the error. If your code breaks, just add the extra parameter, like so:
@@ -53,6 +53,8 @@ best practices described in the AsyncRedux Readme.
         BaseFactory([T? connector]) : super(connector);
     }
     ```
+
+* Added class LocalJsonPersist to help persist the state as pure Json.
 
 # [18.0.2] - 2022/12/11
 

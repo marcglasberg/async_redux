@@ -354,7 +354,7 @@ void main() {
     } catch (_error) {
       error = _error;
     }
-    expect(error, PersistException("Not a single object."));
+    expect(error, PersistException("Not a single object: [{one: 1, two: 2}, {three: 1, four: 2}]"));
 
     // Cleans up test.
     await persist.delete();
@@ -375,7 +375,7 @@ void main() {
     } catch (_error) {
       error = _error;
     }
-    expect(error, PersistException("Not an object."));
+    expect(error, PersistException("Not an object: hey"));
 
     // Cleans up test.
     await persist.delete();
@@ -400,7 +400,7 @@ void main() {
     ];
 
     Uint8List encoded = LocalPersist.encodeJson(simpleObjs);
-    Object decoded = LocalPersist.decodeJson(encoded);
+    Object? decoded = LocalPersist.decodeJson(encoded);
     expect(decoded, simpleObjs);
 
     expect(
@@ -436,7 +436,7 @@ void main() {
 
     await persist.saveJson(simpleObjs);
 
-    Object decoded = (await persist.loadJson())!;
+    Object? decoded = await persist.loadJson();
 
     expect(decoded, simpleObjs);
 
@@ -459,7 +459,7 @@ void main() {
     Object simpleObjs = 'Goodbye';
     var persist = LocalPersist("abc");
     await persist.saveJson(simpleObjs);
-    Object decoded = (await persist.loadJson())!;
+    Object? decoded = await persist.loadJson();
     expect(decoded, simpleObjs);
     expect(decoded, 'Goodbye');
 

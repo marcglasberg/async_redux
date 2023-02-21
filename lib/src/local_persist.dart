@@ -13,9 +13,48 @@ import 'package:path_provider/path_provider.dart';
 // Developed by Marcelo Glasberg (Nov 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-/// This will save/load multiple simple objects in UTF-8 Json format.
+/// This will save/load objects into the local disk, as a '.json' file.
 ///
-/// Save example:
+/// =========================================================
+///
+/// 1) Save a simple object in UTF-8 Json format.
+///
+/// Use [saveJson] to save as Json:
+///
+/// ```dart
+/// var persist = LocalPersist("xyz");
+/// var simpleObj = "Hello";
+/// await persist.saveJson(simpleObj);
+/// ```
+///
+/// Use [loadJson] to load from Json:
+///
+/// ```dart
+/// var persist = LocalPersist("xyz");
+/// Object? decoded = await persist.loadJson();
+/// ```
+///
+/// Examples of valid JSON includes:
+/// 42
+/// 42.5
+/// "abc"
+/// [1, 2, 3]
+/// ["42", 123]
+/// {"42": 123}
+///
+///
+/// Examples of invalid JSON includes:
+/// [1, 2, 3][4, 5, 6] // Not valid because Json does not allow two separate objects.
+/// 1, 2, 3 // Not valid because Json does not allow comma separated objects.
+/// 'abc' // Not valid because string must use double quotes.
+/// {42: "123"} // Not valid because a map key must be of type string.
+///
+/// =========================================================
+///
+/// 2) Save multiple simple objects in a concatenation of UTF-8 Json sequence.
+/// Note: A Json sequence is NOT valid Json.
+///
+/// Use [save] to save a list of objects as a Json sequence:
 ///
 /// ```dart
 /// var persist = LocalPersist("xyz");
@@ -23,7 +62,17 @@ import 'package:path_provider/path_provider.dart';
 /// await persist.save();
 /// ```
 ///
-/// Load example:
+/// The save method has an [append] parameter. If [append] is false (the default),
+/// the file will be overwritten. If [append] is true, it will write to the end
+/// of the file. Being able to append is the only advantage of saving as a Json
+/// sequence instead of saving in regular Json. If you don't need to append,
+/// use [saveJson] instead of [save].
+///
+/// Also, a limitation is that, in a json sequence, each object may have at most
+/// 65.536 bytes. Note this refers to a single json object, not to the total json
+/// sequence file, which may contain many objects.
+///
+/// Use [load] to load a list of objects from a Json sequence:
 ///
 /// ```dart
 /// var persist = LocalPersist("xyz");
@@ -44,8 +93,8 @@ class LocalPersist {
   static Directory? get appDocDir => _appDocDir;
   static Directory? _appDocDir;
 
-  // Each json may have at most 65.536 bytes.
-  // Note this refers to a single json object, not to the total json file,
+  // In a json sequence, each object may have at most 65.536 bytes.
+  // Note this refers to a single json object, not to the total json sequence file,
   // which may contain many objects.
   static const maxJsonSize = 256 * 256;
 
@@ -113,6 +162,23 @@ class LocalPersist {
     );
   }
 
+  /// Saves the given simple object as JSON (but in a '.db' file).
+  /// If the file exists, it will be overwritten.
+  Future<File> saveJson(Object? simpleObj) async {
+    _checkIfFileSystemIsTheSame();
+
+    Uint8List encoded = encodeJson(simpleObj);
+
+    File file = _file ?? await this.file();
+    await file.create(recursive: true);
+
+    return file.writeAsBytes(
+      encoded,
+      flush: true,
+      mode: FileMode.writeOnly,
+    );
+  }
+
   /// Loads the simple objects from the file.
   /// If the file doesn't exist, returns null.
   /// If the file exists and is empty, returns an empty list.
@@ -137,24 +203,8 @@ class LocalPersist {
     }
   }
 
-  /// Saves the given simple object as JSON.
-  /// If the file exists, it will be overwritten.
-  Future<File> saveJson(Object? simpleObj) async {
-    _checkIfFileSystemIsTheSame();
-
-    Uint8List encoded = encodeJson(simpleObj);
-
-    File file = _file ?? await this.file();
-    await file.create(recursive: true);
-
-    return file.writeAsBytes(
-      encoded,
-      flush: true,
-      mode: FileMode.writeOnly,
-    );
-  }
-
-  /// Loads an object from a JSON file. If the file doesn't exist, returns null.
+  /// Loads an object from a JSON file ('.db' file).
+  /// If the file doesn't exist, returns null.
   /// Note: The file must contain a single JSON, which is NOT
   /// the default file-format for [LocalPersist].
   Future<Object?>? loadJson() async {
@@ -173,7 +223,7 @@ class LocalPersist {
         rethrow;
       }
 
-      Object simpleObjs = decodeJson(encoded);
+      Object? simpleObjs = decodeJson(encoded);
       return simpleObjs;
     }
   }
@@ -184,10 +234,10 @@ class LocalPersist {
   Future<Map<String, dynamic>?> loadAsObj() async {
     List<Object?>? simpleObjs = await load();
     if (simpleObjs == null) return null;
-    if (simpleObjs.length != 1) throw PersistException("Not a single object.");
+    if (simpleObjs.length != 1) throw PersistException("Not a single object: $simpleObjs");
     var simpleObj = simpleObjs[0];
     if ((simpleObj != null) && (simpleObj is! Map<String, dynamic>))
-      throw PersistException("Not an object.");
+      throw PersistException("Not an object: $simpleObj");
     return simpleObj as FutureOr<Map<String, dynamic>?>;
   }
 
@@ -247,7 +297,7 @@ class LocalPersist {
     if (_file != null)
       return _file!;
     else {
-      if (_appDocDir == null) await _findAppDocDir();
+      if (_appDocDir == null) await findAppDocDir();
       String pathNameStr = pathName(
         dbName,
         dbSubDir: dbSubDir,
@@ -281,7 +331,7 @@ class LocalPersist {
 
   /// If running from Flutter, this will get the application's documents directory.
   /// If running from tests, it will use the system's temp directory.
-  static Future<void> _findAppDocDir() async {
+  static Future<void> findAppDocDir() async {
     if (_appDocDir != null) return;
 
     if (_fileSystem == const LocalFileSystem()) {
@@ -335,7 +385,7 @@ class LocalPersist {
   }
 
   /// Decodes a single JSON into a simple object, from the given [bytes].
-  static Object decodeJson(Uint8List bytes) {
+  static Object? decodeJson(Uint8List bytes) {
     ByteBuffer buffer = bytes.buffer;
     Uint8List info = Uint8List.view(buffer);
     var utf8Decoder = const Utf8Decoder();
@@ -388,6 +438,8 @@ class LocalPersist {
   static void setFileSystem(f.FileSystem fileSystem) {
     _fileSystem = fileSystem;
   }
+
+  static f.FileSystem getFileSystem() => _fileSystem;
 
   static void resetFileSystem() => setFileSystem(const LocalFileSystem());
 }
