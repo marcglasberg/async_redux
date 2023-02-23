@@ -159,22 +159,24 @@ class LocalJsonPersist {
   ///
   /// 2) Next, tries loading a Json-SEQUENCE file called "[dbName].db".
   /// - If the file doesn't exist, returns null.
-  /// - If the file exists and has 2 or more objects, deletes the "[dbName].db" file then throws an exception.
   /// - If the file exists and is empty, saves it as an empty Json file called "[dbName].json"
   /// - If the file exists with a single object, saves it as a Json file called "[dbName].json"
-  /// - Then deletes the "[dbName].db" file.
+  /// - If the file exists and has 2 or more objects:
+  ///   * If [isList] is false, throws an exception.
+  ///   * If [isList] is true, wraps the result in a List<Object>.
+  /// - Then deletes the "[dbName].db" file (always deletes, no matter what happens).
   ///
   /// Note: In effect, this will convert all files it loads from a Json-sequence to Json.
-  /// This only works if the original ".db" file is a Json file, and it's on you to make sure
-  /// that's the case.
+  /// This only works if the original ".db" file is a Json-sequence file, and it's on you
+  /// to make sure that's the case.
   ///
-  Future<Object?> loadConverting() async {
+  Future<Object?> loadConverting({required bool isList}) async {
     //
     _checkIfFileSystemIsTheSame();
     File file = _file ?? await this.file();
 
     if (!file.existsSync())
-      return _readsFromJsonSequenceDbFile();
+      return _readsFromJsonSequenceDbFile(isList);
     else {
       Uint8List encoded;
       try {
@@ -183,7 +185,7 @@ class LocalJsonPersist {
       } catch (error) {
         if ((error is FileSystemException) && //
             error.message.contains("No such file or directory"))
-          return _readsFromJsonSequenceDbFile();
+          return _readsFromJsonSequenceDbFile(isList);
         rethrow;
       }
 
@@ -193,29 +195,43 @@ class LocalJsonPersist {
   }
 
   /// Reads a Json-sequence from a '.db' file.
-  Future<Object?> _readsFromJsonSequenceDbFile() async {
+  Future<Object?> _readsFromJsonSequenceDbFile(bool isList) async {
     //
     /// Prepares to open the '.db' file with the same name and location.
-    var sequencePersist = LocalPersist(dbName!, dbSubDir: dbSubDir, subDirs: subDirs);
+    var jsonSequenceFile = LocalPersist(dbName!, dbSubDir: dbSubDir, subDirs: subDirs);
 
     // If the '.db' (Json-sequence) file exists,
-    if (await sequencePersist.exists()) {
+    if (await jsonSequenceFile.exists()) {
       //
       // Loads the '.db' file into memory.
-      List<Object?>? objs = await sequencePersist.load();
+      List<Object?>? objs = await jsonSequenceFile.load();
 
       // Deletes the Json-sequence file.
-      sequencePersist.delete();
+      jsonSequenceFile.delete();
 
-      if (objs == null || objs.isEmpty) objs = const [null];
-      if (objs.length > 1)
-        throw PersistException("Json sequence to Json: ${objs.length} objects: $objs.");
+      if (isList) {
+        objs ??= const [];
 
-      // Saves the '.json' (Json) file, so that it loads directly, next time.
-      var object = objs[0];
-      await save(object);
+        // Saves the '.json' (Json) file, so that it loads directly, next time.
+        await save(objs);
 
-      return object;
+        return objs;
+      }
+      //
+      // Not a list.
+      else {
+        if (objs != null && objs.length > 1)
+          throw PersistException("Json sequence to Json: ${objs.length} objects: $objs.");
+        //
+        else {
+          // Saves the '.json' (Json) file, so that it loads directly, next time.
+          var obj = (objs == null || objs.isEmpty) ? null : objs[0];
+
+          await save(obj);
+
+          return obj;
+        }
+      }
     }
     //
     else
@@ -234,7 +250,7 @@ class LocalJsonPersist {
   /// Same as [loadConverting], but expects the file to be a Map<String, dynamic>
   /// representing a single object. Will fail if it's not a map. It may return null.
   Future<Map<String, dynamic>?> loadAsObjConverting() async {
-    Object? simpleObj = await loadConverting();
+    Object? simpleObj = await loadConverting(isList: false);
     if (simpleObj == null) return null;
     if (simpleObj is! Map<String, dynamic>) throw PersistException("Not an object: $simpleObj");
     return simpleObj;

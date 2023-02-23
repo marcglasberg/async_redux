@@ -391,7 +391,7 @@ void main() {
     var simpleObj = {'Hello': 123};
     var persist = LocalJsonPersist("abc");
     await persist.save(simpleObj);
-    Object? decoded = await persist.loadConverting();
+    Object? decoded = await persist.loadConverting(isList: false);
     expect(decoded, simpleObj);
 
     expect(await persist.exists(), isTrue);
@@ -423,7 +423,7 @@ void main() {
     expect(await persist.exists(), isFalse);
 
     // When we load converting...
-    Object? decoded = await persist.loadConverting();
+    Object? decoded = await persist.loadConverting(isList: false);
     expect(decoded, simpleObj);
 
     // The '.json' file now exists.
@@ -440,7 +440,7 @@ void main() {
     expect(await persist.exists(), isTrue);
 
     // And it works just the same.
-    decoded = await persist.loadConverting();
+    decoded = await persist.loadConverting(isList: false);
     expect(decoded, simpleObj);
 
     // ---
@@ -459,7 +459,7 @@ void main() {
     dynamic _error;
     var persist = LocalJsonPersist("abc");
     try {
-      await persist.loadConverting();
+      await persist.loadConverting(isList: false);
     } catch (error) {
       _error = error;
       expect(error is PersistException, isTrue);
@@ -520,8 +520,162 @@ void main() {
     await persist.delete();
   });
 
+  /////////////////////////////////////////////////////////////////////////////
+
+  test('loadConverting from .json file', () async {
+    var simpleObj = {'Hello': 123};
+    var persist = LocalJsonPersist("abc");
+    await persist.save(simpleObj);
+    Object? decoded = await persist.loadConverting(isList: false);
+    expect(decoded, simpleObj);
+
+    expect(await persist.exists(), isTrue);
+    expect((await persist.file()).toString(), endsWith('\\db\\abc.json\''));
+
+    // Cleans up test.
+    await persist.delete();
+  });
 
   /////////////////////////////////////////////////////////////////////////////
 
+  test('loadConverting from .db (json-sequence) file', () async {
+    //
+    var simpleObj = {'Hello': 123};
 
+    // Save inside a List.
+    var listWithOneElement = [simpleObj];
+    var persistSequence = LocalPersist("abc");
+    await persistSequence.save(listWithOneElement);
+
+    // The '.db' file exists.
+    expect(await persistSequence.exists(), isTrue);
+    expect((await persistSequence.file()).toString(), endsWith('\\db\\abc.db\''));
+
+    // ---
+
+    // The '.json' file does NOT exist.
+    var persist = LocalJsonPersist("abc");
+    expect(await persist.exists(), isFalse);
+
+    // When we load converting...
+    Object? decoded = await persist.loadConverting(isList: true);
+    expect(decoded, [simpleObj]);
+
+    // The '.json' file now exists.
+    expect(await persist.exists(), isTrue);
+    expect((await persist.file()).toString(), endsWith('\\db\\abc.json\''));
+
+    // But the '.db' file was deleted.
+    expect(await persistSequence.exists(), isFalse);
+
+    // ---
+
+    // We now can read the '.json' file again.
+    persist = LocalJsonPersist("abc");
+    expect(await persist.exists(), isTrue);
+
+    // And it works just the same.
+    decoded = await persist.loadConverting(isList: true);
+    expect(decoded, [simpleObj]);
+
+    // ---
+
+    // Cleans up test.
+    await persist.delete();
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  test('loadConverting from .db (json-sequence) file for a single object', () async {
+    //
+    var simpleObj = ['Hello'];
+    var persistSequence = LocalPersist("abc");
+    await persistSequence.save(simpleObj);
+
+    var persist = LocalJsonPersist("abc");
+    var decoded = await persist.loadConverting(isList: true);
+
+    expect(decoded, simpleObj);
+
+    // ---
+
+    var persistJson = LocalJsonPersist(simpleObj);
+    await persistJson.save(simpleObj);
+
+    decoded = await persistJson.load();
+    expect(decoded, simpleObj);
+
+    decoded = await persistJson.loadConverting(isList: true);
+    expect(decoded, simpleObj);
+
+    // ---
+
+    // Cleans up test.
+    await persist.delete();
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  test('loadConverting from .db (json-sequence) file for more than 1 object', () async {
+    //
+    var simpleObj = ['Hello', 123];
+    var persistSequence = LocalPersist("abc");
+    await persistSequence.save(simpleObj);
+
+    var persist = LocalJsonPersist("abc");
+    var decoded = await persist.loadConverting(isList: true);
+
+    expect(decoded, simpleObj);
+
+    // ---
+
+    var persistJson = LocalJsonPersist(simpleObj);
+    await persistJson.save(simpleObj);
+
+    decoded = await persistJson.load();
+    expect(decoded, simpleObj);
+
+    decoded = await persistJson.loadConverting(isList: true);
+    expect(decoded, simpleObj);
+
+    // ---
+
+    // Cleans up test.
+    await persist.delete();
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  test('loadConverting from .db (json-sequence) file for a list inside a list', () async {
+    //
+    var simpleObj = [
+      ['Hello', 123]
+    ];
+
+    var persistSequence = LocalPersist("abc");
+    await persistSequence.save(simpleObj);
+
+    var persist = LocalJsonPersist("abc");
+    var decoded = await persist.loadConverting(isList: true);
+
+    expect(decoded, simpleObj);
+
+    // ---
+
+    var persistJson = LocalJsonPersist(simpleObj);
+    await persistJson.save(simpleObj);
+
+    decoded = await persistJson.load();
+    expect(decoded, simpleObj);
+
+    decoded = await persistJson.loadConverting(isList: true);
+    expect(decoded, simpleObj);
+
+    // ---
+
+    // Cleans up test.
+    await persist.delete();
+  });
+
+  /////////////////////////////////////////////////////////////////////////////
 }
