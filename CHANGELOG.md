@@ -4,7 +4,7 @@ best practices described in the AsyncRedux Readme.
 
 # [19.0.0] - 2022/02/26
 
-* Flutter 3.7.5, Dart 2.19.2.
+* Flutter 3.7.5, Dart 2.19.2, fast_immutable_collections: 9.0.0.
 
 * Breaking change: The `Action.wrapError(error, stackTrace)` method now also gets the stacktrace
   instead of just the error. If your code breaks, just add the extra parameter, like so:
