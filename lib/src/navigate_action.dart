@@ -548,11 +548,11 @@ enum NavigateType {
 // ////////////////////////////////////////////////////////////////////////////
 
 extension _StringExtension on Object? {
-  /// If the object can be represented with up to 50 chars, we print it.
+  /// If the object can be represented with up to 200 chars, we print it.
   /// Otherwise, we use the object's runtimeType without the generic part.
   String toStringOrRuntimeType() {
     String text = toString();
-    if (text.length <= 50)
+    if (text.length <= 200)
       return text;
     else {
       text = runtimeType.toString();
