@@ -2,6 +2,10 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
+# [19.0.2] - 2022/03/16
+
+* Docs improvement.
+
 # [19.0.1] - 2022/02/26
 
 * Flutter 3.7.5, Dart 2.19.2, fast_immutable_collections: 9.0.0.

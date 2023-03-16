@@ -161,7 +161,20 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   T? get widget => _connector;
 
   /// The connector widget that will instantiate the view-model.
-  T get connector => _connector!;
+  T get connector {
+    if (_connector == null)
+      throw StoreException(
+          "To use the `connector` field you must pass it to the factory constructor:"
+          "\n\n"
+          "return StoreConnector<AppState, _Vm>(\n"
+          "   vm: () => Factory(this),\n"
+          "   ..."
+          "\n\n"
+          "class Factory extends VmFactory<_Vm, MyConnector> {\n"
+          "   Factory(Widget widget) : super(widget);");
+    else
+      return _connector!;
+  }
 
   late final Store<St> _store;
   late final St _state;
