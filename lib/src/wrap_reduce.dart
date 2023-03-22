@@ -76,20 +76,20 @@ abstract class WrapReduce<St> {
       //
       // 2) Async reducer.
       else if (reduce is Future<St?> Function()) {
-        return () => reduce().then((St? state) async {
-              //
-              // The is the state returned by the reducer.
-              St? newState = await reduce();
+        return () async {
+          //
+          // The is the state returned by the reducer.
+          St? newState = await reduce();
 
-              // This is the state right after the reducer returns,
-              // but before it's committed to the store.
-              St oldState = store.state;
+          // This is the state right after the reducer returns,
+          // but before it's committed to the store.
+          St oldState = store.state;
 
-              // If the reducer returned null, or returned the same instance, don't do anything.
-              if (newState == null || identical(store.state, newState)) return newState;
+          // If the reducer returned null, or returned the same instance, don't do anything.
+          if (newState == null || identical(store.state, newState)) return newState;
 
-              return process(oldState: oldState, newState: newState);
-            });
+          return process(oldState: oldState, newState: newState);
+        };
       }
       // Not defined.
       else {
