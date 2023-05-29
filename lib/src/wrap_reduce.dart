@@ -64,7 +64,7 @@ abstract class WrapReduce<St> {
           // The is the state right before calling the sync reducer.
           St oldState = store.state;
 
-          // The is the state returned by the reducer.
+          // This is the state returned by the reducer.
           St? newState = reduce();
 
           // If the reducer returned null, or returned the same instance, don't do anything.
