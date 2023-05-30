@@ -1,11 +1,9 @@
-import 'dart:ui';
-
-import 'package:async_redux/async_redux.dart';
-
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-// /////////////////////////////////////////////////////////////////////////////
+import 'dart:ui';
+
+import 'package:async_redux/async_redux.dart';
 
 /// Represents an error the user could fix, like wrong typed text, or missing
 /// internet connection. Methods [dialogTitle] and [dialogContent] return
@@ -235,8 +233,6 @@ abstract class ExceptionCode {
   String? asText([Locale? locale]);
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 /// If you want the [UserExceptionDialog] to display some [UserException],
 /// you must throw the exception from inside an action's `before` or `reduce`
 /// methods.
@@ -253,7 +249,6 @@ class UserExceptionAction<St> extends ReduxAction<St> {
   UserExceptionAction(
     /// Some message shown to the user.
     String msg, {
-
     /// The cause of the user-exception. Usually another error.
     Object? cause,
 
@@ -268,5 +263,3 @@ class UserExceptionAction<St> extends ReduxAction<St> {
   @override
   Future<St> reduce() async => throw exception;
 }
-
-// /////////////////////////////////////////////////////////////////////////////

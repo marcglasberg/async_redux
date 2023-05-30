@@ -12,11 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// https://www.woolha.com/articles/dart-event-loop-microtask-event-queue
 /// https://steemit.com/utopian-io/@tensor/the-fundamentals-of-zones-microtasks-and-event-loops-in-the-dart-programming-language-dart-tutorial-part-3
 
-///////////////////////////////////////////////////////////////////////////////
-
 void main() {
-  /////////////////////////////////////////////////////////////////////////////
-
   test(
       'This tests the mechanism of a SYNC Reducer: '
       'The reducer changes the state to A, and it will later be changed to B. '
@@ -37,8 +33,6 @@ void main() {
     await Future.microtask(() {});
     expect(state, "BA");
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test(
       'This tests the mechanism of a ASYNC Reducer: '
@@ -67,8 +61,6 @@ void main() {
     await Future.microtask(() {});
     expect(state, "ACBDFE");
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test(
       "Tests what happens when we do it wrong, and return COMPLETED Futures."
@@ -100,8 +92,6 @@ void main() {
     expect(state, "BA");
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test(
       '1) A sync reducer is called, '
       'and no actions are dispatched inside of the reducer. '
@@ -114,8 +104,6 @@ void main() {
     expect(states, [AppState('A')]);
     expect(info.state!.text, 'AB');
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test(
       '2) A sync reducer is called, '
@@ -130,8 +118,6 @@ void main() {
     expect(info.state!.text, 'ACB');
   });
 
-  ///////////////////////////////////////////////////////////////////////////
-
   test(
       '3) A sync reducer is called, '
       'which dispatches an ASYNC action.', () async {
@@ -143,8 +129,6 @@ void main() {
     expect(states, [AppState('A'), AppState('A')]);
     expect(info.state!.text, 'ABC');
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test(
       '4) An ASYNC reducer is called, '
@@ -159,8 +143,6 @@ void main() {
     expect(info.state!.text, 'ACB');
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test(
       '5) An ASYNC reducer is called, '
       'which dispatches another ASYNC action. '
@@ -173,8 +155,6 @@ void main() {
     expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('A')]);
     expect(info.state!.text, 'ABC');
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test(
       "This tests the mechanism of ASYNC Reducers: "
@@ -236,8 +216,6 @@ void main() {
     expect(info.last.state.text, 'AX');
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test(
       "Test that if you add method assertUncompletedFuture() to the end of reducers, "
       "it's capable of detecting completed futures.", () async {
@@ -272,8 +250,6 @@ void main() {
 
     expect(error2, "");
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test(
       "Test that dispatching a sync action works just the same as calling a sync function, "
@@ -310,8 +286,6 @@ void main() {
       AppState('f2'),
     ]);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 }
 
 // ----------------------------------------------

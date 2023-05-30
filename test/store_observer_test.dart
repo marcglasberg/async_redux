@@ -46,8 +46,6 @@ void main() {
     return StoreTester.from(store);
   }
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('Dispatch a sync action, see what the StateObserver picks up. ', () async {
     var storeTester = createStoreTester();
     expect(storeTester.state, 0);
@@ -59,8 +57,6 @@ void main() {
     expect(observer.endValue, 1);
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('Dispatch an async action, see what the StateObserver picks up.', () async {
     var storeTester = createStoreTester();
     expect(storeTester.state, 0);
@@ -71,6 +67,4 @@ void main() {
     expect(observer.iniValue, 0);
     expect(observer.endValue, 1);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 }

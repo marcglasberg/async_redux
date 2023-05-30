@@ -1,3 +1,8 @@
+// Developed by Marcelo Glasberg (Aug 2019).
+// Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
+// Uses code from package equatable by Felix Angelov.
+// For more info, see: https://pub.dartlang.org/packages/async_redux
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -149,8 +154,6 @@ Future<T?> showDialogSuper<T>({
 
   return result;
 }
-
-// /////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Displays an iOS-style dialog above the current contents of the app, with
 /// iOS-style entrance and exit animations, modal barrier color, and modal

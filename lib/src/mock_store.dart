@@ -1,11 +1,11 @@
+// Developed by Marcelo Glasberg (Aug 2019).
+// Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
+// Uses code from package equatable by Felix Angelov.
+// For more info, see: https://pub.dartlang.org/packages/async_redux
+
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
-
-// Developed by Marcelo Glasberg (Aug 2019).
-// For more info, see: https://pub.dartlang.org/packages/async_redux
-
-// /////////////////////////////////////////////////////////////////////////////
 
 /// Creates a Redux store that lets you mock actions/reducers.
 ///
@@ -160,8 +160,6 @@ class MockStore<St> extends Store<St> {
   }
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 abstract class MockAction<St> extends ReduxAction<St> {
   late ReduxAction<St> _action;
 
@@ -172,8 +170,6 @@ abstract class MockAction<St> extends ReduxAction<St> {
   }
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 class _GeneralActionSync<St> extends MockAction<St> {
   final St Function(ReduxAction<St> action, St state) _reducer;
 
@@ -183,8 +179,6 @@ class _GeneralActionSync<St> extends MockAction<St> {
   St reduce() => _reducer(action, state);
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 class _GeneralActionAsync<St> extends MockAction<St> {
   final Future<St> Function(ReduxAction<St> action, St state) _reducer;
 
@@ -193,5 +187,3 @@ class _GeneralActionAsync<St> extends MockAction<St> {
   @override
   Future<St> reduce() => _reducer(action, state);
 }
-
-// /////////////////////////////////////////////////////////////////////////////

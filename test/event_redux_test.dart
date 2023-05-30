@@ -2,15 +2,11 @@ import 'package:async_redux/async_redux.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Typedef Evt.', () {
     expect(Event.spent(), Evt.spent());
     expect((Event).toString(), 'Event<dynamic>');
     expect((Evt).toString(), 'Event<dynamic>');
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Boolean event equals.', () {
     // Spent events are always equal.
@@ -24,8 +20,6 @@ void main() {
     expect(Event.spent(), isNot(Event()));
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('String event equals.', () {
     // Spent events are always equal.
     expect(Event<String>.spent(), Event<String>.spent());
@@ -37,8 +31,6 @@ void main() {
     expect(Event<String>.spent(), isNot(Event<String>()));
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Number event equals.', () {
     // Spent events are always equal.
     expect(Event<int>.spent(), Event<int>.spent());
@@ -49,8 +41,6 @@ void main() {
     // An event not-spent is always different from a spent event.
     expect(Event<int>.spent(), isNot(Event<int>()));
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('EventMultiple', () {
     Event<String> evt1 = Event<String>("Mary");
@@ -78,8 +68,6 @@ void main() {
     expect(evt.isSpent, true);
     expect(evt.isNotSpent, false);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('MappedEvent', () {
     List<String> users = ["Mary", "Anna", "Arnold", "Jake", "Frank", "Suzy"];
@@ -111,18 +99,10 @@ void main() {
     expect(userEvt1 == userEvt2, isTrue);
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Typedef EvtState.', () {
     expect((EvtState).toString(), 'EvtState<dynamic>');
     expect((EvtState<String>()).runtimeType.toString(), 'EvtState<String>');
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Boolean event equals.', () {
     expect(EvtState() == EvtState(), isFalse);
@@ -139,8 +119,6 @@ void main() {
     expect(x.hashCode == y.hashCode, isTrue);
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Getting the value. It is not consumed.', () {
     expect(EvtState().value, isNull);
 
@@ -150,6 +128,4 @@ void main() {
     expect(EvtState<int>(123).value, 123);
     expect(EvtState<int>(123).value, 123);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 }

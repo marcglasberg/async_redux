@@ -29,8 +29,6 @@ void main() {
   runApp(MyApp());
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// The app state, which in this case is a counter, a description, and a waiting flag.
 @immutable
 class AppState {
@@ -65,8 +63,6 @@ class AppState {
   int get hashCode => counter.hashCode ^ description.hashCode ^ waiting.hashCode;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => StoreProvider<AppState>(
@@ -75,8 +71,6 @@ class MyApp extends StatelessWidget {
         home: MyHomePageConnector(),
       ));
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This action increments the counter by 1,
 /// and then gets some description text relating to the new counter number.
@@ -108,8 +102,6 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
   void after() => dispatch(BarrierAction(false));
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 class BarrierAction extends ReduxAction<AppState> {
   final bool waiting;
 
@@ -121,8 +113,6 @@ class BarrierAction extends ReduxAction<AppState> {
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// This action increments the counter by [amount]].
 class IncrementAction extends ReduxAction<AppState> {
   final int amount;
@@ -133,8 +123,6 @@ class IncrementAction extends ReduxAction<AppState> {
   @override
   AppState reduce() => state.copy(counter: state.counter + amount);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
@@ -181,8 +169,6 @@ class ViewModel extends Vm {
     required this.onIncrement,
   }) : super(equals: [counter, description, waiting]);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatelessWidget {
   final int? counter;

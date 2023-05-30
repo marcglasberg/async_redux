@@ -1,3 +1,6 @@
+// Developed by Marcelo Glasberg (Aug 2019).
+// For more info, see: https://pub.dartlang.org/packages/async_redux
+
 import 'package:weak_map/weak_map.dart' as c;
 
 /// Cache for 1 immutable state, and no parameters.

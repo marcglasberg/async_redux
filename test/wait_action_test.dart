@@ -4,8 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 late Store<AppState> store;
 
-///////////////////////////////////////////////////////////////////////////
-
 @immutable
 class AppState {
   final Wait wait;
@@ -14,8 +12,6 @@ class AppState {
 
   AppState copy({Wait? wait}) => AppState(wait: wait ?? this.wait);
 }
-
-///////////////////////////////////////////////////////////////////////////
 
 // This simulates using the Freezed package.
 class AppStateFreezed {
@@ -26,8 +22,6 @@ class AppStateFreezed {
   AppStateFreezed copyWith({Wait? wait}) => AppStateFreezed(wait: wait ?? this.wait);
 }
 
-///////////////////////////////////////////////////////////////////////////
-
 // This simulates using the BuiltValue package.
 class AppStateBuiltValue {
   Wait wait;
@@ -37,18 +31,12 @@ class AppStateBuiltValue {
   AppStateBuiltValue rebuild(dynamic func(dynamic state)) => func(AppStateBuiltValue(wait: Wait()));
 }
 
-///////////////////////////////////////////////////////////////////////////
-
 class MyAction {}
-
-///////////////////////////////////////////////////////////////////////////
 
 void main() {
   setUp(() async {
     store = Store<AppState>(initialState: AppState(wait: Wait()));
   });
-
-  ///////////////////////////////////////////////////////////////////////////
 
   test("Wait class is immutable. Empty object is always the same instance.", () {
     var wait1 = Wait();
@@ -66,8 +54,6 @@ void main() {
     expect(wait4, wait3);
   });
 
-  ///////////////////////////////////////////////////////////////////////////
-
   test("Waiting for some action to finish.", () {
     var action = MyAction();
     expect(store.state.wait.isWaiting, false);
@@ -81,8 +67,6 @@ void main() {
     expect(store.state.wait.isWaiting, false);
     expect(store.state.wait.isWaitingFor(action), false);
   });
-
-  ///////////////////////////////////////////////////////////////////////////
 
   test("Waiting for 2 actions to finish.", () {
     var action1 = MyAction();
@@ -112,8 +96,6 @@ void main() {
     expect(store.state.wait.isWaitingFor(action2), false);
   });
 
-  ///////////////////////////////////////////////////////////////////////////
-
   test("Clear the waiting (everything).", () {
     var action = MyAction();
     expect(store.state.wait.isWaiting, false);
@@ -126,8 +108,6 @@ void main() {
     expect(store.state.wait.isWaiting, false);
     expect(store.state.wait.isWaitingFor(action), false);
   });
-
-  ///////////////////////////////////////////////////////////////////////////
 
   test("Clear the waiting (a specific flag).", () {
     var action1 = MyAction();
@@ -147,8 +127,6 @@ void main() {
     expect(store.state.wait.isWaitingFor(action1), false);
     expect(store.state.wait.isWaitingFor(action2), true);
   });
-
-  ///////////////////////////////////////////////////////////////////////////
 
   test("Waiting for some action with ref and ref.", () {
     var action = MyAction();
@@ -205,7 +183,6 @@ void main() {
     expect(store.state.wait.isWaitingFor(action, ref: 789), false);
     expect(store.state.wait.isWaitingFor(action), false);
   });
-  ///////////////////////////////////////////////////////////////////////////
 
   test("Test compatibility with the Freezed package.", () {
     Store<AppStateFreezed> freezedStore;
@@ -224,8 +201,6 @@ void main() {
     expect(freezedStore.state.wait.isWaitingFor(action), false);
   });
 
-  ///////////////////////////////////////////////////////////////////////////
-
   test("Test compatibility with the BuiltValue package.", () {
     Store<AppStateBuiltValue> builtValueStore;
     builtValueStore = Store<AppStateBuiltValue>(initialState: AppStateBuiltValue(wait: Wait()));
@@ -243,8 +218,6 @@ void main() {
     expect(builtValueStore.state.wait.isWaitingFor(action), false);
   });
 
-  ///////////////////////////////////////////////////////////////////////////
-
   test("Test compatibility with the BuiltValue package.", () {
     Store<AppStateFreezed> freezedStore;
     freezedStore = Store<AppStateFreezed>(initialState: AppStateFreezed(wait: Wait()));
@@ -261,6 +234,4 @@ void main() {
     expect(freezedStore.state.wait.isWaiting, false);
     expect(freezedStore.state.wait.isWaitingFor(action), false);
   });
-
-  ///////////////////////////////////////////////////////////////////////////
 }

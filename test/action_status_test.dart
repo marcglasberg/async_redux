@@ -6,8 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-///////////////////////////////////////////////////////////////////////////////
-
 late List<String> info;
 
 enum When { before, reduce, after }
@@ -16,8 +14,6 @@ enum When { before, reduce, after }
 /// These tests may print errors to the console. This is normal.
 ///
 void main() {
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Test detecting that the BEFORE method of an action threw an error.', () async {
     //
     info = [];
@@ -31,8 +27,6 @@ void main() {
     expect(actionA.isFinished, false);
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Test detecting that the REDUCE method of an action threw an error.', () async {
     //
     info = [];
@@ -45,8 +39,6 @@ void main() {
     expect(actionA.status.isAfterDone, true);
     expect(actionA.isFinished, false);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test(
       "Test detecting that the AFTER method of an action threw an error. "
@@ -77,8 +69,6 @@ void main() {
     expect(hasThrown, isTrue);
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Test detecting that the action threw no errors.', () async {
     //
     info = [];
@@ -91,11 +81,7 @@ void main() {
     expect(actionA.status.isAfterDone, true);
     expect(actionA.isFinished, true);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 }
-
-// ----------------------------------------------
 
 class MyAction extends ReduxAction<String> {
   When? whenToThrow;
@@ -121,5 +107,3 @@ class MyAction extends ReduxAction<String> {
     info.add('3');
   }
 }
-
-// ----------------------------------------------

@@ -1,11 +1,9 @@
-import 'package:async_redux/async_redux.dart';
-
 // Developed by Marcelo Glasberg (Aug 2019).
 // Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
 // Uses code from package equatable by Felix Angelov.
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-// /////////////////////////////////////////////////////////////////////////////
+import 'package:async_redux/async_redux.dart';
 
 /// This will be given all errors, including those of type UserException.
 /// Return true to throw the error. False to swallow it.
@@ -23,8 +21,6 @@ abstract class ModelObserver<Model> {
     int? dispatchCount,
   });
 }
-
-// /////////////////////////////////////////////////////////////////////////////
 
 /// This model observer prints the StoreConnector's ViewModel to the console.
 ///
@@ -73,9 +69,7 @@ class DefaultModelObserver<Model> implements ModelObserver<Model> {
       print("Model D:$dispatchCount R:$reduceCount = "
           "Rebuild:${isDistinct == null || isDistinct}, "
           "${storeConnector!.debug == null ? "" : //
-      "Connector:${storeConnector.debug.runtimeType}"}, "
+              "Connector:${storeConnector.debug.runtimeType}"}, "
           "Model:$modelCurrent.");
   }
 }
-
-// /////////////////////////////////////////////////////////////////////////////

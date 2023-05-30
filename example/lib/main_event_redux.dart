@@ -30,8 +30,6 @@ void main() {
   runApp(MyApp());
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// The app state, which in this case is a counter and two events.
 @immutable
 class AppState {
@@ -79,8 +77,6 @@ class AppState {
   int get hashCode => counter.hashCode ^ waiting.hashCode;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => StoreProvider<AppState>(
@@ -91,15 +87,11 @@ class MyApp extends StatelessWidget {
       );
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// This action orders the text-controller to clear.
 class ClearTextAction extends ReduxAction<AppState> {
   @override
   AppState reduce() => state.copy(clearTextEvt: Event());
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// Actions that extend [BarrierAction] show a modal barrier while their async processes run.
 abstract class BarrierAction extends ReduxAction<AppState> {
@@ -119,8 +111,6 @@ class _WaitAction extends ReduxAction<AppState> {
   AppState reduce() => state.copy(waiting: waiting);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// This action downloads some new text, and then creates an event
 /// that tells the text-controller to display that new text.
 class ChangeTextAction extends BarrierAction {
@@ -133,8 +123,6 @@ class ChangeTextAction extends BarrierAction {
     );
   }
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
@@ -185,8 +173,6 @@ class ViewModel extends Vm {
     required this.onChange,
   }) : super(equals: [waiting!, clearTextEvt!, changeTextEvt!]);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatefulWidget {
   final bool? waiting;

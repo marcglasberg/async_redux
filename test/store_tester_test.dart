@@ -185,8 +185,6 @@ void main() {
     return StoreTester.from(store);
   }
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Dispatch multiple actions but only issue a single change event.', () async {
     var storeTester = createStoreTester();
     expect(storeTester.state.text, "0");
@@ -223,8 +221,6 @@ void main() {
     expect(storeTester.state.text, "0,1,2,3,4");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'Dispatch some actions and wait until some condition is met. '
       'Get the end state.', () async {
@@ -246,8 +242,6 @@ void main() {
     expect(info2.state!.text, "0,1,2,3,4");
     expect(info2.ini, false);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch some actions and wait until some condition is met. '
@@ -272,8 +266,6 @@ void main() {
     expect(info2.state!.text, "0,1,2,3,4");
     expect(info2.ini, false);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch some actions and wait until some condition is met. '
@@ -302,8 +294,6 @@ void main() {
     expect(infos.getIndex(1).state!.text, "0,1,2,3,4");
     expect(infos.getIndex(1).ini, false);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch some actions and wait until some condition is met. '
@@ -342,8 +332,6 @@ void main() {
     expect(infos.getIndex(3).ini, false);
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'Dispatch some action and wait for it. '
       'Get the end state.', () async {
@@ -355,8 +343,6 @@ void main() {
     expect(info.state!.text, "0,1");
     expect(info.errors, isEmpty);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch some action and wait for a different one. '
@@ -386,8 +372,6 @@ void main() {
     );
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test(
       'Dispatch a few actions and wait for all of them, in order. '
       'Get the end state.', () async {
@@ -401,8 +385,6 @@ void main() {
     expect(info.state!.text, "0,1,2,3");
     expect(info.errors, isEmpty);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch a few actions and wait for all of them, in order. '
@@ -418,8 +400,6 @@ void main() {
     expect(info.state!.text, "0,1,2,3,6");
     expect(info.errors, isEmpty);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch a few actions and wait for all of them, in order. '
@@ -443,8 +423,6 @@ void main() {
           'ignoredIni: []');
     }));
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch a few actions and wait for all of them, in order. '
@@ -470,8 +448,6 @@ void main() {
     }));
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'Dispatch a few actions and wait until one of them is dispatched, '
       'ignoring the others.'
@@ -488,8 +464,6 @@ void main() {
     expect(info.state!.text, "0,1,2,3");
     expect(info.errors, isEmpty);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch a few actions and wait until all of them finish, '
@@ -508,8 +482,6 @@ void main() {
     expect(info.state!.text, "0,1,2,1,3");
     expect(info.errors, isEmpty);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch a few actions and wait until all of them finish, '
@@ -533,8 +505,6 @@ void main() {
     expect(infos.getIndex(3).state!.text, "0,1,2,1,3");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'Wait until some action that is never dispatched.'
       'Should timeout.', () async {
@@ -554,8 +524,6 @@ void main() {
     }));
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'Dispatch a few actions and wait until one specific action instance is dispatched, '
       'ignoring the others.'
@@ -573,8 +541,6 @@ void main() {
     expect(info.state!.text, "0,1,2,3");
     expect(info.errors, isEmpty);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Wait until some action that is never dispatched.'
@@ -595,8 +561,6 @@ void main() {
     }));
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'Dispatch a few actions and wait for all of them, in ANY order. '
       'Get the end state.', () async {
@@ -611,8 +575,6 @@ void main() {
     expect(info.state!.text, "0,1,2,3");
     expect(info.errors, isEmpty);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch a few actions and wait for all of them, in ANY order. '
@@ -633,8 +595,6 @@ void main() {
     }));
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'Dispatch a few actions and wait for all of them, in order. '
       'Get all of the intermediary states.', () async {
@@ -652,8 +612,6 @@ void main() {
     expect(infos.getIndex(1).errors, isEmpty);
     expect(infos.getIndex(2).errors, isEmpty);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch a few actions and wait for all of them, in ANY order. '
@@ -716,8 +674,6 @@ void main() {
     expect(action2s[1]!.state!.text, "0,1,2,2");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'Dispatch a few actions and wait for all of them, in ANY order. '
       'Ignore some actions. '
@@ -743,8 +699,6 @@ void main() {
     expect(infos.getIndex(0).errors, isEmpty);
     expect(infos.getIndex(1).errors, isEmpty);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch a few actions and wait for all of them, in order. '
@@ -774,8 +728,6 @@ void main() {
     expect(info.state!.text, "0,4,1,2,2,3,4,2,4,5");
     expect(info.errors, isEmpty);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch a few actions and wait for all of them, in order. '
@@ -812,8 +764,6 @@ void main() {
     expect(infos.getIndex(2).state!.text, "0,4,1,2,2,3,4,2,4,5");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'Dispatch a few actions and wait for all of them, in order. '
       'Ignore some actions, including one which we are also waiting for it. '
@@ -844,8 +794,6 @@ void main() {
     expect(infos.getIndex(1).state!.text, "0,1,2");
     expect(infos.getIndex(2).state!.text, "0,1,2,3");
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch a few actions and wait for all of them, in order. '
@@ -886,8 +834,6 @@ void main() {
     expect(infos.getIndex(3).state!.text, "0,4,1,2,2,3,4,2,4,5");
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test(
       'Dispatch a few actions, some async that dispatch others, '
       'and wait for all of them, in order. '
@@ -916,8 +862,6 @@ void main() {
     expect(infos.getIndex(2).state!.text, "0,1,2,3");
     expect(infos.getIndex(3).state!.text, "0,1,2,3,6");
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch a more complex action sequence. '
@@ -949,8 +893,6 @@ void main() {
     expect(infos.getIndex(6).state!.text, "0,4,1,2,3,6,2,5,7");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'Dispatch a more complex action sequence. '
       'One of the actions contains "await". '
@@ -973,8 +915,6 @@ void main() {
     // All 8 states were collected.
     expect(infos.length, 8);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch a more complex actions sequence. '
@@ -1000,8 +940,6 @@ void main() {
     // Only 7 states were collected. The ignored action doesn't generate info.
     expect(infos.length, 7);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'Dispatch a more complex actions sequence. '
@@ -1034,8 +972,6 @@ void main() {
     expect(infos.getIndex(1).state!.text, "0,2,8,9");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'An ignored action starts after the last expected actions starts, '
       'but before this last expected action finishes.', () async {
@@ -1062,8 +998,6 @@ void main() {
     expect(infos.getIndex(1).state!.text, "0,1,1,9,9");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   // TODO: THIS ONE IS FAILING. FIX!!!
   test("Wait for a sync action that dispatches an async action which is ignored.", () async {
     var storeTester = createStoreTester();
@@ -1083,8 +1017,6 @@ void main() {
     expect(infos.getIndex(1).state.text, "0,12,12");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('Makes sure we wait until the END of all ignored actions.', () async {
     //
     var storeTester = createStoreTester();
@@ -1094,8 +1026,6 @@ void main() {
     expect(() async => await storeTester.waitAllGetLast([Action1, Action2], ignore: [Action6]),
         throwsA(anything));
   });
-
-  ///////////////////////////////////////////////////////////////////////////
 
   test('Makes sure we wait until the END of all ignored actions.', () async {
     //
@@ -1124,8 +1054,6 @@ void main() {
     expect(info.state!.text, "0,1,2,3,6,1,2,3,6");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('Makes sure we wait until the END of all ignored actions.', () async {
     //
     var storeTester = createStoreTester();
@@ -1152,8 +1080,6 @@ void main() {
     expect(info.state!.text, "0,1,2,3,6,1,2,3,6");
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Makes sure we wait until the END of all ignored actions.', () async {
     //
     var storeTester = createStoreTester();
@@ -1178,8 +1104,6 @@ void main() {
     expect(info.errors, isEmpty);
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('Makes sure we wait until the END of all ignored actions.', () async {
     //
     var storeTester = createStoreTester();
@@ -1192,8 +1116,6 @@ void main() {
         throwsA(StoreException("Got this unexpected action: Action4 INI.")));
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Error message when time is out.', () async {
     //
     var storeTester = createStoreTester();
@@ -1205,7 +1127,7 @@ void main() {
     }));
   });
 
-  // ///////////////////////////////////////////////////////////////////////////////
+  //
 
   test(
       'An action dispatches other actions, and one of them throws an error. '
@@ -1226,8 +1148,6 @@ void main() {
     expect(info.ini, false);
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'An action dispatches other actions, and one of them throws an error. '
       'Wait until that action finishes, '
@@ -1247,8 +1167,6 @@ void main() {
     expect(info.ini, false);
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'An action dispatches other actions, and one of them throws an error. '
       'Wait until that action finishes, '
@@ -1267,8 +1185,6 @@ void main() {
     expect(info.state!.text, "0,1,2,3");
     expect(info.ini, false);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       'An action dispatches other actions, and one of them '
@@ -1292,8 +1208,6 @@ void main() {
     expect(info.ini, false);
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'An action dispatches other actions, and one of them '
       '(an async one) throws an error. '
@@ -1315,8 +1229,6 @@ void main() {
     expect(info.state!.text, "0,1,2");
     expect(info.ini, false);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test('The lastInfo can be accessed through StoreTester.lastInfo.', () async {
     var storeTester = createStoreTester();
@@ -1344,8 +1256,6 @@ void main() {
     // Same as expect(info1.ini, false);
     expect(storeTester.lastInfo.ini, false);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test('Wait condition with testImmediately true/false.', () async {
     // ---
@@ -1410,8 +1320,6 @@ void main() {
     expect(storeTester.state.text, "0,1,2,3,4,5");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       "Wait condition with testImmediately true "
       "should not see the action of previous test-infos.", () async {
@@ -1436,8 +1344,6 @@ void main() {
       testImmediately: true,
     );
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       "Wait condition with testImmediately true "
@@ -1475,8 +1381,6 @@ void main() {
     expect(infos[Action1]!.state!.text, "0,1,2,1");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('Two simultaneous store testers will receive the same state changes.', () async {
     var storeTester1 = createStoreTester();
     var storeTester2 = StoreTester.from(storeTester1.store);
@@ -1500,8 +1404,6 @@ void main() {
     expect(storeTester1.state.text, "0,1,2,3,4");
     expect(storeTester2.state.text, "0,1,2,3,4");
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test('StoreTester.dispatchState.', () async {
     var storeTester = createStoreTester();
@@ -1528,6 +1430,4 @@ void main() {
     expect(storeTester.lastInfo.state.text, "my state,3");
     expect(storeTester.state.text, "my state,3");
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 }

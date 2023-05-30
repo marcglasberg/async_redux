@@ -24,8 +24,6 @@ void main() {
   runApp(MyApp());
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// The app state, which in this case is a counter and a description.
 @immutable
 class AppState {
@@ -56,8 +54,6 @@ class AppState {
   int get hashCode => counter.hashCode ^ description.hashCode;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => StoreProvider<AppState>(
@@ -66,8 +62,6 @@ class MyApp extends StatelessWidget {
         home: MyHomePageConnector(),
       ));
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This action increments the counter by 1,
 /// and then gets some description text relating to the new counter number.
@@ -89,8 +83,6 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// This action increments the counter by [amount]].
 class IncrementAction extends ReduxAction<AppState> {
   final int amount;
@@ -101,8 +93,6 @@ class IncrementAction extends ReduxAction<AppState> {
   @override
   AppState reduce() => state.copy(counter: state.counter + amount);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
@@ -154,8 +144,6 @@ class ViewModel extends Vm {
   }) : super(equals: [counter, description]);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 class MyHomePage extends StatelessWidget {
   final int? counter;
   final String? description;
@@ -189,8 +177,6 @@ class MyHomePage extends StatelessWidget {
     );
   }
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 abstract class BaseFactory<T extends Widget?, Model extends Vm>
     extends VmFactory<AppState, T, Model> {

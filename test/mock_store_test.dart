@@ -49,8 +49,6 @@ void main() {
     return StoreTester.from(store);
   }
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('Store: mock a single sync action.', () async {
     var store = MockStore<AppState>(initialState: AppState("0"));
     expect(store.state.text, "0");
@@ -68,8 +66,6 @@ void main() {
     expect(store.state.text, "0A");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('StoreTester: mock a single sync action.', () async {
     // Without mock:
     var storeTester = createMockStoreTester();
@@ -85,8 +81,6 @@ void main() {
     storeTester.dispatch(MyAction1());
     expect(storeTester.state.text, "0A");
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test('Store: mock sync actions in different ways.', () async {
     // Without mock:
@@ -129,8 +123,6 @@ void main() {
     expect(store.state.text, "0[2]78|5");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test("Mock can't be of invalid type.", () async {
     var store = MockStore<AppState>(initialState: AppState("0"));
     expect(store.state.text, "0");
@@ -156,6 +148,4 @@ void main() {
         "`ReduxAction<St> Function(ReduxAction<St>)`\n"
         "`St Function(ReduxAction<St>, St)`\n");
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 }

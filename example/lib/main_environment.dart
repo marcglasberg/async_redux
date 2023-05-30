@@ -22,16 +22,12 @@ void main() {
   runApp(MyApp());
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 /// The environment is a container for the injected services.
 abstract class Environment {
   int incrementer(int value, int amount);
 
   int limit(int value);
 }
-
-// ////////////////////////////////////////////////////////////////////////////
 
 /// We can have many environment implementations, one for production,
 /// others for tests etc. In this case, we're using the [EnvironmentImpl].
@@ -44,8 +40,6 @@ class EnvironmentImpl implements Environment {
   int limit(int value) => min(value, 5);
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 /// We extend [VmFactory] to provide typed access to the [Environment].
 abstract class AppFactory<T extends Widget?, Model extends Vm> extends VmFactory<int, T, Model> {
   AppFactory([T? connector]) : super(connector);
@@ -54,15 +48,11 @@ abstract class AppFactory<T extends Widget?, Model extends Vm> extends VmFactory
   Environment get env => super.env as Environment;
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 /// We extend [ReduxAction] to provide typed access to the [Environment].
 abstract class Action extends ReduxAction<int> {
   @override
   Environment get env => super.env as Environment;
 }
-
-// ////////////////////////////////////////////////////////////////////////////
 
 class MyApp extends StatelessWidget {
   @override
@@ -73,8 +63,6 @@ class MyApp extends StatelessWidget {
       ));
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// This action increments the counter by [amount]].
 class IncrementAction extends Action {
   final int amount;
@@ -84,8 +72,6 @@ class IncrementAction extends Action {
   @override
   int reduce() => env.incrementer(state, amount);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This widget is a connector.
 /// It connects the store to [MyHomePage] (the dumb-widget).
@@ -142,8 +128,6 @@ class ViewModel extends Vm {
     required this.onIncrement,
   }) : super(equals: [counter]);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This is the "dumb-widget". It has no notion of the store, the state, the
 /// connector or the view-model. It just gets the parameters it needs to display

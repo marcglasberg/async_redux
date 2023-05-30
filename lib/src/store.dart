@@ -1,3 +1,8 @@
+// Developed by Marcelo Glasberg (Aug 2019).
+// Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
+// Uses code from package equatable by Felix Angelov.
+// For more info, see: https://pub.dartlang.org/packages/async_redux
+
 library async_redux_store;
 
 import 'dart:async';
@@ -7,13 +12,6 @@ import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/src/process_persistence.dart';
 
 part 'redux_action.dart';
-
-// Developed by Marcelo Glasberg (Aug 2019).
-// Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
-// Uses code from package equatable by Felix Angelov.
-// For more info, see: https://pub.dartlang.org/packages/async_redux
-
-// /////////////////////////////////////////////////////////////////////////////
 
 typedef Reducer<St> = FutureOr<St?> Function();
 
@@ -31,8 +29,6 @@ typedef DispatchAsync<St> = Future<ActionStatus> Function(
   ReduxAction<St> action, {
   bool notify,
 });
-
-// /////////////////////////////////////////////////////////////////////////////
 
 /// Creates a Redux store that holds the app state.
 ///
@@ -477,7 +473,7 @@ class Store<St> {
         Error.throwWithStackTrace(processedError, stackTrace);
     }
     //
-     finally {
+    finally {
       _finalize(action, originalError, processedError, afterWasRun);
     }
 
@@ -528,7 +524,7 @@ class Store<St> {
         Error.throwWithStackTrace(processedError, stackTrace);
     }
     //
-     finally {
+    finally {
       _finalize(action, originalError, processedError, afterWasRun);
     }
 
@@ -811,11 +807,9 @@ class Store<St> {
   }
 }
 
-// /////////////////////////////////////////////////////////////////////////////
+//
 
 enum CompareBy { byDeepEquals, byIdentity }
-
-// /////////////////////////////////////////////////////////////////////////////
 
 class ActionStatus {
   bool _isBeforeDone = false;
@@ -837,8 +831,6 @@ class ActionStatus {
   }
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 class _Flag<T> {
   T value;
 
@@ -850,5 +842,3 @@ class _Flag<T> {
   @override
   int get hashCode => 0;
 }
-
-// /////////////////////////////////////////////////////////////////////////////

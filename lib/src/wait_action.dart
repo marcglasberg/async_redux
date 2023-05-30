@@ -1,10 +1,10 @@
+// Developed by Marcelo Glasberg (Apr 2020).
+// For more info, see: https://pub.dartlang.org/packages/async_redux
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 
 import '../async_redux.dart';
-
-// Developed by Marcelo Glasberg (Apr 2020).
-// For more info, see: https://pub.dartlang.org/packages/async_redux
 
 /// [WaitAction] and [Wait] work together to help you create boolean flags that
 /// indicate some process is currently running. For this to work your store state
@@ -206,8 +206,6 @@ typedef WaitReducer<St> = St? Function(
   Object? flag,
   Object? ref,
 );
-
-// ////////////////////////////////////////////////////////////////////////////
 
 extension _StringExtension on Object? {
   /// If the object can be represented with up to 50 chars, we print it.

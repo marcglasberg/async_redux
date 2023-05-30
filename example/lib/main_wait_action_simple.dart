@@ -43,8 +43,6 @@ void main() {
   runApp(MyApp());
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// The app state contains a [wait] object of type [Wait].
 @immutable
 class AppState {
@@ -85,8 +83,6 @@ class AppState {
   int get hashCode => counter.hashCode ^ description.hashCode ^ wait.hashCode;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => StoreProvider<AppState>(
@@ -95,8 +91,6 @@ class MyApp extends StatelessWidget {
         home: MyHomePageConnector(),
       ));
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
   @override
@@ -117,8 +111,6 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
   void after() => dispatch(WaitAction.remove(this));
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 class IncrementAction extends ReduxAction<AppState> {
   final int amount;
 
@@ -127,8 +119,6 @@ class IncrementAction extends ReduxAction<AppState> {
   @override
   AppState reduce() => state.copy(counter: state.counter + amount);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
@@ -178,8 +168,6 @@ class ViewModel extends Vm {
     required this.onIncrement,
   }) : super(equals: [counter, description, waiting]);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatelessWidget {
   final int? counter;

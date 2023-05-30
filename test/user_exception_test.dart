@@ -50,8 +50,6 @@ void main() {
   var localeEn = const Locale('en', 'US');
   var localePt = const Locale('pt', 'BR');
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('Get title and content from UserException.', () {
     // UserException with no given cause.
     var exception = const UserException("Some msg");
@@ -90,8 +88,6 @@ void main() {
     expect(exception.dialogContent(localePt), "Some msg");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('Get title and content from UserException with code, but no Locale.', () {
     // UserException with no given cause.
     var exception = const UserException(
@@ -122,8 +118,6 @@ void main() {
     expect(exception.dialogContent(), "Some msg");
     expect(exception.toString(), "Some msg");
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test('Get title and content from UserException with code and Locale.', () {
     // UserException with no given cause.
@@ -162,8 +156,6 @@ void main() {
     expect(exception.toString(), "Some msg");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('Get title and content from UserException with code, Locale, and cause with code.', () {
     // UserException with cause, and the cause is also an UserException.
     var exception = const UserException(
@@ -199,8 +191,6 @@ void main() {
     expect(exception.toString(), "Some msg\n\nReason: Other msg");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('If there is a code, but no translation, use the message.', () {
     //
     // Regular code with translation: uses the translation.
@@ -219,8 +209,6 @@ void main() {
     exception = const UserException("", code: UserExceptionCode.unknownError);
     expect(exception.dialogContent(localeEn), "unknownError");
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test('Message with a reason gets translated to the current locale.', () {
     //
@@ -268,8 +256,6 @@ void main() {
         "xyz unknown This is a cause Another cause");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('UserException.pure() removes cause which is not UserException', () {
     //
     // No cause.
@@ -308,8 +294,6 @@ void main() {
     expect(exception4.withoutHardCause(), exception2);
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       'UserException.hardCause() Returns the first cause which, '
       'recursively, is NOT a UserException', () {
@@ -331,6 +315,4 @@ void main() {
     var exception4 = UserException("msg2", cause: UserException("msg1", cause: cause));
     expect(exception4.hardCause(), cause);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 }

@@ -26,8 +26,6 @@ class MyApp extends StatelessWidget {
       ));
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// This action increments the counter by [amount]].
 class IncrementAction extends ReduxAction<int> {
   final int amount;
@@ -37,8 +35,6 @@ class IncrementAction extends ReduxAction<int> {
   @override
   int reduce() => state + amount;
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This widget is a connector.
 /// It connects the store to [MyHomePage] (the dumb-widget).
@@ -95,8 +91,6 @@ class ViewModel extends Vm {
     required this.onIncrement,
   }) : super(equals: [counter]);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This is the "dumb-widget". It has no notion of the store, the state, the
 /// connector or the view-model. It just gets the parameters it needs to display

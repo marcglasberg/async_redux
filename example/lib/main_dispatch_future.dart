@@ -32,8 +32,6 @@ void main() {
   runApp(MyApp());
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 @immutable
 class AppState {
   final List<String>? numTrivia;
@@ -63,8 +61,6 @@ class AppState {
   int get hashCode => numTrivia.hashCode ^ isLoading.hashCode;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => StoreProvider<AppState>(
@@ -74,8 +70,6 @@ class MyApp extends StatelessWidget {
         ),
       );
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class LoadMoreAction extends ReduxAction<AppState> {
   @override
@@ -124,8 +118,6 @@ class IsLoadingAction extends ReduxAction<AppState> {
   @override
   AppState reduce() => state.copy(isLoading: val);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePageConnector extends StatelessWidget {
   MyHomePageConnector({Key? key}) : super(key: key);
@@ -178,8 +170,6 @@ class ViewModel extends Vm {
           isLoading!,
         ]);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatefulWidget {
   final List<String>? numTrivia;
@@ -240,5 +230,3 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
-
-///////////////////////////////////////////////////////////////////////////////

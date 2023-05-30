@@ -4,13 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-///////////////////////////////////////////////////////////////////////////////
-
 List<String>? info;
 
 void main() {
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Test aborting an action.', () async {
     //
     info = [];
@@ -30,8 +26,6 @@ void main() {
     expect(info, ['1', '2', '3', '1', '2', '3']);
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Test aborting an action, where the abortDispatch method accesses the state.', () async {
     //
     info = [];
@@ -50,11 +44,7 @@ void main() {
     expect(store.state, "XX");
     expect(info, ['1', '2', '3', '1', '2', '3']);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 }
-
-// ----------------------------------------------
 
 class ActionA extends ReduxAction<String> {
   bool abort;
@@ -81,8 +71,6 @@ class ActionA extends ReduxAction<String> {
   }
 }
 
-// ----------------------------------------------
-
 class ActionB extends ReduxAction<String> {
   @override
   bool abortDispatch() => state.length >= 2;
@@ -103,5 +91,3 @@ class ActionB extends ReduxAction<String> {
     info!.add('3');
   }
 }
-
-// ----------------------------------------------

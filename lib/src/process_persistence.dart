@@ -1,3 +1,8 @@
+// Developed by Marcelo Glasberg (Aug 2019).
+// Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
+// Uses code from package equatable by Felix Angelov.
+// For more info, see: https://pub.dartlang.org/packages/async_redux
+
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
@@ -114,7 +119,7 @@ class ProcessPersistence<St> {
       );
     }
     //
-     finally {
+    finally {
       lastPersistedState = newState;
       isPersisting = false;
 

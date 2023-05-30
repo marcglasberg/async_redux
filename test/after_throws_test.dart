@@ -6,16 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-///////////////////////////////////////////////////////////////////////////////
-
 late List<String> info;
 
 /// IMPORTANT:
 /// These tests may print errors to the console. This is normal.
 ///
 void main() {
-  /////////////////////////////////////////////////////////////////////////////
-
   test('If the after method throws, the error will be thrown asynchronously.', () async {
     //
     dynamic error;
@@ -52,8 +48,6 @@ void main() {
         " 'some-error'.:\n"
         "  some-error");
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 }
 
 class ActionA extends ReduxAction<String> {

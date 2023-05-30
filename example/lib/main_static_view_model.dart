@@ -31,8 +31,6 @@ class MyApp extends StatelessWidget {
       ));
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// This action increments the counter by [amount]].
 class IncrementAction extends ReduxAction<int> {
   final int amount;
@@ -42,8 +40,6 @@ class IncrementAction extends ReduxAction<int> {
   @override
   int reduce() => state + amount;
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
@@ -79,8 +75,6 @@ class ViewModel extends Vm {
     );
   }
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatelessWidget {
   final int? counter;

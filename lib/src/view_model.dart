@@ -1,16 +1,14 @@
+// Developed by Marcelo Glasberg (Aug 2019).
+// Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
+// Uses code from package equatable by Felix Angelov.
+// For more info, see: https://pub.dartlang.org/packages/async_redux
+
 library async_redux_view_model;
 
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 
 part 'equality.dart';
-
-// Developed by Marcelo Glasberg (Aug 2019).
-// Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
-// Uses code from package equatable by Felix Angelov.
-// For more info, see: https://pub.dartlang.org/packages/async_redux
-
-// /////////////////////////////////////////////////////////////////////////////
 
 /// Each state passed in the [Vm.equals] parameter in the in view-model will be
 /// compared by equality (==), unless it is of type [VmEquals], when it will be
@@ -19,8 +17,6 @@ part 'equality.dart';
 abstract class VmEquals<T> {
   bool vmEquals(T other) => identical(this, other);
 }
-
-// /////////////////////////////////////////////////////////////////////////////
 
 /// [Vm] is a base class for your view-models.
 ///
@@ -111,8 +107,6 @@ abstract class Vm {
   @override
   String toString() => '$runtimeType{${equals.join(', ')}}';
 }
-
-// /////////////////////////////////////////////////////////////////////////////
 
 /// Factory that creates a view-model of type [Vm], for the [StoreConnector]:
 ///
@@ -263,8 +257,6 @@ void internalsVmFactoryInject<St>(
   vmFactory._setStore(state, store);
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 /// Don't use, this is deprecated. Please, use the recommended [Vm] class.
 /// This should only be used for IMMUTABLE classes.
 /// Lets you implement equals/hashcode without having to override these methods.
@@ -337,5 +329,3 @@ abstract class BaseModel<St> {
 void internalsBaseModelInject<St>(BaseModel baseModel, St state, Store store) {
   baseModel._setStore(state, store);
 }
-
-// /////////////////////////////////////////////////////////////////////////////

@@ -7,8 +7,6 @@ import 'package:flutter_test/flutter_test.dart';
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
 void main() {
-  /////////////////////////////////////////////////////////////////////////////
-
   test('NavigateAction toString() and type.', () async {
     //
     var route1 = MaterialPageRoute(builder: (BuildContext ctx) => Container());
@@ -165,6 +163,4 @@ void main() {
         ')');
     expect(action.type, NavigateType.popUntilRoute);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 }

@@ -4,13 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-///////////////////////////////////////////////////////////////////////////////
-
 late List<String> info;
 
 void main() {
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Method call sequence for sync reducer.', () async {
     //
     info = [];
@@ -23,8 +19,6 @@ void main() {
       'A.after state="A"',
     ]);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test(
       'Method call sequence for async reducer. '
@@ -41,8 +35,6 @@ void main() {
       'B.after state="B"',
     ]);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test(
       'Method call sequence for async reducer. '
@@ -68,8 +60,6 @@ void main() {
     ]);
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test(
       'Method call sequence for async reducer. '
       'The reducer is async because the BEFORE method returns Future.', () async {
@@ -92,8 +82,6 @@ void main() {
       'C.after state="AC"'
     ]);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test(
       'Method call sequence for async reducer. '
@@ -120,8 +108,6 @@ void main() {
     ]);
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test(
       'What happens when the after method of a sync reducer dispatches another action? '
       'The state is changed by the reduce method before the after method is executed.', () async {
@@ -142,8 +128,6 @@ void main() {
       'E.after2 state="EA"'
     ]);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test(
       'What happens when the after method of a async reducer dispatches another action? '
@@ -166,13 +150,7 @@ void main() {
       'F.after2 state="FA"'
     ]);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
-
-  /////////////////////////////////////////////////////////////////////////////
 }
-
-// ----------------------------------------------
 
 class ActionA extends ReduxAction<String> {
   @override
@@ -191,8 +169,6 @@ class ActionA extends ReduxAction<String> {
     info.add('A.after state="$state"');
   }
 }
-
-// ----------------------------------------------
 
 class ActionB extends ReduxAction<String> {
   @override
@@ -214,8 +190,6 @@ class ActionB extends ReduxAction<String> {
   }
 }
 
-// ----------------------------------------------
-
 class ActionC extends ReduxAction<String> {
   @override
   Future<void> before() async {
@@ -233,8 +207,6 @@ class ActionC extends ReduxAction<String> {
     info.add('C.after state="$state"');
   }
 }
-
-// ----------------------------------------------
 
 class ActionD extends ReduxAction<String> {
   @override
@@ -256,8 +228,6 @@ class ActionD extends ReduxAction<String> {
   }
 }
 
-// ----------------------------------------------
-
 class ActionE extends ReduxAction<String> {
   @override
   void before() {
@@ -277,8 +247,6 @@ class ActionE extends ReduxAction<String> {
     info.add('E.after2 state="$state"');
   }
 }
-
-// ----------------------------------------------
 
 class ActionF extends ReduxAction<String> {
   @override
@@ -301,5 +269,3 @@ class ActionF extends ReduxAction<String> {
     info.add('F.after2 state="$state"');
   }
 }
-
-// ----------------------------------------------

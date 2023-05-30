@@ -27,8 +27,6 @@ class MyApp extends StatelessWidget {
       ));
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 class IncrementAction extends ReduxAction<int> {
   final int amount;
 
@@ -37,8 +35,6 @@ class IncrementAction extends ReduxAction<int> {
   @override
   int reduce() => state + amount;
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePageConnector extends StatelessWidget {
   MyHomePageConnector({Key? key}) : super(key: key);
@@ -91,8 +87,6 @@ class ViewModel extends Vm {
     required this.onIncrement,
   }) : super(equals: [counter]);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatelessWidget {
   final int? counter;

@@ -1,12 +1,11 @@
-import 'dart:async';
-import 'package:async_redux/async_redux.dart';
-
 // Developed by Marcelo Glasberg (Aug 2019).
 // Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
 // Uses code from package equatable by Felix Angelov.
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-// /////////////////////////////////////////////////////////////////////////////
+import 'dart:async';
+
+import 'package:async_redux/async_redux.dart';
 
 /// Use it like this:
 ///
@@ -57,8 +56,6 @@ abstract class Persistor<St> {
   Duration? get throttle => const Duration(seconds: 2);
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 /// A decorator to print persistor information to the console.
 /// Use it like this:
 ///
@@ -104,8 +101,6 @@ class PersistorPrinterDecorator<St> extends Persistor<St> {
   Duration? get throttle => _persistor.throttle;
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 /// A dummy persistor.
 ///
 class PersistorDummy<T> extends Persistor<T?> {
@@ -124,8 +119,6 @@ class PersistorDummy<T> extends Persistor<T?> {
   @override
   Duration? get throttle => null;
 }
-
-// /////////////////////////////////////////////////////////////////////////////
 
 class PersistException implements Exception {
   final Object error;
@@ -148,11 +141,7 @@ class PersistException implements Exception {
   int get hashCode => error.hashCode;
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 class PersistAction<St> extends ReduxAction<St> {
   @override
   St? reduce() => null;
 }
-
-// /////////////////////////////////////////////////////////////////////////////

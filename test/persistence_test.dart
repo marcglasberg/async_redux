@@ -43,8 +43,6 @@ void main() {
 
   void printResults(List<Object> results) => print("-\nRESULTS:\n${results.join("\n")}\n-");
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('Create some simple state and persist, without throttle.', () async {
     //
     await setupPersistorAndLocalDb();
@@ -63,8 +61,6 @@ void main() {
     expect(localDb.get(db: "main", id: Id("name")), "Steve");
     expect(await storeTester.store.readStateFromPersistence(), info2.state);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test('Create some simple state and persist, with a 1 second throttle.', () async {
     //
@@ -100,8 +96,6 @@ void main() {
     expect(localDb.get(db: "main", id: Id("name")), "Eve");
     expect(await storeTester.store.readStateFromPersistence(), storeTester.state);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       "There is no throttle. "
@@ -147,8 +141,6 @@ void main() {
         "(state:6, db: 6)"
         "(state:7, db: 7)");
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       "Pausing then resuming: "
@@ -200,7 +192,7 @@ void main() {
         "(state:7, db: 7)");
   });
 
-  // ///////////////////////////////////////////////////////////////////////////////
+  //
 
   test(
       "The throttle period is 215 milliseconds. "
@@ -253,8 +245,6 @@ void main() {
         "(state:13, db: 9)" // Changed state in 840 millis.
         "(state:14, db: 13)"); // Changed state in 900 millis. Saved db em 860 millis.
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test(
     "Pausing then resuming: "
@@ -315,8 +305,6 @@ void main() {
     },
     skip: 'Requires precise timing',
   );
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test(
     "Persisting and pausing, then resuming: "
@@ -381,8 +369,6 @@ void main() {
     skip: 'Requires precise timing',
   );
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test(
       "There is no throttle. "
       "Each save takes 430 milliseconds. "
@@ -442,8 +428,6 @@ void main() {
         "(state:14, db: 7)" // Changed state in 1800 millis.
         "(state:15, db: 10)"); // Changed state in 1920 millis. Started saving state 15 in 920 millis (will finish: 1840+430 millis).
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       "Pausing then resuming: "
@@ -510,8 +494,6 @@ void main() {
         "(state:15, db: 11)"); // Changed state in 1920 millis. Changed to 11, because previous save finished.
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       "There is a 300 millis throttle. "
       "A first state change happens. A save starts immediately."
@@ -571,8 +553,6 @@ void main() {
         "(state:2nd, db: 1st)"
         "(state:2nd, db: 2nd)");
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 
   test(
       "There is a 300 save duration, and no throttle. "
@@ -645,8 +625,6 @@ void main() {
         "(state:2nd, db: 2nd)");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test(
       "There is throttle period of 300 millis. "
       "A first state change happens. A save starts immediately. "
@@ -706,8 +684,6 @@ void main() {
         "(state:2nd, db: 2nd)");
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('Test the persistor in the store holds the correct state.', () async {
     //
     await setupPersistorAndLocalDb();
@@ -738,16 +714,12 @@ void main() {
     storeTester.store.deleteStateFromPersistence();
     expect(store.getLastPersistedStateFromPersistor(), isNull);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 }
 
 String writeStateAndDb(StoreTester<AppState> storeTester, LocalDb localDb) => "("
     "state:${storeTester.state.name}, "
     "db: ${localDb.get(db: 'main', id: Id('name'))}"
     ")";
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
 @immutable
 class AppState {
@@ -778,8 +750,6 @@ class AppState {
   int get hashCode => name.hashCode;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 class Id {
   final String uid;
 
@@ -795,8 +765,6 @@ class Id {
   @override
   int get hashCode => uid.hashCode;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// T must have [isEmpty] method.
 abstract class LocalDb<T> {
@@ -846,15 +814,11 @@ abstract class LocalDb<T> {
   });
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 class NotFound {
   const NotFound();
 
   static const instance = NotFound();
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class SavedInfo {
   //
@@ -879,8 +843,6 @@ class SavedInfo {
   @override
   int get hashCode => id.hashCode ^ info.hashCode;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
   //
@@ -970,8 +932,6 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
   }
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 class MyPersistor implements Persistor<AppState> {
   //
   final Duration? _throttle;
@@ -1032,8 +992,6 @@ class MyPersistor implements Persistor<AppState> {
   }
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 class ChangeNameAction extends ReduxAction<AppState> {
   String name;
 
@@ -1042,8 +1000,6 @@ class ChangeNameAction extends ReduxAction<AppState> {
   @override
   AppState reduce() => state.copy(name: name);
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class X {
   int value = 0;

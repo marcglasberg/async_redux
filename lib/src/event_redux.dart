@@ -1,4 +1,6 @@
 // Developed by Marcelo Glasberg (Aug 2019).
+// Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
+// Uses code from package equatable by Felix Angelov.
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
 import 'dart:math';
@@ -51,7 +53,6 @@ typedef Evt<T> = Event<T>;
 ///
 /// For more info, see: https://pub.dartlang.org/packages/async_redux
 ///
-
 class Event<T> {
   bool _spent;
   final T? _evtInfo;
@@ -204,8 +205,6 @@ class Event<T> {
   int get hashCode => 0;
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 /// An Event from multiple sub-events.
 /// When consuming this event, if the first sub-event is not spent, it will be consumed,
 /// and the second will not. If the first sub-event is spent, the second one will be consumed.
@@ -248,8 +247,6 @@ class EventMultiple<T> extends Event<T> {
   }
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 /// A MappedEvent is useful when your event value must be transformed by
 /// some function that, usually, needs the store state. You must provide the
 /// event and a map-function. The map-function must be able to deal with
@@ -279,8 +276,6 @@ class MappedEvent<V, T> extends Event<T> {
   @override
   T? get state => mapFunction(evt.state);
 }
-
-// /////////////////////////////////////////////////////////////////////////////
 
 /// The [EventState] can be used with stateful widgets to generate a "pulse" that
 /// you can use to change something.
@@ -329,5 +324,3 @@ class EvtState<T> {
   @override
   int get hashCode => value.hashCode ^ _rand.hashCode;
 }
-
-// /////////////////////////////////////////////////////////////////////////////

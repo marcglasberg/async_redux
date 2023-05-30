@@ -1,7 +1,5 @@
 part of async_redux_view_model;
 
-// /////////////////////////////////////////////////////////////////////////////
-
 // Developed by Google.
 // For some reason pub.dev complains if we add the collection package.
 // I got tired of this, and copied ListEquality here.
@@ -46,8 +44,6 @@ class _ListEquality<E> implements _Equality<List<E>> {
   bool isValidKey(Object o) => o is List<E>;
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 class _DefaultEquality<E> implements _Equality<E> {
   const _DefaultEquality();
 
@@ -61,8 +57,6 @@ class _DefaultEquality<E> implements _Equality<E> {
   bool isValidKey(Object o) => true;
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 abstract class _Equality<E> {
   const factory _Equality() = _DefaultEquality<E>;
 
@@ -72,5 +66,3 @@ abstract class _Equality<E> {
 
   bool isValidKey(Object o);
 }
-
-// /////////////////////////////////////////////////////////////////////////////

@@ -18,8 +18,6 @@ final routes = {
 
 class AppState {}
 
-///////////////////////////////////////////////////////////////////////////////
-
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -32,8 +30,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class Page extends StatelessWidget {
   final Color? color;
@@ -49,8 +45,6 @@ class Page extends StatelessWidget {
         onPressed: onChangePage,
       );
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class Page1Connector extends StatelessWidget {
   @override
@@ -80,8 +74,6 @@ class ViewModel1 extends Vm {
   ViewModel1({required this.onChangePage});
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 class Page2Connector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -110,5 +102,3 @@ class ViewModel2 extends Vm {
 
   ViewModel2({required this.onChangePage});
 }
-
-///////////////////////////////////////////////////////////////////////////////

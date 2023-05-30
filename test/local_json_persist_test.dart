@@ -14,8 +14,6 @@ enum files { abcd, xyzk }
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Encode and decode state.', () async {
     //
     List<Object> simpleObj = [
@@ -45,8 +43,6 @@ void main() {
         'true (bool)\n'
         'false (bool)');
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Save and load state.', () async {
     //
@@ -85,8 +81,6 @@ void main() {
     await persist.delete();
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Test file can be defined by String or enum.', () async {
     //
     File file = await (LocalJsonPersist("abcd").file());
@@ -98,8 +92,6 @@ void main() {
     file = await (LocalJsonPersist(files.xyzk, dbSubDir: "kkk").file());
     expect(file.path.endsWith("\\kkk\\xyzk.json") || file.path.endsWith("/kkk/xyzk.json"), isTrue);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Test dbDir and subDirs.', () async {
     //
@@ -115,7 +107,8 @@ void main() {
 
     file = await (LocalJsonPersist("xyzk", dbSubDir: "kkk", subDirs: ["m", "n", "o"]).file());
     expect(
-        file.path.endsWith("\\kkk\\m\\n\\o\\xyzk.json") || file.path.endsWith("/kkk/m/n/o/xyzk.json"),
+        file.path.endsWith("\\kkk\\m\\n\\o\\xyzk.json") ||
+            file.path.endsWith("/kkk/m/n/o/xyzk.json"),
         isTrue);
 
     file = await (LocalJsonPersist("xyzk", subDirs: ["mno"]).file());
@@ -151,8 +144,8 @@ void main() {
 
     print('file.path = ${file.path}');
     file = await (LocalJsonPersist("xyzk", subDirs: ["m", "n", "o"]).file());
-    expect(
-        file.path.endsWith("\\m\\n\\o\\xyzk.json") || file.path.endsWith("/m/n/o/xyzk.json"), isTrue);
+    expect(file.path.endsWith("\\m\\n\\o\\xyzk.json") || file.path.endsWith("/m/n/o/xyzk.json"),
+        isTrue);
     expect(
         file.path.endsWith("\\db\\m\\n\\o\\xyzk.json") || file.path.endsWith("/db/m/n/o/xyzk.json"),
         isFalse);
@@ -166,16 +159,14 @@ void main() {
 
     print('file.path = ${file.path}');
     file = await (LocalJsonPersist("xyzk", subDirs: ["m", "n", "o"]).file());
-    expect(
-        file.path.endsWith("\\m\\n\\o\\xyzk.json") || file.path.endsWith("/m/n/o/xyzk.json"), isTrue);
+    expect(file.path.endsWith("\\m\\n\\o\\xyzk.json") || file.path.endsWith("/m/n/o/xyzk.json"),
+        isTrue);
     expect(
         file.path.endsWith("\\db\\m\\n\\o\\xyzk.json") || file.path.endsWith("/db/m/n/o/xyzk.json"),
         isFalse);
 
     LocalJsonPersist.defaultDbSubDir = saveDefaultDbSubDir;
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Add objects to save, and load from file name.', () async {
     //
@@ -202,8 +193,6 @@ void main() {
     await persist.delete();
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Test create, overwrite and delete the file.', () async {
     //
     var persist = LocalJsonPersist("klm");
@@ -224,8 +213,6 @@ void main() {
     await persist.delete();
     expect(file.existsSync(), false);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test("Load/Length/Exists file that doesn't exist, or exists and is empty.", () async {
     //
@@ -250,8 +237,6 @@ void main() {
     expect(await persist.exists(), true);
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test("Deletes a file that exists or doesn't exist.", () async {
     //
     // File doesn't exist.
@@ -263,8 +248,6 @@ void main() {
     await persist.save([]);
     expect(await persist.delete(), isTrue);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Load as object.', () async {
     //
@@ -286,8 +269,6 @@ void main() {
     // Cleans up test.
     await persist.delete();
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Loading an object-which-is-not-a-map as single object, fails.', () async {
     //
@@ -317,8 +298,6 @@ void main() {
     await persist.delete();
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Load as object (map) something which is not an object.', () async {
     //
     List<Object> simpleObj = ["hey"];
@@ -337,8 +316,6 @@ void main() {
     // Cleans up test.
     await persist.delete();
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Encode and decode as JSON.', () async {
     //
@@ -370,8 +347,6 @@ void main() {
         'false (bool)');
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Save and load a single string into/from JSON.', () async {
     //
     Object simpleObj = 'Goodbye';
@@ -384,8 +359,6 @@ void main() {
     // Cleans up test.
     await persist.delete();
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('loadConverting from .json file', () async {
     var simpleObj = {'Hello': 123};
@@ -400,8 +373,6 @@ void main() {
     // Cleans up test.
     await persist.delete();
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('loadConverting from .db (json-sequence) file', () async {
     //
@@ -449,8 +420,6 @@ void main() {
     await persist.delete();
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('loadConverting from .db (json-sequence) file fails for more than 1 object', () async {
     var simpleObj = ['Hello', 123];
     var persistSequence = LocalPersist("abcd");
@@ -471,8 +440,6 @@ void main() {
     // Cleans up test.
     await persist.delete();
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('loadAsObjConverting from .db (json-sequence) file', () async {
     //
@@ -520,8 +487,6 @@ void main() {
     await persist.delete();
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('loadConverting from .json file', () async {
     var simpleObj = {'Hello': 123};
     var persist = LocalJsonPersist("abcd");
@@ -535,8 +500,6 @@ void main() {
     // Cleans up test.
     await persist.delete();
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('loadConverting from .db (json-sequence) file', () async {
     //
@@ -584,8 +547,6 @@ void main() {
     await persist.delete();
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('loadConverting from .db (json-sequence) file for a single object', () async {
     //
     var simpleObj = ['Hello'];
@@ -614,8 +575,6 @@ void main() {
     await persist.delete();
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('loadConverting from .db (json-sequence) file for more than 1 object', () async {
     //
     var simpleObj = ['Hello', 123];
@@ -643,8 +602,6 @@ void main() {
     // Cleans up test.
     await persist.delete();
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('loadConverting from .db (json-sequence) file for a list inside a list', () async {
     //
@@ -676,6 +633,4 @@ void main() {
     // Cleans up test.
     await persist.delete();
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 }

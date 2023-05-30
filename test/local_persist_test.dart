@@ -13,8 +13,6 @@ enum files { abc, xyz }
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Encode and decode state.', () async {
     //
     List<Object> simpleObjs = [
@@ -44,8 +42,6 @@ void main() {
         'true (bool)\n'
         'false (bool)');
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Save and load state.', () async {
     //
@@ -84,8 +80,6 @@ void main() {
     await persist.delete();
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Test file can be defined by String or enum.', () async {
     //
     File file = await (LocalPersist("abc").file());
@@ -97,8 +91,6 @@ void main() {
     file = await (LocalPersist(files.xyz, dbSubDir: "kkk").file());
     expect(file.path.endsWith("\\kkk\\xyz.db") || file.path.endsWith("/kkk/xyz.db"), isTrue);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Test dbDir and subDirs.', () async {
     //
@@ -165,8 +157,6 @@ void main() {
     LocalPersist.defaultDbSubDir = saveDefaultDbSubDir;
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Add objects to save, and load from file name.', () async {
     //
     // User random numbers to make sure it's not checking already saved files.
@@ -191,8 +181,6 @@ void main() {
     // Cleans up test.
     await persist.delete();
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Test appending, then loading.', () async {
     //
@@ -245,8 +233,6 @@ void main() {
     await persist.delete();
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Test create, append, overwrite and delete the file.', () async {
     //
     var persist = LocalPersist("klm");
@@ -273,8 +259,6 @@ void main() {
     expect(file.existsSync(), false);
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test("Load/Length/Exists file that doesn't exist, or exists and is empty.", () async {
     //
     // File doesn't exist.
@@ -291,8 +275,6 @@ void main() {
     expect(await persist.exists(), true);
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test("Deletes a file that exists or doesn't exist.", () async {
     //
     // File doesn't exist.
@@ -304,8 +286,6 @@ void main() {
     await persist.save([]);
     expect(await persist.delete(), isTrue);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Load as object.', () async {
     //
@@ -329,8 +309,6 @@ void main() {
     // Cleans up test.
     await persist.delete();
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Load many object as single object.', () async {
     //
@@ -360,8 +338,6 @@ void main() {
     await persist.delete();
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Load as object (map) something which is not an object.', () async {
     //
     List<Object> simpleObjs = ["hey"];
@@ -380,8 +356,6 @@ void main() {
     // Cleans up test.
     await persist.delete();
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Encode and decode as JSON.', () async {
     //
@@ -412,8 +386,6 @@ void main() {
         'true (bool)\n'
         'false (bool)');
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('Save and load state into/from JSON.', () async {
     //
@@ -452,8 +424,6 @@ void main() {
     await persist.delete();
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Save and load a single string into/from JSON.', () async {
     //
     Object simpleObjs = 'Goodbye';
@@ -466,6 +436,4 @@ void main() {
     // Cleans up test.
     await persist.delete();
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 }

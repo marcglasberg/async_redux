@@ -1,15 +1,13 @@
-import 'dart:async';
-
-import 'package:async_redux/async_redux.dart';
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
-import 'package:flutter/material.dart';
-
 // Developed by Marcelo Glasberg (Aug 2019).
 // Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
 // Uses code from package equatable by Felix Angelov.
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-// /////////////////////////////////////////////////////////////////////////////
+import 'dart:async';
+
+import 'package:async_redux/async_redux.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:flutter/material.dart';
 
 /// Convert the entire [Store] into a [Model]. The [Model] will
 /// be used to build a Widget using the [ViewModelBuilder].
@@ -72,8 +70,6 @@ typedef ViewModelBuilder<Model> = Widget Function(
   Model vm,
 );
 
-// /////////////////////////////////////////////////////////////////////////////
-
 abstract class StoreConnectorInterface<St, Model> {
   VmFactory<St, dynamic, dynamic> Function()? get vm;
 
@@ -99,8 +95,6 @@ abstract class StoreConnectorInterface<St, Model> {
 
   Object? get debug;
 }
-
-// /////////////////////////////////////////////////////////////////////////////
 
 /// Build a widget based on the state of the [Store].
 ///
@@ -284,8 +278,6 @@ class StoreConnector<St, Model> extends StatelessWidget
   }
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 /// Listens to the store and calls builder whenever the store changes.
 class _StoreStreamListener<St, Model> extends StatefulWidget {
   final ViewModelBuilder<Model> builder;
@@ -329,8 +321,6 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
   }
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 /// If the StoreConnector throws an error.
 class _ConverterError extends Error {
   final Object? debug;
@@ -353,8 +343,6 @@ class _ConverterError extends Error {
         "$stackTrace\n\n";
   }
 }
-
-// /////////////////////////////////////////////////////////////////////////////
 
 class _StoreStreamListenerState<St, Model> //
     extends State<_StoreStreamListener<St, Model>> {
@@ -632,4 +620,4 @@ class _StoreStreamListenerState<St, Model> //
   }
 }
 
-// /////////////////////////////////////////////////////////////////////////////
+//

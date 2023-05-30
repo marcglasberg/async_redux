@@ -76,8 +76,6 @@ class MyPage extends StatelessWidget {
   }
 }
 
-/////////////////////////////////////////////////////////////////////////////
-
 void main() {
   setUp(() async {
     NavigateAction.setNavigatorKey(navigatorKey);
@@ -101,8 +99,6 @@ void main() {
   final Finder pushPage3Finder = find.byKey(const Key("pushNamedPage3"));
 
   final Finder popFinder = find.byKey(const Key("pop"));
-
-  /////////////////////////////////////////////////////////////////////////////
 
   testWidgets("pushNamed", (WidgetTester tester) async {
     await tester.pumpWidget(MyApp());
@@ -130,8 +126,6 @@ void main() {
     expect(page2Finder, findsNothing);
     expect(page3Finder, findsOneWidget);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   testWidgets("pushNamedAndRemoveAll", (WidgetTester tester) async {
     await tester.pumpWidget(MyApp());
@@ -176,8 +170,6 @@ void main() {
     expect(page3IncludeIfOffstageFinder, findsNothing);
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   testWidgets("pushReplacementNamed", (WidgetTester tester) async {
     await tester.pumpWidget(MyApp());
     await tester.pumpAndSettle();
@@ -212,8 +204,6 @@ void main() {
     expect(page2IncludeIfOffstageFinder, findsNWidgets(2));
     expect(page3IncludeIfOffstageFinder, findsNothing);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   testWidgets("pushNamedAndRemoveUntil", (WidgetTester tester) async {
     await tester.pumpWidget(MyApp());
@@ -262,8 +252,6 @@ void main() {
     expect(page2IncludeIfOffstageFinder, findsOneWidget);
     expect(page3IncludeIfOffstageFinder, findsNothing);
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   testWidgets("pop", (WidgetTester tester) async {
     await tester.pumpWidget(MyApp());

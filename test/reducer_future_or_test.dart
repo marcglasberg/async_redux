@@ -19,8 +19,6 @@ import 'package:flutter_test/flutter_test.dart';
 ///    Future<AppState?>? reduce()
 ///
 void main() {
-  /////////////////////////////////////////////////////////////////////////////
-
   test('Test all accepted and rejected reducer return types', () async {
     //
     // The initial state is "0".
@@ -156,11 +154,7 @@ void main() {
 
     // ------------
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 }
-
-// ----------------------------------------------
 
 /// Null reduce()
 class ActionNull extends ReduxAction<AppState> {
@@ -170,8 +164,6 @@ class ActionNull extends ReduxAction<AppState> {
   }
 }
 
-// ----------------------------------------------
-
 /// AppState reduce()
 class ActionA extends ReduxAction<AppState> {
   @override
@@ -179,8 +171,6 @@ class ActionA extends ReduxAction<AppState> {
     return state.copy(state.text + 'A');
   }
 }
-
-// ----------------------------------------------
 
 /// AppState? reduce()
 class ActionB extends ReduxAction<AppState> {
@@ -190,8 +180,6 @@ class ActionB extends ReduxAction<AppState> {
   }
 }
 
-// ----------------------------------------------
-
 /// Future<AppState> reduce()
 class ActionC extends ReduxAction<AppState> {
   @override
@@ -199,8 +187,6 @@ class ActionC extends ReduxAction<AppState> {
     return state.copy(state.text + 'C');
   }
 }
-
-// ----------------------------------------------
 
 /// Future<AppState?> reduce()
 class ActionD extends ReduxAction<AppState> {
@@ -210,8 +196,6 @@ class ActionD extends ReduxAction<AppState> {
   }
 }
 
-// ----------------------------------------------
-
 /// Future<AppState>? reduce()
 class ActionE extends ReduxAction<AppState> {
   @override
@@ -219,8 +203,6 @@ class ActionE extends ReduxAction<AppState> {
     return state.copy(state.text + 'E');
   }
 }
-
-// ----------------------------------------------
 
 /// Future<AppState?>? reduce()
 class ActionF extends ReduxAction<AppState> {
@@ -230,8 +212,6 @@ class ActionF extends ReduxAction<AppState> {
   }
 }
 
-// ----------------------------------------------
-
 /// FutureOr<AppState> reduce()
 class ActionG extends ReduxAction<AppState> {
   @override
@@ -239,8 +219,6 @@ class ActionG extends ReduxAction<AppState> {
     return state.copy(state.text + 'G');
   }
 }
-
-// ----------------------------------------------
 
 /// FutureOr<AppState?> reduce()
 class ActionH extends ReduxAction<AppState> {
@@ -250,8 +228,6 @@ class ActionH extends ReduxAction<AppState> {
   }
 }
 
-// ----------------------------------------------
-
 /// FutureOr<AppState>? reduce()
 class ActionI extends ReduxAction<AppState> {
   @override
@@ -260,8 +236,6 @@ class ActionI extends ReduxAction<AppState> {
   }
 }
 
-// ----------------------------------------------
-
 /// FutureOr<AppState?>? reduce()
 class ActionJ extends ReduxAction<AppState> {
   @override
@@ -269,8 +243,6 @@ class ActionJ extends ReduxAction<AppState> {
     return state.copy(state.text + 'J');
   }
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 @immutable
 class AppState {
@@ -285,7 +257,7 @@ class AppState {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is AppState && runtimeType == other.runtimeType && text == other.text;
+      other is AppState && runtimeType == other.runtimeType && text == other.text;
 
   @override
   int get hashCode => text.hashCode;
@@ -293,5 +265,3 @@ class AppState {
   @override
   String toString() => text.toString();
 }
-
-///////////////////////////////////////////////////////////////////////////////

@@ -1,3 +1,6 @@
+// Developed by Marcelo Glasberg (Aug 2019).
+// For more info, see: https://pub.dartlang.org/packages/async_redux
+
 import 'dart:async';
 import 'dart:collection';
 
@@ -5,9 +8,6 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart' hide Action;
 
 import '../async_redux.dart';
-
-// Developed by Marcelo Glasberg (Aug 2019).
-// For more info, see: https://pub.dartlang.org/packages/async_redux
 
 /// Predicate used in [StoreTester.waitCondition].
 /// Return true to stop waiting, and get the last state.
@@ -729,8 +729,6 @@ class StoreTester<St> {
       ConnectorTester<St, Model>(this, widgetConnector);
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 /// Helps testing the `StoreConnector`s methods, such as `onInit`,
 /// `onDispose` and `onWillChange`.
 ///
@@ -786,8 +784,6 @@ class ConnectorTester<St, Model> {
       onWillChange(StatelessElement(widgetConnector), tester.store, previousVm, newVm);
   }
 }
-
-// /////////////////////////////////////////////////////////////////////////////
 
 /// List of test information, before or after some actions are dispatched.
 class TestInfoList<St> {
@@ -864,8 +860,6 @@ class TestInfoList<St> {
   void _add(TestInfo<St> info) => _info.add(info);
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 class StoreExceptionTimeout extends StoreException {
   StoreExceptionTimeout() : super("Timeout.");
 
@@ -890,8 +884,6 @@ class StoreExceptionTimeout extends StoreException {
   int get hashCode => 0;
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 /// During tests, use this error observer if you want all errors to be thrown,
 /// and not swallowed, including UserExceptions. You should probably use this
 /// in all tests that you don't expect to throw any errors, including
@@ -914,8 +906,6 @@ class TestErrorObserver<St> implements ErrorObserver<St> {
       true;
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-
 class _NewStateAction<St> extends ReduxAction<St> {
   final St newState;
 
@@ -924,5 +914,3 @@ class _NewStateAction<St> extends ReduxAction<St> {
   @override
   St reduce() => newState;
 }
-
-// /////////////////////////////////////////////////////////////////////////////

@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   //
-  //////////////////////////////////////////////////////////////////////////////////////////////////
   testWidgets(
     //
     "ModelObserver.",
@@ -73,8 +72,6 @@ void main() {
   );
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 class _TestApp extends StatelessWidget {
   final StoreProvider<_StateTest> provider;
 
@@ -84,8 +81,6 @@ class _TestApp extends StatelessWidget {
   Widget build(BuildContext context) => provider;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 @immutable
 class _StateTest {
   final String text;
@@ -93,8 +88,6 @@ class _StateTest {
 
   _StateTest(this.text, this.number);
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class _MyWidgetConnector extends StatelessWidget {
   const _MyWidgetConnector();
@@ -118,8 +111,6 @@ class _MyViewModel extends BaseModel<_StateTest> {
   _MyViewModel fromStore() => _MyViewModel.build(state.text);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 class _MyAction extends ReduxAction<_StateTest> {
   String text;
   int number;
@@ -129,5 +120,3 @@ class _MyAction extends ReduxAction<_StateTest> {
   @override
   _StateTest reduce() => _StateTest(text, number);
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////

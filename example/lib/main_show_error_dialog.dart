@@ -15,8 +15,6 @@ void main() {
   runApp(MyApp());
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// The app state, which in this case is the user name.
 @immutable
 class AppState {
@@ -37,8 +35,6 @@ class AppState {
   int get hashCode => name.hashCode;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// To display errors, put the [UserExceptionDialog] below [StoreProvider] and [MaterialApp].
 class MyApp extends StatelessWidget {
   @override
@@ -51,8 +47,6 @@ class MyApp extends StatelessWidget {
         ),
       );
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class SaveUserAction extends ReduxAction<AppState> {
   final String name;
@@ -79,8 +73,6 @@ class SaveUserAction extends ReduxAction<AppState> {
         // onCancel: () { print("CANCEL was pressed, or dialog dismissed."); },
       );
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
@@ -119,8 +111,6 @@ class ViewModel extends Vm {
     required this.onSaveName,
   }) : super(equals: [name!]);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatefulWidget {
   final String? name;

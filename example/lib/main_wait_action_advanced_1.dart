@@ -28,8 +28,6 @@ void main() {
   runApp(MyApp());
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// The app state contains a [wait] object of type [Wait].
 @immutable
 class AppState {
@@ -62,8 +60,6 @@ class AppState {
   int get hashCode => descriptions.hashCode ^ wait.hashCode;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => StoreProvider<AppState>(
@@ -72,8 +68,6 @@ class MyApp extends StatelessWidget {
         home: MyHomePageConnector(),
       ));
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class GetDescriptionAction extends ReduxAction<AppState> {
   int index;
@@ -99,8 +93,6 @@ class GetDescriptionAction extends ReduxAction<AppState> {
   @override
   void after() => dispatch(WaitAction.remove(index));
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
@@ -140,8 +132,6 @@ class PageViewModel extends Vm {
     required this.onGetDescription,
   }) : super(equals: [waiting]);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyItemConnector extends StatelessWidget {
@@ -191,8 +181,6 @@ class ItemViewModel extends Vm {
   }) : super(equals: [description, waiting]);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 class MyItem extends StatelessWidget {
   final String description;
   final bool waiting;
@@ -234,8 +222,6 @@ class MyItem extends StatelessWidget {
         valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
       );
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatelessWidget {
   final bool waiting;

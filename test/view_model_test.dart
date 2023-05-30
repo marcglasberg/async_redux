@@ -1,8 +1,6 @@
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-// ////////////////////////////////////////////////////////////////////////////
-
 class MyObjPlain {
   @override
   bool operator ==(Object other) =>
@@ -13,8 +11,6 @@ class MyObjPlain {
   int get hashCode => 0;
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 class MyObjVmEquals extends VmEquals<MyObjVmEquals> {
   @override
   bool operator ==(Object other) =>
@@ -24,8 +20,6 @@ class MyObjVmEquals extends VmEquals<MyObjVmEquals> {
   @override
   int get hashCode => 0;
 }
-
-// ////////////////////////////////////////////////////////////////////////////
 
 class ViewModel_Deprecated extends BaseModel<List<int>> {
   String name;
@@ -41,8 +35,6 @@ class ViewModel_Deprecated extends BaseModel<List<int>> {
   BaseModel fromStore() => throw AssertionError();
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 class ViewModel extends Vm {
   final String name;
   final int age;
@@ -57,8 +49,6 @@ class ViewModel extends Vm {
 }
 
 void main() {
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('BaseModel (deprecated) equality.', () {
     var vm1 = ViewModel_Deprecated("John", 35);
     var vm2 = ViewModel_Deprecated("Mary", 35);
@@ -67,11 +57,8 @@ void main() {
     expect(vm2 == vm3, isTrue);
   });
 
-  ///////////////////////////////////////////////////////////////////////////////
-
   test('Vm equality.', () {
     //
-
     // Comparison by equality. Same object.
     dynamic myObj = MyObjPlain();
     var vm1 = ViewModel("John", 35, myObj);
@@ -83,7 +70,7 @@ void main() {
     vm2 = ViewModel("John", 35, MyObjPlain());
     expect(vm1 == vm2, isTrue);
 
-    //
+    // ---
 
     // Now we're going to use a VmEquals object:
     // Same by equality, but Different by vmEquals().
@@ -101,6 +88,4 @@ void main() {
     vm2 = ViewModel("John", 35, MyObjVmEquals());
     expect(vm1 != vm2, isTrue);
   });
-
-  ///////////////////////////////////////////////////////////////////////////////
 }

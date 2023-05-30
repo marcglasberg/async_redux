@@ -6,15 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 // Developed by Marcelo Glasberg (Aug 2019).
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// This is meant to solve this issue:
 /// - BEFORE() SWALLOWS REDUCER() ERRORS
 ///   https://github.com/marcglasberg/async_redux/issues/105
 ///
 void main() {
-  /////////////////////////////////////////////////////////////////////////////
-
   test('1).', () async {
     //
     Store<String> store = Store<String>(initialState: "");
@@ -34,8 +30,6 @@ void main() {
             "Do not return `FutureOr`."));
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('1).', () async {
     //
     Store<String> store = Store<String>(initialState: "");
@@ -51,8 +45,6 @@ void main() {
     expect(store.state, "");
     expect(error, StoreException("ERROR 1"));
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('2).', () async {
     //
@@ -70,8 +62,6 @@ void main() {
     expect(error, StoreException("ERROR 2"));
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('3).', () async {
     //
     Store<String> store = Store<String>(initialState: "");
@@ -87,8 +77,6 @@ void main() {
     expect(store.state, "");
     expect(error, StoreException("ERROR B"));
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('4).', () async {
     //
@@ -106,8 +94,6 @@ void main() {
     expect(error, WrappedError(StoreException("ERROR 4")));
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('5).', () async {
     //
     Store<String> store = Store<String>(initialState: "");
@@ -123,8 +109,6 @@ void main() {
     expect(store.state, "");
     expect(error, WrappedError(StoreException("ERROR 5")));
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 
   test('6).', () async {
     //
@@ -142,8 +126,6 @@ void main() {
     expect(error, WrappedError(StoreException("ERROR B")));
   });
 
-  /////////////////////////////////////////////////////////////////////////////
-
   test('7).', () async {
     //
     Store<String> store = Store<String>(initialState: "");
@@ -159,11 +141,7 @@ void main() {
     expect(store.state, "C");
     expect(error, WrappedError(StoreException("ERROR 7")));
   });
-
-  /////////////////////////////////////////////////////////////////////////////
 }
-
-// 0) ----------------------------------------------
 
 class ActionBeforeFutureOr extends ReduxAction<String> {
   @override
@@ -177,8 +155,6 @@ class ActionBeforeFutureOr extends ReduxAction<String> {
   }
 }
 
-// 1) ----------------------------------------------
-
 class ActionSyncBeforeThrowsError extends ReduxAction<String> {
   @override
   void before() {
@@ -190,8 +166,6 @@ class ActionSyncBeforeThrowsError extends ReduxAction<String> {
     return state + '1';
   }
 }
-
-// 2) ----------------------------------------------
 
 class ActionAsyncBeforeThrowsError extends ReduxAction<String> {
   @override
@@ -206,8 +180,6 @@ class ActionAsyncBeforeThrowsError extends ReduxAction<String> {
   }
 }
 
-// 3) ----------------------------------------------
-
 class ActionAsyncBeforeThrowsErrorAsync extends ReduxAction<String> {
   @override
   Future<void> before() async {
@@ -221,8 +193,6 @@ class ActionAsyncBeforeThrowsErrorAsync extends ReduxAction<String> {
   }
 }
 
-// ----------------------------------------------
-
 class ActionB extends ReduxAction<String> {
   @override
   String reduce() {
@@ -230,16 +200,12 @@ class ActionB extends ReduxAction<String> {
   }
 }
 
-// ----------------------------------------------
-
 class ActionC extends ReduxAction<String> {
   @override
   String reduce() {
     return state + 'C';
   }
 }
-
-// 4) ----------------------------------------------
 
 class ActionSyncBeforeThrowsErrorWithWrapError extends ReduxAction<String> {
   @override
@@ -257,8 +223,6 @@ class ActionSyncBeforeThrowsErrorWithWrapError extends ReduxAction<String> {
     return WrappedError(error);
   }
 }
-
-// 5) ----------------------------------------------
 
 class ActionAsyncBeforeThrowsErrorWithWrapError extends ReduxAction<String> {
   @override
@@ -278,8 +242,6 @@ class ActionAsyncBeforeThrowsErrorWithWrapError extends ReduxAction<String> {
   }
 }
 
-// 6) ----------------------------------------------
-
 class ActionAsyncBeforeThrowsErrorAsyncWithWrapError extends ReduxAction<String> {
   @override
   Future<void> before() async {
@@ -296,8 +258,6 @@ class ActionAsyncBeforeThrowsErrorAsyncWithWrapError extends ReduxAction<String>
   Object? wrapError(Object error, StackTrace stackTrace) => WrappedError(error);
 }
 
-// 7) ----------------------------------------------
-
 class ActionWithBeforeAndReducerThatThrowsErrorWithWrapError extends ReduxAction<String> {
   @override
   void before() => dispatch(ActionC());
@@ -311,8 +271,6 @@ class ActionWithBeforeAndReducerThatThrowsErrorWithWrapError extends ReduxAction
   @override
   Object? wrapError(Object error, StackTrace stackTrace) => WrappedError(error);
 }
-
-// ----------------------------------------------
 
 class WrappedError {
   final Object? error;

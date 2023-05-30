@@ -23,8 +23,6 @@ void main() {
   runApp(MyApp());
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// The app state contains a [wait] object of type [Wait].
 @immutable
 class AppState {
@@ -37,8 +35,7 @@ class AppState {
   });
 
   /// The copy method has a named [wait] parameter of type [Wait].
-  AppState copy({int? counter, Map<int, String>? descriptions, Wait? wait}) =>
-      AppState(
+  AppState copy({int? counter, Map<int, String>? descriptions, Wait? wait}) => AppState(
         descriptions: descriptions ?? this.descriptions,
         wait: wait ?? this.wait,
       );
@@ -61,8 +58,6 @@ class AppState {
   int get hashCode => descriptions.hashCode ^ wait.hashCode;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => StoreProvider<AppState>(
@@ -72,8 +67,6 @@ class MyApp extends StatelessWidget {
       ));
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 class GetDescriptionAction extends ReduxAction<AppState> {
   int index;
 
@@ -81,8 +74,7 @@ class GetDescriptionAction extends ReduxAction<AppState> {
 
   @override
   Future<AppState> reduce() async {
-    String description =
-        await read(Uri.http("numbersapi.com", "$index"));
+    String description = await read(Uri.http("numbersapi.com", "$index"));
     await Future.delayed(const Duration(seconds: 2)); // Adds some more delay.
 
     Map<int, String> newDescriptions = Map.of(state.descriptions);
@@ -99,8 +91,6 @@ class GetDescriptionAction extends ReduxAction<AppState> {
   @override
   void after() => dispatch(WaitAction.remove("button-download", ref: index));
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyHomePageConnector extends StatelessWidget {
@@ -141,8 +131,6 @@ class PageViewModel extends Vm {
   }) : super(equals: [waiting]);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 /// This widget is a connector. It connects the store to "dumb-widget".
 class MyItemConnector extends StatelessWidget {
   final int index;
@@ -177,8 +165,7 @@ class ItemVmFactory extends VmFactory<AppState, MyItemConnector, ItemViewModel> 
         description: state.descriptions[connector.index] ?? "",
 
         /// If index is waiting, `state.wait.isWaitingFor(index)` returns true.
-        waiting:
-            state.wait.isWaitingFor("button-download", ref: connector.index),
+        waiting: state.wait.isWaitingFor("button-download", ref: connector.index),
       );
 }
 
@@ -192,8 +179,6 @@ class ItemViewModel extends Vm {
     required this.waiting,
   }) : super(equals: [description, waiting]);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class MyItem extends StatelessWidget {
   final String description;
@@ -224,21 +209,18 @@ class MyItem extends StatelessWidget {
 
   MaterialButton _button() => MaterialButton(
         color: Colors.blue,
-        child: Text("CLICK $index",
-            style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
+        child:
+            Text("CLICK $index", style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
         onPressed: () => onGetDescription(index),
       );
 
-  Text _indexDescription() => Text(description,
-      style: const TextStyle(fontSize: 15), textAlign: TextAlign.center);
+  Text _indexDescription() =>
+      Text(description, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center);
 
-  CircularProgressIndicator _progressIndicator() =>
-      const CircularProgressIndicator(
+  CircularProgressIndicator _progressIndicator() => const CircularProgressIndicator(
         valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
       );
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 class MyHomePage extends StatelessWidget {
   final bool waiting;
@@ -255,10 +237,7 @@ class MyHomePage extends StatelessWidget {
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(
-              title: Text(waiting
-                  ? "Downloading..."
-                  : "Advanced WaitAction Example 2")),
+          appBar: AppBar(title: Text(waiting ? "Downloading..." : "Advanced WaitAction Example 2")),
           body: ListView.builder(
             itemCount: 10,
             itemBuilder: (context, index) => MyItemConnector(

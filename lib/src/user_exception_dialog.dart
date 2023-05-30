@@ -1,3 +1,6 @@
+// Developed by Marcelo Glasberg (Aug 2019).
+// For more info, see: https://pub.dartlang.org/packages/async_redux
+
 import 'dart:collection';
 
 import 'package:async_redux/async_redux.dart';
@@ -6,9 +9,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'show_dialog_super.dart';
-
-// Developed by Marcelo Glasberg (Aug 2019).
-// For more info, see: https://pub.dartlang.org/packages/async_redux
 
 /// Use it like this:
 ///
@@ -72,8 +72,6 @@ class UserExceptionDialog<St> extends StatelessWidget {
     );
   }
 }
-
-// ////////////////////////////////////////////////////////////////////////////
 
 class _UserExceptionDialogWidget extends StatefulWidget {
   final Widget child;
@@ -183,8 +181,6 @@ class _UserExceptionDialogWidget extends StatefulWidget {
   _UserExceptionDialogState createState() => _UserExceptionDialogState();
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 class _UserExceptionDialogState extends State<_UserExceptionDialogWidget> {
   @override
   void didUpdateWidget(_UserExceptionDialogWidget oldWidget) {
@@ -202,8 +198,6 @@ class _UserExceptionDialogState extends State<_UserExceptionDialogWidget> {
   Widget build(BuildContext context) => widget.child;
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 class _Factory<St> extends VmFactory<St, UserExceptionDialog, _Vm> {
   static final Queue<Event<UserException>> _errorEvents = Queue();
 
@@ -218,8 +212,6 @@ class _Factory<St> extends VmFactory<St, UserExceptionDialog, _Vm> {
     );
   }
 }
-
-// ////////////////////////////////////////////////////////////////////////////
 
 class _Vm extends Vm {
   //
@@ -236,12 +228,8 @@ class _Vm extends Vm {
   int get hashCode => rebuild.hashCode;
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 typedef ShowUserExceptionDialog = void Function(
   BuildContext context,
   UserException userException,
   bool useLocalContext,
 );
-
-// ////////////////////////////////////////////////////////////////////////////

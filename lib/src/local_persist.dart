@@ -1,3 +1,6 @@
+// Developed by Marcelo Glasberg (Aug 2019).
+// For more info, see: https://pub.dartlang.org/packages/async_redux
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -9,9 +12,6 @@ import 'package:file/local.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-
-// Developed by Marcelo Glasberg (Nov 2019).
-// For more info, see: https://pub.dartlang.org/packages/async_redux
 
 /// This will save/load objects into the local disk, as a '.json' file.
 ///

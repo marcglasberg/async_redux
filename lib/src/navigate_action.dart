@@ -1,9 +1,9 @@
+// Developed by Marcelo Glasberg (Aug 2019).
+// For more info, see: https://pub.dartlang.org/packages/async_redux
+
 import 'package:flutter/material.dart';
 
 import '../async_redux.dart';
-
-// Developed by Marcelo Glasberg (Aug 2019).
-// For more info, see: https://pub.dartlang.org/packages/async_redux
 
 /// Available constructors:
 /// `NavigateAction.push()`,
@@ -141,8 +141,6 @@ class NavigateAction<St> extends ReduxAction<St> {
   String toString() => '${super.toString()}${details.toString()}';
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 class NavigatorDetails_Push implements NavigatorDetails {
   final Route route;
 
@@ -160,8 +158,6 @@ class NavigatorDetails_Push implements NavigatorDetails {
   String toString() => '.push(${route.toStringOrRuntimeType()})';
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 class NavigatorDetails_Pop implements NavigatorDetails {
   final Object? result;
 
@@ -178,8 +174,6 @@ class NavigatorDetails_Pop implements NavigatorDetails {
   @override
   String toString() => '.pop(${result == null ? "" : result.toStringOrRuntimeType()})';
 }
-
-// ////////////////////////////////////////////////////////////////////////////
 
 class NavigatorDetails_PopAndPushNamed implements NavigatorDetails {
   final String routeName;
@@ -210,8 +204,6 @@ class NavigatorDetails_PopAndPushNamed implements NavigatorDetails {
       '${result == null ? "" : ", result: " + result.toStringOrRuntimeType()})';
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 class NavigatorDetails_PushNamed implements NavigatorDetails {
   final String routeName;
   final Object? arguments;
@@ -232,8 +224,6 @@ class NavigatorDetails_PushNamed implements NavigatorDetails {
   @override
   String toString() => '.pushNamed($routeName)';
 }
-
-// ////////////////////////////////////////////////////////////////////////////
 
 class NavigatorDetails_PushReplacementNamed implements NavigatorDetails {
   final String routeName;
@@ -256,8 +246,6 @@ class NavigatorDetails_PushReplacementNamed implements NavigatorDetails {
   @override
   String toString() => '.pushReplacementNamed($routeName)';
 }
-
-// ////////////////////////////////////////////////////////////////////////////
 
 class NavigatorDetails_PushNamedAndRemoveUntil implements NavigatorDetails {
   final String newRouteName;
@@ -283,8 +271,6 @@ class NavigatorDetails_PushNamedAndRemoveUntil implements NavigatorDetails {
   String toString() => '.pushNamedAndRemoveUntil($newRouteName, predicate)';
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 class NavigatorDetails_PushNamedAndRemoveAll implements NavigatorDetails {
   final String newRouteName;
   final Object? arguments;
@@ -306,8 +292,6 @@ class NavigatorDetails_PushNamedAndRemoveAll implements NavigatorDetails {
   @override
   String toString() => '.pushNamedAndRemoveAll($newRouteName)';
 }
-
-// ////////////////////////////////////////////////////////////////////////////
 
 class NavigatorDetails_PushReplacement implements NavigatorDetails {
   final Route route;
@@ -332,8 +316,6 @@ class NavigatorDetails_PushReplacement implements NavigatorDetails {
       '${result == null ? "" : ", result: " + result.toStringOrRuntimeType()})';
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 class NavigatorDetails_PushAndRemoveUntil implements NavigatorDetails {
   final Route route;
   final RoutePredicate predicate;
@@ -356,8 +338,6 @@ class NavigatorDetails_PushAndRemoveUntil implements NavigatorDetails {
       '${route.toStringOrRuntimeType()}'
       ', predicate)';
 }
-
-// ////////////////////////////////////////////////////////////////////////////
 
 class NavigatorDetails_Replace implements NavigatorDetails {
   final Route? oldRoute;
@@ -385,8 +365,6 @@ class NavigatorDetails_Replace implements NavigatorDetails {
       'newRoute: ${newRoute.toStringOrRuntimeType()})';
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 class NavigatorDetails_ReplaceRouteBelow implements NavigatorDetails {
   final Route? anchorRoute;
   final Route? newRoute;
@@ -413,8 +391,6 @@ class NavigatorDetails_ReplaceRouteBelow implements NavigatorDetails {
       'newRoute: ${newRoute.toStringOrRuntimeType()})';
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 class NavigatorDetails_PopUntil implements NavigatorDetails {
   final RoutePredicate predicate;
 
@@ -431,8 +407,6 @@ class NavigatorDetails_PopUntil implements NavigatorDetails {
   @override
   String toString() => '.popUntil(predicate)';
 }
-
-// ////////////////////////////////////////////////////////////////////////////
 
 class NavigatorDetails_PopUntilRouteName implements NavigatorDetails {
   final String routeName;
@@ -459,8 +433,6 @@ class NavigatorDetails_PopUntilRouteName implements NavigatorDetails {
   String toString() => '.popUntilRouteName($routeName)';
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 class NavigatorDetails_PopUntilRoute implements NavigatorDetails {
   final Route route;
 
@@ -477,8 +449,6 @@ class NavigatorDetails_PopUntilRoute implements NavigatorDetails {
   @override
   String toString() => '.popUntilRoute(${route.toStringOrRuntimeType()})';
 }
-
-// ////////////////////////////////////////////////////////////////////////////
 
 class NavigatorDetails_RemoveRoute implements NavigatorDetails {
   final Route route;
@@ -497,8 +467,6 @@ class NavigatorDetails_RemoveRoute implements NavigatorDetails {
   String toString() => '.removeRoute(${route.toStringOrRuntimeType()})';
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 class NavigatorDetails_RemoveRouteBelow implements NavigatorDetails {
   final Route anchorRoute;
 
@@ -516,15 +484,11 @@ class NavigatorDetails_RemoveRouteBelow implements NavigatorDetails {
   String toString() => '.removeRouteBelow(${anchorRoute.toStringOrRuntimeType()})';
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
 abstract class NavigatorDetails {
   void navigate();
 
   NavigateType get type;
 }
-
-// ////////////////////////////////////////////////////////////////////////////
 
 enum NavigateType {
   push,
@@ -544,8 +508,6 @@ enum NavigateType {
   popUntilRouteName,
   popUntilRoute,
 }
-
-// ////////////////////////////////////////////////////////////////////////////
 
 extension _StringExtension on Object? {
   /// If the object can be represented with up to 200 chars, we print it.

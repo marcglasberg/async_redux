@@ -41,8 +41,7 @@ void main() {
   late Store<AppState> store;
 
   setUp(() async {
-    store = Store<AppState>(
-        initialState: AppState(), wrapReduce: _TestWrapReduce());
+    store = Store<AppState>(initialState: AppState(), wrapReduce: _TestWrapReduce());
   });
 
   group(WrapReduce, () {
