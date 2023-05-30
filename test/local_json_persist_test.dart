@@ -9,7 +9,7 @@ import 'package:async_redux/src/local_persist.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-enum files { abc, xyz }
+enum files { abcd, xyzk }
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,7 +65,7 @@ void main() {
       randNumber,
     ];
 
-    var persist = LocalJsonPersist("abc");
+    var persist = LocalJsonPersist("abcd");
 
     await persist.save(simpleObj);
 
@@ -89,87 +89,87 @@ void main() {
 
   test('Test file can be defined by String or enum.', () async {
     //
-    File file = await (LocalJsonPersist("abc").file());
-    expect(file.path.endsWith("\\db\\abc.json") || file.path.endsWith("/db/abc.json"), isTrue);
+    File file = await (LocalJsonPersist("abcd").file());
+    expect(file.path.endsWith("\\db\\abcd.json") || file.path.endsWith("/db/abcd.json"), isTrue);
 
-    file = await (LocalJsonPersist(files.abc).file());
-    expect(file.path.endsWith("\\db\\abc.json") || file.path.endsWith("/db/abc.json"), isTrue);
+    file = await (LocalJsonPersist(files.abcd).file());
+    expect(file.path.endsWith("\\db\\abcd.json") || file.path.endsWith("/db/abcd.json"), isTrue);
 
-    file = await (LocalJsonPersist(files.xyz, dbSubDir: "kkk").file());
-    expect(file.path.endsWith("\\kkk\\xyz.json") || file.path.endsWith("/kkk/xyz.json"), isTrue);
+    file = await (LocalJsonPersist(files.xyzk, dbSubDir: "kkk").file());
+    expect(file.path.endsWith("\\kkk\\xyzk.json") || file.path.endsWith("/kkk/xyzk.json"), isTrue);
   });
 
   /////////////////////////////////////////////////////////////////////////////
 
   test('Test dbDir and subDirs.', () async {
     //
-    File file = await (LocalJsonPersist("xyz").file());
-    expect(file.path.endsWith("\\xyz.json") || file.path.endsWith("/xyz.json"), isTrue);
+    File file = await (LocalJsonPersist("xyzk").file());
+    expect(file.path.endsWith("\\xyzk.json") || file.path.endsWith("/xyzk.json"), isTrue);
 
-    file = await (LocalJsonPersist("xyz", dbSubDir: "kkk").file());
-    expect(file.path.endsWith("\\kkk\\xyz.json") || file.path.endsWith("/kkk/xyz.json"), isTrue);
+    file = await (LocalJsonPersist("xyzk", dbSubDir: "kkk").file());
+    expect(file.path.endsWith("\\kkk\\xyzk.json") || file.path.endsWith("/kkk/xyzk.json"), isTrue);
 
-    file = await (LocalJsonPersist("xyz", dbSubDir: "kkk", subDirs: ["mno"]).file());
-    expect(file.path.endsWith("\\kkk\\mno\\xyz.json") || file.path.endsWith("/kkk/mno/xyz.json"),
+    file = await (LocalJsonPersist("xyzk", dbSubDir: "kkk", subDirs: ["mno"]).file());
+    expect(file.path.endsWith("\\kkk\\mno\\xyzk.json") || file.path.endsWith("/kkk/mno/xyzk.json"),
         isTrue);
 
-    file = await (LocalJsonPersist("xyz", dbSubDir: "kkk", subDirs: ["m", "n", "o"]).file());
+    file = await (LocalJsonPersist("xyzk", dbSubDir: "kkk", subDirs: ["m", "n", "o"]).file());
     expect(
-        file.path.endsWith("\\kkk\\m\\n\\o\\xyz.json") || file.path.endsWith("/kkk/m/n/o/xyz.json"),
+        file.path.endsWith("\\kkk\\m\\n\\o\\xyzk.json") || file.path.endsWith("/kkk/m/n/o/xyzk.json"),
         isTrue);
 
-    file = await (LocalJsonPersist("xyz", subDirs: ["mno"]).file());
-    expect(file.path.endsWith("\\db\\mno\\xyz.json") || file.path.endsWith("/db/mno/xyz.json"),
+    file = await (LocalJsonPersist("xyzk", subDirs: ["mno"]).file());
+    expect(file.path.endsWith("\\db\\mno\\xyzk.json") || file.path.endsWith("/db/mno/xyzk.json"),
         isTrue);
 
-    file = await (LocalJsonPersist("xyz", subDirs: ["m", "n", "o"]).file());
+    file = await (LocalJsonPersist("xyzk", subDirs: ["m", "n", "o"]).file());
     expect(
-        file.path.endsWith("\\db\\m\\n\\o\\xyz.json") || file.path.endsWith("/db/m/n/o/xyz.json"),
+        file.path.endsWith("\\db\\m\\n\\o\\xyzk.json") || file.path.endsWith("/db/m/n/o/xyzk.json"),
         isTrue);
 
     String saveDefaultDbSubDir = LocalJsonPersist.defaultDbSubDir;
 
     LocalJsonPersist.defaultDbSubDir = "myDir";
 
-    file = await (LocalJsonPersist("xyz", subDirs: ["mno"]).file());
+    file = await (LocalJsonPersist("xyzk", subDirs: ["mno"]).file());
     expect(
-        file.path.endsWith("\\myDir\\mno\\xyz.json") || file.path.endsWith("/myDir/mno/xyz.json"),
+        file.path.endsWith("\\myDir\\mno\\xyzk.json") || file.path.endsWith("/myDir/mno/xyzk.json"),
         isTrue);
 
-    file = await (LocalJsonPersist("xyz", subDirs: ["m", "n", "o"]).file());
+    file = await (LocalJsonPersist("xyzk", subDirs: ["m", "n", "o"]).file());
     expect(
-        file.path.endsWith("\\myDir\\m\\n\\o\\xyz.json") ||
-            file.path.endsWith("/myDir/m/n/o/xyz.json"),
+        file.path.endsWith("\\myDir\\m\\n\\o\\xyzk.json") ||
+            file.path.endsWith("/myDir/m/n/o/xyzk.json"),
         isTrue);
 
     LocalJsonPersist.defaultDbSubDir = "";
 
-    file = await (LocalJsonPersist("xyz", subDirs: ["mno"]).file());
-    expect(file.path.endsWith("\\mno\\xyz.json") || file.path.endsWith("/mno/xyz.json"), isTrue);
-    expect(file.path.endsWith("\\db\\mno\\xyz.json") || file.path.endsWith("/db/mno/xyz.json"),
+    file = await (LocalJsonPersist("xyzk", subDirs: ["mno"]).file());
+    expect(file.path.endsWith("\\mno\\xyzk.json") || file.path.endsWith("/mno/xyzk.json"), isTrue);
+    expect(file.path.endsWith("\\db\\mno\\xyzk.json") || file.path.endsWith("/db/mno/xyzk.json"),
         isFalse);
 
     print('file.path = ${file.path}');
-    file = await (LocalJsonPersist("xyz", subDirs: ["m", "n", "o"]).file());
+    file = await (LocalJsonPersist("xyzk", subDirs: ["m", "n", "o"]).file());
     expect(
-        file.path.endsWith("\\m\\n\\o\\xyz.json") || file.path.endsWith("/m/n/o/xyz.json"), isTrue);
+        file.path.endsWith("\\m\\n\\o\\xyzk.json") || file.path.endsWith("/m/n/o/xyzk.json"), isTrue);
     expect(
-        file.path.endsWith("\\db\\m\\n\\o\\xyz.json") || file.path.endsWith("/db/m/n/o/xyz.json"),
+        file.path.endsWith("\\db\\m\\n\\o\\xyzk.json") || file.path.endsWith("/db/m/n/o/xyzk.json"),
         isFalse);
 
     LocalJsonPersist.defaultDbSubDir = "";
 
-    file = await (LocalJsonPersist("xyz", subDirs: ["mno"]).file());
-    expect(file.path.endsWith("\\mno\\xyz.json") || file.path.endsWith("/mno/xyz.json"), isTrue);
-    expect(file.path.endsWith("\\db\\mno\\xyz.json") || file.path.endsWith("/db/mno/xyz.json"),
+    file = await (LocalJsonPersist("xyzk", subDirs: ["mno"]).file());
+    expect(file.path.endsWith("\\mno\\xyzk.json") || file.path.endsWith("/mno/xyzk.json"), isTrue);
+    expect(file.path.endsWith("\\db\\mno\\xyzk.json") || file.path.endsWith("/db/mno/xyzk.json"),
         isFalse);
 
     print('file.path = ${file.path}');
-    file = await (LocalJsonPersist("xyz", subDirs: ["m", "n", "o"]).file());
+    file = await (LocalJsonPersist("xyzk", subDirs: ["m", "n", "o"]).file());
     expect(
-        file.path.endsWith("\\m\\n\\o\\xyz.json") || file.path.endsWith("/m/n/o/xyz.json"), isTrue);
+        file.path.endsWith("\\m\\n\\o\\xyzk.json") || file.path.endsWith("/m/n/o/xyzk.json"), isTrue);
     expect(
-        file.path.endsWith("\\db\\m\\n\\o\\xyz.json") || file.path.endsWith("/db/m/n/o/xyz.json"),
+        file.path.endsWith("\\db\\m\\n\\o\\xyzk.json") || file.path.endsWith("/db/m/n/o/xyzk.json"),
         isFalse);
 
     LocalJsonPersist.defaultDbSubDir = saveDefaultDbSubDir;
@@ -185,7 +185,7 @@ void main() {
     int randNumber2 = rand.nextInt(1000);
     int randNumber3 = rand.nextInt(1000);
 
-    var persist = LocalJsonPersist("xyz");
+    var persist = LocalJsonPersist("xyzk");
     await persist.save([randNumber1, randNumber2, randNumber3]);
 
     Object? decoded = await persist.load();
@@ -375,7 +375,7 @@ void main() {
   test('Save and load a single string into/from JSON.', () async {
     //
     Object simpleObj = 'Goodbye';
-    var persist = LocalJsonPersist("abc");
+    var persist = LocalJsonPersist("abcd");
     await persist.save(simpleObj);
     Object? decoded = await persist.load();
     expect(decoded, simpleObj);
@@ -389,13 +389,13 @@ void main() {
 
   test('loadConverting from .json file', () async {
     var simpleObj = {'Hello': 123};
-    var persist = LocalJsonPersist("abc");
+    var persist = LocalJsonPersist("abcd");
     await persist.save(simpleObj);
     Object? decoded = await persist.loadConverting(isList: false);
     expect(decoded, simpleObj);
 
     expect(await persist.exists(), isTrue);
-    expect((await persist.file()).toString(), endsWith('\\db\\abc.json\''));
+    expect((await persist.file()).toString(), endsWith('\\db\\abcd.json\''));
 
     // Cleans up test.
     await persist.delete();
@@ -409,17 +409,17 @@ void main() {
 
     // Save inside a List.
     var listWithOneElement = [simpleObj];
-    var persistSequence = LocalPersist("abc");
+    var persistSequence = LocalPersist("abcd");
     await persistSequence.save(listWithOneElement);
 
     // The '.db' file exists.
     expect(await persistSequence.exists(), isTrue);
-    expect((await persistSequence.file()).toString(), endsWith('\\db\\abc.db\''));
+    expect((await persistSequence.file()).toString(), endsWith('\\db\\abcd.db\''));
 
     // ---
 
     // The '.json' file does NOT exist.
-    var persist = LocalJsonPersist("abc");
+    var persist = LocalJsonPersist("abcd");
     expect(await persist.exists(), isFalse);
 
     // When we load converting...
@@ -428,7 +428,7 @@ void main() {
 
     // The '.json' file now exists.
     expect(await persist.exists(), isTrue);
-    expect((await persist.file()).toString(), endsWith('\\db\\abc.json\''));
+    expect((await persist.file()).toString(), endsWith('\\db\\abcd.json\''));
 
     // But the '.db' file was deleted.
     expect(await persistSequence.exists(), isFalse);
@@ -436,7 +436,7 @@ void main() {
     // ---
 
     // We now can read the '.json' file again.
-    persist = LocalJsonPersist("abc");
+    persist = LocalJsonPersist("abcd");
     expect(await persist.exists(), isTrue);
 
     // And it works just the same.
@@ -453,11 +453,11 @@ void main() {
 
   test('loadConverting from .db (json-sequence) file fails for more than 1 object', () async {
     var simpleObj = ['Hello', 123];
-    var persistSequence = LocalPersist("abc");
+    var persistSequence = LocalPersist("abcd");
     await persistSequence.save(simpleObj);
 
     dynamic _error;
-    var persist = LocalJsonPersist("abc");
+    var persist = LocalJsonPersist("abcd");
     try {
       await persist.loadConverting(isList: false);
     } catch (error) {
@@ -480,17 +480,17 @@ void main() {
 
     // Save inside a List.
     var listWithOneElement = [simpleObj];
-    var persistSequence = LocalPersist("abc");
+    var persistSequence = LocalPersist("abcd");
     await persistSequence.save(listWithOneElement);
 
     // The '.db' file exists.
     expect(await persistSequence.exists(), isTrue);
-    expect((await persistSequence.file()).toString(), endsWith('\\db\\abc.db\''));
+    expect((await persistSequence.file()).toString(), endsWith('\\db\\abcd.db\''));
 
     // ---
 
     // The '.json' file does NOT exist.
-    var persist = LocalJsonPersist("abc");
+    var persist = LocalJsonPersist("abcd");
     expect(await persist.exists(), isFalse);
 
     // When we load converting...
@@ -499,7 +499,7 @@ void main() {
 
     // The '.json' file now exists.
     expect(await persist.exists(), isTrue);
-    expect((await persist.file()).toString(), endsWith('\\db\\abc.json\''));
+    expect((await persist.file()).toString(), endsWith('\\db\\abcd.json\''));
 
     // But the '.db' file was deleted.
     expect(await persistSequence.exists(), isFalse);
@@ -507,7 +507,7 @@ void main() {
     // ---
 
     // We now can read the '.json' file again.
-    persist = LocalJsonPersist("abc");
+    persist = LocalJsonPersist("abcd");
     expect(await persist.exists(), isTrue);
 
     // And it works just the same.
@@ -524,13 +524,13 @@ void main() {
 
   test('loadConverting from .json file', () async {
     var simpleObj = {'Hello': 123};
-    var persist = LocalJsonPersist("abc");
+    var persist = LocalJsonPersist("abcd");
     await persist.save(simpleObj);
     Object? decoded = await persist.loadConverting(isList: false);
     expect(decoded, simpleObj);
 
     expect(await persist.exists(), isTrue);
-    expect((await persist.file()).toString(), endsWith('\\db\\abc.json\''));
+    expect((await persist.file()).toString(), endsWith('\\db\\abcd.json\''));
 
     // Cleans up test.
     await persist.delete();
@@ -544,17 +544,17 @@ void main() {
 
     // Save inside a List.
     var listWithOneElement = [simpleObj];
-    var persistSequence = LocalPersist("abc");
+    var persistSequence = LocalPersist("abcd");
     await persistSequence.save(listWithOneElement);
 
     // The '.db' file exists.
     expect(await persistSequence.exists(), isTrue);
-    expect((await persistSequence.file()).toString(), endsWith('\\db\\abc.db\''));
+    expect((await persistSequence.file()).toString(), endsWith('\\db\\abcd.db\''));
 
     // ---
 
     // The '.json' file does NOT exist.
-    var persist = LocalJsonPersist("abc");
+    var persist = LocalJsonPersist("abcd");
     expect(await persist.exists(), isFalse);
 
     // When we load converting...
@@ -563,7 +563,7 @@ void main() {
 
     // The '.json' file now exists.
     expect(await persist.exists(), isTrue);
-    expect((await persist.file()).toString(), endsWith('\\db\\abc.json\''));
+    expect((await persist.file()).toString(), endsWith('\\db\\abcd.json\''));
 
     // But the '.db' file was deleted.
     expect(await persistSequence.exists(), isFalse);
@@ -571,7 +571,7 @@ void main() {
     // ---
 
     // We now can read the '.json' file again.
-    persist = LocalJsonPersist("abc");
+    persist = LocalJsonPersist("abcd");
     expect(await persist.exists(), isTrue);
 
     // And it works just the same.
@@ -589,10 +589,10 @@ void main() {
   test('loadConverting from .db (json-sequence) file for a single object', () async {
     //
     var simpleObj = ['Hello'];
-    var persistSequence = LocalPersist("abc");
+    var persistSequence = LocalPersist("abcd");
     await persistSequence.save(simpleObj);
 
-    var persist = LocalJsonPersist("abc");
+    var persist = LocalJsonPersist("abcd");
     var decoded = await persist.loadConverting(isList: true);
 
     expect(decoded, simpleObj);
@@ -619,10 +619,10 @@ void main() {
   test('loadConverting from .db (json-sequence) file for more than 1 object', () async {
     //
     var simpleObj = ['Hello', 123];
-    var persistSequence = LocalPersist("abc");
+    var persistSequence = LocalPersist("abcd");
     await persistSequence.save(simpleObj);
 
-    var persist = LocalJsonPersist("abc");
+    var persist = LocalJsonPersist("abcd");
     var decoded = await persist.loadConverting(isList: true);
 
     expect(decoded, simpleObj);
@@ -652,10 +652,10 @@ void main() {
       ['Hello', 123]
     ];
 
-    var persistSequence = LocalPersist("abc");
+    var persistSequence = LocalPersist("abcd");
     await persistSequence.save(simpleObj);
 
-    var persist = LocalJsonPersist("abc");
+    var persist = LocalJsonPersist("abcd");
     var decoded = await persist.loadConverting(isList: true);
 
     expect(decoded, simpleObj);

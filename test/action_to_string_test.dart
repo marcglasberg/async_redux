@@ -17,7 +17,8 @@ void main() {
     // ---
 
     var action = NavigateAction.push(route1);
-    expect(action.toString(), 'Action NavigateAction.push(MaterialPageRoute)');
+    expect(action.toString(),
+        'Action NavigateAction.push(MaterialPageRoute<dynamic>(RouteSettings(none, null), animation: null))');
     expect(action.type, NavigateType.push);
 
     // ---
@@ -49,26 +50,39 @@ void main() {
     // ---
 
     action = NavigateAction.pushReplacement(route1);
-    expect(action.toString(), 'Action NavigateAction.pushReplacement(MaterialPageRoute)');
+    expect(
+        action.toString(),
+        'Action NavigateAction.pushReplacement(MaterialPageRoute<dynamic>('
+        'RouteSettings(none, null), animation: null)'
+        ')');
     expect(action.type, NavigateType.pushReplacement);
 
     action = NavigateAction.pushReplacement(route1, result: true);
-    expect(action.toString(),
-        'Action NavigateAction.pushReplacement(MaterialPageRoute, result: true)');
+    expect(
+        action.toString(),
+        'Action NavigateAction.pushReplacement(MaterialPageRoute<dynamic>('
+        'RouteSettings(none, null), animation: null), result: true'
+        ')');
     expect(action.type, NavigateType.pushReplacement);
 
     // ---
 
     action = NavigateAction.pushAndRemoveUntil(route1, (_) => true);
-    expect(action.toString(),
-        'Action NavigateAction.pushAndRemoveUntil(MaterialPageRoute, predicate)');
+    expect(
+        action.toString(),
+        'Action NavigateAction.pushAndRemoveUntil('
+        'MaterialPageRoute<dynamic>(RouteSettings(none, null), animation: null), predicate'
+        ')');
     expect(action.type, NavigateType.pushAndRemoveUntil);
 
     // ---
 
     action = NavigateAction.replace(oldRoute: route1, newRoute: route2);
-    expect(action.toString(),
-        'Action NavigateAction.replace(oldRoute: MaterialPageRoute, newRoute: CupertinoPageRoute)');
+    expect(
+        action.toString(),
+        'Action NavigateAction.replace('
+        'oldRoute: MaterialPageRoute<dynamic>(RouteSettings(none, null), animation: null), newRoute: CupertinoPageRoute<dynamic>(RouteSettings(none, null), animation: null)'
+        ')');
     expect(action.type, NavigateType.replace);
 
     action = NavigateAction.replace(oldRoute: null, newRoute: null);
@@ -78,8 +92,11 @@ void main() {
     // ---
 
     action = NavigateAction.replaceRouteBelow(anchorRoute: route1, newRoute: route2);
-    expect(action.toString(),
-        'Action NavigateAction.replaceRouteBelow(anchorRoute: MaterialPageRoute, newRoute: CupertinoPageRoute)');
+    expect(
+        action.toString(),
+        'Action NavigateAction.replaceRouteBelow('
+        'anchorRoute: MaterialPageRoute<dynamic>(RouteSettings(none, null), animation: null), newRoute: CupertinoPageRoute<dynamic>(RouteSettings(none, null), animation: null)'
+        ')');
     expect(action.type, NavigateType.replaceRouteBelow);
 
     action = NavigateAction.replaceRouteBelow(anchorRoute: null, newRoute: null);
@@ -115,13 +132,21 @@ void main() {
     // ---
 
     action = NavigateAction.removeRoute(route1);
-    expect(action.toString(), 'Action NavigateAction.removeRoute(MaterialPageRoute)');
+    expect(
+        action.toString(),
+        'Action NavigateAction.removeRoute('
+        'MaterialPageRoute<dynamic>(RouteSettings(none, null), animation: null)'
+        ')');
     expect(action.type, NavigateType.removeRoute);
 
     // ---
 
     action = NavigateAction.removeRouteBelow(route1);
-    expect(action.toString(), 'Action NavigateAction.removeRouteBelow(MaterialPageRoute)');
+    expect(
+        action.toString(),
+        'Action NavigateAction.removeRouteBelow('
+        'MaterialPageRoute<dynamic>(RouteSettings(none, null), animation: null)'
+        ')');
     expect(action.type, NavigateType.removeRouteBelow);
 
     // ---
@@ -133,7 +158,11 @@ void main() {
     // ---
 
     action = NavigateAction.popUntilRoute(route1);
-    expect(action.toString(), 'Action NavigateAction.popUntilRoute(MaterialPageRoute)');
+    expect(
+        action.toString(),
+        'Action NavigateAction.popUntilRoute('
+        'MaterialPageRoute<dynamic>(RouteSettings(none, null), animation: null)'
+        ')');
     expect(action.type, NavigateType.popUntilRoute);
   });
 

@@ -239,7 +239,7 @@ void main() {
         '$randNumber2 (int)\n'
         '35 (int)\n'
         'false (bool)\n'
-        '{x: 1, y: [1, 2]} (_InternalLinkedHashMap<String, dynamic>)');
+        '{x: 1, y: [1, 2]} (_Map<String, dynamic>)');
 
     // Cleans up test.
     await persist.delete();
