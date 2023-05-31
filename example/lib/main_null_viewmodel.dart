@@ -1,7 +1,7 @@
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 
-// Developed by Marcelo Glasberg (Aug 2019).
+// Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
 late Store<int> store;

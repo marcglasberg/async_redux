@@ -14,6 +14,11 @@ The below documentation is very detailed. For an overview, go to
 the <a href="https://medium.com/@marcglasberg/https-medium-com-marcglasberg-async-redux-33ac5e27d5f6?sk=87aefd759273920d444185aa9d447ba0">
 Medium story</a>.
 
+> IntelliJ plugin that will soon support this package:
+<a href="https://plugins.jetbrains.com/files/21898/340924/icon/pluginIcon.svg"><img src="https://plugins.jetbrains.com/files/21898/340924/icon/pluginIcon.svg" height="20px" style="position: relative;top: 5px;"/>
+https://plugins.jetbrains.com/plugin/21898-marcelo-s-flutter-dart-essentials
+</a>
+
 # Example project
 
 Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Redux App Example</a>

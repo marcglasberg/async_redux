@@ -1,4 +1,4 @@
-// Developed by Marcelo Glasberg (Apr 2020).
+// Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
 import 'package:flutter/foundation.dart';

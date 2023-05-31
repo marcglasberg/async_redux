@@ -4,7 +4,7 @@ import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-// Developed by Marcelo Glasberg (Aug 2019).
+// Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
 /// This tests show that both sync and async reducers work as they should.

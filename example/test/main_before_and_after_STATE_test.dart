@@ -2,7 +2,7 @@ import 'package:async_redux/async_redux.dart';
 import 'package:example/main_before_and_after.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-// Developed by Marcelo Glasberg (Aug 2019).
+// Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
 /// This example displays the testing capabilities of AsyncRedux: How to test the store, actions, sync and async reducers,
