@@ -2,7 +2,7 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
-# [20.0.1] - 2022/05/29
+# [20.0.2] - 2022/05/29
 
 * Fixed `WrapReduce` (which may be used to wrap the reducer to allow for some pre- or
   post-processing) to avoid async reducers to be called twice.
