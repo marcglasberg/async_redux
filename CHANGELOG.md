@@ -2,20 +2,20 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
-# [20.0.2] - 2022/05/29
+# [20.0.2] - 2023/05/29
 
 * Fixed `WrapReduce` (which may be used to wrap the reducer to allow for some pre- or
   post-processing) to avoid async reducers to be called twice.
 
-# [20.0.0] - 2022/05/12
+# [20.0.0] - 2023/05/12
 
 * Flutter 3.10.0 and Dart 3.0.0
 
-# [19.0.2] - 2022/03/16
+# [19.0.2] - 2023/03/16
 
 * Docs improvement.
 
-# [19.0.1] - 2022/02/26
+# [19.0.1] - 2023/02/26
 
 * Flutter 3.7.5, Dart 2.19.2, fast_immutable_collections: 9.0.0.
 
