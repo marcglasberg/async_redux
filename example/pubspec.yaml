@@ -4,10 +4,11 @@ publish_to: "none"
 version: 1.0.0+1
 
 environment:
-  sdk: '>=2.19.0 <4.0.0'
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.16.0"
 
 dependencies:
-  http: ^0.13.4
+  http: ^1.1.0
   async_redux:
     path: ../
   flutter:

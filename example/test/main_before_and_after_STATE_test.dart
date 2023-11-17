@@ -10,8 +10,6 @@ import 'package:flutter_test/flutter_test.dart';
 /// IMPORTANT: To run the tests, put this file in a test directory.
 ///
 void main() {
-   
-
   test('Initial state.', () {
     //
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
@@ -20,8 +18,6 @@ void main() {
     expect(storeTester.state.description, "");
     expect(storeTester.state.waiting, false);
   });
-
-   
 
   test('Increment counter.', () async {
     //
@@ -37,8 +33,6 @@ void main() {
     expect(info.state.counter, 6);
   });
 
-   
-
   test('Increment counter and download description.', () async {
     //
     var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
@@ -51,8 +45,6 @@ void main() {
     expect(info.state.counter, 1);
     expect(info.state.description, isNotEmpty);
   });
-
-   
 
   test('Turn on/off the modal barrier.', () async {
     //
@@ -67,8 +59,6 @@ void main() {
     info = await storeTester.wait(BarrierAction);
     expect(info.state.waiting, false);
   });
-
-   
 
   test('Modal barrier exists while downloading description.', () async {
     //
@@ -108,6 +98,4 @@ void main() {
     expect(info.state.description, isNotEmpty);
     expect(info.state.counter, 1);
   });
-
-   
 }
