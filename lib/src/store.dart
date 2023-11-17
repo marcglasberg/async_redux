@@ -369,7 +369,7 @@ class Store<St> {
     _dispatchCount++;
 
     if (_actionObservers != null)
-      for (ActionObserver observer in _actionObservers!) {
+      for (ActionObserver observer in _actionObservers) {
         observer.observe(action, dispatchCount, ini: true);
       }
 
@@ -583,7 +583,7 @@ class Store<St> {
     // Make sure the wrapReduce also returns an acceptable type.
     _checkReducerType(action.reduce, true);
 
-    if (_wrapReduce != null) reducer = _wrapReduce!.wrapReduce(reducer, this);
+    if (_wrapReduce != null) reducer = _wrapReduce.wrapReduce(reducer, this);
 
     // Sync reducer.
     if (reducer is St? Function()) {
@@ -677,12 +677,12 @@ class Store<St> {
     St stateEnd = _state;
 
     if (_stateObservers != null)
-      for (StateObserver observer in _stateObservers!) {
+      for (StateObserver observer in _stateObservers) {
         observer.observe(action, stateIni, stateEnd, null, dispatchCount);
       }
 
     if (_processPersistence != null)
-      _processPersistence!.process(
+      _processPersistence.process(
         action,
         stateEnd,
       );
@@ -696,7 +696,7 @@ class Store<St> {
     _Flag<bool> afterWasRun,
   ) {
     if (_stateObservers != null)
-      for (StateObserver observer in _stateObservers!) {
+      for (StateObserver observer in _stateObservers) {
         observer.observe(action, _state, _state, error, dispatchCount);
       }
 
@@ -716,7 +716,7 @@ class Store<St> {
 
     if (_wrapError != null && errorOrNull != null) {
       try {
-        errorOrNull = _wrapError!.wrap(errorOrNull, stackTrace, action) ?? errorOrNull;
+        errorOrNull = _wrapError.wrap(errorOrNull, stackTrace, action) ?? errorOrNull;
       } catch (_error) {
         // Errors thrown by the global wrapError.
         // WrapError should never throw. It should return an error.
@@ -746,7 +746,7 @@ class Store<St> {
     // If an errorObserver was defined, observe the error.
     // Then, if the observer returns true, return the error to be thrown.
     else if (errorOrNull != null) {
-      if (_errorObserver!.observe(errorOrNull, stackTrace, action, this)) //
+      if (_errorObserver.observe(errorOrNull, stackTrace, action, this)) //
         return errorOrNull;
     }
 
@@ -764,7 +764,7 @@ class Store<St> {
     createTestInfoSnapshot(state!, action, error, processedError, ini: false);
 
     if (_actionObservers != null)
-      for (ActionObserver observer in _actionObservers!) {
+      for (ActionObserver observer in _actionObservers) {
         observer.observe(action, dispatchCount, ini: false);
       }
   }

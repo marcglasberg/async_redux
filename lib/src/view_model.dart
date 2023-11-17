@@ -167,7 +167,7 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
           "class Factory extends VmFactory<_Vm, MyConnector> {\n"
           "   Factory(Widget widget) : super(widget);");
     else
-      return _connector!;
+      return _connector;
   }
 
   late final Store<St> _store;

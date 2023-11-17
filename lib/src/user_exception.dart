@@ -93,7 +93,7 @@ class UserException implements Exception {
       return onOkCause;
     else
       return () {
-        _onOk!();
+        _onOk();
         onOkCause();
       };
   }
@@ -109,7 +109,7 @@ class UserException implements Exception {
       return onCancelCause;
     else
       return () {
-        _onCancel!();
+        _onCancel();
         onCancelCause();
       };
   }

@@ -2,7 +2,6 @@
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 
 import '../async_redux.dart';
 
@@ -195,7 +194,7 @@ class WaitAction<St> extends ReduxAction<St> {
   }
 
   @override
-  String toString() => 'WaitAction.${describeEnum(operation)}('
+  String toString() => 'WaitAction.${operation.name}('
       'flag: ${flag.toStringLimited()}, '
       'ref: ${ref.toStringLimited()})';
 }
