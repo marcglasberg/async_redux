@@ -135,6 +135,25 @@ class StoreTester<St> {
   Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) =>
       store.dispatchAsync(action, notify: notify);
 
+  /// Dispatches [action], and then waits until it finishes.
+  /// Returns the info after the action finishes. **Ignores other** actions.
+  ///
+  /// Example use:
+  ///
+  ///   var action = MyAction();
+  ///   await storeTester.dispatchAndWait(action);
+  ///
+  /// Note, this is the same as doing:
+  ///
+  ///   var action = MyAction();
+  ///   storeTester.dispatch(action);
+  ///   await storeTester.wait(action);
+  ///
+  FutureOr<TestInfo<St>> dispatchAndWait(ReduxAction<St> action) {
+    store.dispatch(action);
+    return waitUntilAction(action);
+  }
+
   void defineState(St state) => _store.defineState(state);
 
   /// Dispatches an action that changes the current state to the one provided by you.
@@ -840,8 +859,8 @@ class TestInfoList<St> {
 
   Iterable<TestInfo<St>> where(
           bool test(
-    TestInfo<St> element,
-  )) =>
+            TestInfo<St> element,
+          )) =>
       _info.where(test);
 
   Iterable<T> map<T>(T f(TestInfo<St> element)) => _info.map(f);

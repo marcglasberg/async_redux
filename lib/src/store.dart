@@ -340,17 +340,19 @@ class Store<St> {
   bool get isShutdown => _shutdown;
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
-  /// Note: [dispatch] is of type [Dispatch].
+  /// The action may be sync or async. Note: [dispatch] is of type [Dispatch].
   FutureOr<ActionStatus> dispatch(ReduxAction<St> action, {bool notify = true}) =>
       _dispatch(action, notify: notify);
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
-  /// Note: [dispatchAsync] is of type [DispatchAsync].
+  /// Note: [dispatchAsync] is of type [DispatchAsync]. It returns `Future<ActionStatus>`,
+  /// which means you can `await` it.
   Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) =>
       Future.value(_dispatch(action, notify: notify));
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: [dispatchSync] is of type [DispatchSync].
+  /// If the action is async, it will throw a [StoreException].
   ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) {
     if (!_ifActionIsSync(action)) {
       throw StoreException(

@@ -2,6 +2,12 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
+# [21.1.0] - 2024/02/01
+
+* `await StoreTester.dispatchAndWait(action)` dispatches an action, and then waits until it
+  finishes. This is the same as
+  doing: `storeTester.dispatch(action); await storeTester.wait(action);`.
+
 # [21.0.2] - 2023/11/16
 
 * Flutter 3.16.0 compatible.

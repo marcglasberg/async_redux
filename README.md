@@ -1256,9 +1256,15 @@ TestInfo<AppState> info = await storeTester.wait(SaveNameAction);
 expect(info.state.name, "Mark");
 ```
 
+or
+
+```
+TestInfo<AppState> info = storeTester.dispatchAndWait(SaveNameAction("Mark")); 
+expect(info.state.name, "Mark");
+```
+
 The variable `info` above will contain information about after the action reducer finishes
-executing,
-**no matter if the reducer is sync or async**.
+executing, **no matter if the reducer is sync or async**.
 
 The `TestInfo` instance contains the following:
 
@@ -1303,62 +1309,67 @@ Let's see all the available methods of the `StoreTester`:
    Runs until the exact given action is dispatched, and then waits until it finishes. Returns the
    info after the action finishes. **Ignores other** actions.
 
-6. `Future<TestInfo> waitAllGetLast(List<Type> actionTypes, {List<Type> ignore})`
+6. `Future<TestInfo> dispatchAndWait(ReduxAction action)`
+
+   Dispatches the given action, then waits until it finishes. Returns the
+   info after the action finishes. **Ignores other** actions.
+
+7. `Future<TestInfo> waitAllGetLast(List<Type> actionTypes, {List<Type> ignore})`
 
    Runs until **all** given actions types are dispatched, **in order**. Waits until all of them are
    finished. Returns the info after all actions finish. Will fail with an exception if an unexpected
    action is seen, or if any of the expected actions are dispatched in the wrong order. To ignore
    some actions, pass them to the `ignore` list.
 
-7. `Future<TestInfo> waitAllUnorderedGetLast(List<Type> actionTypes, {List<Type> ignore})`
+8. `Future<TestInfo> waitAllUnorderedGetLast(List<Type> actionTypes, {List<Type> ignore})`
 
    Runs until **all** given actions types are dispatched, in **any order**. Waits until all of them
    are finished. Returns the info after all actions finish. Will fail with an exception if an
    unexpected action is seen. To ignore some actions, pass them to the `ignore` list.
 
-8. `Future<TestInfoList> waitAll(List<Type> actionTypes, {List<Type> ignore})`
+9. `Future<TestInfoList> waitAll(List<Type> actionTypes, {List<Type> ignore})`
 
    The same as `waitAllGetLast`, but instead of returning just the last info, it returns a list with
    the end info for each action. To ignore some actions, pass them to the `ignore` list.
 
-9. `Future<TestInfoList> waitAllUnordered(List<Type> actionTypes, {List<Type> ignore})`
+10. `Future<TestInfoList> waitAllUnordered(List<Type> actionTypes, {List<Type> ignore})`
 
-   The same as `waitAllUnorderedGetLast`, but instead of returning just the last info, it returns a
-   list with the end info for each action. To ignore some actions, pass them to the `ignore` list.
+    The same as `waitAllUnorderedGetLast`, but instead of returning just the last info, it returns a
+    list with the end info for each action. To ignore some actions, pass them to the `ignore` list.
 
-10. `Future<TestInfoList<St>> waitCondition(StateCondition<St> condition, {bool testImmediately = true, bool ignoreIni = true})`
+11. `Future<TestInfoList<St>> waitCondition(StateCondition<St> condition, {bool testImmediately = true, bool ignoreIni = true})`
 
-Runs until the predicate function `condition` returns true. This function will receive each
-testInfo, from where it can access the state, action, errors etc. When `testImmediately` is true (
-the default), it will test the condition immediately when the method is called. If the condition is
-true, the method will return immediately, without waiting for any actions to be dispatched.
-When `testImmediately` is false, it will only test the condition once an action is dispatched. Only
-END states will be received, unless you pass `ignoreIni` as false. Returns a list with all info
-until the condition is met.
+    Runs until the predicate function `condition` returns true. This function will receive each
+    testInfo, from where it can access the state, action, errors etc. When `testImmediately` is
+    true (the default), it will test the condition immediately when the method is called. If the
+    condition is true, the method will return immediately, without waiting for any actions to be
+    dispatched. When `testImmediately` is false, it will only test the condition once an action is
+    dispatched. Only END states will be received, unless you pass `ignoreIni` as false. Returns a
+    list with all info until the condition is met.
 
-11. `Future<TestInfo<St>> waitConditionGetLast(StateCondition<St> condition, {bool testImmediately = true, bool ignoreIni = true})`
+12. `Future<TestInfo<St>> waitConditionGetLast(StateCondition<St> condition, {bool testImmediately = true, bool ignoreIni = true})`
 
-Runs until the predicate function `condition` returns true. This function will receive each
-testInfo, from where it can access the state, action, errors etc. When `testImmediately` is true (
-the default), it will test the condition immediately when the method is called. If the condition is
-true, the method will return immediately, without waiting for any actions to be dispatched.
-When `testImmediately` is false, it will only test the condition once an action is dispatched. Only
-END states will be received, unless you pass `ignoreIni` as false. Returns the info after the
-condition is met.
+    Runs until the predicate function `condition` returns true. This function will receive each
+    testInfo, from where it can access the state, action, errors etc. When `testImmediately` is
+    true (the default), it will test the condition immediately when the method is called. If the
+    condition is true, the method will return immediately, without waiting for any actions to be
+    dispatched. When `testImmediately` is false, it will only test the condition once an action is
+    dispatched. Only END states will be received, unless you pass `ignoreIni` as false. Returns the
+    info after the condition is met.
 
-12. `Future<TestInfoList<St>> waitUntilError({Object error, Object processedError})`
+13. `Future<TestInfoList<St>> waitUntilError({Object error, Object processedError})`
 
     Runs until after an action throws an error of this exact type, or this exact error (using
     equals). You can also, instead, define `processedError`, which is the error after wrapped by the
     action's `wrapError()` method. Returns a list with all info until the error condition is met.
 
-13. `Future<TestInfo> waitUntilErrorGetLast({Object error, Object processedError})`
+14. `Future<TestInfo> waitUntilErrorGetLast({Object error, Object processedError})`
 
     Runs until after an action throws an error of this exact type, or this exact error (using
     equals). You can also, instead, define `processedError`, which is the error after wrapped by the
     action's `wrapError()` method. Returns the info after the condition is met.
 
-14. `Future<TestInfo<St>> dispatchState(St state)`
+15. `Future<TestInfo<St>> dispatchState(St state)`
 
     Dispatches an action that changes the current state to the one provided by you. Then, runs until
     that action is dispatched and finished (ignoring other actions). Returns the info after the
@@ -1378,10 +1389,10 @@ expect(storeTester.state.description, isEmpty);
 storeTester.dispatch(IncrementAndGetDescriptionAction());
 
 TestInfoList<AppState> infos = await storeTester.waitAll([
-  IncrementAndGetDescriptionAction,
-  BarrierAction,
-  IncrementAction,
-  BarrierAction,
+   IncrementAndGetDescriptionAction,
+   BarrierAction,
+   IncrementAction,
+   BarrierAction,
 ]);
 
 // Modal barrier is turned on (first time BarrierAction is dispatched).
