@@ -149,7 +149,7 @@ class StoreTester<St> {
   ///   storeTester.dispatch(action);
   ///   await storeTester.wait(action);
   ///
-  FutureOr<TestInfo<St>> dispatchAndWait(ReduxAction<St> action) {
+  Future<TestInfo<St>> dispatchAndWait(ReduxAction<St> action) {
     store.dispatch(action);
     return waitUntilAction(action);
   }
