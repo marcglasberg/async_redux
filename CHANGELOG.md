@@ -2,6 +2,52 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux Readme.
 
+# [21.2.0] - 2024/02/02
+
+* There is now an extension on `BuildContext` that helps you access the state and dispatch
+  actions, directly inside of widgets. This is only useful when you don't want to use 
+  the `StoreConnector` (dumb widget / smart widget pattern).
+
+  Recapping, you may access the store state inside of widgets, by using `StoreProvider.of`:
+
+  ```
+  // Read state
+  var myInfo = StoreProvider.of<AppState>(context, this).state.myInfo;
+  
+  // Dispatch action
+  StoreProvider.of<AppState>(context, this).dispatch(MyAction());
+  ```
+
+  However, there is now an extensions on `BuildContext` that also allows you to write the
+  above code like this:
+
+  ```
+  // Read state
+  var myInfo = context.ofState<AppState>().myInfo;
+  
+  // Dispatch action
+  context.dispatch(MyAction());
+  ```
+
+  Optionally, to further improve this, you'll need to define your own typed extension method.
+  Supposing your state class is `AppState`, define your extension like this:
+
+  ```  
+  extension BuildContextExtension on BuildContext {
+    AppState get state => StoreProvider.of<AppState>(this, null).state;  
+  }
+  ```  
+
+  Once you do that, you can use it like this:
+
+  ```
+  // Read state
+  var myInfo = context.state.myInfo;
+  
+  // Dispatch action
+  context.dispatch(MyAction());
+  ```
+
 # [21.1.1] - 2024/02/01
 
 * `await StoreTester.dispatchAndWait(action)` dispatches an action, and then waits until it

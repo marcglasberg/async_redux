@@ -555,6 +555,48 @@ await dispatch(MyAsyncAction2());
 
 <br>
 
+## StoreProvider.of
+
+To access the store state inside of widgets, you can use `StoreProvider.of`. For example:
+
+```
+// Read state
+var myInfo = StoreProvider.of<AppState>(context, this).state.myInfo;
+
+// Dispatch action
+StoreProvider.of<AppState>(context, this).dispatch(MyAction());
+```
+
+However, Async Redux comes with extensions on `BuildContext` that also allows you to write the
+above code like this:
+
+```
+// Read state
+var myInfo = context.ofState<AppState>().myInfo;
+
+// Dispatch action
+context.dispatch(MyAction());
+```
+
+Optionally, to further improve this, you'll need to define your own typed extension method.
+Supposing your state class is `AppState`, define your extension like this:
+
+```  
+extension BuildContextExtension on BuildContext {
+  AppState get state => StoreProvider.of<AppState>(this, null).state;  
+}
+```  
+
+Once you do that, you can use it like this:
+
+```
+// Read state
+var myInfo = context.state.myInfo;
+
+// Dispatch action
+context.dispatch(MyAction());
+```
+
 ## Connector
 
 In Redux, you generally have two widgets, one called the "dumb-widget", which knows nothing about
