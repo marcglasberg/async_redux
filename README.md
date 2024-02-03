@@ -1492,7 +1492,34 @@ expect(storeTester.lastInfo.state.name, "Mark");
 
 <br>
 
-### Testing the StoreConnector
+### Testing the StoreConnector's View-model
+
+To test the **view-model** used by a `StoreConnector`, first create a `StoreTester`,
+then create the `Factory`, and then call the `factory.fromStoreTester()` method,
+passing it the store-tester.
+
+You will get the view-model, which you can use to:
+
+* Inspect the view-model properties directly, or
+* Call any of the view-model callbacks. If the callbacks dispatch actions,
+  you can wait for them using the store-tester.
+
+Example:
+
+```
+var storeTester = StoreTester(initialState: User("Mary"));
+var vm = MyFactory().fromStoreTester(storeTester);
+expect(vm.user.name, "Mary");
+
+vm.onChangeNameTo("Bill"); // Suppose it dispatches action SetNameAction("Bill").
+var info = await storeTester.wait(SetNameAction);
+expect(info.state.name, "Bill");
+```
+
+Note: _The `fromStoreTester()` method must be called in a recently created factory, as it can be
+called only once per factory instance._
+
+#### Testing the StoreConnector's onInit and onInit
 
 Suppose you want to start polling information when your user enters a particular screen, and stop
 when the user leaves it. This could be your `StoreConnector`:
@@ -1519,7 +1546,7 @@ using the `StoreTester` to check that the actions were dispatched.
 Instead, you may simply use the `ConnectorTester`, which you can access from the `StoreTester`:
 
 ```
-ver storeTester = StoreTester(...);
+var storeTester = StoreTester(...);
 var connectorTester = storeTester.getConnectorTester(MyScreen());
 
 connectorTester.runOnInit();

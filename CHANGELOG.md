@@ -1,11 +1,11 @@
 Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Redux App Example</a>
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
-best practices described in the AsyncRedux Readme.
+best practices described in the AsyncRedux README.md file.
 
-# [21.2.0] - 2024/02/02
+# [21.3.0] - 2024/02/02
 
 * There is now an extension on `BuildContext` that helps you access the state and dispatch
-  actions, directly inside of widgets. This is only useful when you don't want to use 
+  actions, directly inside of widgets. This is only useful when you don't want to use
   the `StoreConnector` (dumb widget / smart widget pattern).
 
   Recapping, you may access the store state inside of widgets, by using `StoreProvider.of`:
@@ -46,7 +46,11 @@ best practices described in the AsyncRedux Readme.
   
   // Dispatch action
   context.dispatch(MyAction());
-  ```
+  ```  
+
+* You can now use `var vm = MyFactory().fromStoreTester(storeTester)`
+  to test a view-model. Read the detailed explanation in the README.md file,
+  under the title `Testing the StoreConnector's View-model`.
 
 # [21.1.1] - 2024/02/01
 
@@ -422,7 +426,7 @@ best practices described in the AsyncRedux Readme.
   connectorTester.runOnInit(); 
   var info = await tester.waitUntil(SomeAction);  
   ```
-  For more information, see section **Testing the StoreConnector** in the readme file.
+  For more information, see section **Testing the StoreConnector** in the README.md file.
 
 * Fix: `UserExceptionDialog` now shows all `UserException`s. It was discarding some of them under
   some circumstances, in a regression created in version 4.0.4.
@@ -987,7 +991,7 @@ then override the `VmEquals.vmEquals()` method to provide your custom comparison
 
 # [1.3.5] - 2019/08/27
 
-* README improvement.
+* README.md improvement.
 
 # [1.3.3] - 2019/08/26
 
@@ -1007,7 +1011,7 @@ then override the `VmEquals.vmEquals()` method to provide your custom comparison
 
 # [1.1.2] - 2019/08/13
 
-* README improvement.
+* README.md improvement.
 
 # [1.1.1] - 2019/08/10
 
