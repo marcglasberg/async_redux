@@ -19,11 +19,22 @@ Medium story</a>.
 https://plugins.jetbrains.com/plugin/21898-marcelo-s-flutter-dart-essentials
 </a>
 
-# Example project
+# Example projects
 
-Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Redux App Example</a>
-repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
-best practices described in this Readme.
+Please visit:
+
+* **Fully documented:**
+  > The <a href="https://github.com/marcglasberg/SameAppDifferentTech/">Same App
+  Different Tech
+  Project</a> is a repository in GitHub, containing the same mobile app implemented using a variety
+  of different tech stacks, including
+  a <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/MobileAppFlutterRedux/README.md">
+  Redux App Example</a>.
+
+* **Documented in the source code only:**
+  > The <a href="https://github.com/marcglasberg/redux_app_example">Redux App Example</a>
+  repository in GitHub also contains a full-fledged example with a complete app showcasing the
+  fundamentals and best practices described in this Readme.
 
 # Table of Contents
 

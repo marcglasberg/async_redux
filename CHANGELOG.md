@@ -2,7 +2,7 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux README.md file.
 
-# [21.3.0] - 2024/02/02
+# [21.3.1] - 2024/02/02
 
 * There is now an extension on `BuildContext` that helps you access the state and dispatch
   actions, directly inside of widgets. This is only useful when you don't want to use
