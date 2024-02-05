@@ -578,27 +578,8 @@ var myInfo = StoreProvider.of<AppState>(context, this).state.myInfo;
 StoreProvider.of<AppState>(context, this).dispatch(MyAction());
 ```
 
-However, Async Redux comes with extensions on `BuildContext` that also allows you to write the
-above code like this:
-
-```
-// Read state
-var myInfo = context.ofState<AppState>().myInfo;
-
-// Dispatch action
-context.dispatch(MyAction());
-```
-
-Optionally, to further improve this, you'll need to define your own typed extension method.
-Supposing your state class is `AppState`, define your extension like this:
-
-```  
-extension BuildContextExtension on BuildContext {
-  AppState get state => StoreProvider.of<AppState>(this, null).state;  
-}
-```  
-
-Once you do that, you can use it like this:
+Optionally, you may define extension methods on `BuildContext`, which allow you to write it like
+this:
 
 ```
 // Read state
@@ -606,7 +587,23 @@ var myInfo = context.state.myInfo;
 
 // Dispatch action
 context.dispatch(MyAction());
-```
+```  
+
+If your state class is called `AppState`, copy the following code to define your extension:
+
+```  
+extension BuildContextExtension on BuildContext {
+   AppState get state => StoreProvider.of<AppState>(this, null).state;
+   FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatch(action, notify: notify);
+   Future<ActionStatus> dispatchAsync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatchAsync(action, notify: notify);
+   ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatchSync(action, notify: notify);  
+}
+```  
+
+Or, if you want a fully documented version, copy the
+file ([build_context_extension](lib/src/build_context_extension)), rename it with a `.dart`
+extension and put it in the same directory as your `app_state.dart` file containing
+your `AppState` class.
 
 ## Connector
 

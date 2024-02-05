@@ -2,13 +2,14 @@ Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Red
 repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
 best practices described in the AsyncRedux README.md file.
 
-# [21.3.1] - 2024/02/02
+# [21.3.2] - 2024/02/02
 
-* There is now an extension on `BuildContext` that helps you access the state and dispatch
-  actions, directly inside of widgets. This is only useful when you don't want to use
+* The README was updated to suggest that you create an extension on `BuildContext` that helps you
+  access the state and dispatch actions, directly inside of widgets. This is only useful when you
+  want to access the store `state` and `dispatch` directly inside your widgets, instead of using
   the `StoreConnector` (dumb widget / smart widget pattern).
 
-  Recapping, you may access the store state inside of widgets, by using `StoreProvider.of`:
+  Recapping, you may access the store inside of widgets, by using `StoreProvider.of`:
 
   ```
   // Read state
@@ -18,27 +19,8 @@ best practices described in the AsyncRedux README.md file.
   StoreProvider.of<AppState>(context, this).dispatch(MyAction());
   ```
 
-  However, there is now an extensions on `BuildContext` that also allows you to write the
-  above code like this:
-
-  ```
-  // Read state
-  var myInfo = context.ofState<AppState>().myInfo;
-  
-  // Dispatch action
-  context.dispatch(MyAction());
-  ```
-
-  Optionally, to further improve this, you'll need to define your own typed extension method.
-  Supposing your state class is `AppState`, define your extension like this:
-
-  ```  
-  extension BuildContextExtension on BuildContext {
-    AppState get state => StoreProvider.of<AppState>(this, null).state;  
-  }
-  ```  
-
-  Once you do that, you can use it like this:
+  Optionally, you may define extension methods on `BuildContext`, which allow you to write it like
+  this:
 
   ```
   // Read state
@@ -47,6 +29,23 @@ best practices described in the AsyncRedux README.md file.
   // Dispatch action
   context.dispatch(MyAction());
   ```  
+
+  If your state class is called `AppState`, copy the following code to define your extension:
+
+  ```  
+  extension BuildContextExtension on BuildContext {
+     AppState get state => StoreProvider.of<AppState>(this, null).state;
+     FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatch(action, notify: notify);
+     Future<ActionStatus> dispatchAsync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatchAsync(action, notify: notify);
+     ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatchSync(action, notify: notify);  
+  }
+  ```  
+
+  Or, if you want a fully documented version, copy the
+  file ([build_context_extension](lib/src/build_context_extension)), rename it with a `.dart`
+  extension and put it in the same directory as your `app_state.dart` file containing
+  your `AppState` class.
+            
 
 * You can now use `var vm = MyFactory().fromStoreTester(storeTester)`
   to test a view-model. Read the detailed explanation in the README.md file,

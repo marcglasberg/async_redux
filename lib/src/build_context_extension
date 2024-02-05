@@ -1,0 +1,66 @@
+import 'dart:async';
+
+import 'package:async_redux/async_redux.dart';
+import 'package:flutter/widgets.dart';
+import 'app_state.dart';
+
+/// To access the state inside of widgets, you can use `StoreProvider.of`. For example:
+///
+/// ```
+/// // Read state
+/// var myInfo = StoreProvider.of<AppState>(context, this).state.myInfo;
+///
+/// // Dispatch action
+/// StoreProvider.of<AppState>(context, this).dispatch(MyAction());
+/// ```
+///
+/// However, this extension allows you to write the above code like this:
+///
+/// ```
+/// // Read state
+/// var myInfo = context.state.myInfo;
+///
+/// // Dispatch action
+/// context.dispatch(MyAction());
+/// ```
+extension BuildContextExtension on BuildContext {
+  //
+
+  /// You can access the store state from inside your widgets, using the context:
+  /// ```
+  /// context.state.myInfo;
+  /// ```
+  AppState get state => StoreProvider.of<AppState>(this, null).state;
+
+  /// Runs the action, applying its reducer, and possibly changing the store state.
+  /// The action may be sync or async. Note: [dispatch] is of type [Dispatch].
+  ///
+  /// Use it like this:
+  /// ```
+  /// context.dispatch(MyAction());
+  /// ```
+  FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) =>
+      StoreProvider.of<AppState>(this, null).dispatch(action, notify: notify);
+
+  /// Runs the action, applying its reducer, and possibly changing the store state.
+  /// Note: [dispatchAsync] is of type [DispatchAsync]. It returns `Future<ActionStatus>`,
+  /// which means you can `await` it.
+  ///
+  /// Use it like this:
+  /// ```
+  /// context.dispatchAsync(MyAction());
+  /// ```
+  Future<ActionStatus> dispatchAsync(ReduxAction<AppState> action, {bool notify = true}) =>
+      StoreProvider.of<AppState>(this, null).dispatchAsync(action, notify: notify);
+
+  /// Runs the action, applying its reducer, and possibly changing the store state.
+  /// Note: [dispatchSync] is of type [DispatchSync].
+  /// If the action is async, it will throw a [StoreException].
+  ///
+  /// Use it like this:
+  /// ```
+  /// context.dispatchSync(MySyncAction());
+  /// ```
+  ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) =>
+      StoreProvider.of<AppState>(this, null).dispatchSync(action, notify: notify);
+}
