@@ -717,6 +717,6 @@ state classes must implement the `VmEquals` interface. As a default, objects of 
 are compared by identity, while all other object types are, as usual, compared by equality. You may
 then override the `VmEquals.vmEquals()` method to provide your custom comparisons.
 
-# [1.0.0] - 2019/08/05
+# [1.0.0] - 2019/Aug05
 
 * Initial commit.
