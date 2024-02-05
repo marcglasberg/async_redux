@@ -1,8 +1,9 @@
-Please visit the <a href="https://github.com/marcglasberg/redux_app_example">Redux App Example</a>
-repository in GitHub for a full-fledged example with a complete app showcasing the fundamentals and
-best practices described in the AsyncRedux README.md file.
+_Please visit
+an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/MobileAppFlutterRedux/README.md">
+Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
+showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# [21.3.2] - 2024/02/02
+# 21.3.3
 
 * The README was updated to suggest that you create an extension on `BuildContext` that helps you
   access the state and dispatch actions, directly inside of widgets. This is only useful when you
@@ -42,39 +43,40 @@ best practices described in the AsyncRedux README.md file.
   ```  
 
   Or, if you want a fully documented version, copy the
-  file ([build_context_extension](lib/src/build_context_extension)), rename it with a `.dart`
+  file ([build_context_extension](https://raw.githubusercontent.com/marcglasberg/async_redux/master/lib/src/build_context_extension)),
+  rename it with a `.dart`
   extension and put it in the same directory as your `app_state.dart` file containing
   your `AppState` class.
-            
+
 
 * You can now use `var vm = MyFactory().fromStoreTester(storeTester)`
   to test a view-model. Read the detailed explanation in the README.md file,
   under the title `Testing the StoreConnector's View-model`.
 
-# [21.1.1] - 2024/02/01
+# 21.1.1
 
 * `await StoreTester.dispatchAndWait(action)` dispatches an action, and then waits until it
   finishes. This is the same as
   doing: `storeTester.dispatch(action); await storeTester.wait(action);`.
 
-# [21.0.2] - 2023/11/16
+# 21.0.2
 
 * Flutter 3.16.0 compatible.
 
-# [20.0.2] - 2023/05/29
+# 20.0.2
 
 * Fixed `WrapReduce` (which may be used to wrap the reducer to allow for some pre- or
   post-processing) to avoid async reducers to be called twice.
 
-# [20.0.0] - 2023/05/12
+# 20.0.0
 
 * Flutter 3.10.0 and Dart 3.0.0
 
-# [19.0.2] - 2023/03/16
+# 19.0.2
 
 * Docs improvement.
 
-# [19.0.1] - 2023/02/26
+# 19.0.1
 
 * Flutter 3.7.5, Dart 2.19.2, fast_immutable_collections: 9.0.0.
 
@@ -130,19 +132,19 @@ best practices described in the AsyncRedux README.md file.
 
 * Added class LocalJsonPersist to help persist the state as pure Json.
 
-# [18.0.2] - 2022/12/11
+# 18.0.2
 
 * Fixed small bug when persistor is paused before being used once.
 
-# [18.0.0] - 2022/10/23
+# 18.0.0
 
 * Version bump of dependencies.
 
-# [17.0.1] - 2022/10/09
+# 17.0.1
 
 * Fixed issue with the StoreConnector.shouldUpdateModel method when the widget updates.
 
-# [17.0.0] - 2022/09/15
+# 17.0.0
 
 * The `StateObserver.observe()` method signature changed to include an `error` parameter:
   ```
@@ -159,11 +161,11 @@ best practices described in the AsyncRedux README.md file.
   In this case, the `error` object will not be null. This makes it easier to use state-observers
   for metrics. Please, see the documentation for the recommended clean-code way to do this.
 
-# [16.1.0] - 2022/09/13
+# 16.1.0
 
 * Added another cache function, for 2 states and 3 parameters: `cache2states_3params`.
 
-# [16.0.0] - 2022/05/15
+# 16.0.0
 
 * Breaking change: Async `reduce()` methods (those that return Futures) are now called
   synchronously (in the same microtask of their dispatch), just like a regular async function is.
@@ -251,19 +253,19 @@ best practices described in the AsyncRedux README.md file.
   import 'package:async_redux/async_redux.dart' hide Evt;  
   ```
 
-# [15.0.0] - 2022/05/12
+# 15.0.0
 
 * Flutter 3.0 support.
 
-# [14.1.4] - 2022/05/10
+# 14.1.4
 
 * `NavigateAction.popUntilRouteName()` can print the routes (for debugging).
 
-# [14.1.2] - 2022/04/21
+# 14.1.2
 
 * Better stacktrace for wrapped errors in actions.
 
-# [14.1.1] - 2022/04/21
+# 14.1.1
 
 * The store persistor can now be paused and resumed, with methods `store.pausePersistor()`,
   `store.persistAndPausePersistor()` and `store.resumePersistor()`. This may be used together with
@@ -335,31 +337,31 @@ best practices described in the AsyncRedux README.md file.
   void onWillChangeCallback(BuildContext? context, Store<St> store, Model previousVm, Model newVm);
   ```   
 
-# [13.3.1] - 2021/12/23
+# 13.3.1
 
 * Version bump of dependencies.
 
-# [13.2.2] - 2021/12/23
+# 13.2.2
 
 * Version bump of dependencies.
 
-# [13.2.1] - 2021/12/16
+# 13.2.1
 
 * Fixed `MockStore.dispatchAsync()` and `MockStore.dispatchSync()` methods.
 
-# [13.2.0] - 2021/11/26
+# 13.2.0
 
 * `delay` parameter for `WaitAction.add()` and `WaitAction.remove()` methods.
 
-# [13.1.0] - 2021/11/02
+# 13.1.0
 
 * Added missing `dispatchSync` and `dispatchAsync` to `StoreTester`.
 
-# [13.0.6] - 2021/09/10
+# 13.0.6
 
 * Added missing `dispatchSync` to `VmFactory`.
 
-# [13.0.5] - 2021/09/29
+# 13.0.5
 
 * Sometimes, the store state is such that it's not possible to create a view-model. In those cases,
   the `fromStore()` method in the `Factory` can now return a `null` view-model. In that case,
@@ -389,7 +391,7 @@ best practices described in the AsyncRedux README.md file.
     ViewModel({required this.user}) : super(equals: [user]);
   ```
 
-# [13.0.4] - 2021/09/20
+# 13.0.4
 
 * `dispatch` can be used to dispatch both sync and async actions. It returns a `FutureOr`. You can
   await the result or not, as desired.
@@ -437,7 +439,7 @@ best practices described in the AsyncRedux README.md file.
 
 * `WaitAction.toString()` now returns a better description.
 
-# [12.0.4] - 2021/08/19
+# 12.0.4
 
 * `NavigateAction.toString()` now returns a better description, like `Action NavigateAction.pop()`.
 
@@ -446,7 +448,7 @@ best practices described in the AsyncRedux README.md file.
 
 * Added section `Dependency Injection` in README.md.
 
-# [12.0.3] - 2021/08/11
+# 12.0.3
 
 * Improved error messages when the reducer returns an invalid type.
 
@@ -454,7 +456,7 @@ best practices described in the AsyncRedux README.md file.
 
 * Passing an environment to the store, to help with dependency injection: `Store(environment: ...)`
 
-# [12.0.0] - 2021/06/29
+# 12.0.0
 
 * Breaking change: Improved state typing for some `Store` parameters. You will now have to use
   `Persistor<AppState>` instead of `Persistor`, and `WrapError<AppState>` instead of `WrapError`
@@ -466,7 +468,7 @@ best practices described in the AsyncRedux README.md file.
 
 * Downgraded dev_dependencies `test: ^1.16.0`
 
-# [11.0.1] - 2021/06/22
+# 11.0.1
 
 * You can now provide callbacks `onOk` and `onCancel` to an `UserException`. This allows you to
   dispatch actions when the user dismisses the error dialog. When using the
@@ -475,7 +477,7 @@ best practices described in the AsyncRedux README.md file.
   called only when the OK button is pressed, while `onCancel` will be called when the dialog is
   dismissed by any other means.
 
-# [11.0.0] - 2021/06/02
+# 11.0.0
 
 * Breaking change: The `dispatchFuture` function is not necessary anymore. Just rename it
   to `dispatch`, since now the `dispatch` function always returns a future, and you can await it or
@@ -506,7 +508,7 @@ best practices described in the AsyncRedux README.md file.
   if (status.isFinished) dispatch(NavigateAction.pop()); // Or: Navigator.pop(context) 
   ```              
 
-# [10.0.1] - 2021/05/15
+# 10.0.1
 
 * Breaking change: The new `UserExceptionDialog.useLocalContext` parameter now allows
   the `UserExceptionDialog` to be put in the `builder` parameter of the `MaterialApp` widget. Even
@@ -518,38 +520,38 @@ best practices described in the AsyncRedux README.md file.
   and `onWillChange` now also get the context and the store. For example, where you previously
   had `onInitialBuild(vm) {...}` now you have `onInitialBuild(context, store, vm) {...}`.
 
-# [9.0.9] - 2021/05/10
+# 9.0.9
 
 * LocalPersist `saveJson()` and `loadJson()` methods.
 
-# [9.0.8] - 2021/04/26
+# 9.0.8
 
 * FIC and weak-map version bump.
 
-# [9.0.7] - 2021/04/16
+# 9.0.7
 
 * NNBD improvements.
 * FIC version bump.
 
-# [9.0.1] - 2021/03/22
+# 9.0.1
 
 * Downgrade to file: ^6.0.0 to improve compatibility.
 
-# [9.0.0] - 2021/03/03
+# 9.0.0
 
 * Nullsafe.
 
-# [8.0.0] - 2021/02/21
+# 8.0.0
 
 * Uses nullsafe dependencies (it's not yet itself nullsafe).
 
 * Breaking change: Cache functions (for memoization) have been renamed and extended.
 
-# [7.0.2] - 2021/02/12
+# 7.0.2
 
 * LocalPersist: Better handling of mock file-systems.
 
-# [7.0.1] - 2020/12/30
+# 7.0.1
 
 * Breaking change:
 
@@ -582,15 +584,15 @@ best practices described in the AsyncRedux README.md file.
   immutable collections from the <a href="https://pub.dev/packages/fast_immutable_collections">
   fast_immutable_collections</a> package.
 
-# [6.0.3] - 2020/12/03
+# 6.0.3
 
 * StoreTester.dispatchState().
 
-# [6.0.2] - 2020/11/16
+# 6.0.2
 
 * VmFactory.getAndRemoveFirstError().
 
-# [6.0.1] - 2020/10/30
+# 6.0.1
 
 * `NavigateAction` now closely follows the `Navigator` api:  `push()`,
   `pop()`, `popAndPushNamed()`, `pushNamed()`, `pushReplacement()`, `pushAndRemoveUntil()`,
@@ -598,16 +600,16 @@ best practices described in the AsyncRedux README.md file.
   `pushNamedAndRemoveAll()`, `popUntil()`, `removeRoute()`, `removeRouteBelow()`,
   `popUntilRouteName()` and `popUntilRoute()`.
 
-# [5.0.0] - 2020/10/19
+# 5.0.0
 
 * Breaking change: OnWillChangeCallback now provides previousVm.
 
-# [4.0.4] - 2020/10/19
+# 4.0.4
 
 * Better performance: Less unnecessary view-model calculations.
 * StoreConnector.shouldUpdateModel fix.
 
-# [4.0.1] - 2020/10/02
+# 4.0.1
 
 ## Flutter 1.22 compatibility
 
@@ -714,319 +716,6 @@ rebuild. However, you can now provide your own comparison method, if you want. T
 state classes must implement the `VmEquals` interface. As a default, objects of type `VmEquals`
 are compared by identity, while all other object types are, as usual, compared by equality. You may
 then override the `VmEquals.vmEquals()` method to provide your custom comparisons.
-
-<br>
-<br>
-<br>
-
-# [3.0.5] - 2020/08/18
-
-* Action.after() will now throw the error asynchronously (instead of swallowing it).
-
-# [3.0.4] - 2020/08/13
-
-* Fix: withoutHardCause was removing the code field.
-
-# [3.0.3] - 2020/08/11
-
-* cache3.
-* LocalPersist is exported separately.
-
-# [3.0.0] - 2020/07/27
-
-* Works for Web.
-
-# [2.13.1] - 2020/07/17
-
-* WrapError may now convert to any error type.
-* UserException hardCause() and withoutHardCause() methods.
-
-# [2.13.0] - 2020/07/16
-
-* typedef Reducer.
-* ReduxAction.wrapReduce().
-
-# [2.12.3] - 2020/07/08
-
-* Docs improvement.
-
-# [2.12.2] - 2020/06/30
-
-* Global WrapError now gets error, stackTrace, and action (none of them optional).
-* MockStore (still experimental, in `mock_store.dart`), lets you mock or disable actions/reducers
-  during tests.
-  (See section `Mocking actions and reducers` in README.md).
-* ReduxAction.status and ReduxAction.isFinished. (Search for "Action status" in README.md).
-* ReduxAction.reduceWithState deprecated (will be removed).
-
-# [2.11.1] - 2020/06/12
-
-* Added cache/reselector functions with 1 or 2 states and zero parameters: `cache1` and `cache2`.
-* Breaking change: Other cache/reselector functions are now named `cache1_1`, `cache1_2`, `cache2_1`
-  , and `cache2_2`.
-* Breaking change: Dispatch/DispatchFuture with `notify: false` will change the state but not
-  rebuild widgets.
-
-# [2.10.0] - 2020/06/01
-
-* BaseModel now doesn't give direct access to the store, and doesn't read the state from the store
-  anymore. The state is now copied and kept constant in the view-model, as it should.
-
-# [2.9.0] - 2020/05/25
-
-* Stacktrace in WrapError.
-* EventMultiple (Event.map).
-
-# [2.8.11] - 2020/05/19
-
-* <a href="https://pub.dev/packages/async_redux#reselectors">Reselectors</a>.
-
-# [2.8.7] - 2020/05/15
-
-* Store.stateTimestamp now records the timestamp when the current state in the store was created.
-
-# [2.8.6] - 2020/05/13
-
-* Fixed corner case for StoreTester.waitAll.
-
-# [2.8.5] - 2020/05/12
-
-* Small fixes: better generics; Better waitCondition stream close.
-
-# [2.8.4] - 2020/05/08
-
-* Fix LocalPersist imports.
-* Fix abortDispatch not getting the state.
-
-# [2.8.1] - 2020/05/01
-
-* A filesystem may be injected into LocalPersist (usually to be used with MemoryFileSystem).
-* Fix: LocalPersist.subDirs.
-
-# [2.8.0] - 2020/04/30
-
-* Store.waitCondition() returns a future which will complete when the state meets a given condition.
-
-* Breaking change: StoreTester.waitCondition() now accepts a parameter called testImmediately. When
-  testImmediately is true (now the default), it will test the condition immediately when the method
-  is called. If the condition is true, the method will return immediately, without waiting for any
-  actions to be dispatched. When testImmediately is false (the old behavior), it will only test the
-  condition once an action is dispatched.
-
-# [2.7.3] - 2020/04/30
-
-* Fix: When dbName is a String, LocalPersist doesn't break it in the dot anymore.
-* LocalPersist subDirs.
-
-# [2.7.2] - 2020/04/24
-
-* WaitAction now has dynamic generic type in TestInfo.type (compatible with the StoreTester).
-
-# [2.7.1] - 2020/04/15
-
-* WaitAction is now compatible with BuiltValue and Freezed packages.
-
-# [2.7.0] - 2020/04/14
-
-* WaitAction (Search for "Progress indicators" in README.md).
-* Example: main_wait_action_simple.dart
-* Example: main_wait_action_advanced_1.dart
-* Example: main_wait_action_advanced_2.dart
-
-# [2.6.0] - 2020/04/01
-
-* The default timeout for the StoreTester wait functions can now be globally changed.
-* The default debug information printed to the console can now be changed or turned off globally.
-
-# [2.5.8] - 2020/03/17
-
-* NavigateAction.push(Route).
-
-# [2.5.7] - 2020/03/09
-
-* Action.abortDispatch.
-
-# [2.5.6] - 2020/03/05
-
-* Fixed orElse in TestInfo operator [].
-
-# [2.5.5] - 2020/02/18
-
-* StoreTester.lastInfo (Search for "lastInfo" in README.md).
-* PersistorPrinterDecorator: saveInitialState linked to the correct method.
-* Fix failing tests by ensuring initialization.
-
-# [2.5.4] - 2020/02/18
-
-* Docs improvement.
-
-# [2.5.3] - 2020/01/29
-
-* Removes the generic type from PersistAction in tests.
-
-# [2.5.2] - 2020/01/28
-
-* Errors queue is cloned in TestInfo.
-
-# [2.5.1] - 2020/01/26
-
-* NavigateAction.pushNamedAndRemoveUntil.
-
-# [2.5.0] - 2020/01/20
-
-* Breaking change: The StoreConnector's shouldUpdateModel parameter now functions properly. If you
-  are using this, make sure you return true to apply changes (the default when the parameter is not
-  defined), and false to ignore model changes.
-
-# [2.4.4] - 2019/01/13
-
-* StoreTester dispatchFuture.
-
-# [2.4.3] - 2019/01/11
-
-* Small UserExceptionDialog web fix.
-
-# [2.4.2] - 2019/12/18
-
-* TestInfo.type now returns generic NavigateAction and UserExceptionAction, to play well with the
-  StoreTester.
-
-# [2.4.1] - 2019/12/10
-
-* Breaking change: Global WrapError, if defined, now receives all errors, including UserExceptions.
-
-# [2.3.3] - 2019/12/07
-
-* iOS specific dialog for UserExceptions.
-
-# [2.3.2] - 2019/11/28
-
-* Docs improvement.
-
-# [2.3.0] - 2019/11/19
-
-* Global ignore in the StoreTester constructor.
-* Better treatment of wrap-errors that throw.
-* Breaking change: LocalPersist (instead of Saver/Loader).
-
-# [2.2.0] - 2019/11/15
-
-* Breaking change: PersistObserver became Persistor (and other renames).
-* PersistorPrinterDecorator. PersistorDummy.
-
-# [2.1.9] - 2019/11/12
-
-* Saver/Loader.
-
-# [2.1.4] - 2019/11/10
-
-* PersistObserver.
-
-# [2.1.3] - 2019/10/30
-
-* Removed deprecated ignoreChange. Use shouldUpdateModel instead.
-
-# [2.1.0] - 2019/10/27
-
-* Better translations support for UserException.
-* Global WrapError in the store.
-
-# [2.0.6] - 2019/10/07
-
-* Added sync_async_test.dart
-* Doc warning about async reducer returning completed future (missing await).
-
-# [2.0.5] - 2019/10/05
-
-* Better typing of StoreProvider.dispatch and StoreProvider.dispatchFuture.
-
-# [2.0.4] - 2019/10/01
-
-* StoreTester.waitUntilError and waitUntilErrorGetLast.
-
-# [2.0.3] - 2019/09/21
-
-* NavigateAction tests.
-* Navigation arguments.
-
-# [2.0.2] - 2019/09/21
-
-* UserExceptionAction.
-
-# [2.0.1] - 2019/09/19
-
-* Fix: UserException.dialogContent accepts String as cause.
-
-# [2.0.0] - 2019/09/17
-
-* Breaking change: ErrorObserver API.
-* StoreTester parameter: shouldThrowUserExceptions (
-  see <a href="https://github.com/marcglasberg/async_redux/issues/20">issue</a>).
-
-# [1.4.3] - 2019/09/15
-
-* Alternative: Use AsyncRedux with Provider (package provider_for_redux).
-
-# [1.4.1] - 2019/09/06
-
-* Flutter Awesome badge, and Pub badge.
-
-# [1.4.0] - 2019/09/02
-
-* Fix: dispatchFuture getter in ReduxAction.
-
-# [1.3.9] - 2019/08/31
-
-* NavigateAction.navigatorKey getter.
-
-# [1.3.8] - 2019/08/30
-
-* Alternatives to the Connector (StoreProvider static methods).
-* Waiting until an Action is finished (dispatchFuture).
-
-# [1.3.7] - 2019/08/28
-
-* ModelObserver and DefaultModelObserver.
-
-# [1.3.5] - 2019/08/27
-
-* README.md improvement.
-
-# [1.3.3] - 2019/08/26
-
-* StoreConnector's converter and model parameters.
-
-# [1.2.3] - 2019/08/23
-
-* StoreTester timeout message.
-
-# [1.2.0] - 2019/08/22
-
-* Doc improvement. StoreTester improvements.
-
-# [1.1.3] - 2019/08/21
-
-* StoreTester: waitCondition and waitConditionGetLast.
-
-# [1.1.2] - 2019/08/13
-
-* README.md improvement.
-
-# [1.1.1] - 2019/08/10
-
-* Ignore actions in the StoreTester.
-
-# [1.1.0] - 2019/08/07
-
-* Correct stacktrace for unwrapped action errors.
-
-# [1.0.9] - 2019/08/07
-
-* Error message improvement.
-
-# [1.0.4] - 2019/08/05
-
-* Store tester.
 
 # [1.0.0] - 2019/08/05
 
