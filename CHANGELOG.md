@@ -3,7 +3,7 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# 21.3.3
+# 21.3.4
 
 * The README was updated to suggest that you create an extension on `BuildContext` that helps you
   access the state and dispatch actions, directly inside of widgets. This is only useful when you
