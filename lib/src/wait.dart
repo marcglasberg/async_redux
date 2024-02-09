@@ -24,8 +24,8 @@ enum WaitOperation { add, remove, clear }
 /// In the ViewModel, you can check the flags/references, like this:
 ///
 /// * To check if there is any waiting: state.wait.isWaiting
-/// * To check if a specific flag is waiting: state.wait.isWaitingFor(myFlag);
-/// * To check if a specific flag/reference is waiting: state.wait.isWaitingFor(myFlag, ref: myRef);
+/// * To check if is waiting a specific flag: state.wait.isWaitingFor(myFlag);
+/// * To check if is waiting a specific flag/reference: state.wait.isWaitingFor(myFlag, ref: myRef);
 ///
 @immutable
 class Wait {
@@ -100,8 +100,12 @@ class Wait {
       throw AssertionError(operation);
   }
 
+  /// Return true if there is any waiting (any flag).
   bool get isWaiting => _flags.isNotEmpty;
 
+  /// Return true if is waiting for a specific flag.
+  /// If [ref] is null, it returns true if it's waiting for any reference of the flag.
+  /// If [ref] is not null, it returns true if it's waiting for that specific reference of the flag.
   bool isWaitingFor(Object? flag, {Object? ref}) {
     Set? refs = _flags[flag];
 
@@ -109,6 +113,29 @@ class Wait {
       return refs != null && refs.isNotEmpty;
     else
       return refs != null && refs.contains(ref);
+  }
+
+  /// Return true if is waiting for ANY flag of the specific type.
+  ///
+  /// This is useful when you want to wait for an Action to finish. For example:
+  ///
+  /// ```
+  /// class MyAction extends ReduxAction<AppState> {
+  ///   Future<AppState?> reduce() async {
+  ///     await doSomething();
+  ///     return null;
+  ///   }
+  ///
+  ///   void before() => dispatch(WaitAction.add(this));
+  ///   void after() => dispatch(WaitAction.remove(this));
+  /// }
+  ///
+  /// // Then, in some widget or connector:
+  /// if (wait.isWaitingForType<MyAction>()) { ... }
+  /// ```
+  bool isWaitingForType<T>() {
+    for (Object? flag in _flags.keys) if (flag is T) return true;
+    return false;
   }
 
   Wait clear({Object? flag}) {
@@ -123,10 +150,9 @@ class Wait {
 
   void clearWhere(
           bool Function(
-    Object? flag,
-    Set<Object?> refs,
-  )
-              test) =>
+            Object? flag,
+            Set<Object?> refs,
+          ) test) =>
       _flags.removeWhere(test);
 
   Map<Object?, Set<Object?>> _deepCopy() {

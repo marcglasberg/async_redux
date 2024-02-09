@@ -86,29 +86,30 @@ class AppState {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => StoreProvider<AppState>(
-      store: store,
-      child: MaterialApp(
-        home: MyHomePageConnector(),
-      ));
+        store: store,
+        child: MaterialApp(home: MyHomePageConnector()),
+      );
 }
 
-class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
+/// Use it like this:
+/// `class MyAction extends ReduxAction<AppState> with WithWaitState`
+mixin WithWaitState implements ReduxAction<AppState> {
+  // Wait starts here. Add the action itself (`this`) as a wait-flag reference.
+  @override
+  void before() => dispatch(WaitAction.add(this));
+
+  // Wait ends here. Remove the action from the wait-flag references.
+  @override
+  void after() => dispatch(WaitAction.remove(this));
+}
+
+class IncrementAndGetDescriptionAction extends ReduxAction<AppState> with WithWaitState {
   @override
   Future<AppState> reduce() async {
     dispatch(IncrementAction(amount: 1));
     String description = await read(Uri.http("numbersapi.com", "${state.counter}"));
     return state.copy(description: description);
   }
-
-  // The wait starts here. We add the action itself (`this`)
-  // as a wait-flag reference.
-  @override
-  void before() => dispatch(WaitAction.add(this));
-
-  // The wait ends here. We remove the action from the
-  // wait-flag references.
-  @override
-  void after() => dispatch(WaitAction.remove(this));
 }
 
 class IncrementAction extends ReduxAction<AppState> {
@@ -132,7 +133,7 @@ class MyHomePageConnector extends StatelessWidget {
         counter: vm.counter,
         description: vm.description,
         onIncrement: vm.onIncrement,
-        waiting: vm.waiting,
+        isWaiting: vm.isWaiting,
       ),
     );
   }
@@ -147,8 +148,9 @@ class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
         counter: state.counter,
         description: state.description,
 
-        /// If there is any waiting, `state.wait.isWaiting` will return true.
-        waiting: state.wait.isWaiting,
+        /// While action `IncrementAndGetDescriptionAction` is running,
+        /// [isWaiting] will be true.
+        isWaiting: state.wait.isWaitingForType<IncrementAndGetDescriptionAction>(),
 
         onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
       );
@@ -158,29 +160,29 @@ class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
 class ViewModel extends Vm {
   final int counter;
   final String description;
-  final bool waiting;
+  final bool isWaiting;
   final VoidCallback onIncrement;
 
   ViewModel({
     required this.counter,
     required this.description,
-    required this.waiting,
+    required this.isWaiting,
     required this.onIncrement,
-  }) : super(equals: [counter, description, waiting]);
+  }) : super(equals: [counter, description, isWaiting]);
 }
 
 class MyHomePage extends StatelessWidget {
-  final int? counter;
-  final String? description;
-  final bool? waiting;
-  final VoidCallback? onIncrement;
+  final int counter;
+  final String description;
+  final bool isWaiting;
+  final VoidCallback onIncrement;
 
   MyHomePage({
     Key? key,
-    this.counter,
-    this.description,
-    this.waiting,
-    this.onIncrement,
+    required this.counter,
+    required this.description,
+    required this.isWaiting,
+    required this.onIncrement,
   }) : super(key: key);
 
   @override
@@ -195,7 +197,7 @@ class MyHomePage extends StatelessWidget {
               children: [
                 const Text('You have pushed the button this many times:'),
                 Text('$counter', style: const TextStyle(fontSize: 30)),
-                Text(description!,
+                Text(description,
                     style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
               ],
             ),
@@ -205,7 +207,7 @@ class MyHomePage extends StatelessWidget {
             child: const Icon(Icons.add),
           ),
         ),
-        if (waiting!) ModalBarrier(color: Colors.red.withOpacity(0.4)),
+        if (isWaiting) ModalBarrier(color: Colors.red.withOpacity(0.4)),
       ],
     );
   }

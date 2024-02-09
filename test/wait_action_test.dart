@@ -33,6 +33,10 @@ class AppStateBuiltValue {
 
 class MyAction {}
 
+class MyAction1 {}
+
+class MyAction2 {}
+
 void main() {
   setUp(() async {
     store = Store<AppState>(initialState: AppState(wait: Wait()));
@@ -58,14 +62,74 @@ void main() {
     var action = MyAction();
     expect(store.state.wait.isWaiting, false);
     expect(store.state.wait.isWaitingFor(action), false);
+    expect(store.state.wait.isWaitingForType<MyAction>(), false);
 
     store.dispatch(WaitAction.add(action));
     expect(store.state.wait.isWaiting, true);
     expect(store.state.wait.isWaitingFor(action), true);
+    expect(store.state.wait.isWaitingForType<MyAction>(), true);
 
     store.dispatch(WaitAction.remove(action));
     expect(store.state.wait.isWaiting, false);
     expect(store.state.wait.isWaitingFor(action), false);
+    expect(store.state.wait.isWaitingForType<MyAction>(), false);
+  });
+
+  test("Waiting for some action type to finish.", () {
+    var action1a = MyAction1();
+    var action1b = MyAction1();
+    var action2 = MyAction2();
+    expect(store.state.wait.isWaiting, false);
+    expect(store.state.wait.isWaitingFor(action1a), false);
+    expect(store.state.wait.isWaitingFor(action2), false);
+    expect(store.state.wait.isWaitingForType<MyAction>(), false);
+    expect(store.state.wait.isWaitingForType<MyAction1>(), false);
+    expect(store.state.wait.isWaitingForType<MyAction2>(), false);
+
+    store.dispatch(WaitAction.add(action1a));
+    expect(store.state.wait.isWaiting, true);
+    expect(store.state.wait.isWaitingFor(action1a), true);
+    expect(store.state.wait.isWaitingFor(action1b), false);
+    expect(store.state.wait.isWaitingFor(action2), false);
+    expect(store.state.wait.isWaitingForType<MyAction>(), false);
+    expect(store.state.wait.isWaitingForType<MyAction1>(), true);
+    expect(store.state.wait.isWaitingForType<MyAction2>(), false);
+
+    store.dispatch(WaitAction.add(action1b));
+    expect(store.state.wait.isWaiting, true);
+    expect(store.state.wait.isWaitingFor(action1a), true);
+    expect(store.state.wait.isWaitingFor(action1b), true);
+    expect(store.state.wait.isWaitingFor(action2), false);
+    expect(store.state.wait.isWaitingForType<MyAction>(), false);
+    expect(store.state.wait.isWaitingForType<MyAction1>(), true);
+    expect(store.state.wait.isWaitingForType<MyAction2>(), false);
+
+    store.dispatch(WaitAction.add(action2));
+    expect(store.state.wait.isWaiting, true);
+    expect(store.state.wait.isWaitingFor(action1a), true);
+    expect(store.state.wait.isWaitingFor(action1b), true);
+    expect(store.state.wait.isWaitingFor(action2), true);
+    expect(store.state.wait.isWaitingForType<MyAction>(), false);
+    expect(store.state.wait.isWaitingForType<MyAction1>(), true);
+    expect(store.state.wait.isWaitingForType<MyAction2>(), true);
+
+    store.dispatch(WaitAction.remove(action1a));
+    expect(store.state.wait.isWaiting, true);
+    expect(store.state.wait.isWaitingFor(action1a), false);
+    expect(store.state.wait.isWaitingFor(action1b), true);
+    expect(store.state.wait.isWaitingFor(action2), true);
+    expect(store.state.wait.isWaitingForType<MyAction>(), false);
+    expect(store.state.wait.isWaitingForType<MyAction1>(), true);
+    expect(store.state.wait.isWaitingForType<MyAction2>(), true);
+
+    store.dispatch(WaitAction.remove(action1b));
+    expect(store.state.wait.isWaiting, true);
+    expect(store.state.wait.isWaitingFor(action1a), false);
+    expect(store.state.wait.isWaitingFor(action1b), false);
+    expect(store.state.wait.isWaitingFor(action2), true);
+    expect(store.state.wait.isWaitingForType<MyAction>(), false);
+    expect(store.state.wait.isWaitingForType<MyAction1>(), false);
+    expect(store.state.wait.isWaitingForType<MyAction2>(), true);
   });
 
   test("Waiting for 2 actions to finish.", () {
@@ -74,39 +138,47 @@ void main() {
     expect(store.state.wait.isWaiting, false);
     expect(store.state.wait.isWaitingFor(action1), false);
     expect(store.state.wait.isWaitingFor(action2), false);
+    expect(store.state.wait.isWaitingForType<MyAction>(), false);
 
     store.dispatch(WaitAction.add(action1));
     expect(store.state.wait.isWaiting, true);
     expect(store.state.wait.isWaitingFor(action1), true);
     expect(store.state.wait.isWaitingFor(action2), false);
+    expect(store.state.wait.isWaitingForType<MyAction>(), true);
 
     store.dispatch(WaitAction.add(action2));
     expect(store.state.wait.isWaiting, true);
     expect(store.state.wait.isWaitingFor(action1), true);
     expect(store.state.wait.isWaitingFor(action2), true);
+    expect(store.state.wait.isWaitingForType<MyAction>(), true);
 
     store.dispatch(WaitAction.remove(action1));
     expect(store.state.wait.isWaiting, true);
     expect(store.state.wait.isWaitingFor(action1), false);
     expect(store.state.wait.isWaitingFor(action2), true);
+    expect(store.state.wait.isWaitingForType<MyAction>(), true);
 
     store.dispatch(WaitAction.remove(action2));
     expect(store.state.wait.isWaiting, false);
     expect(store.state.wait.isWaitingFor(action1), false);
     expect(store.state.wait.isWaitingFor(action2), false);
+    expect(store.state.wait.isWaitingForType<MyAction>(), false);
   });
 
   test("Clear the waiting (everything).", () {
     var action = MyAction();
     expect(store.state.wait.isWaiting, false);
     expect(store.state.wait.isWaitingFor(action), false);
+    expect(store.state.wait.isWaitingForType<MyAction>(), false);
 
     store.dispatch(WaitAction.add(action));
     expect(store.state.wait.isWaiting, true);
+    expect(store.state.wait.isWaitingForType<MyAction>(), true);
 
     store.dispatch(WaitAction.clear());
     expect(store.state.wait.isWaiting, false);
     expect(store.state.wait.isWaitingFor(action), false);
+    expect(store.state.wait.isWaitingForType<MyAction>(), false);
   });
 
   test("Clear the waiting (a specific flag).", () {
@@ -121,11 +193,13 @@ void main() {
     expect(store.state.wait.isWaiting, true);
     expect(store.state.wait.isWaitingFor(action1), true);
     expect(store.state.wait.isWaitingFor(action2), true);
+    expect(store.state.wait.isWaitingForType<MyAction>(), true);
 
     store.dispatch(WaitAction.clear(action1));
     expect(store.state.wait.isWaiting, true);
     expect(store.state.wait.isWaitingFor(action1), false);
     expect(store.state.wait.isWaitingFor(action2), true);
+    expect(store.state.wait.isWaitingForType<MyAction>(), true);
   });
 
   test("Waiting for some action with ref and ref.", () {

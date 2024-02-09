@@ -3,6 +3,27 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
+# 21.4.0
+
+* The `Wait` class now has a `bool isWaitingForType<T>()` method. It returns true if it's waiting
+  for ANY flag of type `T`. This is useful when you want to wait for an Action to finish. For
+  example:
+
+  ```
+  class MyAction extends ReduxAction<AppState> {
+    Future<AppState?> reduce() async {
+    await doSomething();
+    return null;
+    }
+  
+    void before() => dispatch(WaitAction.add(this));
+    void after() => dispatch(WaitAction.remove(this));
+  }
+  
+  // Then, in some widget or connector:
+  if (wait.isWaitingForType<MyAction>()) { ... }
+  ``` 
+
 # 21.3.4
 
 * The README was updated to suggest that you create an extension on `BuildContext` that helps you

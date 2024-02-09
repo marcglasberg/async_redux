@@ -34,10 +34,13 @@ void main() {
 
 @immutable
 class AppState {
-  final List<String>? numTrivia;
-  final bool? isLoading;
+  final List<String> numTrivia;
+  final bool isLoading;
 
-  AppState({this.numTrivia, this.isLoading});
+  AppState({
+    required this.numTrivia,
+    required this.isLoading,
+  });
 
   AppState copy({List<String>? numTrivia, bool? isLoading}) => AppState(
         numTrivia: numTrivia ?? this.numTrivia,
@@ -76,13 +79,13 @@ class LoadMoreAction extends ReduxAction<AppState> {
   Future<AppState> reduce() async {
     Response response = await get(Uri.http(
         'http://numbersapi.com/',
-        '${state.numTrivia!.length}'
+        '${state.numTrivia.length}'
             '..'
-            '${state.numTrivia!.length + 19}'));
+            '${state.numTrivia.length + 19}'));
 
     List<String>? list = state.numTrivia;
     Map<String, dynamic> map = jsonDecode(response.body);
-    map.forEach((String v, e) => list!.add(e.toString()));
+    map.forEach((String v, e) => list.add(e.toString()));
     return state.copy(numTrivia: list);
   }
 
@@ -155,8 +158,8 @@ class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
 
 /// The view-model holds the part of the Store state the dumb-widget needs.
 class ViewModel extends Vm {
-  final List<String>? numTrivia;
-  final bool? isLoading;
+  final List<String> numTrivia;
+  final bool isLoading;
   final VoidCallback loadMore;
   final Future<void> Function() onRefresh;
 
@@ -166,23 +169,23 @@ class ViewModel extends Vm {
     required this.loadMore,
     required this.onRefresh,
   }) : super(equals: [
-          numTrivia!,
-          isLoading!,
+          numTrivia,
+          isLoading,
         ]);
 }
 
 class MyHomePage extends StatefulWidget {
-  final List<String>? numTrivia;
-  final bool? isLoading;
-  final VoidCallback? loadMore;
-  final Future<void> Function()? onRefresh;
+  final List<String> numTrivia;
+  final bool isLoading;
+  final VoidCallback loadMore;
+  final Future<void> Function() onRefresh;
 
   MyHomePage({
     Key? key,
-    this.numTrivia,
-    this.isLoading,
-    this.loadMore,
-    this.onRefresh,
+    required this.numTrivia,
+    required this.isLoading,
+    required this.loadMore,
+    required this.onRefresh,
   }) : super(key: key);
 
   @override
@@ -190,15 +193,15 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  ScrollController? _controller;
+  late ScrollController _controller;
 
   @override
   void initState() {
     _controller = ScrollController()
       ..addListener(() {
-        if (!widget.isLoading! &&
-            _controller!.position.maxScrollExtent == _controller!.position.pixels) {
-          widget.loadMore!();
+        if (!widget.isLoading &&
+            _controller.position.maxScrollExtent == _controller.position.pixels) {
+          widget.loadMore();
         }
       });
     super.initState();
@@ -206,7 +209,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
-    _controller!.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -214,16 +217,16 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Dispatch Future Example')),
-      body: (widget.numTrivia == null || widget.numTrivia!.isEmpty)
+      body: (widget.numTrivia.isEmpty)
           ? Container()
           : RefreshIndicator(
-              onRefresh: widget.onRefresh!,
+              onRefresh: widget.onRefresh,
               child: ListView.builder(
                 controller: _controller,
-                itemCount: widget.numTrivia!.length,
+                itemCount: widget.numTrivia.length,
                 itemBuilder: (context, index) => ListTile(
                   leading: CircleAvatar(child: Text(index.toString())),
-                  title: Text(widget.numTrivia![index]),
+                  title: Text(widget.numTrivia[index]),
                 ),
               ),
             ),
