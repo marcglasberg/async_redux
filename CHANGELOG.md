@@ -10,10 +10,11 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   example:
 
   ```
-  class MyAction extends ReduxAction<AppState> {
+  class MyAction extends ReduxAction<AppState> {      
+  
     Future<AppState?> reduce() async {
-    await doSomething();
-    return null;
+      await doSomething();
+      return null;
     }
   
     void before() => dispatch(WaitAction.add(this));
