@@ -211,6 +211,54 @@ class UserException implements Exception {
   @override
   String toString() => _dialogTitleAndContent();
 
+  /// Creates a [UserException] from a JSON object.
+  ///
+  /// Important: The [cause] and the [code] will be represented as Strings,
+  /// and [_onOk] and [_onCancel] will be ignored. This means the [fromJson] method
+  /// may not be able to reconstruct the original exception.
+  ///
+  /// ---
+  /// Use with Celest (https://celest.dev/):
+  ///
+  /// Currently you can't import Async Redux in the backend part of Celest, because it uses Flutter.
+  /// Once I move this [UserException] class into a separate Dart-only package called
+  /// `async_redux_core`, you will be able to use it with Celest, as long as you export it
+  /// from `celest/lib/exceptions.dart`:
+  ///
+  /// ```dart
+  /// export 'package:async_redux_core/user_exception.dart;
+  /// ```
+  factory UserException.fromJson(Map<String, dynamic> json) {
+    return UserException(
+      json['msg'],
+      cause: json['cause'],
+      code: json['code'],
+    );
+  }
+
+  /// Creates a JSON object from a [UserException].
+  ///
+  /// Important: The [cause] and the [code] will be represented as Strings,
+  /// and [_onOk] and [_onCancel] will be ignored. This means the [fromJson] method
+  /// may not be able to reconstruct the original exception.
+  ///
+  /// ---
+  /// Use with Celest (https://celest.dev/):
+  ///
+  /// Currently you can't import Async Redux in the backend part of Celest, because it uses Flutter.
+  /// Once I move this [UserException] class into a separate Dart-only package called
+  /// `async_redux_core`, you will be able to use it with Celest, as long as you export it
+  /// from `celest/lib/exceptions.dart`:
+  ///
+  /// ```dart
+  /// export 'package:async_redux_core/user_exception.dart;
+  /// ```
+  Map<String, dynamic> toJson() => {
+        'msg': msg,
+        if (cause != null) 'cause': cause.toString(),
+        if (code != null) 'code': code.toString(),
+      };
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
