@@ -132,8 +132,12 @@ class StoreTester<St> {
   ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) =>
       store.dispatchSync(action, notify: notify);
 
+  @Deprecated("Use `dispatchAndWait` instead. This method will be removed.")
   Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) =>
-      store.dispatchAsync(action, notify: notify);
+      store.dispatchAndWait(action, notify: notify);
+
+  Future<ActionStatus> dispatchAndWait(ReduxAction<St> action, {bool notify = true}) =>
+      store.dispatchAndWait(action, notify: notify);
 
   /// Dispatches [action], and then waits until it finishes.
   /// Returns the info after the action finishes. **Ignores other** actions.
@@ -149,7 +153,7 @@ class StoreTester<St> {
   ///   storeTester.dispatch(action);
   ///   await storeTester.wait(action);
   ///
-  Future<TestInfo<St>> dispatchAndWait(ReduxAction<St> action) {
+  Future<TestInfo<St>> dispatchAndWaitGetInfo(ReduxAction<St> action) {
     store.dispatch(action);
     return waitUntilAction(action);
   }

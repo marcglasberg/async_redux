@@ -25,7 +25,13 @@ typedef DispatchSync<St> = ActionStatus Function(
   bool notify,
 });
 
+@Deprecated("Use `DispatchAndWait` instead. This type will be removed.")
 typedef DispatchAsync<St> = Future<ActionStatus> Function(
+  ReduxAction<St> action, {
+  bool notify,
+});
+
+typedef DispatchAndWait<St> = Future<ActionStatus> Function(
   ReduxAction<St> action, {
   bool notify,
 });
@@ -75,8 +81,8 @@ typedef DispatchAsync<St> = Future<ActionStatus> Function(
 /// • ActionObserver observes the dispatching of actions,
 ///   and may be used to print or log the dispatching of actions.
 ///
-/// • StateObservers receive the action, stateIni (state right before the action),
-///   stateEnd (state right after the action), and are used to log and save state.
+/// • StateObservers receive the action, prevState (state right before the new State is applied),
+///   newState (state that was applied), and are used to track metrics and more.
 ///
 /// • ErrorObservers may be used to observe or process errors thrown by actions.
 ///
@@ -339,20 +345,59 @@ class Store<St> {
 
   bool get isShutdown => _shutdown;
 
-  /// Runs the action, applying its reducer, and possibly changing the store state.
-  /// The action may be sync or async. Note: [dispatch] is of type [Dispatch].
+  /// Dispatches the action, applying its reducer, and possibly changing the store state.
+  /// The action may be sync or async. 
+  ///
+  /// ```dart
+  /// store.dispatch(new MyAction());  
+  /// ```
+  ///
+  /// Method [dispatch] is of type [Dispatch].
+  ///
+  /// See also:
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   FutureOr<ActionStatus> dispatch(ReduxAction<St> action, {bool notify = true}) =>
       _dispatch(action, notify: notify);
 
-  /// Runs the action, applying its reducer, and possibly changing the store state.
-  /// Note: [dispatchAsync] is of type [DispatchAsync]. It returns `Future<ActionStatus>`,
-  /// which means you can `await` it.
+  @Deprecated("Use `dispatchAndWait` instead. This method will be removed.")
   Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) =>
+      dispatchAndWait(action, notify: notify);
+
+  /// Dispatches the action, applying its reducer, and possibly changing the store state.
+  /// The action may be sync or async. In both cases, it returns a [Future] that resolves when
+  /// the action finishes.
+  ///
+  /// ```dart
+  /// await store.dispatchAndWait(new DoThisFirstAction());
+  /// store.dispatch(new DoThisSecondAction());
+  /// ```
+  ///
+  /// Note: While the state change from the action's reducer will have been applied when the
+  /// Future resolves, other independent processes that the action may have started may still
+  /// be in progress.
+  ///
+  /// Method [dispatchAndWait] is of type [DispatchAndWait]. It returns `Future<ActionStatus>`,
+  /// which means you can also get the final status of the action after you `await` it:
+  ///
+  /// ```dart
+  /// var status = await store.dispatchAndWait(new MyAction());
+  /// ```
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  Future<ActionStatus> dispatchAndWait(ReduxAction<St> action, {bool notify = true}) =>
       Future.value(_dispatch(action, notify: notify));
 
-  /// Runs the action, applying its reducer, and possibly changing the store state.
-  /// Note: [dispatchSync] is of type [DispatchSync].
-  /// If the action is async, it will throw a [StoreException].
+  /// Dispatches the action, applying its reducer, and possibly changing the store state.
+  /// However, if the action is ASYNC, it will throw a [StoreException].
+  ///
+  /// Method [dispatchSync] is of type [DispatchSync].
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) {
     if (!_ifActionIsSync(action)) {
       throw StoreException(
@@ -651,12 +696,12 @@ class Store<St> {
   }
 
   /// Adds the state to the changeController, but only if the `reduce` method
-  /// did not returned null, and if it did not return the same identical state.
+  /// did not return null, and if it did not return the same identical state.
   ///
   /// Note: We compare the state using `identical` (which is fast).
   ///
   /// The [StateObserver]s are always called (if defined). If you need to know if the state was
-  /// changed or not, you can compare `bool ifStateChanged = identical(stateIni, stateEnd)`
+  /// changed or not, you can compare `bool ifStateChanged = identical(prevState, newState)`
   void _registerState(
     St? state,
     ReduxAction<St> action, {
@@ -664,7 +709,7 @@ class Store<St> {
   }) {
     if (_shutdown) return;
 
-    St stateIni = _state;
+    St prevState = _state;
 
     // Reducers may return null state, or the unaltered state,
     // when they don't want to change the state.
@@ -676,17 +721,17 @@ class Store<St> {
         _changeController.add(state);
       }
     }
-    St stateEnd = _state;
+    St newState = _state;
 
     if (_stateObservers != null)
       for (StateObserver observer in _stateObservers) {
-        observer.observe(action, stateIni, stateEnd, null, dispatchCount);
+        observer.observe(action, prevState, newState, null, dispatchCount);
       }
 
     if (_processPersistence != null)
       _processPersistence.process(
         action,
-        stateEnd,
+        newState,
       );
   }
 

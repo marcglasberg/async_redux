@@ -43,15 +43,15 @@ extension BuildContextExtension on BuildContext {
       StoreProvider.of<AppState>(this, null).dispatch(action, notify: notify);
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
-  /// Note: [dispatchAsync] is of type [DispatchAsync]. It returns `Future<ActionStatus>`,
+  /// Note: [dispatchAndWait] is of type [DispatchAndWait]. It returns `Future<ActionStatus>`,
   /// which means you can `await` it.
   ///
   /// Use it like this:
   /// ```
-  /// context.dispatchAsync(MyAction());
+  /// context.dispatchAndWait(MyAction());
   /// ```
-  Future<ActionStatus> dispatchAsync(ReduxAction<AppState> action, {bool notify = true}) =>
-      StoreProvider.of<AppState>(this, null).dispatchAsync(action, notify: notify);
+  Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) =>
+      StoreProvider.of<AppState>(this, null).dispatchAndWait(action, notify: notify);
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: [dispatchSync] is of type [DispatchSync].

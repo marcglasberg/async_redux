@@ -69,8 +69,18 @@ class MockStore<St> extends Store<St> {
     return this;
   }
 
-  /// Runs the action, applying its reducer, and possibly changing the store state.
-  /// Note: [dispatch] is of type [Dispatch].
+  /// Dispatches the action, applying its reducer, and possibly changing the store state.
+  /// The action may be sync or async.
+  ///
+  /// ```dart
+  /// store.dispatch(new MyAction());
+  /// ```
+  ///
+  /// Method [dispatch] is of type [Dispatch].
+  ///
+  /// See also:
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   @override
   FutureOr<ActionStatus> dispatch(
     ReduxAction<St> action, {
@@ -83,19 +93,52 @@ class MockStore<St> extends Store<St> {
         : super.dispatch(_action, notify: notify);
   }
 
-  /// Runs the action, applying its reducer, and possibly changing the store state.
-  /// Note: [dispatchAsync] is of type [DispatchAsync].
+  @Deprecated("Use `dispatchAndWait` instead. This method will be removed.")
   @override
   Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) {
+    return dispatchAndWait(action, notify: notify);
+  }
+
+  /// Dispatches the action, applying its reducer, and possibly changing the store state.
+  /// The action may be sync or async. In both cases, it returns a [Future] that resolves when
+  /// the action finishes.
+  ///
+  /// ```dart
+  /// await store.dispatchAndWait(new DoThisFirstAction());
+  /// store.dispatch(new DoThisSecondAction());
+  /// ```
+  ///
+  /// Note: While the state change from the action's reducer will have been applied when the
+  /// Future resolves, other independent processes that the action may have started may still
+  /// be in progress.
+  ///
+  /// Method [dispatchAndWait] is of type [DispatchAndWait]. It returns `Future<ActionStatus>`,
+  /// which means you can also get the final status of the action after you `await` it:
+  ///
+  /// ```dart
+  /// var status = await store.dispatchAndWait(new MyAction());
+  /// ```
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  @override
+  Future<ActionStatus> dispatchAndWait(ReduxAction<St> action, {bool notify = true}) {
     ReduxAction<St>? _action = _getMockedAction(action);
 
     return (_action == null) //
         ? Future.value(ActionStatus())
-        : super.dispatchAsync(_action, notify: notify);
+        : super.dispatchAndWait(_action, notify: notify);
   }
 
-  /// Runs the action, applying its reducer, and possibly changing the store state.
-  /// Note: [dispatchSync] is of type [DispatchSync].
+  /// Dispatches the action, applying its reducer, and possibly changing the store state.
+  /// However, if the action is ASYNC, it will throw a [StoreException].
+  ///
+  /// Method [dispatchSync] is of type [DispatchSync].
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   @override
   ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) {
     ReduxAction<St>? _action = _getMockedAction(action);

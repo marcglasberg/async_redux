@@ -44,8 +44,8 @@ void main() {
     Store<String> store = Store<String>(initialState: "");
 
     // B is dispatched first, but will finish last, because it's async.
-    var f1 = store.dispatchAsync(ActionB());
-    var f2 = store.dispatchAsync(ActionA());
+    var f1 = store.dispatchAndWait(ActionB());
+    var f2 = store.dispatchAndWait(ActionA());
 
     await Future.wait([f1, f2]);
     expect(store.state, "AB");
@@ -68,8 +68,8 @@ void main() {
     Store<String> store = Store<String>(initialState: "");
 
     // C is dispatched first, but will finish last, because it's async.
-    var f1 = store.dispatchAsync(ActionC());
-    var f2 = store.dispatchAsync(ActionA());
+    var f1 = store.dispatchAndWait(ActionC());
+    var f2 = store.dispatchAndWait(ActionA());
 
     await Future.wait([f1, f2]);
     expect(store.state, "AC");
@@ -92,8 +92,8 @@ void main() {
     Store<String> store = Store<String>(initialState: "");
 
     // D is dispatched first, but will finish last, because it's async.
-    var f1 = store.dispatchAsync(ActionD());
-    var f2 = store.dispatchAsync(ActionA());
+    var f1 = store.dispatchAndWait(ActionD());
+    var f2 = store.dispatchAndWait(ActionA());
 
     await Future.wait([f1, f2]);
     expect(store.state, "AD");

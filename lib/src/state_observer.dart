@@ -14,16 +14,16 @@ import 'package:async_redux/async_redux.dart';
 ///
 /// * action = The action itself.
 ///
-/// * stateIni = The state right before the new state returned by the reducer is applied. Note this
-///              may be different from the state when the reducer was called.
+/// * prevState = The state right before the new state returned by the reducer is applied.
+///               Note this may be different from the state when the reducer was called.
 ///
-/// * stateEnd = The state returned by the reducer. Note: If you need to know if the state was
-///              changed or not by the reducer, you can compare both states:
-///              `bool ifStateChanged = !identical(stateIni, stateEnd);`
+/// * newState = The state returned by the reducer. Note: If you need to know if the state was
+///            changed or not by the reducer, you can compare both states:
+///            `bool ifStateChanged = !identical(prevState, newState);`
 ///
 /// * error = Is null if the reducer completed with no error and returned. Otherwise, will be the
 ///           error thrown by the reducer (before any wrapError is applied). Note that, in case of
-///           error, both stateIni and stateEnd will be the current store state when the error is
+///           error, both prevState and newState will be the current store state when the error was
 ///           thrown.
 ///
 /// * dispatchCount = The sequential number of the dispatch.
@@ -35,19 +35,19 @@ import 'package:async_redux/async_redux.dart';
 ///
 /// ```
 /// abstract class AppAction extends ReduxAction<AppState> {
-///   void trackEvent(AppState stateIni, AppState stateEnd) { // Don't to anything }
+///   void trackEvent(AppState prevState, AppState newState) { // Don't to anything }
 /// }
 ///
 /// class AppStateObserver implements StateObserver<AppState> {
 ///   @override
 ///   void observe(
 ///     ReduxAction<AppState> action,
-///     AppState stateIni,
-///     AppState stateEnd,
+///     AppState prevState,
+///     AppState newState,
 ///     Object? error,
 ///     int dispatchCount,
 ///   ) {
-///     if (action is AppAction) action.trackEvent(stateIni, stateEnd, error);
+///     if (action is AppAction) action.trackEvent(prevState, newState, error);
 ///   }
 /// }
 ///
@@ -56,17 +56,34 @@ import 'package:async_redux/async_redux.dart';
 ///    AppState? reduce() { // Do something }
 ///
 ///    @override
-///    void trackEvent(AppState stateIni, AppState stateEnd, Object? error) =>
-///       MyMetrics().track(this, stateEnd, error);
+///    void trackEvent(AppState prevState, AppState newState, Object? error) =>
+///       MyMetrics().track(this, newState, error);
 /// }
 ///
 /// ```
 ///
 abstract class StateObserver<St> {
+
+  /// * [action] = The action itself.
+  ///
+  /// * [prevState] = The state right before the new state returned by the reducer is applied.
+  ///               Note this may be different from the state when the reducer was called.
+  ///
+  /// * [newState] = The state returned by the reducer. Note: If you need to know if the state was
+  ///              changed or not by the reducer, you can compare both states:
+  ///              `bool ifStateChanged = !identical(prevState, newState);`
+  ///
+  /// * [error] = Is null if the reducer completed with no error and returned. Otherwise, will be the
+  ///           error thrown by the reducer (before any wrapError is applied). Note that, in case of
+  ///           error, both prevState and newState will be the current store state when the error
+  ///           was thrown.
+  ///
+  /// * [dispatchCount] = The sequential number of the dispatch.
+  ///
   void observe(
     ReduxAction<St> action,
-    St stateIni,
-    St stateEnd,
+    St prevState,
+    St newState,
     Object? error,
     int dispatchCount,
   );

@@ -595,7 +595,7 @@ If your state class is called `AppState`, copy the following code to define your
 extension BuildContextExtension on BuildContext {
    AppState get state => StoreProvider.of<AppState>(this, null).state;
    FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatch(action, notify: notify);
-   Future<ActionStatus> dispatchAsync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatchAsync(action, notify: notify);
+   Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatchAndWait(action, notify: notify);
    ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatchSync(action, notify: notify);  
 }
 ```  
@@ -2252,12 +2252,12 @@ documentation</a> for more information.
 In a real Flutter app it's also the case that some Widgets ask for futures that complete when some
 async process is done.
 
-The `dispatchAsync()` function returns a future which completes as soon as the action is done.
+The `dispatchAndWait()` function returns a future which completes as soon as the action is done.
 
 This is an example using the `RefreshIndicator` widget:
 
 ```dart
-Future<void> downloadStuff() => dispatch(DownloadStuffAction());
+Future<void> downloadStuff() => dispatchAndWait(DownloadStuffAction());
 
 return RefreshIndicator(
     onRefresh: downloadStuff;
@@ -3538,7 +3538,9 @@ Simon Lightfoot.*
   Flutter: The Advanced Layout Rule Even Beginners Must Know</a> (
   versions: <a href="https://habr.com/ru/post/500210/">русский</a>)
 * <a href="https://medium.com/flutter-community/the-new-way-to-create-themes-in-your-flutter-app-7fdfc4f3df5f">
-  The New Way to create Themes in your Flutter App</a> 
+  The New Way to create Themes in your Flutter App</a>
+* <a href="https://medium.com/@marcglasberg/a-new-bdd-tool-for-typescript-javascript-and-dart-673933b3b38e">
+  A new BDD tool for TypeScript/React, and Flutter/Dart</a>
 
 *My article in the official Flutter documentation*:
 

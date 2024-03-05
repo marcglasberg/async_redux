@@ -43,6 +43,13 @@ abstract class Persistor<St> {
   Future<void> deleteState();
 
   /// Save the new state to the persistence.
+  /// [lastPersistedState] is the last state that was persisted since the app started,
+  /// while [newState] is the new state to be persisted.
+  ///
+  /// Note you have to make sure that [newState] is persisted after this method is called.
+  /// For simpler apps where your state is small, you can just ignore [lastPersistedState]
+  /// and persist the whole [newState] every time. But for larger apps, you should compare
+  /// [lastPersistedState] and [newState], to persist only the difference between them.
   Future<void> persistDifference({
     required St? lastPersistedState,
     required St newState,

@@ -33,16 +33,59 @@ abstract class ReduxAction<St> {
   /// without throwing any errors.
   bool get isFinished => _status.isFinished;
 
-  @Deprecated("Use `isFinished` instead. This will be removed soon.")
-  bool get hasFinished => _status.isFinished;
-
   DateTime get stateTimestamp => _store.stateTimestamp;
 
+  /// Dispatches the action, applying its reducer, and possibly changing the store state.
+  /// The action may be sync or async.
+  ///
+  /// ```dart
+  /// dispatch(new MyAction());
+  /// ```
+  ///
+  /// Method [dispatch] is of type [Dispatch].
+  ///
+  /// See also:
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   Dispatch<St> get dispatch => _store.dispatch;
 
+  /// Dispatches the action, applying its reducer, and possibly changing the store state.
+  /// However, if the action is ASYNC, it will throw a [StoreException].
+  ///
+  /// Method [dispatchSync] is of type [DispatchSync].
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   DispatchSync<St> get dispatchSync => _store.dispatchSync;
 
-  DispatchAsync<St> get dispatchAsync => _store.dispatchAsync;
+  @Deprecated("Use `dispatchAndWait` instead. This method will be removed.")
+  DispatchAsync<St> get dispatchAsync => _store.dispatchAndWait;
+
+  /// Dispatches the action, applying its reducer, and possibly changing the store state.
+  /// The action may be sync or async. In both cases, it returns a [Future] that resolves when
+  /// the action finishes.
+  ///
+  /// ```dart
+  /// await dispatchAndWait(new DoThisFirstAction());
+  /// dispatch(new DoThisSecondAction());
+  /// ```
+  ///
+  /// Note: While the state change from the action's reducer will have been applied when the
+  /// Future resolves, other independent processes that the action may have started may still
+  /// be in progress.
+  ///
+  /// Method [dispatchAndWait] is of type [DispatchAndWait]. It returns `Future<ActionStatus>`,
+  /// which means you can also get the final status of the action after you `await` it:
+  ///
+  /// ```dart
+  /// var status = await dispatchAndWait(new MyAction());
+  /// ```
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  DispatchAndWait<St> get dispatchAndWait => _store.dispatchAndWait;
 
   /// This is an optional method that may be overridden to run during action
   /// dispatching, before `reduce`. If this method throws an error, the

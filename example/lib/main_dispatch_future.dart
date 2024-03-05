@@ -151,7 +151,7 @@ class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
       numTrivia: state.numTrivia,
       isLoading: state.isLoading,
       loadMore: () => dispatch(LoadMoreAction()),
-      onRefresh: () => dispatchAsync(RefreshAction()),
+      onRefresh: () => dispatchAndWait(RefreshAction()),
     );
   }
 }

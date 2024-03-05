@@ -3,6 +3,14 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
+# 21.5.0
+
+* Method `dispatchAsync` was renamed to `dispatchAndWait`. The old name is still available, but
+  deprecated and will be removed. The new name is more descriptive of what the method does, and
+  the fact that `dispatchAndWait` can be used to dispatch both sync and async actions. The only
+  difference between `dispatchAndWait` and `dispatch` is that `dispatchAndWait` returns a
+  `Future` which can be awaited to know when the action is finished.
+
 # 21.4.0
 
 * The `Wait` class now has a `bool isWaitingForType<T>()` method. It returns true if it's waiting
@@ -59,7 +67,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   extension BuildContextExtension on BuildContext {
      AppState get state => StoreProvider.of<AppState>(this, null).state;
      FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatch(action, notify: notify);
-     Future<ActionStatus> dispatchAsync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatchAsync(action, notify: notify);
+     Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatchAndWait(action, notify: notify);
      ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatchSync(action, notify: notify);  
   }
   ```  
@@ -370,6 +378,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 # 13.2.1
 
 * Fixed `MockStore.dispatchAsync()` and `MockStore.dispatchSync()` methods.
+  Note: `dispatchAsync` was later renamed to `dispatchAndWait`.
 
 # 13.2.0
 
@@ -378,6 +387,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 # 13.1.0
 
 * Added missing `dispatchSync` and `dispatchAsync` to `StoreTester`.
+  Note: `dispatchAsync` was later renamed to `dispatchAndWait`.
 
 # 13.0.6
 
@@ -420,7 +430,8 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
 * `dispatchAsync` can also be used to dispatch both sync and async actions. But it always returns a
   `Future` (not a `FutureOr`). Use this only when you explicitly need a `Future`, for example, when
-  working with the `RefreshIndicator` widget.
+  working with the `RefreshIndicator` widget. Note: `dispatchAsync` was later renamed
+  to `dispatchAndWait`.
 
 * `dispatchSync` allows you to dispatch SYNC actions only. In that case, `dispatchSync(action)` is
   exactly the same as `dispatch(action)`. However, if your action is ASYNC, `dispatchSync` will
