@@ -3,13 +3,45 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
+# 21.6.0
+
+* DEPRECATION WARNING: The `wrapError` parameter of the `Store` constructor is now deprecated in
+  favor of the `globalWrapError` parameter. The reason for this deprecation is that the
+  new `GlobalWrapError` works in the same way as the action's `ReduxAction.wrapError`,
+  while `WrapError` does not. The difference is that when `WrapError` returns `null`, the original
+  error is not modified, while with `GlobalWrapError` returning `null` will instead disable the
+  error. In other words, where your old `WrapError` returned `null`, your new `GlobalWrapError`
+  should return the original `error`:
+
+  ```
+  // WrapError (deprecated):
+  Object? wrap(Object error, StackTrace stackTrace, ReduxAction<AppState> action) {
+     if (error is MyException) return null; // Keep the error unaltered.
+     else return processError(error);
+  }
+  
+  // GlobalWrapError:
+  Object? wrap(Object error, StackTrace stackTrace, ReduxAction<AppState> action) {
+     if (error is MyException) return error; // Keep the error unaltered.
+     else return processError(error);
+  }
+  ```
+  Also note, `GlobalWrapError` is more powerful because it can disable the error,
+  whereas `WrapError` cannot.
+
+* Throwing an error in the action's `wrapError` or in the `GlobalWrapError` was disallowed
+  (you needed to make sure it never happened). Now, it's allowed. If instead of RETURNING an error
+  you THROW an error inside these wrappers, AsyncRedux will catch it and use it instead the original
+  error. In other words, returning an error or throwing an error from inside the wrappers now has
+  the same effect. However, it is still recommended to return the error rather than throwing it.
+
 # 21.5.0
 
-* Method `dispatchAsync` was renamed to `dispatchAndWait`. The old name is still available, but
-  deprecated and will be removed. The new name is more descriptive of what the method does, and
-  the fact that `dispatchAndWait` can be used to dispatch both sync and async actions. The only
-  difference between `dispatchAndWait` and `dispatch` is that `dispatchAndWait` returns a
-  `Future` which can be awaited to know when the action is finished.
+* DEPRECATION WARNING: Method `dispatchAsync` was renamed to `dispatchAndWait`. The old name is
+  still available, but deprecated and will be removed. The new name is more descriptive of what the
+  method does, and the fact that `dispatchAndWait` can be used to dispatch both sync and async
+  actions. The only difference between `dispatchAndWait` and `dispatch` is that `dispatchAndWait`
+  returns a `Future` which can be awaited to know when the action is finished.
 
 # 21.4.0
 

@@ -59,7 +59,7 @@ abstract class ReduxAction<St> {
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   DispatchSync<St> get dispatchSync => _store.dispatchSync;
 
-  @Deprecated("Use `dispatchAndWait` instead. This method will be removed.")
+  @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
   DispatchAsync<St> get dispatchAsync => _store.dispatchAndWait;
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
@@ -132,17 +132,23 @@ abstract class ReduxAction<St> {
   /// For example, if some action converts a String into a number, then instead of
   /// throwing a FormatException you could do:
   ///
-  ///     wrapError(error, _) => UserException("Please enter a valid number.", cause: error)
+  /// ```dart
+  /// wrapError(error, _) => UserException("Please enter a valid number.", cause: error)
+  /// ```
   ///
   /// If you want to disable the error you can return `null`. For example, if you want
   /// to disable errors of type `MyException`:
   ///
-  ///     wrapError(error, _) => (error is MyException) ? null : error
+  /// ```dart
+  /// wrapError(error, _) => (error is MyException) ? null : error
+  /// ```
   ///
-  /// IMPORTANT: The action [wrapError] behaves differently from the global [WrapError]
-  /// because returning `null` will DISABLE the error, while in the global [WrapError]
-  /// returning `null` will keep the error unchanged. This difference is confusing,
-  /// and I will, in the future, change the global [WrapError] to match the action.
+  /// If you don't want to modify the error, just return it unaltered
+  /// (or don't override this method).
+  ///
+  /// See also:
+  /// - [GlobalWrapError] which is a global error wrapper that will be called after this one.
+  ///
   Object? wrapError(Object error, StackTrace stackTrace) => error;
 
   /// If this returns true, the action will not be dispatched: `before`, `reduce`

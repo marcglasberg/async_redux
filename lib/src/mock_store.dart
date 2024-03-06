@@ -93,7 +93,7 @@ class MockStore<St> extends Store<St> {
         : super.dispatch(_action, notify: notify);
   }
 
-  @Deprecated("Use `dispatchAndWait` instead. This method will be removed.")
+  @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
   @override
   Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) {
     return dispatchAndWait(action, notify: notify);

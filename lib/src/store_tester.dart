@@ -132,7 +132,7 @@ class StoreTester<St> {
   ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) =>
       store.dispatchSync(action, notify: notify);
 
-  @Deprecated("Use `dispatchAndWait` instead. This method will be removed.")
+  @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
   Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) =>
       store.dispatchAndWait(action, notify: notify);
 

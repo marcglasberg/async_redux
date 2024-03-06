@@ -25,7 +25,7 @@ typedef DispatchSync<St> = ActionStatus Function(
   bool notify,
 });
 
-@Deprecated("Use `DispatchAndWait` instead. This type will be removed.")
+@Deprecated("Use `DispatchAndWait` instead. This will be removed.")
 typedef DispatchAsync<St> = Future<ActionStatus> Function(
   ReduxAction<St> action, {
   bool notify,
@@ -100,7 +100,8 @@ class Store<St> {
     ModelObserver? modelObserver,
     ErrorObserver<St>? errorObserver,
     WrapReduce<St>? wrapReduce,
-    WrapError<St>? wrapError,
+    @Deprecated("Use `globalWrapError` instead. This will be removed.") WrapError<St>? wrapError,
+    GlobalWrapError<St>? globalWrapError,
     bool? defaultDistinct,
     CompareBy? immutableCollectionEquality,
     int? maxErrorsQueued,
@@ -117,6 +118,7 @@ class Store<St> {
         _modelObserver = modelObserver,
         _errorObserver = errorObserver,
         _wrapError = wrapError,
+        _globalWrapError = globalWrapError,
         _wrapReduce = wrapReduce,
         _defaultDistinct = defaultDistinct ?? true,
         _immutableCollectionEquality = immutableCollectionEquality,
@@ -179,7 +181,10 @@ class Store<St> {
 
   final ErrorObserver<St>? _errorObserver;
 
+  @Deprecated("Use `_globalWrapError` instead. This will be removed.")
   final WrapError<St>? _wrapError;
+
+  final GlobalWrapError<St>? _globalWrapError;
 
   final WrapReduce<St>? _wrapReduce;
 
@@ -346,10 +351,10 @@ class Store<St> {
   bool get isShutdown => _shutdown;
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
-  /// The action may be sync or async. 
+  /// The action may be sync or async.
   ///
   /// ```dart
-  /// store.dispatch(new MyAction());  
+  /// store.dispatch(new MyAction());
   /// ```
   ///
   /// Method [dispatch] is of type [Dispatch].
@@ -360,7 +365,7 @@ class Store<St> {
   FutureOr<ActionStatus> dispatch(ReduxAction<St> action, {bool notify = true}) =>
       _dispatch(action, notify: notify);
 
-  @Deprecated("Use `dispatchAndWait` instead. This method will be removed.")
+  @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
   Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) =>
       dispatchAndWait(action, notify: notify);
 
@@ -748,17 +753,13 @@ class Store<St> {
       }
 
     Object? errorOrNull = error;
+
     try {
       errorOrNull = action.wrapError(errorOrNull, stackTrace);
-    } catch (_error, stackTrace) {
-      // Errors thrown by the action's wrapError.
-      // WrapError should never throw. It should return an error.
-      _throws(
-        "Method '${action.runtimeType}.wrapError()' "
-        "has thrown an error:\n '$_error'.",
-        errorOrNull,
-        stackTrace,
-      );
+    } catch (_error) {
+      // If the action's wrapError throws an error, it will be used instead
+      // of the original error (but the recommended way is returning the error).
+      errorOrNull = _error;
     }
 
     if (_wrapError != null && errorOrNull != null) {
@@ -773,6 +774,16 @@ class Store<St> {
           errorOrNull,
           stackTrace,
         );
+      }
+    }
+
+    if (_globalWrapError != null && errorOrNull != null) {
+      try {
+        errorOrNull = _globalWrapError.wrap(errorOrNull, stackTrace, action);
+      } catch (_error) {
+        // If the GlobalWrapError throws an error, it will be used instead
+        // of the original error (but the recommended way is returning the error).
+        errorOrNull = _error;
       }
     }
 

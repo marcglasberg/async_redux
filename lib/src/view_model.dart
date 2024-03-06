@@ -268,7 +268,7 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   Dispatch<St> get dispatch => _store.dispatch;
 
-  @Deprecated("Use `dispatchAndWait` instead. This method will be removed.")
+  @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
   DispatchAsync<St> get dispatchAsync => _store.dispatchAndWait;
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
