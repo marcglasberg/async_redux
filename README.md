@@ -488,31 +488,25 @@ bool abortDispatch() => state.user.name == null;
 
 #### Action status
 
-Although it's unlikely you'll ever need it, you can check if some action finished executing its
-methods `before`, `reduce` and `after`:
+You can use `action.status.isCompletedOk` to check if a dispatched action finished with no
+errors (in more detail, if the action's methods `before` and `reduce` finished without throwing
+any errors):
 
 ```dart
-var action = MyAction();
-store.dispatch(action);
-print(action.status.isBeforeDone);
-print(action.status.isReduceDone);
-print(action.status.isAfterDone);
-print(action.status.isFinished);
-print(action.isFinished);
+var action = MyAction(); 
+await store.dispatchAndWait(action);
+print(action.isCompletedOk);
 ```
 
-Method `isFinished` returns `true` only if the action finished with no errors (in other words, if
-methods `before`, `reduce` and `after` all finished executing without throwing any errors).
-
-A bit more useful is getting this information through the `dispatch` method:
+Better yet, you can get this information directly through the `dispatchAndWait` method:
 
 ```dart       
-var status = await store.dispatch(MyAction());
-print(status.isFinished);
+var status = await store.dispatchAndWait(MyAction());
+print(status.isCompletedOk);
 ```
 
-For example, suppose you want to save some info, and you want to leave the current screen if and
-only if the save process succeeds. Your `SaveAction` may look like this:
+One use case is when you want to save some info, and you want to leave the current screen if and
+only if the save process succeeded:
 
 ```dart
 class SaveAction extends ReduxAction<AppState> {      
@@ -522,13 +516,23 @@ class SaveAction extends ReduxAction<AppState> {
     ...
   }
 }
+
+var status = await dispatch(SaveAction(info));
+if (status.isCompletedOk) Navigator.pop(context); // Or: dispatch(NavigateAction.pop()) 
 ```
 
-Then, you may write:
+This is all the information you can get from the action status:
 
 ```dart
-var status = await dispatch(SaveAction(info));
-if (status.isFinished) Navigator.pop(context); // Or: dispatch(NavigateAction.pop()) 
+var status = await dispatch(MyAction(info));
+print(status.isCompleted);
+print(status.isCompletedOk);
+print(status.isCompletedFailed);
+print(status.originalError);
+print(status.wrappedError);
+print(status.status.hasFinishedMethodBefore);
+print(status.status.hasFinishedMethodReduce);
+print(status.status.hasFinishedMethodAfter);
 ```
 
 #### What's the order of execution of sync and async reducers?
@@ -1223,7 +1227,7 @@ optional `ReduxAction.wrapError(error)` method:
 class MyAction extends ReduxAction<AppState> {
 
   @override
-  Object wrapError(error) {
+  Object? wrapError(error) {
      if ((error is PlatformException) && (error.code == "Error performing get") &&
                (error.message == "Failed to get document because the client is offline."))
         return UserException("Check your internet connection.", cause: error);
@@ -1233,29 +1237,29 @@ class MyAction extends ReduxAction<AppState> {
 ```
 
 However, then you'd have to add this to all actions that use Firebase. A better way is doing this
-globally by passing a `WrapError` object to the store:
+globally by passing a `GlobalWrapError` object to the store:
 
 ```dart              
 var store = Store<AppState>(
   initialState: AppState.initialState(),
-  wrapError: MyWrapError(),
+  globalWrapError: MyGlobalWrapError(),
 );
 
-class MyWrapError extends WrapError {
+class MyGlobalWrapError extends GlobalWrapError {
   @override
-  UserException wrap(Object error, StackTrace stackTrace, ReduxAction<St> action) {
+  Object? wrap(Object error, StackTrace stackTrace, ReduxAction<AppState> action) {
     if ((error is PlatformException) && (error.code == "Error performing get") &&
           (error.message == "Failed to get document because the client is offline.")) 
         return UserException("Check your internet connection.", cause: error);
     else 
-        return null;
+        return error;
   }
 }    
 ```
 
-The `WrapError` object will be given all errors. It may then return a `UserException` which will be
-used instead of the original exception. Otherwise, it just returns `null`, so that the original
-exception will not be modified.
+The `GlobalWrapError` object will be given all errors. It may then return a `UserException` which
+will be used instead of the original exception. Otherwise, it just returns the original `eerror`,
+so that it will not be modified. It may also return `null` to disable (swallow) the error.
 
 Note this wrapper is called **after** `ReduxAction.wrapError`, and **before** the `ErrorObserver`.
 
@@ -3031,23 +3035,23 @@ abstract class StateObserver<St> {
 
 One or more `StateObserver`s can be set during the `Store` creation. Those observers are
 called for all dispatched actions, right after the reducer returns. That happens before the
-`after()` method is called, and before the action's `wrapError()` and the global `wrapError()`
-methods are called.
+`after()` method is called, and before the action's `wrapError()` and the
+global `globalWrapError()` methods are called.
 
 The parameters are:
 
 * `action` = The action itself.
 
-* `stateIni` = The state right before the new state returned by the reducer is applied. Note this
+* `prevState` = The state right before the new state returned by the reducer is applied. Note this
   may be different from the state when the reducer was called.
 
-* `stateEnd` = The state returned by the reducer. Note: If you need to know if the state was
+* `newState` = The state returned by the reducer. Note: If you need to know if the state was
   changed or not by the reducer, you can compare both states:
-  `bool ifStateChanged = !identical(stateIni, stateEnd);`
+  `bool ifStateChanged = !identical(prevState, newState);`
 
 * `error` = Is `null` if the reducer completed with no error and returned. Otherwise, will be the
   error thrown by the reducer (before any `wrapError` is applied). Note that, in case of
-  error, both `stateIni` and `stateEnd` will be the current store state when the error is
+  error, both `prevState` and `newState` will be the current store state when the error is
   thrown.
 
 * `dispatchCount` = The sequential number of the dispatch.
@@ -3064,12 +3068,12 @@ For example:
    @override
    void observe(
      ReduxAction<AppState> action,
-     AppState stateIni,
-     AppState stateEnd,
+     AppState prevState,
+     AppState newState,
      Object? error,
      int dispatchCount,
    ) {
-     if (action is AppAction) action.trackEvent(stateIni, stateEnd, error);
+     if (action is AppAction) action.trackEvent(prevState, newState, error);
    }
  }
 
@@ -3078,8 +3082,8 @@ For example:
     AppState? reduce() { // Do something }
 
     @override
-    void trackEvent(AppState stateIni, AppState stateEnd, Object? error) =>
-       MyMetrics().track(this, stateEnd, error);
+    void trackEvent(AppState prevState, AppState newState, Object? error) =>
+       MyMetrics().track(this, newState, error);
  }
 ```
 

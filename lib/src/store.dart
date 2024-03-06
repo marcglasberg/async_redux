@@ -70,7 +70,7 @@ typedef DispatchAndWait<St> = Future<ActionStatus> Function(
 /// will not be visible to the `StoreTester`. This is only useful under rare
 /// circumstances, and you should only use it if you know what you are doing.
 ///
-/// 5) `Object wrapError(error)` ➜ If any error is thrown by `before` or `reduce`,
+/// 5) `Object? wrapError(error)` ➜ If any error is thrown by `before` or `reduce`,
 /// you have the chance to further process it by using `wrapError`. Usually this
 /// is used to wrap the error inside of another that better describes the failed action.
 /// For example, if some action converts a String into a number, then instead of
@@ -86,6 +86,8 @@ typedef DispatchAndWait<St> = Future<ActionStatus> Function(
 ///   newState (state that was applied), and are used to track metrics and more.
 ///
 /// • ErrorObservers may be used to observe or process errors thrown by actions.
+///
+/// • GlobalWrapError may be used to wrap action errors globally.
 ///
 /// For more info, see: https://pub.dartlang.org/packages/async_redux
 ///
