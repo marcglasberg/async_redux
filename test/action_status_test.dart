@@ -25,6 +25,15 @@ void main() {
     expect(actionA.status.isReduceDone, false);
     expect(actionA.status.isAfterDone, true);
     expect(actionA.isFinished, false);
+
+    expect(actionA.status.hasFinishedMethodBefore, false);
+    expect(actionA.status.hasFinishedMethodReduce, false);
+    expect(actionA.status.hasFinishedMethodAfter, true);
+    expect(actionA.status.isCompleted, true);
+    expect(actionA.status.isCompletedOk, false);
+    expect(actionA.status.isCompletedFailed, true);
+    expect(actionA.status.originalError, const UserException('During before'));
+    expect(actionA.status.wrappedError, const UserException('During before'));
   });
 
   test('Test detecting that the REDUCE method of an action threw an error.', () async {
@@ -38,6 +47,70 @@ void main() {
     expect(actionA.status.isReduceDone, false);
     expect(actionA.status.isAfterDone, true);
     expect(actionA.isFinished, false);
+
+    expect(actionA.status.hasFinishedMethodBefore, true);
+    expect(actionA.status.hasFinishedMethodReduce, false);
+    expect(actionA.status.hasFinishedMethodAfter, true);
+    expect(actionA.status.isCompleted, true);
+    expect(actionA.status.isCompletedOk, false);
+    expect(actionA.status.isCompletedFailed, true);
+    expect(actionA.status.originalError, const UserException('During reduce'));
+    expect(actionA.status.wrappedError, const UserException('During reduce'));
+  });
+
+  test('Test wrapping the error in the action.', () async {
+    //
+    info = [];
+    Store<String> store = Store<String>(initialState: "");
+
+    var actionA = MyActionWithWrapError(whenToThrow: When.reduce);
+    try {
+      store.dispatch(actionA);
+    } catch (e) {
+      // This is expected.
+    }
+    expect(actionA.status.isBeforeDone, true);
+    expect(actionA.status.isReduceDone, false);
+    expect(actionA.status.isAfterDone, true);
+    expect(actionA.isFinished, false);
+
+    expect(actionA.status.hasFinishedMethodBefore, true);
+    expect(actionA.status.hasFinishedMethodReduce, false);
+    expect(actionA.status.hasFinishedMethodAfter, true);
+    expect(actionA.status.isCompleted, true);
+    expect(actionA.status.isCompletedOk, false);
+    expect(actionA.status.isCompletedFailed, true);
+    expect(actionA.status.originalError, const UserException('During reduce'));
+    expect(actionA.status.wrappedError, 'wrapped error in action: During reduce');
+  });
+
+  test('Test wrapping the error globally with the globalWrapError (Store constructor).', () async {
+    //
+    info = [];
+    Store<String> store = Store<String>(
+      initialState: "",
+      globalWrapError: MyGlobalWrapError<String>(),
+    );
+
+    var actionA = MyAction(whenToThrow: When.reduce);
+    try {
+      store.dispatch(actionA);
+    } catch (e) {
+      // This is expected.
+    }
+    expect(actionA.status.isBeforeDone, true);
+    expect(actionA.status.isReduceDone, false);
+    expect(actionA.status.isAfterDone, true);
+    expect(actionA.isFinished, false);
+
+    expect(actionA.status.hasFinishedMethodBefore, true);
+    expect(actionA.status.hasFinishedMethodReduce, false);
+    expect(actionA.status.hasFinishedMethodAfter, true);
+    expect(actionA.status.isCompleted, true);
+    expect(actionA.status.isCompletedOk, false);
+    expect(actionA.status.isCompletedFailed, true);
+    expect(actionA.status.originalError, const UserException('During reduce'));
+    expect(actionA.status.wrappedError, 'global wrapped error: During reduce');
   });
 
   test(
@@ -54,10 +127,22 @@ void main() {
       store.dispatch(actionA);
       expect(actionA.status.isBeforeDone, true);
       expect(actionA.status.isReduceDone, true);
-      expect(actionA.status.isAfterDone, false);
-      expect(actionA.isFinished, false);
+      expect(actionA.status.isAfterDone, true);
+      expect(actionA.isFinished, true);
+
+      expect(actionA.status.hasFinishedMethodBefore, true);
+      expect(actionA.status.hasFinishedMethodReduce, true);
+      expect(actionA.status.hasFinishedMethodAfter, true);
+      expect(actionA.status.isCompleted, true);
+      expect(actionA.status.isCompletedOk, true);
+      expect(actionA.status.isCompletedFailed, false);
+      expect(actionA.status.originalError, isNull);
+      expect(actionA.status.wrappedError, isNull);
     }, (error, stackTrace) {
       hasThrown = true;
+
+      print('error = ${error}');
+      print('error.runtimeType = ${error.runtimeType}');
       expect(
           error,
           "Method 'MyAction.after()' has thrown an error:\n"
@@ -80,6 +165,15 @@ void main() {
     expect(actionA.status.isReduceDone, true);
     expect(actionA.status.isAfterDone, true);
     expect(actionA.isFinished, true);
+
+    expect(actionA.status.hasFinishedMethodBefore, true);
+    expect(actionA.status.hasFinishedMethodReduce, true);
+    expect(actionA.status.hasFinishedMethodAfter, true);
+    expect(actionA.status.isCompleted, true);
+    expect(actionA.status.isCompletedOk, true);
+    expect(actionA.status.isCompletedFailed, false);
+    expect(actionA.status.originalError, isNull);
+    expect(actionA.status.wrappedError, isNull);
   });
 }
 
@@ -106,4 +200,38 @@ class MyAction extends ReduxAction<String> {
     if (whenToThrow == When.after) throw const UserException("During after");
     info.add('3');
   }
+}
+
+class MyActionWithWrapError extends ReduxAction<String> {
+  When? whenToThrow;
+
+  MyActionWithWrapError({this.whenToThrow});
+
+  @override
+  void before() {
+    info.add('1');
+    if (whenToThrow == When.before) throw const UserException("During before");
+  }
+
+  @override
+  String reduce() {
+    info.add('2');
+    if (whenToThrow == When.reduce) throw const UserException("During reduce");
+    return state + 'X';
+  }
+
+  @override
+  void after() {
+    if (whenToThrow == When.after) throw const UserException("During after");
+    info.add('3');
+  }
+
+  @override
+  Object? wrapError(Object error, StackTrace stackTrace) => 'wrapped error in action: $error';
+}
+
+class MyGlobalWrapError<St> implements GlobalWrapError<St> {
+  @override
+  Object? wrap(Object error, StackTrace stackTrace, ReduxAction<St> action) =>
+      'global wrapped error: $error';
 }

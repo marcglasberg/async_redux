@@ -10,6 +10,7 @@ import 'dart:collection';
 
 import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/src/process_persistence.dart';
+import 'package:flutter/foundation.dart';
 
 part 'redux_action.dart';
 
@@ -497,14 +498,14 @@ class Store<St> {
     Object? originalError, processedError;
 
     try {
-      action._status._clear();
+      action._status = ActionStatus();
       var result = action.before();
       if (result is Future) throw StoreException(_beforeTypeErrorMsg);
 
-      action._status._isBeforeDone = true;
+      action._status = action._status.copy(hasFinishedMethodBefore: true);
       if (_shutdown) return action._status;
       _applyReducer(action, notify: notify);
-      action._status._isReduceDone = true;
+      action._status = action._status.copy(hasFinishedMethodReduce: true);
       if (_shutdown) return action._status;
     }
     //
@@ -551,14 +552,14 @@ class Store<St> {
     Object? result, originalError, processedError;
 
     try {
-      action._status._clear();
+      action._status = new ActionStatus();
       result = action.before();
       if (result is Future) await result;
-      action._status._isBeforeDone = true;
+      action._status = action._status.copy(hasFinishedMethodBefore: true);
       if (_shutdown) return action._status;
       result = _applyReducer(action, notify: notify);
       if (result is Future) await result;
-      action._status._isReduceDone = true;
+      action._status = action._status.copy(hasFinishedMethodReduce: true);
       if (_shutdown) return action._status;
     }
     //
@@ -754,6 +755,8 @@ class Store<St> {
 
     Object? errorOrNull = error;
 
+    action._status = action._status.copy(originalError: error);
+
     try {
       errorOrNull = action.wrapError(errorOrNull, stackTrace);
     } catch (_error) {
@@ -786,6 +789,8 @@ class Store<St> {
         errorOrNull = _error;
       }
     }
+
+    action._status = action._status.copy(wrappedError: errorOrNull);
 
     afterWasRun.value = true;
     _after(action);
@@ -830,7 +835,6 @@ class Store<St> {
   void _after(ReduxAction<St> action) {
     try {
       action.after();
-      action._status._isAfterDone = true;
     } catch (error, stackTrace) {
       // After should never throw.
       // However, if it does, prints the error information to the console,
@@ -841,6 +845,8 @@ class Store<St> {
         error,
         stackTrace,
       );
+    } finally {
+      action._status = action._status.copy(hasFinishedMethodAfter: true);
     }
   }
 
@@ -865,28 +871,109 @@ class Store<St> {
   }
 }
 
-//
-
 enum CompareBy { byDeepEquals, byIdentity }
 
+@immutable
 class ActionStatus {
-  bool _isBeforeDone = false;
-  bool _isReduceDone = false;
-  bool _isAfterDone = false;
+  ActionStatus({
+    this.isDispatched = false,
+    this.hasFinishedMethodBefore = false,
+    this.hasFinishedMethodReduce = false,
+    this.hasFinishedMethodAfter = false,
+    this.originalError,
+    this.wrappedError,
+  });
 
-  bool get isBeforeDone => _isBeforeDone;
+  /// Returns true if the action was already dispatched. An action cannot be dispatched
+  /// more than once, which means that you have to create a new action each time.
+  ///
+  /// Note this may be true even if the action has not yet FINISHED dispatching.
+  /// To check if it has finished, use `action.isFinished`.
+  final bool isDispatched;
 
-  bool get isReduceDone => _isReduceDone;
+  /// Is true when the `before` method finished executing normally.
+  /// Is false if it has not yet finished executing or if it threw an error.
+  final bool hasFinishedMethodBefore;
 
-  bool get isAfterDone => _isAfterDone;
+  /// Is true when the `reduce` method finished executing normally, returning a value.
+  /// Is false if it has not yet finished executing or if it threw an error.
+  final bool hasFinishedMethodReduce;
 
-  bool get isFinished => _isBeforeDone && _isReduceDone && _isAfterDone;
+  /// Is true if the `after` method finished executing. Note the `after` method should
+  /// never throw any errors, but if it does the error will be swallowed and ignored.
+  /// Is false if it has not yet finished executing.
+  final bool hasFinishedMethodAfter;
 
-  void _clear() {
-    _isBeforeDone = false;
-    _isReduceDone = false;
-    _isAfterDone = false;
-  }
+  /// Holds the error thrown by the action's before/reduce methods, if any.
+  /// This may or may not be equal to the error thrown by the action, because the original error
+  /// will still be processed by the action's `wrapError` and the `globalWrapError`. However,
+  /// if `originalError` is non-null, it means the reducer did not finish running.
+  final Object? originalError;
+
+  /// Holds the error thrown by the action. This may or may not be the same as `originalError`,
+  /// because any errors thrown by the action's before/reduce methods may still be changed or
+  /// cancelled by the action's `wrapError` and the `globalWrapError`. This is the final error
+  /// after all these wraps.
+  final Object? wrappedError;
+
+  @Deprecated("Use `hasFinishedMethodBefore` instead. This will be removed.")
+  bool get isBeforeDone => hasFinishedMethodBefore;
+
+  @Deprecated("Use `hasFinishedMethodReduce` instead. This will be removed.")
+  bool get isReduceDone => hasFinishedMethodReduce;
+
+  @Deprecated("Use `hasFinishedMethodAfter` instead. This will be removed.")
+  bool get isAfterDone => hasFinishedMethodAfter;
+
+  @Deprecated("Use `isCompletedOk` instead. This will be removed.")
+  bool get isFinished => isBeforeDone && isReduceDone && isAfterDone;
+
+  /// Returns true only if the action has completed, and none of the 'before' or 'reduce'
+  /// methods have thrown an error. This indicates that the 'reduce' method completed and
+  /// returned a result (even if the result was null). The 'after' method also already ran.
+  ///
+  /// This can be useful if you need to dispatch a second method only if the first method
+  /// succeeded:
+  ///
+  /// ```ts
+  /// let action = new LoadInfo();
+  /// await dispatchAndWait(action);
+  /// if (action.isCompletedOk) dispatch(new ShowInfo());
+  /// ```
+  ///
+  /// Or you can also get the state directly from `dispatchAndWait`:
+  ///
+  /// ```ts
+  /// var status = await dispatchAndWait(LoadInfo());
+  /// if (status.isCompletedOk) dispatch(ShowInfo());
+  /// ```
+  bool get isCompletedOk => isCompleted && (originalError == null);
+
+  /// Returns true only if the action has completed (the 'after' method already ran), but either
+  /// the 'before' or the 'reduce' methods have thrown an error. If this is true, it indicates that
+  /// the reducer could NOT complete, and could not return a value to change the state.
+  bool get isCompletedFailed => isCompleted && (originalError != null);
+
+  /// Returns true only if the action has completed executing, either with or without errors.
+  /// If this is true, the 'after' method already ran.
+  bool get isCompleted => hasFinishedMethodAfter;
+
+  ActionStatus copy({
+    bool? isDispatched,
+    bool? hasFinishedMethodBefore,
+    bool? hasFinishedMethodReduce,
+    bool? hasFinishedMethodAfter,
+    Object? originalError,
+    Object? wrappedError,
+  }) =>
+      ActionStatus(
+        isDispatched: isDispatched ?? this.isDispatched,
+        hasFinishedMethodBefore: hasFinishedMethodBefore ?? this.hasFinishedMethodBefore,
+        hasFinishedMethodReduce: hasFinishedMethodReduce ?? this.hasFinishedMethodReduce,
+        hasFinishedMethodAfter: hasFinishedMethodAfter ?? this.hasFinishedMethodAfter,
+        originalError: originalError ?? this.originalError,
+        wrappedError: wrappedError ?? this.wrappedError,
+      );
 }
 
 class _Flag<T> {

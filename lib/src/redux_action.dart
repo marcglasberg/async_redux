@@ -12,7 +12,7 @@ part of async_redux_store;
 ///
 abstract class ReduxAction<St> {
   late Store<St> _store;
-  final ActionStatus _status = ActionStatus();
+  ActionStatus _status = ActionStatus();
   bool _completedFuture = false;
 
   void setStore(Store<St> store) => _store = store;
@@ -31,6 +31,7 @@ abstract class ReduxAction<St> {
   /// Returns true only if the action finished with no errors.
   /// In other words, if the methods before, reduce and after all finished executing
   /// without throwing any errors.
+  @Deprecated("Use `action.status.isCompletedOk` instead. This will be removed.")
   bool get isFinished => _status.isFinished;
 
   DateTime get stateTimestamp => _store.stateTimestamp;

@@ -3,6 +3,24 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
+# 21.7.0
+
+* DEPRECATION WARNING:
+    - Replace `action.isFinished` with `action.status.isCompletedOk`
+    - Replace `action.status.isBeforeDone` with `action.status.hasFinishedMethodBefore`
+    - Replace `action.status.isReduceDone` with `action.status.hasFinishedMethodReduce`
+    - Replace `action.status.isAfterDone` with `action.status.hasFinishedMethodAfter`
+    - Replace `action.status.isFinished` with `action.status.isCompletedOk`
+
+
+* The `action.status` now has a few more values:
+    - `isCompleted` if the action has completed executing, either with or without errors.
+    - `isCompletedOk` if the action has completed with no errors.
+    - `isCompletedFailed` if the action has completed with errors.
+    - `originalError` Holds the error thrown by the action's before/reduce methods, if any.
+    - `wrappedError` Holds the error thrown by the action, after it was processed by the
+      action's `wrapError` and the `globalWrapError`.
+
 # 21.6.0
 
 * DEPRECATION WARNING: The `wrapError` parameter of the `Store` constructor is now deprecated in
