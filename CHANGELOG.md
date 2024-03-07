@@ -3,7 +3,7 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# 21.7.0
+# 21.7.1
 
 * DEPRECATION WARNING:
     - Replace `action.isFinished` with `action.status.isCompletedOk`
