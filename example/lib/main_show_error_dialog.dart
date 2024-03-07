@@ -60,18 +60,14 @@ class SaveUserAction extends ReduxAction<AppState> {
     return state.copy(name: name);
   }
 
+  // Note we could also have a CANCEL button here:
+  // .addCallbacks(onOk: () => print("Dialog was dismissed."),
+  //               onCancel: () => print("CANCEL was pressed, or dialog dismissed."));
   @override
-  Object wrapError(error, stackTrace) => UserException(
-        "Save failed",
-        cause: error,
-        onOk: () {
-          print("Dialog was dismissed.");
-        },
-        //
-        // Note we could also have a CANCEL button:
-        // onOk: () { print("OK was pressed."); },
-        // onCancel: () { print("CANCEL was pressed, or dialog dismissed."); },
-      );
+  Object wrapError(error, stackTrace) => //
+      const UserException("Save failed")
+          .addCause(error)
+          .addCallbacks(onOk: () => print("Dialog was dismissed."));
 }
 
 /// This widget is a connector. It connects the store to "dumb-widget".

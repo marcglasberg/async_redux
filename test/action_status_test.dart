@@ -81,7 +81,7 @@ void main() {
     expect(actionA.status.isCompletedOk, false);
     expect(actionA.status.isCompletedFailed, true);
     expect(actionA.status.originalError, const UserException('During reduce'));
-    expect(actionA.status.wrappedError, 'wrapped error in action: During reduce');
+    expect(actionA.status.wrappedError, 'wrapped error in action: UserException{During reduce}');
   });
 
   test('Test wrapping the error globally with the globalWrapError (Store constructor).', () async {
@@ -110,7 +110,7 @@ void main() {
     expect(actionA.status.isCompletedOk, false);
     expect(actionA.status.isCompletedFailed, true);
     expect(actionA.status.originalError, const UserException('During reduce'));
-    expect(actionA.status.wrappedError, 'global wrapped error: During reduce');
+    expect(actionA.status.wrappedError, 'global wrapped error: UserException{During reduce}');
   });
 
   test(
@@ -141,13 +141,11 @@ void main() {
     }, (error, stackTrace) {
       hasThrown = true;
 
-      print('error = ${error}');
-      print('error.runtimeType = ${error.runtimeType}');
       expect(
           error,
           "Method 'MyAction.after()' has thrown an error:\n"
-          " 'During after'.:\n"
-          "  During after");
+          " 'UserException{During after}'.:\n"
+          "  UserException{During after}");
     });
 
     await Future.delayed(const Duration(milliseconds: 10));

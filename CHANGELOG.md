@@ -3,6 +3,47 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
+# 22.0.0-dev.1
+
+* Some features of the async_redux package are now available as a standalone Dart-only
+  package: https://pub.dev/packages/async_redux_core. You may use that core package when you
+  are developing a Dart server (backend) with [Celest](https://celest.dev/), or when developing your
+  own Dart-only package that does not depend on Flutter. Note: For the moment, the core
+  package simply contains the `UserException`, and nothing more. If you now
+  import `async_redux_core` in your Celest server code and throw a `UserException` there, the
+  exception message will automatically be shown in a dialog to the user in your client app (if you
+  use the `UserExceptionDialog` feature).
+
+  > **For Flutter applications nothing changes.**
+  > You don't need to import the core package directly.
+  > You should continue to use this async_redux package, which already exports
+  > the code that's now in the core package.
+
+* BREAKING CHANGE: The `UserException` class was modified so that it was possible to move it to the
+  `async_redux_core`. If your use of `UserException` was limited to specifying the error message,
+  then you don't need to change anything: `throw UserException('Error message')` will continue to
+  work as before. However, for other more advanced features you will have to read
+  the `UserException` documentation and adapt. In the new public API of `UserException` you can now
+  specify a `message`, `reason` and `code` in the constructor, and then you can use
+  methods `addCallbacks`, `addCause` and `addProps` to add more information:
+
+  ```dart
+  throw UserException('Invalid number', reason: 'Must be less than 42')
+     .addCallbacks(onOk: () => print('OK'), onCancel: () => print('CANCEL'))
+     .addCause(FormatException('Invalid input'))
+     .addProps({'number': 42}));
+  ```                  
+
+  Note the `code` parameter can only be a number now. If you were using a different type,
+  for example enums, you can now include it in the props, like
+  so: `throw UserException('').addProps({'code': myError.invalidInput}).` or you can even create
+  an extension method which allows you to
+  write `throw UserException('').withCode(myError.invalidInput).`
+  However, please read the new `UserException` documentation to learn about the recommended way to
+  use `code` to define the text of the error messages, and even easily translate them to the user
+  language by using the [i18n_extension](https://pub.dev/packages/i18n_extension) translations
+  package.
+
 # 21.7.1
 
 * DEPRECATION WARNING:
@@ -160,13 +201,13 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
 * Flutter 3.7.5, Dart 2.19.2, fast_immutable_collections: 9.0.0.
 
-* Breaking change: The `Action.wrapError(error, stackTrace)` method now also gets the stacktrace
+* BREAKING CHANGE: The `Action.wrapError(error, stackTrace)` method now also gets the stacktrace
   instead of just the error. If your code breaks, just add the extra parameter, like so:
   `Object wrapError(error) => ...` turns into `Object wrapError(error, _) => ...`
 
 <br>
 
-* Breaking change: When a `Persistor` is provided to the Store, it now considers the
+* BREAKING CHANGE: When a `Persistor` is provided to the Store, it now considers the
   `initialState` is already persisted. Before this change, it considered nothing was
   persisted. Note: Before you create the store, you are allowed to call the `Persistor` methods
   directly: `Persistor.saveInitialState()`, `readState()` and `deleteState()`.
@@ -184,7 +225,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
 <br>
 
-* Breaking change: The factory declaration used to have two type parameters, but now it has three:
+* BREAKING CHANGE: The factory declaration used to have two type parameters, but now it has three:
   `class Factory extends VmFactory<AppState, MyConnector, MyViewModel>`
   With that change, you can now reference the view-model inside the Factory methods, by using
   the `vm` getter. Example:
@@ -247,7 +288,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
 # 16.0.0
 
-* Breaking change: Async `reduce()` methods (those that return Futures) are now called
+* BREAKING CHANGE: Async `reduce()` methods (those that return Futures) are now called
   synchronously (in the same microtask of their dispatch), just like a regular async function is.
   In other words, now dispatching a sync action works just the same as calling a sync function,
   and dispatching an async action works just the same as calling an async function.
@@ -286,7 +327,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
 <br>
 
-* Breaking change: When your reducer is async (i.e., returns `Future<AppState>`) you must make sure
+* BREAKING CHANGE: When your reducer is async (i.e., returns `Future<AppState>`) you must make sure
   you **do not return a completed future**, meaning all execution paths of the reducer must pass
   through at least one `await` keyword. In other words, don't return a Future if you don't need it.
   If your reducer has no `await`s, you must return `AppState?` instead of `Future<AppState?>`, or
@@ -405,12 +446,12 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 * When logging out of the app, you can call `store.deletePersistedState()` to ask the persistor to
   delete the state from disk.
 
-* Breaking change: This is a very minor change, unlikely to affect you. The signature for
+* BREAKING CHANGE: This is a very minor change, unlikely to affect you. The signature for
   the `Action.wrapError` method has changed from `Object? wrapError(error)`
   to `Object? wrapError(Object error)`. If you get an error when you upgrade, you can fix it by
   changing the method that broke into `Object? wrapError(dynamic error)`.
 
-* Breaking change: Context is now nullable for these StoreConnector methods:
+* BREAKING CHANGE: Context is now nullable for these StoreConnector methods:
   ```
   void onInitialBuildCallback(BuildContext? context, Store<St> store, Model viewModel);
   void onDidChangeCallback(BuildContext? context, Store<St> store, Model viewModel);
@@ -541,7 +582,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
 # 12.0.0
 
-* Breaking change: Improved state typing for some `Store` parameters. You will now have to use
+* BREAKING CHANGE: Improved state typing for some `Store` parameters. You will now have to use
   `Persistor<AppState>` instead of `Persistor`, and `WrapError<AppState>` instead of `WrapError`
   etc.
 
@@ -562,11 +603,11 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
 # 11.0.0
 
-* Breaking change: The `dispatchFuture` function is not necessary anymore. Just rename it
+* BREAKING CHANGE: The `dispatchFuture` function is not necessary anymore. Just rename it
   to `dispatch`, since now the `dispatch` function always returns a future, and you can await it or
   not, as desired.
 
-* Breaking change: `ReduxAction.hasFinished()` has been deprecated. It should be renamed
+* BREAKING CHANGE: `ReduxAction.hasFinished()` has been deprecated. It should be renamed
   to `isFinished`.
 
 * The `dispatch` function now returns an `ActionStatus`. Usually you will discard this info, but you
@@ -593,13 +634,13 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
 # 10.0.1
 
-* Breaking change: The new `UserExceptionDialog.useLocalContext` parameter now allows
+* BREAKING CHANGE: The new `UserExceptionDialog.useLocalContext` parameter now allows
   the `UserExceptionDialog` to be put in the `builder` parameter of the `MaterialApp` widget. Even
   if you use this dialog, it is unlikely this will be a breaking change for you. But if it is, and
   your error dialog now has problems, simply make `useLocalContext: true` to return to the old
   behavior.
 
-* Breaking change: `StoreConnector` parameters `onInitialBuild`, `onDidChange`
+* BREAKING CHANGE: `StoreConnector` parameters `onInitialBuild`, `onDidChange`
   and `onWillChange` now also get the context and the store. For example, where you previously
   had `onInitialBuild(vm) {...}` now you have `onInitialBuild(context, store, vm) {...}`.
 
@@ -628,7 +669,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
 * Uses nullsafe dependencies (it's not yet itself nullsafe).
 
-* Breaking change: Cache functions (for memoization) have been renamed and extended.
+* BREAKING CHANGE: Cache functions (for memoization) have been renamed and extended.
 
 # 7.0.2
 
@@ -636,7 +677,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
 # 7.0.1
 
-* Breaking change:
+* BREAKING CHANGE:
 
   Now the `vm` parameter in the `StoreConnector` is a function that creates a `VmFactory` (instead
   of being a `VmFactory` object itself).
@@ -683,123 +724,6 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   `pushNamedAndRemoveAll()`, `popUntil()`, `removeRoute()`, `removeRouteBelow()`,
   `popUntilRouteName()` and `popUntilRoute()`.
 
-# 5.0.0
+# 1.0.0
 
-* Breaking change: OnWillChangeCallback now provides previousVm.
-
-# 4.0.4
-
-* Better performance: Less unnecessary view-model calculations.
-* StoreConnector.shouldUpdateModel fix.
-
-# 4.0.1
-
-## Flutter 1.22 compatibility
-
-Bumping _file: ^6.0.0-nullsafety.2_
-
-<br>
-
-## Breaking Change
-
-The abstract `ReduxAction.reduce()` method signature has a return type of `FutureOr<AppState>`, but
-your concrete reducers must return one or the other: `AppState` or `Future<AppState>`.
-
-That's necessary because AsyncRedux knows if a reducer is sync or async not by checking the returned
-type, but by checking your `reducer()` method signature. If it is `FutureOr<AppState>`, AsyncRedux
-can't know if it's sync or async, and will throw a `StoreException`:
-
-```
-Reducer should return `St?` or `Future<St?>`. Do not return `FutureOr<St?>`.
-```
-
-<br>
-
-## Breaking Change
-
-Previously to version 4.0.0, your *async* reducers would have to make sure never to return completed
-futures. This is no longer necessary in version 4.0.0.
-
-Now, while *sync* reducers continue to run synchronously with the dispatch, the *async* reducers
-will not be called immediately, but will be scheduled in a later task.
-
-Why is this a breaking change? Previously to version 4.0.0, the async reducers would have at least
-started synchronously with the dispatch, and would run synchronously until the first `await`. You
-probably shouldn't be counting on the executing order of the beginning of async reducers anyway, so
-your code is unlikely to break after upgrading to version 4.0.0. But, please run your tests in this
-new version and open an issue if it has created any problems for you that you think would make it
-difficult to migrate.
-
-<br>
-
-## Deprecated
-
-`StoreConnector`'s `model` parameter is now deprecated. It expects a `BaseModel`
-object, which is also deprecated. AsyncRedux run the `BaseModel.fromStore()`
-method to obtain yet another object of type `BaseModel`, which is the view-model used by the
-connector.
-
-While the `model` parameter is easy to use, it is also easy to use it wrong.
-
-Instead, you should now use the `StoreConnector`'s `vm` parameter to pass an object of
-type `VmFactory`. AsyncRedux will run the `VmFactory.fromStore()`
-method to obtain an object of type `Vm`, which is now the view-model used by the connector.
-Note: `Vm` is immutable, and all its fields must be final.
-
-AsyncRedux will inject the `state` and the `dispatch`/`dispatchFuture` methods into `VmFactory`, so
-that you easily can create any fields and methods you need to help you build the view-model.
-
-This is a complete example:
-
-```dart
-class MyHomePageConnector extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return StoreConnector<AppState, ViewModel>(
-        vm: () => Factory(this),
-        builder: (BuildContext context, ViewModel vm) =>
-            MyHomePage(
-              counter: vm.counter,
-              onIncrement: vm.onIncrement,
-            ));
-  }
-}
-
-class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
-  Factory(connector) : super(connector);
-
-  @override
-  ViewModel fromStore() =>
-      ViewModel(
-        counter: state.counter,
-        onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
-      );
-}
-
-class ViewModel extends Vm {
-  final int counter;
-  final String description;
-
-  ViewModel({
-    required this.counter,
-    required this.onIncrement,
-  }) : super(equals: [counter]);
-}
-```
-
-Please note, `StoreConnector`'s `converter` parameter still works and will NOT be deprecated.
-
-<br>
-
-## View-model equality
-
-Just as before, if you provide the `Vm.equals` field in the constructor, it will automatically
-create equals/hashcode for you, so that the connector can know when the view-model changed, and
-rebuild. However, you can now provide your own comparison method, if you want. To that end, your
-state classes must implement the `VmEquals` interface. As a default, objects of type `VmEquals`
-are compared by identity, while all other object types are, as usual, compared by equality. You may
-then override the `VmEquals.vmEquals()` method to provide your custom comparisons.
-
-# [1.0.0] - 2019/Aug05
-
-* Initial commit.
+* Initial commit: 2019/Aug05

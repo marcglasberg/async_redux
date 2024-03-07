@@ -97,13 +97,6 @@ class _UserExceptionDialogWidget extends StatefulWidget {
       if (navigatorContext != null) context = navigatorContext;
     }
 
-    Locale? locale;
-    try {
-      locale = Localizations.localeOf(context);
-    } catch (error) {
-      // This works when the MaterialApp widget is initialized.
-    }
-
     defaultTargetPlatform;
     if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS)) {
       showCupertinoDialogSuper<int>(
@@ -120,25 +113,28 @@ class _UserExceptionDialogWidget extends StatefulWidget {
               userException.onCancel?.call();
           }
         },
-        builder: (BuildContext context) => CupertinoAlertDialog(
-          title: Text(userException.dialogTitle(locale)),
-          content: Text(userException.dialogContent(locale)),
-          actions: [
-            CupertinoDialogAction(
-              child: const Text("OK"),
-              onPressed: () {
-                Navigator.of(context).pop(1);
-              },
-            ),
-            if (userException.onCancel != null)
+        builder: (BuildContext context) {
+          var (title, content) = userException.titleAndContent();
+          return CupertinoAlertDialog(
+            title: Text(title),
+            content: Text(content),
+            actions: [
               CupertinoDialogAction(
-                child: const Text("CANCEL"),
+                child: const Text("OK"),
                 onPressed: () {
-                  Navigator.of(context).pop(2);
+                  Navigator.of(context).pop(1);
                 },
-              )
-          ],
-        ),
+              ),
+              if (userException.onCancel != null)
+                CupertinoDialogAction(
+                  child: const Text("CANCEL"),
+                  onPressed: () {
+                    Navigator.of(context).pop(2);
+                  },
+                )
+            ],
+          );
+        },
       );
     } else
       showDialogSuper<int>(
@@ -155,25 +151,28 @@ class _UserExceptionDialogWidget extends StatefulWidget {
               userException.onCancel?.call();
           }
         },
-        builder: (BuildContext context) => AlertDialog(
-          title: Text(userException.dialogTitle(locale)),
-          content: Text(userException.dialogContent(locale)),
-          actions: [
-            if (userException.onCancel != null)
+        builder: (BuildContext context) {
+          var (title, content) = userException.titleAndContent();
+          return AlertDialog(
+            title: Text(title),
+            content: Text(content),
+            actions: [
+              if (userException.onCancel != null)
+                TextButton(
+                  child: const Text("CANCEL"),
+                  onPressed: () {
+                    Navigator.of(context).pop(2);
+                  },
+                ),
               TextButton(
-                child: const Text("CANCEL"),
+                child: const Text("OK"),
                 onPressed: () {
-                  Navigator.of(context).pop(2);
+                  Navigator.of(context).pop(1);
                 },
-              ),
-            TextButton(
-              child: const Text("OK"),
-              onPressed: () {
-                Navigator.of(context).pop(1);
-              },
-            )
-          ],
-        ),
+              )
+            ],
+          );
+        },
       );
   }
 
