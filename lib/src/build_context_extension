@@ -8,10 +8,10 @@ import 'app_state.dart';
 ///
 /// ```
 /// // Read state
-/// var myInfo = StoreProvider.of<AppState>(context, this).state.myInfo;
+/// var myInfo = StoreProvider.state<AppState>(context).myInfo;
 ///
 /// // Dispatch action
-/// StoreProvider.of<AppState>(context, this).dispatch(MyAction());
+/// StoreProvider.dispatch<AppState>(context, MyAction());
 /// ```
 ///
 /// However, this extension allows you to write the above code like this:
@@ -30,7 +30,7 @@ extension BuildContextExtension on BuildContext {
   /// ```
   /// context.state.myInfo;
   /// ```
-  AppState get state => StoreProvider.of<AppState>(this, null).state;
+  AppState get state => StoreProvider.state<AppState>(this);
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// The action may be sync or async. Note: [dispatch] is of type [Dispatch].
@@ -39,8 +39,7 @@ extension BuildContextExtension on BuildContext {
   /// ```
   /// context.dispatch(MyAction());
   /// ```
-  FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) =>
-      StoreProvider.of<AppState>(this, null).dispatch(action, notify: notify);
+  FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatch(this, action, notify: notify);
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: [dispatchAndWait] is of type [DispatchAndWait]. It returns `Future<ActionStatus>`,
@@ -50,8 +49,7 @@ extension BuildContextExtension on BuildContext {
   /// ```
   /// context.dispatchAndWait(MyAction());
   /// ```
-  Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) =>
-      StoreProvider.of<AppState>(this, null).dispatchAndWait(action, notify: notify);
+  Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatchAndWait(this, action, notify: notify);
 
   /// Runs the action, applying its reducer, and possibly changing the store state.
   /// Note: [dispatchSync] is of type [DispatchSync].
@@ -61,6 +59,5 @@ extension BuildContextExtension on BuildContext {
   /// ```
   /// context.dispatchSync(MySyncAction());
   /// ```
-  ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) =>
-      StoreProvider.of<AppState>(this, null).dispatchSync(action, notify: notify);
+  ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatchSync(this, action, notify: notify);
 }

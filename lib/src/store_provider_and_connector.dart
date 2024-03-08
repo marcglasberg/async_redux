@@ -222,7 +222,7 @@ class StoreConnector<St, Model> extends StatelessWidget
   @override
   Widget build(BuildContext context) {
     return _StoreStreamListener<St, Model>(
-      store: StoreProvider.of<St>(context, debug),
+      store: StoreProvider._getStore<St>(context, debug: debug),
       debug: debug,
       storeConnector: this,
       builder: builder,
@@ -620,4 +620,230 @@ class _StoreStreamListenerState<St, Model> //
   }
 }
 
-//
+/// Provides a Redux [Store] to all ancestors of this Widget.
+/// This should generally be a root widget in your App.
+///
+/// Then, you have two alternatives to access the store:
+///
+/// 1) Connect to the provided store by using a [StoreConnector], and
+/// the [StoreConnector.vm] parameter:
+///
+/// ```dart
+/// StoreConnector(
+///    vm: () => Factory(this),
+///    builder: (context, vm) => return MyHomePage(user: vm.user)
+/// );
+/// ```
+///
+/// See the documentation for more information on how to create the view-model using the `vm`
+/// parameter and a `VmFactory` class.
+///
+/// 2) Connect to the provided store by using a [StoreConnector], and
+/// the [StoreConnector.converter] parameter:
+///
+/// ```dart
+/// StoreConnector(
+///    converter: (Store<AppState> store) => store.state.counter,
+///    builder: (context, value) => Text('$value', style: const TextStyle(fontSize: 30)),
+/// );
+/// ```
+/// See the documentation for more information on how to use the `converter` parameter.
+///
+/// 3) Use the static methods of [StoreProvider], like explained below:
+///
+/// You can read the state of the store using the [state] method:
+///
+/// ```dart
+/// var state = StoreProvider.state<AppState>(context);
+/// ```
+///
+/// You can dispatch actions using the [dispatch], [dispatchAndWait] and [dispatchSync] method:
+///
+/// ```dart
+/// StoreProvider.dispatch(context, action);
+/// StoreProvider.dispatchAndWait(context, action);
+/// StoreProvider.dispatchSync(context, action);
+/// ```
+///
+/// IMPORTANT: It's recommended that you define this extension in your own code:
+///
+/// ```dart
+/// extension BuildContextExtension on BuildContext {
+///
+///   AppState get state => StoreProvider.state<AppState>(this);
+///
+///   FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) =>
+///       StoreProvider.dispatch(this, action, notify: notify);
+///
+///   Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) =>
+///       StoreProvider.dispatchAndWait(this, action, notify: notify);
+///
+///   ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) =>
+///       StoreProvider.dispatchSync(this, action, notify: notify);
+/// }
+/// ```
+///
+/// This will allow you to write:
+///
+/// ```dart
+/// var state = context.state;
+/// context.dispatch(action);
+/// context.dispatchAndWait(action);
+/// context.dispatchSync(action);
+/// ```
+
+class StoreProvider<St> extends InheritedWidget {
+  final Store<St> _store;
+
+  StoreProvider({
+    Key? key,
+    required Store<St> store,
+    required Widget child,
+  })  : _store = store,
+        super(
+          key: key,
+          child: _StatefulWrapper(store: store, child: child),
+        );
+
+  /// Get the state, without a StoreConnector.
+  /// Note: Widgets that use this method will rebuild whenever the state changes.
+  static St state<St>(BuildContext context, {Object? debug}) {
+    final _InnerStoreProvider<St>? provider =
+        context.dependOnInheritedWidgetOfExactType<_InnerStoreProvider<St>>();
+
+    if (provider == null) throw StoreConnectorError(_typeOf<StoreProvider<St>>(), debug);
+
+    // We only turn on rebuilds when this `state` method is used for the first time.
+    // This is to make it faster when this method is not used, which is the
+    // case if the state is only accessed via StoreConnector.
+    _InnerStoreProvider._isOn = true;
+
+    return provider._store.state;
+  }
+
+  static Store<St> _of<St>(BuildContext context, [Object? debug]) {
+    final StoreProvider<St>? provider =
+        context.dependOnInheritedWidgetOfExactType<StoreProvider<St>>();
+
+    if (provider == null) throw StoreConnectorError(_typeOf<StoreProvider<St>>(), debug);
+
+    return provider._store;
+  }
+
+  /// Workaround to capture generics.
+  static Type _typeOf<T>() => T;
+
+  /// Dispatch an action without a StoreConnector.
+  /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
+  /// whenever the state changes.
+  static FutureOr<ActionStatus> dispatch<St>(BuildContext context, ReduxAction<St> action,
+          {Object? debug, bool notify = true}) =>
+      _of<St>(context, debug).dispatch(action, notify: notify);
+
+  /// Dispatch an action without a StoreConnector.
+  /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
+  /// whenever the state changes.
+  static Future<ActionStatus> dispatchAndWait<St>(BuildContext context, ReduxAction<St> action,
+          {Object? debug, bool notify = true}) =>
+      _of<St>(context, debug).dispatchAndWait(action, notify: notify);
+
+  /// Dispatch an action without a StoreConnector.
+  /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
+  /// whenever the state changes.
+  static ActionStatus dispatchSync<St>(BuildContext context, ReduxAction<St> action,
+          {Object? debug, bool notify = true}) =>
+      _of<St>(context, debug).dispatchSync(action, notify: notify);
+
+  /// Get the state, without a StoreConnector.
+  static Store<St> _getStore<St>(BuildContext context, {Object? debug}) => //
+      _of<St>(context, debug);
+
+  @override
+  bool updateShouldNotify(StoreProvider<St> oldWidget) {
+    // Only notify dependents if the store instance changes,
+    // not on every state change within the store.
+    return _store != oldWidget._store;
+  }
+}
+
+class _StatefulWrapper<St> extends StatefulWidget {
+  final Widget child;
+  final Store<St> store;
+
+  _StatefulWrapper({required this.store, required this.child});
+
+  @override
+  _StatefulWrapperState<St> createState() => _StatefulWrapperState<St>();
+}
+
+class _StatefulWrapperState<St> extends State<_StatefulWrapper<St>> {
+  St? _recentState;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.store.onChange.where(_stateChanged).listen((St state) {
+      _recentState = state;
+      setState(() {});
+    });
+  }
+
+  // Make sure we're not rebuilding if the state didn't change.
+  // Note: This is not necessary because the store only sends the new state if it changed:
+  // `if (state != null && !identical(_state, state)) { ... }`
+  // I'm leaving it here because in the future I want to improve this by only rebuilding
+  // when the part of the state that the widgets depend on changes.
+  // To implement that in the future I have to create some special InheritedWidget that
+  // only notifies dependents when the part of the state they depend on changes.
+  // For the moment, if you use the [StoreProvider.state] method, it will rebuild the widget
+  // whenever the state changes, even if the part of the state that the widget depends on
+  // didn't change. Currently, the only way to avoid this is to use the [StoreConnector].
+  bool _stateChanged(St state) => !identical(_recentState, widget.store.state);
+
+  @override
+  Widget build(BuildContext context) {
+    // The Inner InheritedWidget is rebuilt whenever the store's state changes,
+    // triggering rebuilds for widgets that depend on the specific parts of the state.
+    return _InnerStoreProvider<St>(
+      store: widget.store,
+      child: widget.child,
+    );
+  }
+}
+
+class _InnerStoreProvider<St> extends InheritedWidget {
+  static var _isOn = false;
+  final Store<St> _store;
+
+  _InnerStoreProvider({
+    Key? key,
+    required Store<St> store,
+    required Widget child,
+  })  : _store = store,
+        super(key: key, child: child);
+
+  @override
+  bool updateShouldNotify(_InnerStoreProvider<St> oldWidget) {
+    return _isOn;
+  }
+}
+
+class StoreConnectorError extends Error {
+  final Type type;
+  final Object? debug;
+
+  StoreConnectorError(this.type, [this.debug]);
+
+  @override
+  String toString() {
+    return '''Error: No $type found. (debug info: ${debug.runtimeType})
+
+    To fix, please try:
+
+  * Dart 2 (required)
+  * Wrapping your MaterialApp with the StoreProvider<St>, rather than an individual Route
+  * Providing full type information to your Store<St>, StoreProvider<St> and StoreConnector<St, Model>
+  * Ensure you are using consistent and complete imports. E.g. always use `import 'package:my_app/app_state.dart';
+      ''';
+  }
+}

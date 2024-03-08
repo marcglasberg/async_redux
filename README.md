@@ -576,14 +576,14 @@ To access the store state inside of widgets, you can use `StoreProvider.of`. For
 
 ```dart
 // Read state
-var myInfo = StoreProvider.of<AppState>(context, this).state.myInfo;
+var myInfo = StoreProvider.state<AppState>(context).myInfo;
 
 // Dispatch action
-StoreProvider.of<AppState>(context, this).dispatch(MyAction());
+StoreProvider.dispatch<AppState>(context, MyAction());
 ```
 
-Optionally, you may define extension methods on `BuildContext`, which allow you to write it like
-this:
+It's highly recommended to create an extension on `BuildContext`
+so you can use `context.state` and `context.dispatch` instead:
 
 ```dart
 // Read state
@@ -597,10 +597,10 @@ If your state class is called `AppState`, copy the following code to define your
 
 ```dart  
 extension BuildContextExtension on BuildContext {
-   AppState get state => StoreProvider.of<AppState>(this, null).state;
-   FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatch(action, notify: notify);
-   Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatchAndWait(action, notify: notify);
-   ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.of<AppState>(this, null).dispatchSync(action, notify: notify);  
+  AppState get state => StoreProvider.state<AppState>(this);
+  FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatch(this, action, notify: notify);
+  Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatchAndWait(this, action, notify: notify);
+  ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatchSync(this, action, notify: notify);
 }
 ```  
 
