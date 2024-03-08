@@ -1200,14 +1200,12 @@ UserExceptionDialog<AppState>(
 
 > Note: The `UserExceptionDialog` can display any error widget you want in front of all the others
 > on the screen. If this is not what you want, you can easily create your
-> own `MyUserExceptionWidget`
-> to intercept the errors and do whatever you want. Start by copying `user_exception_dialog.dart`
-(which contains `UserExceptionDialog` and its `_ViewModel`) into another file, and search for
-> the `didUpdateWidget` method. This method will be called each time an error is available, and
-> there
-> you can record this information in the widget's own state. You can then change the screen in any
-> way
-> you want, according to that saved state, in this widget's `build` method.
+> own `MyUserExceptionWidget` to intercept the errors and do whatever you want. Start by
+> copying `user_exception_dialog.dart` (which contains `UserExceptionDialog` and its `_ViewModel`)
+> into another file, and search for the `didUpdateWidget` method. This method will be called each
+> time an error is available, and there you can record this information in the widget's own state.
+> You can then change the screen in any way you want, according to that saved state, in this
+> widget's `build` method.
 
 <br>
 
@@ -1230,7 +1228,7 @@ class MyAction extends ReduxAction<AppState> {
   Object? wrapError(error) {
      if ((error is PlatformException) && (error.code == "Error performing get") &&
                (error.message == "Failed to get document because the client is offline."))
-        return UserException("Check your internet connection.", cause: error);
+        return UserException("Check your internet connection.").addCause(error);
      else 
         return error; 
   }    
@@ -1250,7 +1248,7 @@ class MyGlobalWrapError extends GlobalWrapError {
   Object? wrap(Object error, StackTrace stackTrace, ReduxAction<AppState> action) {
     if ((error is PlatformException) && (error.code == "Error performing get") &&
           (error.message == "Failed to get document because the client is offline.")) 
-        return UserException("Check your internet connection.", cause: error);
+        return UserException("Check your internet connection.").addCause(error);
     else 
         return error;
   }
@@ -1271,7 +1269,7 @@ If you want the `UserExceptionDialog` to display some `UserException`, you must 
 from inside an action's `before()` or `reduce()` methods.
 
 However, sometimes you need to create some **callback** that throws an `UserException`. If this
-callback is called **outside** of an action, the dialog will **not** display the exception. To solve
+callback is called **outside** an action, the dialog will **not** display the exception. To solve
 this, the callback should not throw an exception, but instead call the
 provided `UserExceptionAction`, which will then simply throw the exception in its own `reduce()`
 method.
@@ -1717,8 +1715,7 @@ In tests there are two possibilities:
 1. You are testing that some `UserException` is thrown. For example, you want to test that users are
    warned if they typed letters in some field that only accepts numbers. To that end, your test
    would dispatch the appropriate action, and then check if the `errors` queue now contains
-   an `UserException`
-   with some specific error message.
+   an `UserException` with some specific error message.
 
 2. You are testing some code that should **not** throw any exceptions. If the test has thrown an
    exception it means the test has failed, and the exception should show up in the console, for
