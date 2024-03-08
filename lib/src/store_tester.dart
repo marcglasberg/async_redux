@@ -19,8 +19,10 @@ typedef StateCondition<St> = bool Function(TestInfo<St> info);
 ///
 class StoreTester<St> {
   //
-  /// The global default timeout for the wait functions.
-  static const defaultTimeout = 500;
+  /// The global default timeout for the wait functions is 10 minutes.
+  /// This value is not final and can be modified.
+  /// To disable the timeout, modify this to a large value, like 300000000 (almost 10 years).
+  static var defaultTimeout = 300000000;
 
   /// If the default debug info should be printed to the console or not.
   static bool printDefaultDebugInfo = true;
@@ -203,8 +205,10 @@ class StoreTester<St> {
     StateCondition<St> condition, {
     bool testImmediately = true,
     bool ignoreIni = true,
-    int timeoutInSeconds = defaultTimeout,
+    int? timeoutInSeconds,
   }) async {
+    timeoutInSeconds ??= defaultTimeout;
+
     var infoList = await waitCondition(
       condition,
       testImmediately: testImmediately,
@@ -231,8 +235,10 @@ class StoreTester<St> {
     StateCondition<St> condition, {
     bool testImmediately = true,
     bool ignoreIni = true,
-    int? timeoutInSeconds = defaultTimeout,
+    int? timeoutInSeconds,
   }) async {
+    timeoutInSeconds ??= defaultTimeout;
+
     TestInfoList<St> infoList = TestInfoList<St>();
 
     if (testImmediately) {
@@ -286,8 +292,10 @@ class StoreTester<St> {
   Future<TestInfo<St>> waitUntilErrorGetLast({
     Object? error,
     Object? processedError,
-    int timeoutInSeconds = defaultTimeout,
+    int? timeoutInSeconds,
   }) async {
+    timeoutInSeconds ??= defaultTimeout;
+
     var infoList = await waitUntilError(
       error: error,
       processedError: processedError,
@@ -309,8 +317,10 @@ class StoreTester<St> {
   Future<TestInfoList<St>> waitUntilError({
     Object? error,
     Object? processedError,
-    int timeoutInSeconds = defaultTimeout,
+    int? timeoutInSeconds,
   }) async {
+    timeoutInSeconds ??= defaultTimeout;
+
     assert(error != null || processedError != null);
 
     var condition = (TestInfo<St> info) =>
@@ -345,11 +355,33 @@ class StoreTester<St> {
   ///
   Future<TestInfo<St>> waitUntil(
     Type actionType, {
-    int timeoutInSeconds = defaultTimeout,
+    int? timeoutInSeconds,
   }) async {
+    timeoutInSeconds ??= defaultTimeout;
+
     TestInfo<St>? testInfo;
 
-    while (testInfo == null || testInfo.type != actionType || testInfo.isINI) {
+    while ((testInfo == null) || (testInfo.type != actionType) || testInfo.isINI) {
+      testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
+    }
+
+    lastInfo = testInfo;
+
+    return testInfo;
+  }
+
+  /// Runs until an action of any of the given types is dispatched, and then waits until it finishes.
+  /// Returns the info after the action finishes. **Ignores other** actions types.
+  ///
+  Future<TestInfo<St>> waitUntilAny(
+    List<Type> actionTypes, {
+    int? timeoutInSeconds,
+  }) async {
+    timeoutInSeconds ??= defaultTimeout;
+
+    TestInfo<St>? testInfo;
+
+    while ((testInfo == null) || (!actionTypes.contains(testInfo.type)) || testInfo.isINI) {
       testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
     }
 
@@ -364,9 +396,11 @@ class StoreTester<St> {
   Future<TestInfoList<St>> waitUntilAll(
     List<Type> actionTypes, {
     bool ignoreIni = true,
-    int timeoutInSeconds = defaultTimeout,
+    int? timeoutInSeconds,
   }) async {
     assert(actionTypes.isNotEmpty);
+
+    timeoutInSeconds ??= defaultTimeout;
 
     TestInfoList<St> infoList = TestInfoList<St>();
     Set<Type> actionsIni = Set.from(actionTypes);
@@ -395,8 +429,10 @@ class StoreTester<St> {
   Future<TestInfo<St>> waitUntilAllGetLast(
     List<Type> actionTypes, {
     bool ignoreIni = true,
-    int timeoutInSeconds = defaultTimeout,
+    int? timeoutInSeconds,
   }) async {
+    timeoutInSeconds ??= defaultTimeout;
+
     var infoList = await waitUntilAll(
       actionTypes,
       ignoreIni: ignoreIni,
@@ -417,8 +453,10 @@ class StoreTester<St> {
   ///
   Future<TestInfo<St>> waitUntilAction(
     ReduxAction<St> action, {
-    int timeoutInSeconds = defaultTimeout,
+    int? timeoutInSeconds,
   }) async {
+    timeoutInSeconds ??= defaultTimeout;
+
     TestInfo<St>? testInfo;
 
     while (testInfo == null || testInfo.action != action || testInfo.isINI) {
@@ -471,15 +509,18 @@ class StoreTester<St> {
   ///
   Future<TestInfo<St>> waitAllUnorderedGetLast(
     List<Type> actionTypes, {
-    int timeoutInSeconds = defaultTimeout,
+    int? timeoutInSeconds,
     List<Type>? ignore,
-  }) async =>
-      (await waitAllUnordered(
-        actionTypes,
-        timeoutInSeconds: timeoutInSeconds,
-        ignore: ignore,
-      ))
-          .last;
+  }) async {
+    timeoutInSeconds ??= defaultTimeout;
+
+    return (await waitAllUnordered(
+      actionTypes,
+      timeoutInSeconds: timeoutInSeconds,
+      ignore: ignore,
+    ))
+        .last;
+  }
 
   /// Runs until **all** given actions types are dispatched, **in order**.
   /// Waits until all of them are finished.
@@ -593,10 +634,13 @@ class StoreTester<St> {
   ///
   Future<TestInfoList<St>> waitAllUnordered(
     List<Type> actionTypes, {
-    int timeoutInSeconds = defaultTimeout,
+    int? timeoutInSeconds,
     List<Type>? ignore,
   }) async {
     assert(actionTypes.isNotEmpty);
+
+    timeoutInSeconds ??= defaultTimeout;
+
     ignore ??= _ignore;
 
     // Actions which are expected can't also be ignored.
@@ -698,8 +742,10 @@ class StoreTester<St> {
   }
 
   Future<TestInfo<St>> _next({
-    int? timeoutInSeconds = defaultTimeout,
+    int? timeoutInSeconds,
   }) async {
+    timeoutInSeconds ??= defaultTimeout;
+
     if (_futures.isEmpty) {
       _completer = Completer();
       _futures.addLast(_completer.future);
@@ -707,12 +753,10 @@ class StoreTester<St> {
 
     var result = _futures.removeFirst();
 
-    _currentTestInfo = await ((timeoutInSeconds == null)
-        ? result
-        : result.timeout(
-            Duration(seconds: timeoutInSeconds),
-            onTimeout: (() => throw StoreExceptionTimeout()),
-          ));
+    _currentTestInfo = await result.timeout(
+      Duration(seconds: timeoutInSeconds),
+      onTimeout: (() => throw StoreExceptionTimeout()),
+    );
 
     return _currentTestInfo;
   }

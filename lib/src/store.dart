@@ -316,18 +316,103 @@ class Store<St> {
   }
 
   /// Returns a future which will complete when the given [condition] is true.
-  /// The condition can access the state. You may also provide a
-  /// [timeoutInSeconds], which by default is null (never times out).
-  Future<void> waitCondition(
+  /// The condition can access the state. You may also provide a [timeoutInSeconds], which
+  /// by default is 10 minutes. If you want, you can modify [StoreTester.defaultTimeout] to change
+  /// the default timeout. Note: To disable the timeout, modify this to a large value,
+  /// like 300000000 (almost 10 years).
+  ///
+  /// This method is useful in tests, and it returns the action which changed
+  /// the store state into the condition, in case you need it:
+  ///
+  /// ```dart
+  /// var action = await store.waitCondition((state) => state.name == "Bill");
+  /// expect(action, isA<ChangeNameAction>());
+  /// ```
+  ///
+  /// This method is also eventually useful in production code, in which case you
+  /// should avoid waiting for conditions that may take a very long time to complete,
+  /// as checking the condition is an overhead to every state change.
+  ///
+  Future<ReduxAction<St>> waitCondition(
     bool Function(St) condition, {
     int? timeoutInSeconds,
   }) async {
     var conditionTester = StoreTester.simple(this);
     try {
-      await conditionTester.waitCondition(
+      var info = await conditionTester.waitConditionGetLast(
         (TestInfo<St>? info) => condition(info!.state),
-        timeoutInSeconds: timeoutInSeconds,
+        timeoutInSeconds: timeoutInSeconds ?? StoreTester.defaultTimeout,
       );
+      var action = info.action;
+      if (action == null) throw StoreExceptionTimeout();
+      return action;
+    } finally {
+      await conditionTester.cancel();
+    }
+  }
+
+  /// Returns a future which will complete when an action of the given type is dispatched, and
+  /// then waits until it finishes. Ignores other actions types.
+  ///
+  /// You may also provide a [timeoutInSeconds], which by default is 10 minutes.
+  /// If you want, you can modify [StoreTester.defaultTimeout] to change the default timeout.
+  ///
+  /// This method returns the action, which you can use to check its `status`:
+  ///
+  /// ```dart
+  /// var action = await store.waitActionType(MyAction);
+  /// expect(action.status.originalError, isA<UserException>());
+  /// ```
+  ///
+  /// You should only use this method in tests.
+  @visibleForTesting
+  Future<ReduxAction<St>> waitActionType(
+    Type actionType, {
+    int? timeoutInSeconds,
+  }) async {
+    var conditionTester = StoreTester.simple(this);
+    try {
+      var info = await conditionTester.waitUntil(
+        actionType,
+        timeoutInSeconds: timeoutInSeconds ?? StoreTester.defaultTimeout,
+      );
+      var action = info.action;
+      if (action == null) throw StoreExceptionTimeout();
+      return action;
+    } finally {
+      await conditionTester.cancel();
+    }
+  }
+
+  /// Returns a future which will complete when an action of ANY of the given types is dispatched,
+  /// and then waits until it finishes. Ignores other actions types.
+  ///
+  /// You may also provide a [timeoutInSeconds], which by default is 10 minutes.
+  /// If you want, you can modify [StoreTester.defaultTimeout] to change the default timeout.
+  ///
+  /// This method returns the action, which you can use to check its `status`:
+  ///
+  /// ```dart
+  /// var action = await store.waitAnyActionType([MyAction, OtherAction]);
+  /// expect(action.status.originalError, isA<UserException>());
+  /// ```
+  ///
+  /// You should only use this method in tests.
+  @visibleForTesting
+  Future<ReduxAction<St>> waitAnyActionType(
+    List<Type> actionTypes, {
+    bool ignoreIni = true,
+    int? timeoutInSeconds,
+  }) async {
+    var conditionTester = StoreTester.simple(this);
+    try {
+      var info = await conditionTester.waitUntilAny(
+        actionTypes,
+        timeoutInSeconds: timeoutInSeconds ?? StoreTester.defaultTimeout,
+      );
+      var action = info.action;
+      if (action == null) throw StoreExceptionTimeout();
+      return action;
     } finally {
       await conditionTester.cancel();
     }
