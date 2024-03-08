@@ -16,7 +16,7 @@ export 'src/store_exception.dart';
 export 'src/store_provider.dart';
 export 'src/store_tester.dart';
 export 'src/test_info.dart';
-export 'src/user_exception_advanced.dart';
+export 'src/advanced_user_exception.dart';
 export 'src/user_exception_dialog.dart';
 export 'src/view_model.dart';
 export 'src/wait.dart';

@@ -8,7 +8,7 @@ import "package:meta/meta.dart";
 
 /// Extends the [UserException] to add more features.
 ///
-/// The [UserExceptionAdvanced] is not supposed to be instantiated directly. Instead, use
+/// The [AdvancedUserException] is not supposed to be instantiated directly. Instead, use
 /// the [addCallbacks], [addCause] and [addProps] extension methods in the [UserException]:
 ///
 /// ```dart
@@ -36,7 +36,7 @@ import "package:meta/meta.dart";
 /// The [props] are any key-value pair properties you'd like to add to the exception.
 ///
 @immutable
-class UserExceptionAdvanced extends UserException {
+class AdvancedUserException extends UserException {
   //
 
   /// Callback to be called after the user views the error and taps OK.
@@ -63,21 +63,32 @@ class UserExceptionAdvanced extends UserException {
   ///
   final IMap<String, dynamic> props;
 
-  const UserExceptionAdvanced._(
+  /// Instead of using this constructor directly, prefer doing:
+  ///
+  /// ```dart
+  /// throw UserException('Invalid number', reason: 'Must be less than 42')
+  ///    .addCallbacks(onOk: () => print('OK'), onCancel: () => print('CANCEL'))
+  ///    .addCause(FormatException('Invalid input'))
+  ///    .addProps({'number': 42}));
+  /// ```
+  ///
+  /// This constructor is public only so that you can subclass [AdvancedUserException].
+  ///
+  const AdvancedUserException(
     super.message, {
     required super.reason,
     required super.code,
     required this.onOk,
     required this.onCancel,
     required this.hardCause,
-    required this.props,
+    this.props = const IMapConst<String, dynamic>({}),
   });
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       super == other &&
-          other is UserExceptionAdvanced &&
+          other is AdvancedUserException &&
           runtimeType == other.runtimeType &&
           onOk == other.onOk &&
           onCancel == other.onCancel &&
@@ -91,12 +102,12 @@ class UserExceptionAdvanced extends UserException {
   @useResult
   @mustBeOverridden
   @override
-  UserExceptionAdvanced addReason(String? reason) {
+  UserException addReason(String? reason) {
     //
     IMap;
     UserException exception = super.addReason(reason);
 
-    return UserExceptionAdvanced._(
+    return AdvancedUserException(
       exception.message,
       reason: exception.reason,
       code: exception.code,
@@ -117,7 +128,7 @@ class UserExceptionAdvanced extends UserException {
     //
     UserException exception = super.mergedWith(userException);
 
-    return UserExceptionAdvanced._(
+    return AdvancedUserException(
       exception.message,
       reason: exception.reason,
       code: exception.code,
@@ -134,13 +145,13 @@ extension UserExceptionAdvancedExtension on UserException {
   /// The `onOk` callback of the exception, or `null` if it was not defined.
   VoidCallback? get onOk {
     var exception = this;
-    return (exception is UserExceptionAdvanced) ? exception.onOk : null;
+    return (exception is AdvancedUserException) ? exception.onOk : null;
   }
 
   /// The `onCancel` callback of the exception, or `null` if it was not defined.
   VoidCallback? get onCancel {
     var exception = this;
-    return (exception is UserExceptionAdvanced) ? exception.onCancel : null;
+    return (exception is AdvancedUserException) ? exception.onCancel : null;
   }
 
   /// The hard cause is some error which caused the [UserException], but that is not
@@ -151,7 +162,7 @@ extension UserExceptionAdvancedExtension on UserException {
   /// hard cause. In other words, a [UserException] will never be a hard cause.
   Object? get hardCause {
     var exception = this;
-    return (exception is UserExceptionAdvanced) ? exception.hardCause : null;
+    return (exception is AdvancedUserException) ? exception.hardCause : null;
   }
 
   /// The properties added to the exception, if any.
@@ -164,7 +175,7 @@ extension UserExceptionAdvancedExtension on UserException {
   ///
   IMap<String, dynamic> get props {
     var exception = this;
-    return (exception is UserExceptionAdvanced)
+    return (exception is AdvancedUserException)
         ? exception.props
         : const IMapConst<String, dynamic>({});
   }
@@ -204,7 +215,7 @@ extension UserExceptionAdvancedExtension on UserException {
     //
     // Now we're going to set the hard cause.
     else {
-      return UserExceptionAdvanced._(
+      return AdvancedUserException(
         message,
         reason: reason,
         code: code,
@@ -233,7 +244,7 @@ extension UserExceptionAdvancedExtension on UserException {
   }) {
     var exception = this;
 
-    if (exception is UserExceptionAdvanced) {
+    if (exception is AdvancedUserException) {
       VoidCallback? _onOk;
       VoidCallback? _onCancel;
 
@@ -253,7 +264,7 @@ extension UserExceptionAdvancedExtension on UserException {
           onCancel?.call();
         };
 
-      return UserExceptionAdvanced._(
+      return AdvancedUserException(
         message,
         reason: reason,
         code: code,
@@ -265,7 +276,7 @@ extension UserExceptionAdvancedExtension on UserException {
     }
     //
     else
-      return UserExceptionAdvanced._(
+      return AdvancedUserException(
         message,
         reason: reason,
         code: code,
@@ -285,8 +296,8 @@ extension UserExceptionAdvancedExtension on UserException {
 
     var exception = this;
 
-    if (exception is UserExceptionAdvanced)
-      return UserExceptionAdvanced._(
+    if (exception is AdvancedUserException)
+      return AdvancedUserException(
         message,
         reason: reason,
         code: code,
@@ -297,7 +308,7 @@ extension UserExceptionAdvancedExtension on UserException {
       );
     //
     else
-      return UserExceptionAdvanced._(
+      return AdvancedUserException(
         message,
         reason: reason,
         code: code,

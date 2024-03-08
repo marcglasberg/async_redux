@@ -3,7 +3,7 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# 22.0.0-dev.1
+# 22.0.0-dev.3
 
 * Some features of the async_redux package are now available as a standalone Dart-only
   package: https://pub.dev/packages/async_redux_core. You may use that core package when you
