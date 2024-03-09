@@ -783,8 +783,10 @@ class _StatefulWrapperState<St> extends State<_StatefulWrapper<St>> {
   void initState() {
     super.initState();
     widget.store.onChange.where(_stateChanged).listen((St state) {
-      _recentState = state;
-      setState(() {});
+      if (mounted) {
+        _recentState = state;
+        setState(() {});
+      }
     });
   }
 
