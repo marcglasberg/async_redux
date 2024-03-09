@@ -325,6 +325,38 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   DispatchSync<St> get dispatchSync => _store.dispatchSync;
 
+  /// You can use [isWaitingFor] to check if:
+  /// * A specific async ACTION is currently being processed.
+  /// * An async action of a specific TYPE is currently being processed.
+  /// * If any of a few given async actions or action types is currently being processed.
+  ///
+  /// If you wait for an action TYPE, then it returns false when:
+  /// - The ASYNC action of type [actionType] is NOT currently being processed.
+  /// - If [actionType] is not really a type that extends [ReduxAction].
+  /// - The action of type [actionType] is a SYNC action (since those finish immediately).
+  ///
+  /// If you wait for an ACTION, then it returns false when:
+  /// - The ASYNC [action] is NOT currently being processed.
+  /// - If [action] is a SYNC action (since those finish immediately).
+  //
+  /// Examples:
+  ///
+  /// ```dart
+  /// // Waiting for an action TYPE:
+  /// dispatch(MyAction());
+  /// if (isWaitingFor(MyAction)) { // Show a spinner }
+  ///
+  /// // Waiting for an ACTION:
+  /// var action = MyAction();
+  /// dispatch(action);
+  /// if (isWaitingFor(action)) { // Show a spinner }
+  ///
+  /// // Waiting for any of the given action TYPES:
+  /// dispatch(BuyAction());
+  /// if (isWaitingFor([BuyAction, SellAction])) { // Show a spinner }
+  /// ```
+  bool isWaitingFor(Object actionOrTypeOrList) => _store.isWaitingFor(actionOrTypeOrList);
+
   /// Gets the first error from the error queue, and removes it from the queue.
   UserException? getAndRemoveFirstError() => _store.getAndRemoveFirstError();
 }
