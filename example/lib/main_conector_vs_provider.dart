@@ -40,18 +40,26 @@ class HomePage extends StatelessWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.dispatch(IncrementAction()),
-        child: const Icon(Icons.add),
-      ),
+      // Here we disable the button while the `WaitAndIncrementAction` action is running.
+      floatingActionButton: context.isWaitingForType(WaitAndIncrementAction)
+          ? const FloatingActionButton(
+              disabledElevation: 0,
+              onPressed: null,
+              child: SizedBox(width: 25, height: 25, child: CircularProgressIndicator()))
+          : FloatingActionButton(
+              disabledElevation: 0,
+              onPressed: () => context.dispatch(WaitAndIncrementAction()),
+              child: const Icon(Icons.add),
+            ),
     );
   }
 }
 
-/// This action increments the counter by [amount]].
-class IncrementAction extends ReduxAction<AppState> {
+/// This action waits for 1 second, then increments the counter by [amount]].
+class WaitAndIncrementAction extends ReduxAction<AppState> {
   @override
-  AppState reduce() {
+  Future<AppState?> reduce() async {
+    await Future.delayed(const Duration(seconds: 1));
     return AppState(
       counter: state.counter + 1,
       something: state.something,
@@ -90,7 +98,7 @@ class GetsStateFromStoreProvider extends StatelessWidget {
   }
 }
 
-extension BuildContextExtension on BuildContext {
+extension BuildContextExtension<T extends AppState> on BuildContext {
   //
   AppState get state => StoreProvider.state<AppState>(this);
 
@@ -102,6 +110,12 @@ extension BuildContextExtension on BuildContext {
 
   ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) =>
       StoreProvider.dispatchSync(this, action, notify: notify);
+
+  bool isWaitingForType(Type actionType) =>
+      StoreProvider.isWaitingForType<AppState>(this, actionType);
+
+  bool isWaitingForAction(ReduxAction<AppState> action) =>
+      StoreProvider.isWaitingForAction<AppState>(this, action);
 }
 
 class AppState {

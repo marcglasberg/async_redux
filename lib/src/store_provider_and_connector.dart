@@ -721,6 +721,21 @@ class StoreProvider<St> extends InheritedWidget {
     return provider._store.state;
   }
 
+  /// This WILL create a dependency, and WILL potentially rebuild the state.
+  static Store<St> _getStoreWithDependency<St>(BuildContext context, {Object? debug}) {
+    final _InnerStoreProvider<St>? provider =
+        context.dependOnInheritedWidgetOfExactType<_InnerStoreProvider<St>>();
+
+    if (provider == null) throw StoreConnectorError(_typeOf<StoreProvider<St>>(), debug);
+
+    // We only turn on rebuilds when this `state` method is used for the first time.
+    // This is to make it faster when this method is not used, which is the
+    // case if the state is only accessed via StoreConnector.
+    _InnerStoreProvider._isOn = true;
+
+    return provider._store;
+  }
+
   static Store<St> _of<St>(BuildContext context, [Object? debug]) {
     final StoreProvider<St>? provider =
         context.dependOnInheritedWidgetOfExactType<StoreProvider<St>>();
@@ -755,8 +770,41 @@ class StoreProvider<St> extends InheritedWidget {
       _of<St>(context, debug).dispatchSync(action, notify: notify);
 
   /// Get the state, without a StoreConnector.
+  /// This will NOT create a dependency, and will NOT rebuild the state.
   static Store<St> _getStore<St>(BuildContext context, {Object? debug}) => //
       _of<St>(context, debug);
+
+  /// If an ASYNC action of the exact given [actionType] is currently being processed, returns true.
+  /// Returns false when:
+  /// - The ASYNC action of type [actionType] is NOT currently being processed.
+  /// - If [actionType] is not really a type that extends [ReduxAction].
+  /// - The action of type [actionType] is a SYNC action.
+  ///
+  /// Example:
+  ///
+  /// ```dart
+  /// if (store.isWaitingForType(MyAction)) { // Show a spinner. }
+  /// ```
+  static bool isWaitingForType<St>(BuildContext context, Type actionType) =>
+      _getStoreWithDependency<St>(context).isWaitingForType(actionType);
+
+  /// If the given ASYNC [action] is currently being processed, returns true.
+  /// Returns false when:
+  /// - The ASYNC [action] is NOT currently being processed.
+  /// - If [action] is a SYNC action (since those finish immediately).
+  ///
+  /// Example:
+  ///
+  /// ```dart
+  /// var action = MyAction();
+  /// dispatch(action);
+  /// if (store.isWaitingForAction(action)) { // Show a spinner. }
+  /// ```
+  static bool isWaitingForAction<St>(BuildContext context, ReduxAction<St> action) =>
+      _getStoreWithDependency<St>(context).isWaitingForAction(action);
+
+  // static Store<St> _getStore<St>(BuildContext context, {Object? debug}) => //
+  // _of<St>(context, debug);
 
   @override
   bool updateShouldNotify(StoreProvider<St> oldWidget) {
@@ -777,14 +825,16 @@ class _StatefulWrapper<St> extends StatefulWidget {
 }
 
 class _StatefulWrapperState<St> extends State<_StatefulWrapper<St>> {
-  St? _recentState;
+  // TODO: DONT REMOVE
+  // St? _recentState;
 
   @override
   void initState() {
     super.initState();
     widget.store.onChange.where(_stateChanged).listen((St state) {
       if (mounted) {
-        _recentState = state;
+        // TODO: DONT REMOVE
+        // _recentState = state;
         setState(() {});
       }
     });
@@ -800,7 +850,8 @@ class _StatefulWrapperState<St> extends State<_StatefulWrapper<St>> {
   // For the moment, if you use the [StoreProvider.state] method, it will rebuild the widget
   // whenever the state changes, even if the part of the state that the widget depends on
   // didn't change. Currently, the only way to avoid this is to use the [StoreConnector].
-  bool _stateChanged(St state) => !identical(_recentState, widget.store.state);
+  // TODO: DONT REMOVE:  bool _stateChanged(St state) => !identical(_recentState, widget.store.state);
+  bool _stateChanged(St state) => true;
 
   @override
   Widget build(BuildContext context) {
@@ -841,8 +892,7 @@ class StoreConnectorError extends Error {
     return '''Error: No $type found. (debug info: ${debug.runtimeType})
 
     To fix, please try:
-
-  * Dart 2 (required)
+  
   * Wrapping your MaterialApp with the StoreProvider<St>, rather than an individual Route
   * Providing full type information to your Store<St>, StoreProvider<St> and StoreConnector<St, Model>
   * Ensure you are using consistent and complete imports. E.g. always use `import 'package:my_app/app_state.dart';

@@ -7,7 +7,6 @@ library async_redux_store;
 
 import 'dart:async';
 import 'dart:collection';
-
 import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/src/process_persistence.dart';
 import 'package:flutter/foundation.dart';
@@ -551,8 +550,60 @@ class Store<St> {
     //
     if (_ifActionIsSync(action)) {
       return _processAction_Sync(action, notify: notify);
-    } else
+    }
+    //
+    else {
+      // Note: Only if the action is async it makes sense to add it to the list of active actions.
+      // If it's sync it will finish immediately, so there's no need to add it.
+      _activeAsyncActions.add(action);
+
+      if (_awaitableAsyncActions.contains(action.runtimeType)) {
+        _changeController.add(state);
+      }
+
       return _processAction_Async(action, notify: notify);
+    }
+  }
+
+  /// If an ASYNC action of the exact given [actionType] is currently being processed, returns true.
+  /// Returns false when:
+  /// - The ASYNC action of type [actionType] is NOT currently being processed.
+  /// - If [actionType] is not really a type that extends [ReduxAction].
+  /// - The action of type [actionType] is a SYNC action.
+  ///
+  /// Example:
+  ///
+  /// ```dart
+  /// if (store.isWaitingForType(MyAction)) { // Show a spinner. }
+  /// ```
+  bool isWaitingForType(Type actionType) {
+    bool itIsTheFirstTime = _awaitableAsyncActions.add(actionType);
+
+    // This is necessary to trigger the UI the first time we check for some action being processed.
+    if (itIsTheFirstTime) _changeController.add(_state);
+
+    return _activeAsyncActions.any((action) => action.runtimeType == actionType);
+  }
+
+  /// If the given ASYNC [action] is currently being processed, returns true.
+  /// Returns false when:
+  /// - The ASYNC [action] is NOT currently being processed.
+  /// - If [action] is a SYNC action (since those finish immediately).
+  ///
+  /// Example:
+  ///
+  /// ```dart
+  /// var action = MyAction();
+  /// dispatch(action);
+  /// if (store.isWaitingForAction(action)) { // Show a spinner. }
+  /// ```
+  bool isWaitingForAction(ReduxAction<St> action) {
+    bool itIsTheFirstTime = _awaitableAsyncActions.add(action.runtimeType);
+
+    // This is necessary to trigger the UI the first time we check for some action being processed.
+    if (itIsTheFirstTime) _changeController.add(_state);
+
+    return _activeAsyncActions.contains(action);
   }
 
   bool _ifActionIsSync(ReduxAction<St> action) {
@@ -804,14 +855,15 @@ class Store<St> {
 
     St prevState = _state;
 
-    // Reducers may return null state, or the unaltered state,
-    // when they don't want to change the state.
-    if (state != null && !identical(_state, state)) {
-      _state = state;
+    // Reducers may return null state, or the unaltered state, when they don't want to change the
+    // state. Note: If the action is an "active action" it will be removed, so we have to
+    // add the state to _changeController even if it's the same state.
+    if (((state != null) && !identical(_state, state)) || _activeAsyncActions.contains(action)) {
+      _state = state ?? _state;
       _stateTimestamp = DateTime.now().toUtc();
 
       if (notify) {
-        _changeController.add(state);
+        _changeController.add(state ?? _state);
       }
     }
     St newState = _state;
@@ -826,6 +878,18 @@ class Store<St> {
         action,
         newState,
       );
+  }
+
+  /// The async actions that are currently being processed.
+  final Set<ReduxAction<St>> _activeAsyncActions = HashSet<ReduxAction<St>>.identity();
+
+  /// Async actions that we may put into [_activeAsyncActions].
+  final Set<Type> _awaitableAsyncActions = HashSet<Type>.identity();
+
+  /// Given a [newState] returns true if the state is different from the current state.
+  bool ifStateChanged(St? newState, ReduxAction<St> action) {
+    return (newState != null && !identical(_state, newState)) ||
+        _activeAsyncActions.contains(action);
   }
 
   /// Returns the processed error. Returns `null` if the error is meant to be "swallowed".
@@ -910,6 +974,8 @@ class Store<St> {
     _Flag<bool> afterWasRun,
   ) {
     if (!afterWasRun.value) _after(action);
+
+    _activeAsyncActions.remove(action);
 
     createTestInfoSnapshot(state!, action, error, processedError, ini: false);
 
