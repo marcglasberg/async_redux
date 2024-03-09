@@ -680,6 +680,9 @@ class _StoreStreamListenerState<St, Model> //
 ///
 ///   ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) =>
 ///       StoreProvider.dispatchSync(this, action, notify: notify);
+///
+///   bool isWaitingFor(Object actionOrTypeOrList) =>
+///       StoreProvider.isWaitingFor<AppState>(this, actionOrTypeOrList);
 /// }
 /// ```
 ///
@@ -690,6 +693,7 @@ class _StoreStreamListenerState<St, Model> //
 /// context.dispatch(action);
 /// context.dispatchAndWait(action);
 /// context.dispatchSync(action);
+/// context.isWaitingFor(MyAction);
 /// ```
 
 class StoreProvider<St> extends InheritedWidget {
@@ -785,26 +789,8 @@ class StoreProvider<St> extends InheritedWidget {
   /// ```dart
   /// if (store.isWaitingForType(MyAction)) { // Show a spinner. }
   /// ```
-  static bool isWaitingForType<St>(BuildContext context, Type actionType) =>
-      _getStoreWithDependency<St>(context).isWaitingForType(actionType);
-
-  /// If the given ASYNC [action] is currently being processed, returns true.
-  /// Returns false when:
-  /// - The ASYNC [action] is NOT currently being processed.
-  /// - If [action] is a SYNC action (since those finish immediately).
-  ///
-  /// Example:
-  ///
-  /// ```dart
-  /// var action = MyAction();
-  /// dispatch(action);
-  /// if (store.isWaitingForAction(action)) { // Show a spinner. }
-  /// ```
-  static bool isWaitingForAction<St>(BuildContext context, ReduxAction<St> action) =>
-      _getStoreWithDependency<St>(context).isWaitingForAction(action);
-
-  // static Store<St> _getStore<St>(BuildContext context, {Object? debug}) => //
-  // _of<St>(context, debug);
+  static bool isWaitingFor<St>(BuildContext context, Object actionOrTypeOrList) =>
+      _getStoreWithDependency<St>(context).isWaitingFor(actionOrTypeOrList);
 
   @override
   bool updateShouldNotify(StoreProvider<St> oldWidget) {

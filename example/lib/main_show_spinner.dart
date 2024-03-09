@@ -29,29 +29,36 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Connector vs Provider Example')),
+      appBar: AppBar(title: const Text('Show Spinner Example')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            GetsStateFromStoreConnector(),
-            const SizedBox(height: 40),
-            GetsStateFromStoreProvider(),
+            const Text('You have pushed the button this many times:'),
+            CounterWidget(),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        disabledElevation: 0,
-        onPressed: () => context.dispatch(IncrementAction()),
-        child: const Icon(Icons.add),
-      ),
+      // Here we disable the button while the `WaitAndIncrementAction` action is running.
+      floatingActionButton: context.isWaitingFor(WaitAndIncrementAction)
+          ? const FloatingActionButton(
+              disabledElevation: 0,
+              onPressed: null,
+              child: SizedBox(width: 25, height: 25, child: CircularProgressIndicator()))
+          : FloatingActionButton(
+              disabledElevation: 0,
+              onPressed: () => context.dispatch(WaitAndIncrementAction()),
+              child: const Icon(Icons.add),
+            ),
     );
   }
 }
 
-class IncrementAction extends ReduxAction<AppState> {
+/// This action waits for 2 seconds, then increments the counter by [amount]].
+class WaitAndIncrementAction extends ReduxAction<AppState> {
   @override
-  AppState reduce() {
+  Future<AppState?> reduce() async {
+    await Future.delayed(const Duration(seconds: 2));
     return AppState(
       counter: state.counter + 1,
       something: state.something,
@@ -59,48 +66,14 @@ class IncrementAction extends ReduxAction<AppState> {
   }
 }
 
-class GetsStateFromStoreConnector extends StatelessWidget {
+class CounterWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    var isWaiting = context.isWaitingFor(IncrementAction);
+    var isWaiting = context.isWaitingFor(WaitAndIncrementAction);
 
-    return StoreConnector(
-      converter: (Store<AppState> store) => store.state.counter,
-      builder: (context, value) => Column(
-        children: [
-          Text('$value',
-              style: TextStyle(
-                fontSize: 30,
-                color: isWaiting ? Colors.grey[350] : Colors.black,
-              )),
-          const Text(
-            'Value read with the StoreConnector:\n`StoreConnector(builder: (context, value) => ...)`',
-            style: const TextStyle(fontSize: 13),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class GetsStateFromStoreProvider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    var isWaiting = context.isWaitingFor(IncrementAction);
-
-    return Column(
-      children: [
-        Text(
-          '${context.state.counter}',
-          style: TextStyle(fontSize: 30, color: isWaiting ? Colors.grey[350] : Colors.black),
-        ),
-        const Text(
-          'Value read with the StoreProvider:\n`context.state.counter`',
-          style: TextStyle(fontSize: 13),
-          textAlign: TextAlign.center,
-        ),
-      ],
+    return Text(
+      '${context.state.counter}',
+      style: TextStyle(fontSize: 40, color: isWaiting ? Colors.grey[350] : Colors.black),
     );
   }
 }

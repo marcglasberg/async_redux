@@ -3,7 +3,14 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# 22.0.0-dev.9
+# 22.0.0-dev.10
+
+* When you dispatch an async action, you can now use `var isWaiting = store.isWaitingFor(MyAction)`
+  to check if the action is currently being processed. You can then use this boolean to show a
+  loading spinner in your widget, for example. Note you can also check for specific actions, or any
+  type from a list of action types. See
+  the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_spinner.dart">
+  Show Spinner Example</a>.
 
 * A few features of the async_redux package are now available as a standalone Dart-only
   package: https://pub.dev/packages/async_redux_core. You may use that core package when you
@@ -48,9 +55,9 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
 * BREAKING CHANGE: `StoreProvider.of` was removed. You can now access the store inside of
   widgets, and have your widgets rebuild when the state changes, by using `StoreProvider.state`
-  and `StoreProvider.dispatch` etc. This is only useful when you want to access the store `state`
-  and `dispatch` directly inside your widgets, instead of using the `StoreConnector` (dumb widget /
-  smart widget pattern).
+  and `StoreProvider.dispatch` etc. This is only useful when you want to access the store `state`,
+  `dispatch` and wait for actions directly inside your widgets, instead of using
+  the `StoreConnector` (dumb widget / smart widget pattern). For example:
 
   ```dart
   // Read state (will rebuild when the state changes)
@@ -58,6 +65,9 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   
   // Dispatch action
   StoreProvider.dispatch<AppState>(context, MyAction());
+  
+  // Use isWaiting to show a spinner. 
+  var isWaiting = StoreProvider.isWaitingFor(<AppState>(context, MyAction);
   ```      
 
   However, to use this you should instead define these extension methods in your own code
@@ -68,7 +78,8 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
      AppState get state => StoreProvider.state<AppState>(this);
      FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatch(this, action, notify: notify);
      Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatchAndWait(this, action, notify: notify);
-     ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatchSync(this, action, notify: notify);  
+     ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatchSync(this, action, notify: notify);
+     bool isWaitingFor(Object actionOrTypeOrList) => StoreProvider.isWaitingFor<AppState>(this, actionOrTypeOrList);  
   }
   ```
 
@@ -80,11 +91,18 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   
   // Dispatch action
   context.dispatch(MyAction());
+                                 
+  // Use isWaiting to show a spinner. 
+  var isWaiting = context.isWaitingFor(MyAction);
   ```   
 
   Or, if you want a fully documented version, copy the
   file ([build_context_extension](https://raw.githubusercontent.com/marcglasberg/async_redux/master/lib/src/build_context_extension)),
   rename it with a `.dart` extension and put it in a visible location in your own code.
+
+  See
+  the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_conector_vs_provider.dart.dart">
+  Connector vc Provider Example</a>.
 
 
 * DEPRECATION WARNING: While the `StoreTester` is a powerful tool with advanced features that are
@@ -207,28 +225,6 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   method does, and the fact that `dispatchAndWait` can be used to dispatch both sync and async
   actions. The only difference between `dispatchAndWait` and `dispatch` is that `dispatchAndWait`
   returns a `Future` which can be awaited to know when the action is finished.
-
-# 21.4.0
-
-* The `Wait` class now has a `bool isWaitingForType<T>()` method. It returns true if it's waiting
-  for ANY flag of type `T`. This is useful when you want to wait for an Action to finish. For
-  example:
-
-  ```
-  class MyAction extends ReduxAction<AppState> {      
-  
-    Future<AppState?> reduce() async {
-      await doSomething();
-      return null;
-    }
-  
-    void before() => dispatch(WaitAction.add(this));
-    void after() => dispatch(WaitAction.remove(this));
-  }
-  
-  // Then, in some widget or connector:
-  if (wait.isWaitingForType<MyAction>()) { ... }
-  ``` 
 
 # 21.1.1
 

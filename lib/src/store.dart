@@ -557,6 +557,8 @@ class Store<St> {
       // If it's sync it will finish immediately, so there's no need to add it.
       _activeAsyncActions.add(action);
 
+      // If it's awaitable (that is to say, we have already called isWaitingForType/isWaitingForAction
+      // for this action, then we notify the UI. We don't notify if the action was never checked.
       if (_awaitableAsyncActions.contains(action.runtimeType)) {
         _changeController.add(state);
       }
@@ -565,45 +567,78 @@ class Store<St> {
     }
   }
 
-  /// If an ASYNC action of the exact given [actionType] is currently being processed, returns true.
-  /// Returns false when:
+  /// You can use [isWaitingFor] to check if:
+  /// * A specific async ACTION is currently being processed.
+  /// * An async action of a specific TYPE is currently being processed.
+  /// * If any of a few given async actions or action types is currently being processed.
+  ///
+  /// If you wait for an action TYPE, then it returns false when:
   /// - The ASYNC action of type [actionType] is NOT currently being processed.
   /// - If [actionType] is not really a type that extends [ReduxAction].
-  /// - The action of type [actionType] is a SYNC action.
+  /// - The action of type [actionType] is a SYNC action (since those finish immediately).
   ///
-  /// Example:
-  ///
-  /// ```dart
-  /// if (store.isWaitingForType(MyAction)) { // Show a spinner. }
-  /// ```
-  bool isWaitingForType(Type actionType) {
-    bool itIsTheFirstTime = _awaitableAsyncActions.add(actionType);
-
-    // This is necessary to trigger the UI the first time we check for some action being processed.
-    if (itIsTheFirstTime) _changeController.add(_state);
-
-    return _activeAsyncActions.any((action) => action.runtimeType == actionType);
-  }
-
-  /// If the given ASYNC [action] is currently being processed, returns true.
-  /// Returns false when:
+  /// If you wait for an ACTION, then it returns false when:
   /// - The ASYNC [action] is NOT currently being processed.
   /// - If [action] is a SYNC action (since those finish immediately).
-  ///
-  /// Example:
+  //
+  /// Examples:
   ///
   /// ```dart
+  /// // Waiting for an action TYPE:
+  /// dispatch(MyAction());
+  /// if (store.isWaitingFor(MyAction)) { // Show a spinner }
+  ///
+  /// // Waiting for an ACTION:
   /// var action = MyAction();
   /// dispatch(action);
-  /// if (store.isWaitingForAction(action)) { // Show a spinner. }
+  /// if (store.isWaitingFor(action)) { // Show a spinner }
+  ///
+  /// // Waiting for any of the given action TYPES:
+  /// dispatch(BuyAction());
+  /// if (store.isWaitingFor([BuyAction, SellAction])) { // Show a spinner }
   /// ```
-  bool isWaitingForAction(ReduxAction<St> action) {
-    bool itIsTheFirstTime = _awaitableAsyncActions.add(action.runtimeType);
+  bool isWaitingFor(Object actionOrTypeOrList) {
+    //
+    // 1) If a type was passed:
+    if (actionOrTypeOrList is Type) {
+      _awaitableAsyncActions.add(actionOrTypeOrList);
+      return _activeAsyncActions.any((action) => action.runtimeType == actionOrTypeOrList);
+    }
+    //
+    // 2) If an action was passed:
+    else if (actionOrTypeOrList is ReduxAction<St>) {
+      _awaitableAsyncActions.add(actionOrTypeOrList.runtimeType);
+      return _activeAsyncActions.contains(actionOrTypeOrList);
+    }
+    //
+    // 3) If a list was passed:
+    else if (actionOrTypeOrList is Iterable) {
+      for (var actionOrType in actionOrTypeOrList) {
+        if (actionOrType is Type) {
+          _awaitableAsyncActions.add(actionOrType);
+          return _activeAsyncActions.any((action) => action.runtimeType == actionOrType);
+        } else if (actionOrType is ReduxAction<St>) {
+          _awaitableAsyncActions.add(actionOrType.runtimeType);
+          return _activeAsyncActions.contains(actionOrType);
+        } else {
+          Future.microtask(() {
+            throw StoreException("You can't do isWaitingFor([${actionOrTypeOrList.runtimeType}]), "
+                "but only an action Type, a ReduxAction, or a List of them.");
+          });
+        }
+      }
+      return false;
+    }
+    // 4) If something different was passed, it's an error. We show the error after the
+    // async gap, so we don't interrupt the code. But we return false (not waiting).
+    else {
+      Future.microtask(() {
+        throw StoreException("You can't do isWaitingFor(${actionOrTypeOrList.runtimeType}), "
+            "but only an action Type, a ReduxAction, or a List of them.");
+      });
 
-    // This is necessary to trigger the UI the first time we check for some action being processed.
-    if (itIsTheFirstTime) _changeController.add(_state);
-
-    return _activeAsyncActions.contains(action);
+      return false;
+    }
   }
 
   bool _ifActionIsSync(ReduxAction<St> action) {

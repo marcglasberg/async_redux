@@ -580,6 +580,9 @@ var myInfo = StoreProvider.state<AppState>(context).myInfo;
 
 // Dispatch action
 StoreProvider.dispatch<AppState>(context, MyAction());
+
+// Use isWaiting to show a spinner. 
+var isWaiting = StoreProvider.isWaitingFor(<AppState>(context, MyAction);
 ```
 
 It's highly recommended to create an extension on `BuildContext`
@@ -591,6 +594,9 @@ var myInfo = context.state.myInfo;
 
 // Dispatch action
 context.dispatch(MyAction());
+
+// Use isWaiting to show a spinner. 
+var isWaiting = context.isWaitingFor(MyAction); 
 ```  
 
 If your state class is called `AppState`, copy the following code to define your extension:
@@ -601,6 +607,7 @@ extension BuildContextExtension on BuildContext {
   FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatch(this, action, notify: notify);
   Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatchAndWait(this, action, notify: notify);
   ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatchSync(this, action, notify: notify);
+  bool isWaitingFor(Object actionOrTypeOrList) => StoreProvider.isWaitingFor<AppState>(this, actionOrTypeOrList);
 }
 ```  
 
@@ -608,6 +615,10 @@ Or, if you want a fully documented version, copy the
 file ([build_context_extension](lib/src/build_context_extension)), rename it with a `.dart`
 extension and put it in the same directory as your `app_state.dart` file containing
 your `AppState` class.
+
+Try running
+the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_conector_vs_provider.dart.dart">
+Connector vc Provider Example</a>.
 
 ## Connector
 
@@ -2083,8 +2094,7 @@ There are some advanced event features you may not need, but you should know the
 ## Progress indicators
 
 A **progress indicator** is a visual indication that some important process is taking some time to
-finish
-(and will hopefully finish soon). For example:
+finish (and will hopefully finish soon). For example:
 
 * A save button that displays a `CircularProgressIndicator` while some info is saving.
 
@@ -2099,12 +2109,21 @@ finish
 
 <br>
 
-In the [Before and After the Reducer](#before-and-after-the-reducer) section I show how to manually
+The easiest way to show a progress indicator is to use `store.isWaitingFor(MyAction)`,
+where `MyAction` is the async action you are waiting for. This works well for the majority of cases.
+
+Try running
+the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_spinner.dart">
+Show Spinner Example</a>. When you press the "+" button, it dispatches an increment action that
+takes 2 seconds to finish. Meanwhile, a spinner is shown in the button, and the counter text gets
+grey.
+
+In [Before and After the Reducer](#before-and-after-the-reducer) section I show how to manually
 create a boolean flag that is used to add or remove a modal barrier in the screen (see the
 code <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">
-here</a>).
+here</a>). This will work in some rare complex cases where `store.isWaitingFor()` is not enough.
 
-However, sometimes you need to keep track of many such boolean flags, which may be difficult to do.
+However, keeping track of many such boolean flags may be difficult to do.
 If you need help with this problem, an option is using the built-in classes `WaitAction` and `Wait`.
 
 For this to work, your store state must have a `Wait` field named `wait`, and then your state class
@@ -2114,10 +2133,8 @@ must have a `copy` or a `copyWith` method which copies this field as a named par
 @immutable
 class AppState {
   final Wait wait;
-  ...
-  
+  ...  
   AppState({this.wait, ...});
-
   AppState copy({Wait wait, ...}) => AppState(wait: wait ?? this.wait, ...);
   }
 ```
@@ -2144,11 +2161,8 @@ When you are using the state:
 The flag can be any convenient **immutable object**, like a URL, a user id, an index, an enum, a
 String, a number, or other.
 
-The recommended way to have your widgets react to the processing of an async action is to use the
-action's `before` and `after` methods to dispatch an `WaitAction` using `add(this)`
-and `remove(this)`.
-
-For example, suppose that a button dispatches a `LoadAction` to load some text. You can make the
+As an example, if we want to replace the `store.isWaitingFor()` method with the `Wait` object, we
+could do this: Suppose that a button dispatches a `LoadAction` to load some text. You can make the
 button show a progress indicator while the text is being loaded, and show the text when it's done:
 
 ```dart
@@ -2210,7 +2224,6 @@ The flag in this case is simply the index of the button, from `0` to `9`:
 
 ```dart                                                        
 int index;
-
 void before() => dispatch(WaitAction.add(index));
 void after() => dispatch(WaitAction.remove(index));
 ```                            
