@@ -230,6 +230,5 @@ class MyActionWithWrapError extends ReduxAction<String> {
 
 class MyGlobalWrapError<St> implements GlobalWrapError<St> {
   @override
-  Object? wrap(Object error, StackTrace stackTrace, ReduxAction<St> action) =>
-      'global wrapped error: $error';
+  Object? wrap(error, stackTrace, action) => 'global wrapped error: $error';
 }

@@ -67,13 +67,13 @@ abstract class GlobalWrapError<St> {
 ///
 /// ```
 /// // WrapError (deprecated):
-/// Object? wrap(Object error, StackTrace stackTrace, ReduxAction<AppState> action) {
+/// Object? wrap(error, stackTrace, action) {
 ///    if (error is MyException) return null; // Keep the error unaltered.
 ///    else return processError(error); // May change the error, but not disable it.
 /// }
 ///
 /// // GlobalWrapError:
-/// Object? wrap(Object error, StackTrace stackTrace, ReduxAction<AppState> action) {
+/// Object? wrap(error, stackTrace, action) {
 ///    if (error is MyException) return error; // Keep the error unaltered.
 ///    else return processError(error); // May change or disable the error.
 /// }
@@ -99,13 +99,13 @@ abstract class WrapError<St> {
   ///
   /// ```
   /// // WrapError (deprecated):
-  /// Object? wrap(Object error, StackTrace stackTrace, ReduxAction<St> action) {
+  /// Object? wrap(error, stackTrace, action) {
   ///    if (error is MyException) return null; // Keep the error unaltered.
   ///    else return processError(error);
   /// }
   ///
   /// // GlobalWrapError:
-  /// Object? wrap(Object error, StackTrace stackTrace, ReduxAction<St> action) {
+  /// Object? wrap(error, stackTrace, action) {
   ///    if (error is MyException) return error; // Keep the error unaltered.
   ///    else return processError(error);
   /// }

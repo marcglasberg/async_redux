@@ -21,20 +21,6 @@ class MyObjVmEquals extends VmEquals<MyObjVmEquals> {
   int get hashCode => 0;
 }
 
-class ViewModel_Deprecated extends BaseModel<List<int>> {
-  String name;
-  int age;
-
-  ViewModel_Deprecated(this.name, this.age)
-      : super(equals: [
-          name,
-          age,
-        ]);
-
-  @override
-  BaseModel fromStore() => throw AssertionError();
-}
-
 class ViewModel extends Vm {
   final String name;
   final int age;
@@ -49,14 +35,6 @@ class ViewModel extends Vm {
 }
 
 void main() {
-  test('BaseModel (deprecated) equality.', () {
-    var vm1 = ViewModel_Deprecated("John", 35);
-    var vm2 = ViewModel_Deprecated("Mary", 35);
-    var vm3 = ViewModel_Deprecated("Mary", 35);
-    expect(vm1 != vm2, isTrue);
-    expect(vm2 == vm3, isTrue);
-  });
-
   test('Vm equality.', () {
     //
     // Comparison by equality. Same object.

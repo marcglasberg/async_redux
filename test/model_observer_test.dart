@@ -10,7 +10,8 @@ void main() {
     //
     (WidgetTester tester) async {
       //
-      var modelObserver = DefaultModelObserver<_MyViewModel>();
+      var modelObserver = DefaultModelObserver<String>();
+
       Store<_StateTest> store = Store<_StateTest>(
         initialState: _StateTest("A", 1),
         modelObserver: modelObserver,
@@ -30,8 +31,8 @@ void main() {
 
       await tester.pump();
 
-      expect(modelObserver.previous!.text, "A");
-      expect(modelObserver.current!.text, "B");
+      expect(modelObserver.previous, "A");
+      expect(modelObserver.current, "B");
 
       // ---
 
@@ -42,8 +43,8 @@ void main() {
 
       await tester.pump();
 
-      expect(modelObserver.previous!.text, "B");
-      expect(modelObserver.current!.text, "B");
+      expect(modelObserver.previous, "B");
+      expect(modelObserver.current, "B");
 
       // ---
 
@@ -54,8 +55,8 @@ void main() {
 
       await tester.pump();
 
-      expect(modelObserver.previous!.text, "B");
-      expect(modelObserver.current!.text, "C");
+      expect(modelObserver.previous, "B");
+      expect(modelObserver.current, "C");
 
       // ---
 
@@ -66,8 +67,8 @@ void main() {
 
       await tester.pump();
 
-      expect(modelObserver.previous!.text, "C");
-      expect(modelObserver.current!.text, "D");
+      expect(modelObserver.previous, "C");
+      expect(modelObserver.current, "D");
     },
   );
 }
@@ -93,22 +94,11 @@ class _MyWidgetConnector extends StatelessWidget {
   const _MyWidgetConnector();
 
   @override
-  Widget build(BuildContext context) => StoreConnector<_StateTest, _MyViewModel>(
+  Widget build(BuildContext context) => StoreConnector<_StateTest, String>(
         debug: this,
-        model: _MyViewModel(),
-        builder: (BuildContext context, _MyViewModel vm) => Container(),
+        converter: (Store<_StateTest> store) => store.state.text,
+        builder: (BuildContext context, String model) => Container(),
       );
-}
-
-class _MyViewModel extends BaseModel<_StateTest> {
-  _MyViewModel();
-
-  String? text;
-
-  _MyViewModel.build(this.text) : super(equals: [text]);
-
-  @override
-  _MyViewModel fromStore() => _MyViewModel.build(state.text);
 }
 
 class _MyAction extends ReduxAction<_StateTest> {

@@ -5,13 +5,35 @@
 
 import 'package:async_redux/async_redux.dart';
 
-/// This will be given all errors, including those of type [UserException].
-/// Return true to throw the error. False to swallow it.
+/// The [observe] method of the [ErrorObserver] will be given all errors.
+/// It's called after the action's [ReduxAction.wrapError] and the [GlobalWrapError]
+/// have both been called.
 ///
-/// Don't use the store to dispatch any actions, as this may have
-/// unpredictable results.
+/// The [observe] method should return `true` to throw the error, and `false` to swallow it.
 ///
+/// Note: The [ErrorObserver] will be given all errors, including those of type [UserException]
+/// and [AbortDispatchException]. To maintain the default behavior, you should return `false`
+/// (swallow) for both these error types.
+///
+/// Important: Don't use the `store` you get in the [observe] method to dispatch any actions,
+/// as this may have unpredictable results. Also, make sure your errorObserver never throws an
+/// error.
 abstract class ErrorObserver<St> {
+  //
+
+  /// The [observe] method of the [ErrorObserver] will be given all errors.
+  /// It's called after the action's [ReduxAction.wrapError] and the [GlobalWrapError]
+  /// have both been called.
+  ///
+  /// The [observe] method should return `true` to throw the error, and `false` to swallow it.
+  ///
+  /// Note: The [ErrorObserver] will be given all errors, including those of type [UserException]
+  /// and [AbortDispatchException]. To maintain the default behavior, you should return `false`
+  /// (swallow) for both these error types.
+  ///
+  /// Important: Don't use the `store` you get in the [observe] method to dispatch any actions,
+  /// as this may have unpredictable results. Also, make sure your errorObserver never throws an
+  /// error.
   bool observe(
     Object error,
     StackTrace stackTrace,

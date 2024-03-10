@@ -1,23 +1,275 @@
 [![pub package](https://img.shields.io/pub/v/async_redux.svg)](https://pub.dartlang.org/packages/async_redux)
 [![pub package](https://img.shields.io/badge/Awesome-Flutter-blue.svg?longCache=true&style=flat-square)](https://github.com/Solido/awesome-flutter)
 
-# async_redux
+# Async Redux | *state management*
 
-**Async Redux** is a special version of Redux which:
+Async Redux is an optimized Redux version, which is very easy to learn and use, yet powerful and
+tailored for
+Flutter. It helps you write Flutter apps that are **easy to
+test, maintain and extend**.
 
-1. Is easy to learn
-2. Is easy to use
-3. Is easy to test
-4. Has no boilerplate
+# Developer Overview
 
-The below documentation is very detailed. For an overview, go to
-the <a href="https://medium.com/@marcglasberg/https-medium-com-marcglasberg-async-redux-33ac5e27d5f6?sk=87aefd759273920d444185aa9d447ba0">
-Medium story</a>.
+The main concepts in Redux are: *store*, *state*, *actions* and *reducers*.
 
-> IntelliJ plugin that supports this package coming soon:<br>
-<a href="https://plugins.jetbrains.com/files/21898/340924/icon/pluginIcon.svg"><img src="https://plugins.jetbrains.com/files/21898/340924/icon/pluginIcon.svg" height="20px" style="position: relative;top: 5px;"/>
-https://plugins.jetbrains.com/plugin/21898-marcelo-s-flutter-dart-essentials
-</a>
+First, the counter example:
+
+```dart
+// Create a store, which holds the initial app state.
+var store = Store<int>(initialState: 1);
+
+// Create an action class with a `reduce` method that changes the state.
+class Increment extends Action {  
+  int reduce() => state + 1; 
+}
+
+void main() {
+  // Dispatch the action to change the state.
+  store.dispatch(Increment());
+  print(store.state); // 2
+}
+```
+
+To use the `store` in your widgets, add a `StoreProvider` to the top of your widget tree:
+
+```dart
+Widget build(BuildContext context) {
+  return StoreProvider<int>(
+    store: store,
+    child: MaterialApp(home: MyHomePage()), ...
+    );
+}
+```
+
+You can then use it anywhere in your widgets like this:
+
+```dart
+class MyCounter extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [        
+        
+      Text(context.state.toString()), // Use the state.        
+        
+      ElevatedButton(
+        child: Text("+")),            
+        onPressed: () => context.dispatch(Increment())) // Dispatch the action.               
+    ]);    
+  }}
+```
+
+Your actions can download information from the internet, or do any other asynchronous work:
+
+```dart
+var store = Store<String>(initialState: "");
+
+class LoadText extends Action {
+
+  // This action is async, so it returns a Future<String>.  
+  Future<String> reduce() async {
+  
+    // Download some information from the internet.
+    var response = await http.get('http://numbersapi.com/42');
+    
+    // Change the state with the downloaded information.
+    if (response.statusCode == 200) return response.body;
+    
+    // When you throw errors of type `UserException`, a dialog 
+    // will open automatically, showing the error message to the user.
+    // The `.i18n` after the string translates it to the user language.
+    else throw UserException('Failed to load data.'.i18n);      
+  }
+}
+```
+
+If you want to show a spinner while the text is loading, you can use `isWaitingFor`:
+
+```dart
+class MyText extends StatelessWidget {
+@override
+Widget build(BuildContext context) {
+return Column(children: [
+
+      context.isWaitingFor(LoadText) // While the action is running,  
+         ? CircularProgressIndicator(), // Show a spinner.
+         : Text(context.state), // Else, show the loaded state.        
+        
+      ElevatedButton(
+        child: Text("Load")),            
+        onPressed: () => context.dispatch(LoadText())) // Dispatch the action.               
+    ]);    
+}}
+```
+
+Your actions can also dispatch other actions, and you can even use  `dispatchAndWait` to wait for
+an action to finish:
+
+```dart
+class LoadTextAndIncrement extends Action {
+
+  Future<String> reduce() async {
+    var text = await dispatchAndWait(LoadText());
+    dispatch(Increment());
+    return text;
+  }
+}
+```
+
+Testing is very easy. Just dispatch actions and wait for them to finish.
+Then, verify the new state or check if some error was thrown. For example:
+
+```dart
+class AppState {
+  User user;
+  int selected;
+  List<Item> items;    
+}
+
+test('Selecting an item', () async {   
+
+    var store = Store<AppState>(
+      initialState: AppState(
+        user: User(name: "John"),
+        selected: -1,
+        items: [Item(id: 1), Item(id: 2), Item(id: 3)]
+      ));
+    
+    // Found item 2.                
+    await store.dispatchAndWait(SelectItem(2));    
+    expect(store.state.selected, 2);
+    
+    // Failed to find item 42.
+    var status = await store.dispatchAndWait(SelectItem(42));    
+    expect(status.originalError, isA<>(UserException));
+});       
+```
+
+# Team Lead Overview
+
+If you are a Team Lead, you have features to help you set up the app's infrastructure in a central
+place, and allow your developers to concentrate solely on the business logic.
+
+When you create the store, you can add
+a `persistor` to save and load the state from the local device disk,
+a `stateObserver` to collect app metrics,
+an `errorObserver` to log errors,
+an `actionObservers` to print information to the console during development,
+and a `globalWrapError` as to catch all errors thrown by actions and decide what to do with them.
+
+```dart
+var store = Store<String>(
+  initialState: "",
+  persistor: MyPersistor(),
+  stateObserver: [MyStateObserver()],
+  errorObserver: [MyErrorObserver()],
+  actionObservers: [MyActionObserver()],
+  globalWrapError: MyGlobalWrapError(),  
+```  
+
+For example, the following `GlobalWrapError` is designed to handle all `PlatformException` errors
+throw by Firebase. It converts them into `UserException` errors, which are built-in Async Redux
+exception types that automatically display their message to the user in an error dialog:
+
+```dart
+Object? wrap(error, stackTrace, action) {
+  if (error is PlatformException)
+    return UserException("Error connecting to Firebase");
+  else 
+    return error;
+}   
+```
+
+Another interesting feature for Team Leads is the ability to prepare special action **mixins** to do
+common tasks. For example, this one checks the internet connection:
+
+```dart
+mixin CheckInternet implements Action {
+  Future<void> before() async {
+    if (!await hasInternet()) throw UserException('Check the internet');
+  }}
+```
+
+All actions with `CheckInternet` will only run if there is an internet connection,
+and will show an error dialog asking users to _"Check the internet"_ if there isn't:
+
+```dart
+class LoadText extends Action with CheckInternet {
+  
+  Future<String> reduce() async {
+    var response = await http.get('http://numbersapi.com/42');
+    ...      
+  }}
+```
+
+As another example, this mixin aborts the action silently (without showing any dialogs)
+if there is no internet connection:
+
+```dart
+mixin OnlyWithInternet implements Action {
+  Future<void> before() async {
+    if (!await hasInternet()) throw AbortDispatchException();
+  }}
+```
+
+And this mixin prevents reentrant actions, so that you can only dispatch the action if it's not
+already running:
+
+```dart
+mixin NonReentrant implements Action {  
+  bool abortDispatch() => isWaitingFor(runtimeType);
+}
+```
+
+Another interesting feature for Team Leads is the ability to create a base action class that all
+your actions will extend, and add some common functionality to it. For example, you can add getters
+for the important parts of your state, and also "selectors" to help you find more complex
+information:
+
+```dart
+class AppState {
+  User user;
+  int selected;
+  List<Item> items;    
+}
+
+class Action extends ReduxAction<AppState> {
+
+  // Getters  
+  User get user => state.user;
+  Item get selected => state.selected;
+  List<Item> get items => state.items;
+  
+  // Selectors 
+  Item? findItemById(int id) => items.firstWhereOrNull((item) => item.id == id);
+  Item? searchItemByText(String text) => items.firstWhereOrNull((item) => item.text.contains(text));
+  int get selectedItemIndex => items.indexOf(selected);     
+}
+```
+
+Now, all your actions can use these getters and selectors to access the state in their reducers:
+
+```dart 
+class SelectItem extends Action {
+  final int id;
+  SelectItem(this.id);
+    
+  AppState reduce() {
+    Item? item = findItemById(id);
+    if (item == null) throw UserException("Item not found");
+    return state.copy(selected: item);
+  }    
+}
+``` 
+     
+<br>
+
+---
+
+---
+
+[//]: # (The below documentation is very detailed. For an overview, go to)
+[//]: # (the <a href="https://medium.com/@marcglasberg/https-medium-com-marcglasberg-async-redux-33ac5e27d5f6?sk=87aefd759273920d444185aa9d447ba0">)
+[//]: # (Medium story</a>.)
 
 # Example projects
 
@@ -1256,7 +1508,7 @@ var store = Store<AppState>(
 
 class MyGlobalWrapError extends GlobalWrapError {
   @override
-  Object? wrap(Object error, StackTrace stackTrace, ReduxAction<AppState> action) {
+  Object? wrap(error, stackTrace, action) {
     if ((error is PlatformException) && (error.code == "Error performing get") &&
           (error.message == "Failed to get document because the client is offline.")) 
         return UserException("Check your internet connection.").addCause(error);
@@ -1632,8 +1884,8 @@ There are 5 different ways to define mocks:
     class MyMockAction extends MockAction<AppState> {  
       Future<AppState> reduce() async {                  
         String url = (action as MyAction).url;
-        if (url == 'http://example.com') return 123;
-        else if (url == 'http://flutter.io') return 345;
+        if (url == 'https://example.com') return 123;
+        else if (url == 'https://flutter.io') return 345;
         else return 678;
       }
     }
@@ -1678,8 +1930,8 @@ There are 5 different ways to define mocks:
       String url;
       MyMockAction(this.url);  
       Future<AppState> reduce() async {                     
-        if (url == 'http://example.com') return 123;
-        else if (url == 'http://flutter.io') return 345;
+        if (url == 'https://example.com') return 123;
+        else if (url == 'https://flutter.io') return 345;
         else return 678;
       }
     }
@@ -1706,8 +1958,8 @@ There are 5 different ways to define mocks:
     ```dart   
     mocks: {
        MyAction : (MyAction action, AppState state) async {
-          if (action.url == 'http://example.com') return 123;
-          else if (action.url == 'http://flutter.io') return 345;
+          if (action.url == 'https://example.com') return 123;
+          else if (action.url == 'https://flutter.io') return 345;
           else return 678;
        }
     }
@@ -3147,6 +3399,7 @@ I/flutter (15304): | Action MyLogin(user32)
 ## Observing rebuilds
 
 Your store optionally accepts a `modelObserver`, which lets you visualize rebuilds.
+It's rarely used, so feel free to skip this section.
 
 The `ModelObserver` is an abstract class with an `observe` method which you can implement to be
 notified, by each `StoreConnector` currently in the widget tree, whenever there is a state change.
@@ -3179,8 +3432,8 @@ Note: You must pass `debug:this` as a `StoreConnector` constructor parameter, if
 the `ModelObserver` to be able to print the `StoreConnector` type to the output. You can also
 override your `ViewModel.toString()` to print out any extra info you need.
 
-The `ModelObserver` is also useful when you want to create tests to assert that rebuilds happen when
-and only when the appropriate parts of the state change. For an example, see
+The `ModelObserver` is also useful when you want to create tests to assert that rebuilds happen
+when and only when the appropriate parts of the state change. For an example, see
 the <a href="https://github.com/marcglasberg/async_redux/blob/master/test/model_observer_test.dart">
 Model Observer Test</a>.
 

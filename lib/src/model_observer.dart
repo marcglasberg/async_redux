@@ -5,13 +5,24 @@
 
 import 'package:async_redux/async_redux.dart';
 
-/// This will be given all errors, including those of type UserException.
-/// Return true to throw the error. False to swallow it.
-/// Note:
-/// * When isDistinct==true, it means the widget rebuilt because the model changed.
-/// * When isDistinct==false, it means the widget didn't rebuilt because the model hasn't changed.
-/// * When isDistinct==null, it means the widget rebuilds everytime, and the model is not relevant.
+/// The [ModelObserver] is rarely used. It's goal is to observe and troubleshoot the model changes
+/// causing rebuilds. While you may subclass it to implement its [observe] method, usually you can
+/// just use the provided [DefaultModelObserver] to print the StoreConnector's ViewModel to the
+/// console.
+///
 abstract class ModelObserver<Model> {
+  //
+
+  /// The [ModelObserver] can be used to observe and troubleshoot the model changes.
+  ///
+  /// The [storeConnector] works by rebuilding the widget when the model changes.
+  /// It needs to compare the [modelPrevious] with the [modelCurrent] to decide if the widget should
+  /// rebuild:
+  ///
+  /// - [isDistinct] is `true` means the widget rebuilt because the model changed.
+  /// - [isDistinct] is `false` means the widget didn't rebuilt because the model hasn't changed.
+  /// - [isDistinct] is `null` means the widget rebuilds everytime (because of
+  ///                the `StoreConnector.distinct` parameter), and the model is not relevant.
   void observe({
     required Model? modelPrevious,
     required Model? modelCurrent,
@@ -22,7 +33,7 @@ abstract class ModelObserver<Model> {
   });
 }
 
-/// This model observer prints the StoreConnector's ViewModel to the console.
+/// The [DefaultModelObserver] prints the StoreConnector's ViewModel to the console.
 ///
 /// Passe it to the store like this:
 ///

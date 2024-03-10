@@ -503,7 +503,7 @@ class Store<St> {
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 
-    if (_shutdown || action.abortDispatch()) return ActionStatus();
+    if (_shutdown || action.abortDispatch()) return ActionStatus(isDispatchAborted: true);
 
     _dispatchCount++;
 
@@ -958,11 +958,7 @@ class Store<St> {
         // Errors thrown by the global wrapError.
         // WrapError should never throw. It should return an error.
         _throws(
-          "Method 'WrapError.wrap()' "
-          "has thrown an error:\n '$_error'.",
-          errorOrNull,
-          stackTrace,
-        );
+            "Method 'WrapError.wrap()' has thrown an error:\n '$_error'.", errorOrNull, stackTrace);
       }
     }
 
@@ -986,17 +982,32 @@ class Store<St> {
     if (errorOrNull is UserException) {
       _addError(errorOrNull);
       _changeController.add(state);
+    } else if (errorOrNull is AbortDispatchException) {
+      action._status = action._status.copy(isDispatchAborted: true);
     }
 
-    // If an errorObserver was NOT defined, return (to throw) errors which are not UserException.
+    // If an errorObserver was NOT defined, return (to throw) all errors which are
+    // not UserException or AbortDispatchException.
     if (_errorObserver == null) {
-      if (errorOrNull is! UserException) return errorOrNull;
+      if ((errorOrNull is! UserException) && (errorOrNull is! AbortDispatchException))
+        return errorOrNull;
     }
     // If an errorObserver was defined, observe the error.
     // Then, if the observer returns true, return the error to be thrown.
     else if (errorOrNull != null) {
-      if (_errorObserver.observe(errorOrNull, stackTrace, action, this)) //
+      try {
+        if (_errorObserver.observe(errorOrNull, stackTrace, action, this)) //
+          return errorOrNull;
+      } catch (_error) {
+        // The errorObserver should never throw. However, if it does, print the error.
+        _throws(
+            "Method 'ErrorObserver.observe()' has thrown an error '$_error' "
+            "when observing error '$errorOrNull'.",
+            _error,
+            stackTrace);
+
         return errorOrNull;
+      }
     }
 
     return null;
@@ -1068,6 +1079,7 @@ class ActionStatus {
     this.hasFinishedMethodBefore = false,
     this.hasFinishedMethodReduce = false,
     this.hasFinishedMethodAfter = false,
+    this.isDispatchAborted = false,
     this.originalError,
     this.wrappedError,
   });
@@ -1091,6 +1103,13 @@ class ActionStatus {
   /// never throw any errors, but if it does the error will be swallowed and ignored.
   /// Is false if it has not yet finished executing.
   final bool hasFinishedMethodAfter;
+
+  /// Is true if the action was:
+  /// - Aborted with the [ReduxAction.abortDispatch] method,
+  /// - If an [AbortDispatchException] was thrown by the action's `before` or `reduce` methods
+  ///   (and survived the `wrapError` and `globalWrapError`). Or,
+  /// - If the store was being shut down with the [Store.shutdown] method.
+  final bool isDispatchAborted;
 
   /// Holds the error thrown by the action's before/reduce methods, if any.
   /// This may or may not be equal to the error thrown by the action, because the original error
@@ -1151,6 +1170,7 @@ class ActionStatus {
     bool? hasFinishedMethodBefore,
     bool? hasFinishedMethodReduce,
     bool? hasFinishedMethodAfter,
+    bool? isDispatchAborted,
     Object? originalError,
     Object? wrappedError,
   }) =>
@@ -1159,6 +1179,7 @@ class ActionStatus {
         hasFinishedMethodBefore: hasFinishedMethodBefore ?? this.hasFinishedMethodBefore,
         hasFinishedMethodReduce: hasFinishedMethodReduce ?? this.hasFinishedMethodReduce,
         hasFinishedMethodAfter: hasFinishedMethodAfter ?? this.hasFinishedMethodAfter,
+        isDispatchAborted: isDispatchAborted ?? this.isDispatchAborted,
         originalError: originalError ?? this.originalError,
         wrappedError: wrappedError ?? this.wrappedError,
       );

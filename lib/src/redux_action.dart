@@ -148,8 +148,8 @@ abstract class ReduxAction<St> {
   FutureOr<St?> reduce();
 
   /// You may wrap the reducer to allow for some pre or post-processing.
-  /// For example, if you want to abort an async reducer if the state
-  /// changed since when the reducer started:
+  /// For example, if you want to prevent an async reducer to change the current state,
+  /// if the current state has already changed since when the reducer started:
   /// ```
   /// Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
   ///    var oldState = state;
@@ -184,10 +184,29 @@ abstract class ReduxAction<St> {
   ///
   Object? wrapError(Object error, StackTrace stackTrace) => error;
 
-  /// If this returns true, the action will not be dispatched: `before`, `reduce`
-  /// and `after` will not be called, and the action will not be visible to the
-  /// `StoreTester`. This is only useful under rare circumstances, and you should
+  /// If [abortDispatch] returns true, the action will NOT be dispatched: `before`, `reduce`
+  /// and `after` will not be called, and the action will not be visible to the store observers.
+  ///
+  /// Note: No observer will be called. It will be as if the action was never dispatched.
+  /// The action status will be `isDispatchAborted: true`.
+  ///
+  /// For example, this mixin prevents reentrant actions (you can only call the action if it's not
+  /// already running):
+  ///
+  /// ```dart
+  /// /// This mixin prevents reentrant actions. You can only call the action if it's not already
+  /// /// running. Example: `class LoadInfo extends ReduxAction<AppState> with NonReentrant { ... }`
+  /// mixin NonReentrant implements ReduxAction<AppState> {
+  ///   bool abortDispatch() => isWaitingFor(runtimeType);
+  /// }
+  /// ```
+  ///
+  /// Using [abortDispatch] is only useful under rare circumstances, and you should
   /// only use it if you know what you are doing.
+  ///
+  /// See also:
+  /// - [AbortDispatchException] which is a way to abort the action by throwing an exception.
+  ///
   bool abortDispatch() => false;
 
   /// An async reducer (one that returns Future<AppState?>) must never complete without at least
@@ -218,18 +237,6 @@ abstract class ReduxAction<St> {
     });
   }
 
-  /// Nest state reducers without dispatching another action.
-  /// Example: return AddTaskAction(demoTask).reduceWithState(state);
-  @Deprecated("This is deprecated and will be removed soon, "
-      "because it's more difficult to use than it seems. "
-      "Unless you completely understand what you're doing,"
-      "you should only used it with sync reducers.")
-  FutureOr<St?> reduceWithState(Store<St> store, St state) {
-    setStore(store);
-    _store.defineState(state);
-    return reduce();
-  }
-
   /// Returns the runtimeType, without the generic part.
   String runtimeTypeString() {
     var text = runtimeType.toString();
@@ -239,4 +246,35 @@ abstract class ReduxAction<St> {
 
   @override
   String toString() => 'Action ${runtimeTypeString()}';
+}
+
+/// If an action throws an [AbortDispatchException] the action will abort immediately
+/// (But note the `after` method will still be called no mather what).
+/// The action status will be `isDispatchAborted: true`.
+///
+/// You can use it in the `before` method to abort the action before the `reduce` method
+/// is called. That's similar to throwing an `UserException`, but without showing any
+/// errors to the user.
+///
+/// For example, this mixin prevents reentrant actions (you can only call the action if it's not
+/// already running):
+///
+/// ```dart
+/// /// This mixin prevents reentrant actions. You can only call the action if it's not already
+/// /// running. Example: `class LoadInfo extends ReduxAction<AppState> with NonReentrant { ... }`
+/// mixin NonReentrant implements ReduxAction<AppState> {
+///   bool abortDispatch() => isWaitingFor(runtimeType);
+/// }
+/// ```
+///
+/// See also:
+/// - [ReduxAction.abortDispatch] which is a way to abort the action's dispatch.
+///
+class AbortDispatchException implements Exception {
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is AbortDispatchException && runtimeType == other.runtimeType;
+
+  @override
+  int get hashCode => 0;
 }

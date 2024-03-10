@@ -75,8 +75,6 @@ abstract class StoreConnectorInterface<St, Model> {
 
   StoreConverter<St, Model>? get converter;
 
-  BaseModel? get model;
-
   bool? get distinct;
 
   OnInitCallback<St>? get onInit;
@@ -121,13 +119,6 @@ class StoreConnector<St, Model> extends StatelessWidget
   /// passed to the [builder] function.
   @override
   final StoreConverter<St, Model>? converter;
-
-  /// Don't use, this is deprecated. Please, use the recommended
-  /// `vm` parameter (of type [VmFactory]) or `converter`.
-  @Deprecated("Please, use `vm` parameter. "
-      "See classes `VmFactory` and `Vm`.")
-  @override
-  final BaseModel? model;
 
   /// When [distinct] is true (the default), the Widget is rebuilt only
   /// when the [Model] changes. In order for this to work correctly, you
@@ -200,7 +191,6 @@ class StoreConnector<St, Model> extends StatelessWidget
     this.distinct,
     this.vm, // Recommended.
     this.converter, // Can be used instead of `vm`.
-    this.model, // Deprecated.
     this.debug,
     this.onInit,
     this.onDispose,
@@ -209,14 +199,9 @@ class StoreConnector<St, Model> extends StatelessWidget
     this.onWillChange,
     this.onDidChange,
     this.onInitialBuild,
-  })  : assert(converter != null || vm != null || model != null,
+  })  : assert(converter == null || vm == null, "You can't provide both `converter` and `vm`."),
+        assert(converter != null || vm != null,
             "You should provide the `converter` or the `vm` parameter."),
-        assert(converter == null || vm == null,
-            "You can't provide both the `converter` and the `vm` parameters."),
-        assert(converter == null || model == null,
-            "You can't provide both the `converter` and the `model` parameters."),
-        assert(vm == null || model == null,
-            "You can't provide both the `vm` and the `model` parameters."),
         super(key: key);
 
   @override
@@ -228,8 +213,6 @@ class StoreConnector<St, Model> extends StatelessWidget
       builder: builder,
       converter: converter,
       vm: vm,
-      // ignore: deprecated_member_use_from_same_package
-      model: model,
       distinct: distinct,
       onInit: onInit,
       onDispose: onDispose,
@@ -263,18 +246,9 @@ class StoreConnector<St, Model> extends StatelessWidget
       return converter!(store as Store<St>);
     }
     //
-    // The `model` parameter is deprecated.
-    // ignore: deprecated_member_use_from_same_package
-    else if (model != null) {
-      // ignore: deprecated_member_use_from_same_package
-      internalsBaseModelInject(model!, store.state, store);
-      // ignore: deprecated_member_use_from_same_package
-      return model!.fromStore() as Model;
-    }
-    //
     else
       throw AssertionError("View-model can't be created. "
-          "Please provide vm or converter parameter.");
+          "Please provide the vm or the converter parameter.");
   }
 }
 
@@ -283,7 +257,6 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
   final ViewModelBuilder<Model> builder;
   final StoreConverter<St, Model>? converter;
   final VmFactory<St, dynamic, dynamic> Function()? vm;
-  final BaseModel? model; // Deprecated.
   final Store<St> store;
   final Object? debug;
   final StoreConnector storeConnector;
@@ -303,7 +276,6 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
     required this.debug,
     required this.converter,
     required this.vm,
-    required this.model, // Deprecated.
     required this.storeConnector,
     this.distinct,
     this.onInit,
@@ -563,9 +535,8 @@ class _StoreStreamListenerState<St, Model> //
     required Model? modelCurrent,
     required bool isDistinct,
   }) {
-    ModelObserver? modelObserver = widget.store.modelObserver;
-    if (modelObserver != null) {
-      modelObserver.observe(
+    try {
+      widget.store.modelObserver?.observe(
         modelPrevious: modelPrevious,
         modelCurrent: modelCurrent,
         isDistinct: isDistinct,
@@ -573,7 +544,20 @@ class _StoreStreamListenerState<St, Model> //
         reduceCount: widget.store.reduceCount,
         dispatchCount: widget.store.dispatchCount,
       );
+    } catch (error, stackTrace) {
+      // The errorObserver should never throw. However, if it does, print the error.
+      _throws("Method 'ModelObserver.observe()' has thrown an error", error, stackTrace);
     }
+  }
+
+  /// Throws the error after an asynchronous gap.
+  void _throws(errorMsg, Object? error, StackTrace stackTrace) {
+    Future(() {
+      Error.throwWithStackTrace(
+        (error == null) ? errorMsg : "$errorMsg:\n  $error",
+        stackTrace,
+      );
+    });
   }
 
   /// The StoreConnector needs the converter or vm parameter (only one of them):
@@ -592,12 +576,6 @@ class _StoreStreamListenerState<St, Model> //
     // The `converter` parameter can be used instead of `vm`.
     else if (widget.converter != null) {
       return widget.converter!(widget.store);
-    }
-    //
-    // The `model` parameter is deprecated.
-    else if (widget.model != null) {
-      internalsBaseModelInject(widget.model!, state, widget.store);
-      return widget.model!.fromStore() as Model;
     }
     //
     else

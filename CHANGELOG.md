@@ -3,7 +3,7 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# 22.0.0-dev.11
+# 22.0.0-dev.12
 
 * When you dispatch an async action, you can now use `var isWaiting = store.isWaitingFor(MyAction)`
   to check if the action is currently being processed. You can then use this boolean to show a
@@ -12,7 +12,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_spinner.dart">
   Show Spinner Example</a>.
 
-* A few features of the async_redux package are now available as a standalone Dart-only
+* Some features of the `async_redux` package are now available in a standalone Dart-only core
   package: https://pub.dev/packages/async_redux_core. You may use that core package when you
   are developing a Dart server (backend) with [Celest](https://celest.dev/), or when developing your
   own Dart-only package that does not depend on Flutter. Note: For the moment, the core
@@ -168,6 +168,12 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   expect(store.state.name, "Bill");
   ```
 
+* BREAKING CHANGE: `StoreConnector.model` was removed, after being deprecated for a long
+  time. Please, use the `vm` parameter instead. See classes `VmFactory` and `Vm`.
+
+* BREAKING CHANGE: `ReduxAction.reduceWithState()` was removed, after being deprecated for a long
+  time.
+
 # 21.7.1
 
 * DEPRECATION WARNING:
@@ -198,13 +204,13 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
   ```
   // WrapError (deprecated):
-  Object? wrap(Object error, StackTrace stackTrace, ReduxAction<AppState> action) {
+  Object? wrap(error, stackTrace, action) {
      if (error is MyException) return null; // Keep the error unaltered.
      else return processError(error);
   }
   
   // GlobalWrapError:
-  Object? wrap(Object error, StackTrace stackTrace, ReduxAction<AppState> action) {
+  Object? wrap( error, stackTrace, action) {
      if (error is MyException) return error; // Keep the error unaltered.
      else return processError(error);
   }
