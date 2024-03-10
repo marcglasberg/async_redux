@@ -44,15 +44,14 @@ Widget build(BuildContext context) {
 You can then use it anywhere in your widgets like this:
 
 ```dart
-class MyCounter extends StatelessWidget {
-  @override
+class MyWidget extends StatelessWidget {  
   Widget build(BuildContext context) {
     return Column(children: [        
         
       Text(context.state.toString()), // Use the state.        
         
       ElevatedButton(
-        child: Text("+")),            
+        child: Text('+')),            
         onPressed: () => context.dispatch(Increment())) // Dispatch the action.               
     ]);    
   }}
@@ -61,11 +60,11 @@ class MyCounter extends StatelessWidget {
 Your actions can download information from the internet, or do any other asynchronous work:
 
 ```dart
-var store = Store<String>(initialState: "");
+var store = Store<String>(initialState: '');
 
 class LoadText extends Action {
 
-  // This action is async, so it returns a Future<String>.  
+  // This reducer returns a Future.  
   Future<String> reduce() async {
   
     // Download some information from the internet.
@@ -74,7 +73,7 @@ class LoadText extends Action {
     // Change the state with the downloaded information.
     if (response.statusCode == 200) return response.body;
     
-    // When you throw errors of type `UserException`, a dialog 
+    // When you throw errors of type `UserException`, a dialog (or other UI) 
     // will open automatically, showing the error message to the user.
     // The `.i18n` after the string translates it to the user language.
     else throw UserException('Failed to load data.'.i18n);      
@@ -85,17 +84,16 @@ class LoadText extends Action {
 If you want to show a spinner while the text is loading, you can use `isWaitingFor`:
 
 ```dart
-class MyText extends StatelessWidget {
-@override
-Widget build(BuildContext context) {
-return Column(children: [
+class MyWidget extends StatelessWidget {
+  Widget build(BuildContext context) {
+    return Column(children: [
 
       context.isWaitingFor(LoadText) // While the action is running,  
          ? CircularProgressIndicator(), // Show a spinner.
          : Text(context.state), // Else, show the loaded state.        
         
       ElevatedButton(
-        child: Text("Load")),            
+        child: Text('Load')),            
         onPressed: () => context.dispatch(LoadText())) // Dispatch the action.               
     ]);    
 }}
@@ -116,7 +114,7 @@ class LoadTextAndIncrement extends Action {
 ```
 
 Testing is very easy. Just dispatch actions and wait for them to finish.
-Then, verify the new state or check if some error was thrown. For example:
+Then, verify the new state or check if some error was thrown:
 
 ```dart
 class AppState {
@@ -129,7 +127,7 @@ test('Selecting an item', () async {
 
     var store = Store<AppState>(
       initialState: AppState(
-        user: User(name: "John"),
+        user: User(name: 'John'),
         selected: -1,
         items: [Item(id: 1), Item(id: 2), Item(id: 3)]
       ));
@@ -146,19 +144,19 @@ test('Selecting an item', () async {
 
 # Team Lead Overview
 
-If you are a Team Lead, you have features to help you set up the app's infrastructure in a central
-place, and allow your developers to concentrate solely on the business logic.
+If you are a Team Lead, you'll have features to help you set up the app's infrastructure in a
+central place, and allow your developers to concentrate solely on the business logic.
 
 When you create the store, you can add
 a `persistor` to save and load the state from the local device disk,
 a `stateObserver` to collect app metrics,
 an `errorObserver` to log errors,
-an `actionObservers` to print information to the console during development,
-and a `globalWrapError` as to catch all errors thrown by actions and decide what to do with them.
+an `actionObserver` to print information to the console during development,
+and a `globalWrapError` to catch all errors thrown by actions and decide what to do with them.
 
 ```dart
 var store = Store<String>(
-  initialState: "",
+  initialState: '',
   persistor: MyPersistor(),
   stateObserver: [MyStateObserver()],
   errorObserver: [MyErrorObserver()],
@@ -167,20 +165,20 @@ var store = Store<String>(
 ```  
 
 For example, the following `GlobalWrapError` is designed to handle all `PlatformException` errors
-throw by Firebase. It converts them into `UserException` errors, which are built-in Async Redux
-exception types that automatically display their message to the user in an error dialog:
+throw by **Firebase**. It converts them into `UserException` errors, which are built-in Async Redux
+types that automatically display their message to the user in an error dialog:
 
 ```dart
 Object? wrap(error, stackTrace, action) {
-  if (error is PlatformException)
-    return UserException("Error connecting to Firebase");
-  else 
-    return error;
+  return (error is PlatformException)
+    ? UserException('Error connecting to Firebase')
+    : error;
 }   
 ```
 
-Another interesting feature for Team Leads is the ability to prepare special action **mixins** to do
-common tasks. For example, this one checks the internet connection:
+Another interesting feature for Team Leads is the ability to prepare special action **mixins** to
+do common tasks. You can get creative, but let's see some examples. This one checks the internet
+connection:
 
 ```dart
 mixin CheckInternet implements Action {
@@ -189,8 +187,8 @@ mixin CheckInternet implements Action {
   }}
 ```
 
-All actions with `CheckInternet` will only run if there is an internet connection,
-and will show an error dialog asking users to _"Check the internet"_ if there isn't:
+Adding `with CheckInternet` to actions will make sure they only run if there is an internet
+connection, and will show an error dialog asking users to "_Check the internet_" if there isn't:
 
 ```dart
 class LoadText extends Action with CheckInternet {
@@ -255,12 +253,12 @@ class SelectItem extends Action {
     
   AppState reduce() {
     Item? item = findItemById(id);
-    if (item == null) throw UserException("Item not found");
+    if (item == null) throw UserException('Item not found');
     return state.copy(selected: item);
   }    
 }
 ``` 
-     
+
 <br>
 
 ---
@@ -268,7 +266,9 @@ class SelectItem extends Action {
 ---
 
 [//]: # (The below documentation is very detailed. For an overview, go to)
+
 [//]: # (the <a href="https://medium.com/@marcglasberg/https-medium-com-marcglasberg-async-redux-33ac5e27d5f6?sk=87aefd759273920d444185aa9d447ba0">)
+
 [//]: # (Medium story</a>.)
 
 # Example projects
