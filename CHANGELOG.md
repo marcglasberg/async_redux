@@ -25,7 +25,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   are developing a Dart server (backend) with [Celest](https://celest.dev/), or when developing your
   own Dart-only package that does not depend on Flutter. Note: For the moment, the core
   package simply contains the `UserException`, and nothing more. If you now
-  import `async_redux_core` in your Celest server code and throw a `UserException` there, the
+  import `async_redux_core` in your Celest server code and throw an `UserException` there, the
   exception message will automatically be shown in a dialog to the user in your client app (if you
   use the `UserExceptionDialog` feature).
 

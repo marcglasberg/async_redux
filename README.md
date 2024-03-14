@@ -77,7 +77,7 @@ class LoadText extends Action {
 }
 ```
 
-If some error happens, you can simply throw a `UserException`.
+If some error happens, you can simply throw an `UserException`.
 A dialog (or other UI) will open automatically, showing the error message to the user.
 
 ```dart
@@ -103,9 +103,9 @@ Then:
 class MyWidget extends StatelessWidget {
   Widget build(BuildContext context) {
   
-    if (context.isFailed(LoadText)) return Text('Loading failed...');
-    
     if (context.isWaiting(LoadText)) return CircularProgressIndicator();
+    
+    if (context.isFailed(LoadText)) return Text('Loading failed...');
     
     return Column(children: [
       Text(context.state),                
