@@ -1,4 +1,5 @@
 export 'package:async_redux_core/async_redux_core.dart';
+export 'src/action_mixins.dart';
 export 'src/action_observer.dart';
 export 'src/advanced_user_exception.dart';
 export 'src/cache.dart';
