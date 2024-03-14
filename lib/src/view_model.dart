@@ -8,8 +8,6 @@ library async_redux_view_model;
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 
-part 'equality.dart';
-
 /// Each state passed in the [Vm.equals] parameter in the in view-model will be
 /// compared by equality (==), unless it is of type [VmEquals], when it will be
 /// compared by the [VmEquals.vmEquals] method, which by default is a comparison
@@ -325,7 +323,7 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   DispatchSync<St> get dispatchSync => _store.dispatchSync;
 
-  /// You can use [isWaitingFor] to check if:
+  /// You can use [isWaiting] to check if:
   /// * A specific async ACTION is currently being processed.
   /// * An async action of a specific TYPE is currently being processed.
   /// * If any of a few given async actions or action types is currently being processed.
@@ -344,18 +342,18 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// ```dart
   /// // Waiting for an action TYPE:
   /// dispatch(MyAction());
-  /// if (isWaitingFor(MyAction)) { // Show a spinner }
+  /// if (isWaiting(MyAction)) { // Show a spinner }
   ///
   /// // Waiting for an ACTION:
   /// var action = MyAction();
   /// dispatch(action);
-  /// if (isWaitingFor(action)) { // Show a spinner }
+  /// if (isWaiting(action)) { // Show a spinner }
   ///
   /// // Waiting for any of the given action TYPES:
   /// dispatch(BuyAction());
-  /// if (isWaitingFor([BuyAction, SellAction])) { // Show a spinner }
+  /// if (isWaiting([BuyAction, SellAction])) { // Show a spinner }
   /// ```
-  bool isWaitingFor(Object actionOrTypeOrList) => _store.isWaitingFor(actionOrTypeOrList);
+  bool isWaiting(Object actionOrTypeOrList) => _store.isWaiting(actionOrTypeOrList);
 
   /// Gets the first error from the error queue, and removes it from the queue.
   UserException? getAndRemoveFirstError() => _store.getAndRemoveFirstError();

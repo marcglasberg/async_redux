@@ -3,16 +3,17 @@
 
 # Async Redux | *state management*
 
-Async Redux is an optimized Redux version, which is very easy to learn and use, yet powerful and
-tailored for
-Flutter. It helps you write Flutter apps that are **easy to
-test, maintain and extend**.
+Async Redux is an optimized Redux version, which is very easy to learn and use,
+yet powerful and tailored for Flutter.
+It helps you write Flutter apps that are **easy to test, maintain and extend**.
 
 # Developer Overview
 
 The main concepts in Redux are: *store*, *state*, *actions* and *reducers*.
 
-First, the counter example:
+The **store** holds all the application **state**,
+and you can only change the state by dispatching **actions**.
+Each action has a **reducer**, which changes the state:
 
 ```dart
 // Create a store, which holds the initial app state.
@@ -68,30 +69,46 @@ class LoadText extends Action {
   Future<String> reduce() async {
   
     // Download some information from the internet.
-    var response = await http.get('http://numbersapi.com/42');
+    var response = await http.get('http://numbersapi.com/42');    
     
     // Change the state with the downloaded information.
-    if (response.statusCode == 200) return response.body;
-    
-    // When you throw errors of type `UserException`, a dialog (or other UI) 
-    // will open automatically, showing the error message to the user.
-    // The `.i18n` after the string translates it to the user language.
-    else throw UserException('Failed to load data.'.i18n);      
+    return response.body;      
   }
 }
 ```
 
-If you want to show a spinner while the text is loading, you can use `isWaitingFor`:
+If some error happens, you can simply throw a `UserException`.
+A dialog (or other UI) will open automatically, showing the error message to the user.
+
+```dart
+var store = Store<String>(initialState: '');
+
+class LoadText extends Action {
+    
+  Future<String> reduce() async {  
+    var response = await http.get('http://numbersapi.com/42');    
+
+    if (response.statusCode == 200) return response.body;
+    else throw UserException('Failed to load data');         
+  }
+}
+```
+
+Then:
+
+* If you want to show a spinner while the text is loading, you can use `isWaiting`.
+* If you want to show an error message as part of your widget tree, you can use `isFailed`.
 
 ```dart
 class MyWidget extends StatelessWidget {
   Widget build(BuildContext context) {
+  
+    if (context.isFailed(LoadText)) return Text('Loading failed...');
+    
+    if (context.isWaiting(LoadText)) return CircularProgressIndicator();
+    
     return Column(children: [
-
-      context.isWaitingFor(LoadText) // While the action is running,  
-         ? CircularProgressIndicator(), // Show a spinner.
-         : Text(context.state), // Else, show the loaded state.        
-        
+      Text(context.state),                
       ElevatedButton(
         child: Text('Load')),            
         onPressed: () => context.dispatch(LoadText())) // Dispatch the action.               
@@ -99,8 +116,8 @@ class MyWidget extends StatelessWidget {
 }}
 ```
 
-Your actions can also dispatch other actions, and you can even use  `dispatchAndWait` to wait for
-an action to finish:
+Your actions can also dispatch other actions, and you can even use `dispatchAndWait` to
+wait for an action to finish:
 
 ```dart
 class LoadTextAndIncrement extends Action {
@@ -214,7 +231,7 @@ already running:
 
 ```dart
 mixin NonReentrant implements Action {  
-  bool abortDispatch() => isWaitingFor(runtimeType);
+  bool abortDispatch() => isWaiting(runtimeType);
 }
 ```
 
@@ -822,51 +839,59 @@ await dispatch(MyAsyncAction2());
 
 <br>
 
-## StoreProvider.of
+## Using BuildContext to access the store
 
-To access the store state inside of widgets, you can use `StoreProvider.of`. For example:
-
-```dart
-// Read state
-var myInfo = StoreProvider.state<AppState>(context).myInfo;
-
-// Dispatch action
-StoreProvider.dispatch<AppState>(context, MyAction());
-
-// Use isWaiting to show a spinner. 
-var isWaiting = StoreProvider.isWaitingFor(<AppState>(context, MyAction);
-```
-
-It's highly recommended to create an extension on `BuildContext`
-so you can use `context.state` and `context.dispatch` instead:
+To access the store state inside of widgets, you can use the provided extension on `context`:
 
 ```dart
-// Read state
+// Read state (will rebuild when the state changes) 
 var myInfo = context.state.myInfo;
 
 // Dispatch action
 context.dispatch(MyAction());
 
-// Use isWaiting to show a spinner. 
-var isWaiting = context.isWaitingFor(MyAction); 
+// Use isWaiting to show a spinner 
+var isWaiting = context.isWaiting(MyAction); 
+
+// Use isFailed to show an error message
+if (context.isFailed(MyAction)) return Text('Loading failed');
+                                                                   
+// Use exceptionFor to get the error message from the exception
+if (context.isFailed(MyAction)) return Text(context.exceptionFor(MyAction).message);
+
+// Use clearException to clear the error
+context.clearException(MyAction);
 ```  
 
-If your state class is called `AppState`, copy the following code to define your extension:
+In more detail:
 
-```dart  
-extension BuildContextExtension on BuildContext {
-  AppState get state => StoreProvider.state<AppState>(this);
-  FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatch(this, action, notify: notify);
-  Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatchAndWait(this, action, notify: notify);
-  ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatchSync(this, action, notify: notify);
-  bool isWaitingFor(Object actionOrTypeOrList) => StoreProvider.isWaitingFor<AppState>(this, actionOrTypeOrList);
-}
-```  
+* `var state = context.getState<AppState>` - Reads the store state. Widgets that use this will
+  rebuild whenever the state changes.
 
-Or, if you want a fully documented version, copy the
-file ([build_context_extension](lib/src/build_context_extension)), rename it with a `.dart`
-extension and put it in the same directory as your `app_state.dart` file containing
-your `AppState` class.
+  It's recommended that you define this extension in your own code:
+
+  ```dart
+  extension BuildContextExtension on BuildContext {
+     AppState get state => getState<AppState>();
+  }
+  ```
+
+  This will allow you to write:
+  ```dart
+  var state = context.state;
+  ```
+
+
+* `context.dispatch()`, `.dispatchAndWait()` and `.dispatchSync()` - Dispatch an action.
+
+* `context.isWaiting()` - Returns true if the given action type is currently being processed.
+
+* `context.isFailed()` - Returns true if an action of the given type failed with an `UserException`.
+
+* `context.exceptionFor()` - Returns the `UserException` of the action of the given type that
+  failed.
+
+* `context.clearException()` - Removes the given type from the list of action types that failed.
 
 Try running
 the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_conector_vs_provider.dart.dart">
@@ -2361,7 +2386,7 @@ finish (and will hopefully finish soon). For example:
 
 <br>
 
-The easiest way to show a progress indicator is to use `store.isWaitingFor(MyAction)`,
+The easiest way to show a progress indicator is to use `store.isWaiting(MyAction)`,
 where `MyAction` is the async action you are waiting for. This works well for the majority of cases.
 
 Try running
@@ -2373,7 +2398,7 @@ grey.
 In [Before and After the Reducer](#before-and-after-the-reducer) section I show how to manually
 create a boolean flag that is used to add or remove a modal barrier in the screen (see the
 code <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_before_and_after.dart">
-here</a>). This will work in some rare complex cases where `store.isWaitingFor()` is not enough.
+here</a>). This will work in some rare complex cases where `store.isWaiting()` is not enough.
 
 However, keeping track of many such boolean flags may be difficult to do.
 If you need help with this problem, an option is using the built-in classes `WaitAction` and `Wait`.
@@ -2402,9 +2427,9 @@ dispatch(WaitAction.remove("my flag")); // To remove a flag.
 
 When you are using the state:
 
-* `state.wait.isWaiting` returns `true` if there's any waiting whatsoever.
-* `state.wait.isWaitingFor(flag)` returns `true` if you are waiting for a specific `flag`
-* `state.wait.isWaitingFor(flag, ref: reference)` returns `true` if you are waiting for a
+* `state.wait.isWaitingAny` returns `true` if there's any waiting whatsoever.
+* `state.wait.isWaiting(flag)` returns `true` if you are waiting for a specific `flag`
+* `state.wait.isWaiting(flag, ref: reference)` returns `true` if you are waiting for a
   specific `reference` of the `flag`.
 * `state.wait.isWaitingForType<T>()` returns `true` if you are waiting for any flag of type `T`.
 
@@ -2413,7 +2438,7 @@ When you are using the state:
 The flag can be any convenient **immutable object**, like a URL, a user id, an index, an enum, a
 String, a number, or other.
 
-As an example, if we want to replace the `store.isWaitingFor()` method with the `Wait` object, we
+As an example, if we want to replace the `store.isWaiting()` method with the `Wait` object, we
 could do this: Suppose that a button dispatches a `LoadAction` to load some text. You can make the
 button show a progress indicator while the text is being loaded, and show the text when it's done:
 
@@ -2480,9 +2505,9 @@ void before() => dispatch(WaitAction.add(index));
 void after() => dispatch(WaitAction.remove(index));
 ```                            
 
-In the `ViewModel`, just as before, if there's any waiting, then `state.wait.isWaiting` will
+In the `ViewModel`, just as before, if there's any waiting, then `state.wait.isWaitingAny` will
 return `true`. However, now you can check each button wait flag separately by its index.
-`state.wait.isWaitingFor(index)` will return `true` if that specific button is waiting.
+`state.wait.isWaiting(index)` will return `true` if that specific button is waiting.
 
 Note: If necessary, you can clear all flags by doing `dispatch(WaitAction.clear())`.
 
@@ -2499,7 +2524,7 @@ void after() => dispatch(WaitAction.remove("button-download", ref: index));
 ```                            
 
 Now, to check a button's wait flag, you must pass both the flag and the reference:
-`state.wait.isWaitingFor("button-download", ref: index)`.
+`state.wait.isWaiting("button-download", ref: index)`.
 
 Note: If necessary, you can clear all references of that flag by
 doing `dispatch(WaitAction.clear("button-download"))`.

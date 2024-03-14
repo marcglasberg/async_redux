@@ -19,14 +19,14 @@ void main() {
     (title, content) = exception.titleAndContent();
     expect(title, 'Some msg');
     expect(content, 'Other msg');
-    expect(exception.toString(), 'UserException{Some msg\n\nReason: Other msg}');
+    expect(exception.toString(), 'UserException{Some msg|Reason: Other msg}');
 
     // UserException with cause, and the cause is NOT an UserException.
     exception = const UserException('Some msg', reason: 'Other msg');
     (title, content) = exception.titleAndContent();
     expect(title, 'Some msg');
     expect(content, 'Other msg');
-    expect(exception.toString(), 'UserException{Some msg\n\nReason: Other msg}');
+    expect(exception.toString(), 'UserException{Some msg|Reason: Other msg}');
   });
 
   test('Adding callbacks', () {

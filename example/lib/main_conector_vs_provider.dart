@@ -1,6 +1,5 @@
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // For more info, see: https://pub.dartlang.org/packages/async_redux
-import 'dart:async';
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 
@@ -62,17 +61,11 @@ class IncrementAction extends ReduxAction<AppState> {
 class GetsStateFromStoreConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    var isWaiting = context.isWaitingFor(IncrementAction);
-
     return StoreConnector(
       converter: (Store<AppState> store) => store.state.counter,
       builder: (context, value) => Column(
         children: [
-          Text('$value',
-              style: TextStyle(
-                fontSize: 30,
-                color: isWaiting ? Colors.grey[350] : Colors.black,
-              )),
+          Text('$value', style: const TextStyle(fontSize: 30, color: Colors.black)),
           const Text(
             'Value read with the StoreConnector:\n`StoreConnector(builder: (context, value) => ...)`',
             style: const TextStyle(fontSize: 13),
@@ -87,14 +80,9 @@ class GetsStateFromStoreConnector extends StatelessWidget {
 class GetsStateFromStoreProvider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    var isWaiting = context.isWaitingFor(IncrementAction);
-
     return Column(
       children: [
-        Text(
-          '${context.state.counter}',
-          style: TextStyle(fontSize: 30, color: isWaiting ? Colors.grey[350] : Colors.black),
-        ),
+        Text('${context.state.counter}', style: const TextStyle(fontSize: 30, color: Colors.black)),
         const Text(
           'Value read with the StoreProvider:\n`context.state.counter`',
           style: TextStyle(fontSize: 13),
@@ -105,21 +93,8 @@ class GetsStateFromStoreProvider extends StatelessWidget {
   }
 }
 
-extension BuildContextExtension<T extends AppState> on BuildContext {
-  //
-  AppState get state => StoreProvider.state<AppState>(this);
-
-  FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) =>
-      StoreProvider.dispatch(this, action, notify: notify);
-
-  Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) =>
-      StoreProvider.dispatchAndWait(this, action, notify: notify);
-
-  ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) =>
-      StoreProvider.dispatchSync(this, action, notify: notify);
-
-  bool isWaitingFor(Object actionOrTypeOrList) =>
-      StoreProvider.isWaitingFor<AppState>(this, actionOrTypeOrList);
+extension _BuildContextExtension on BuildContext {
+  AppState get state => getState<AppState>();
 }
 
 class AppState {

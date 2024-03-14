@@ -78,6 +78,8 @@ class AdvancedUserException extends UserException {
     super.message, {
     required super.reason,
     required super.code,
+    required super.errorText,
+    required super.ifOpenDialog,
     required this.onOk,
     required this.onCancel,
     required this.hardCause,
@@ -92,10 +94,12 @@ class AdvancedUserException extends UserException {
           runtimeType == other.runtimeType &&
           onOk == other.onOk &&
           onCancel == other.onCancel &&
-          hardCause == other.hardCause;
+          hardCause == other.hardCause &&
+          props == other.props;
 
   @override
-  int get hashCode => super.hashCode ^ onOk.hashCode ^ onCancel.hashCode ^ hardCause.hashCode;
+  int get hashCode =>
+      super.hashCode ^ onOk.hashCode ^ onCancel.hashCode ^ hardCause.hashCode ^ props.hashCode;
 
   /// Returns a new [UserException], copied from the current one, but adding the given [reason].
   /// Note the added [reason] won't replace the original reason, but will be added to it.
@@ -103,10 +107,7 @@ class AdvancedUserException extends UserException {
   @mustBeOverridden
   @override
   UserException addReason(String? reason) {
-    //
-    IMap;
     UserException exception = super.addReason(reason);
-
     return AdvancedUserException(
       exception.message,
       reason: exception.reason,
@@ -115,28 +116,75 @@ class AdvancedUserException extends UserException {
       onCancel: onCancel,
       hardCause: hardCause,
       props: props,
+      errorText: errorText,
+      ifOpenDialog: ifOpenDialog,
     );
   }
 
-  /// Returns a new [UserException], by merging the current one with the given [userException].
-  /// This simply means the given [userException] will be used as part of the [reason] of the
+  /// Returns a new [UserException], by merging the current one with the given [anotherUserException].
+  /// This simply means the given [anotherUserException] will be used as part of the [reason] of the
   /// current one.
+  ///
+  /// Note: If any of the exceptions has [ifOpenDialog] set to `false`, the result will also
+  /// have [ifOpenDialog] set to `false`.
+  ///
   @useResult
   @mustBeOverridden
   @override
-  UserException mergedWith(UserException? userException) {
-    //
-    UserException exception = super.mergedWith(userException);
+  UserException mergedWith(UserException? anotherUserException) {
+    if (anotherUserException == null)
+      return this;
+    else {
+      UserException exception = super.mergedWith(anotherUserException);
+      return AdvancedUserException(
+        exception.message,
+        reason: exception.reason,
+        code: exception.code,
+        onOk: onOk,
+        onCancel: onCancel,
+        hardCause: hardCause,
+        props: props,
+        errorText: (anotherUserException.errorText?.isNotEmpty ?? false)
+            ? anotherUserException.errorText
+            : errorText,
+        ifOpenDialog: ifOpenDialog && anotherUserException.ifOpenDialog,
+      );
+    }
+  }
 
-    return AdvancedUserException(
-      exception.message,
-      reason: exception.reason,
-      code: exception.code,
-      onOk: onOk,
-      onCancel: onCancel,
-      hardCause: hardCause,
-      props: props,
-    );
+  @useResult
+  @mustBeOverridden
+  @override
+  UserException get noDialog => AdvancedUserException(
+        message,
+        reason: reason,
+        code: code,
+        onOk: onOk,
+        onCancel: onCancel,
+        props: props,
+        hardCause: hardCause,
+        errorText: errorText,
+        ifOpenDialog: false,
+      );
+
+  @useResult
+  @mustBeOverridden
+  @override
+  UserException withErrorText(String? newErrorText) => AdvancedUserException(
+        message,
+        reason: reason,
+        code: code,
+        onOk: onOk,
+        onCancel: onCancel,
+        props: props,
+        hardCause: hardCause,
+        errorText: newErrorText,
+        ifOpenDialog: ifOpenDialog,
+      );
+
+  @override
+  String toString() {
+    return super.toString() + (props.isEmpty ? '' : props.toString());
   }
 }
 
@@ -222,6 +270,8 @@ extension UserExceptionAdvancedExtension on UserException {
         onOk: onOk,
         onCancel: onCancel,
         props: props,
+        errorText: errorText,
+        ifOpenDialog: ifOpenDialog,
         hardCause: cause, // We discard the old hard cause, if any.
       );
     }
@@ -272,6 +322,8 @@ extension UserExceptionAdvancedExtension on UserException {
         onCancel: _onCancel,
         props: exception.props,
         hardCause: exception.hardCause,
+        errorText: errorText,
+        ifOpenDialog: ifOpenDialog,
       );
     }
     //
@@ -280,6 +332,8 @@ extension UserExceptionAdvancedExtension on UserException {
         message,
         reason: reason,
         code: code,
+        errorText: errorText,
+        ifOpenDialog: ifOpenDialog,
         onOk: onOk,
         onCancel: onCancel,
         props: const IMapConst<String, dynamic>({}),
@@ -292,30 +346,19 @@ extension UserExceptionAdvancedExtension on UserException {
   ///
   @useResult
   UserException addProps(Map<String, dynamic>? moreProps) {
-    if (moreProps == null) return this;
-
-    var exception = this;
-
-    if (exception is AdvancedUserException)
-      return AdvancedUserException(
-        message,
-        reason: reason,
-        code: code,
-        onOk: exception.onOk,
-        onCancel: exception.onCancel,
-        props: exception.props.addMap(moreProps),
-        hardCause: exception.hardCause,
-      );
-    //
+    if (moreProps == null)
+      return this;
     else
       return AdvancedUserException(
         message,
         reason: reason,
         code: code,
-        onOk: null,
-        onCancel: null,
-        props: moreProps.lock,
-        hardCause: null,
+        onOk: onOk,
+        onCancel: onCancel,
+        props: props.addMap(moreProps),
+        hardCause: hardCause,
+        errorText: errorText,
+        ifOpenDialog: ifOpenDialog,
       );
   }
 }
@@ -368,9 +411,26 @@ class UserExceptionAction<St> extends ReduxAction<St> {
     /// Any key-value pair properties you'd like to add to the exception.
     /// For example: `props: {'name': 'John', 'age': 42}`
     Map<String, dynamic>? props,
+
+    /// If `true`, the [UserExceptionDialog] will show in the dialog or similar UI.
+    /// If `false` you can still show the error in a different way, usually showing [errorText]
+    /// in the UI element that is responsible for the error.
+    final bool ifOpenDialog = true,
+
+    /// Some text to be displayed in the UI element that is responsible for the error.
+    /// For example, a text field could show this text in its `errorText` property.
+    /// When building your widgets, you can get the [errorText] from the failed action:
+    /// `String errorText = context.exceptionFor(MyAction)?.errorText`.
+    final String? errorText,
     //
   }) : this.from(
-          UserException(message, reason: reason, code: code).addCause(cause).addProps(props),
+          UserException(
+            message,
+            reason: reason,
+            code: code,
+            ifOpenDialog: ifOpenDialog,
+            errorText: errorText,
+          ).addCause(cause).addProps(props),
         );
 
   UserExceptionAction.from(this.exception);

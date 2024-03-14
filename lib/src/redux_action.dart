@@ -88,37 +88,40 @@ abstract class ReduxAction<St> {
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   DispatchAndWait<St> get dispatchAndWait => _store.dispatchAndWait;
 
-  /// You can use [isWaitingFor] to check if:
+  /// You can use [isWaiting] and pass it [actionOrActionTypeOrList] to check if:
   /// * A specific async ACTION is currently being processed.
   /// * An async action of a specific TYPE is currently being processed.
   /// * If any of a few given async actions or action types is currently being processed.
   ///
   /// If you wait for an action TYPE, then it returns false when:
-  /// - The ASYNC action of type [actionType] is NOT currently being processed.
-  /// - If [actionType] is not really a type that extends [ReduxAction].
-  /// - The action of type [actionType] is a SYNC action (since those finish immediately).
+  /// - The ASYNC action of the type is NOT currently being processed.
+  /// - If the type is not really a type that extends [ReduxAction].
+  /// - The action of the type is a SYNC action (since those finish immediately).
   ///
   /// If you wait for an ACTION, then it returns false when:
-  /// - The ASYNC [action] is NOT currently being processed.
-  /// - If [action] is a SYNC action (since those finish immediately).
-  //
+  /// - The ASYNC action is NOT currently being processed.
+  /// - If the action is a SYNC action (since those finish immediately).
+  ///
+  /// Trying to wait for any other type of object will return null and throw
+  /// a [StoreException] after the async gap.
+  ///
   /// Examples:
   ///
   /// ```dart
   /// // Waiting for an action TYPE:
   /// dispatch(MyAction());
-  /// if (isWaitingFor(MyAction)) { // Show a spinner }
+  /// if (store.isWaiting(MyAction)) { // Show a spinner }
   ///
   /// // Waiting for an ACTION:
   /// var action = MyAction();
   /// dispatch(action);
-  /// if (isWaitingFor(action)) { // Show a spinner }
+  /// if (store.isWaiting(action)) { // Show a spinner }
   ///
   /// // Waiting for any of the given action TYPES:
   /// dispatch(BuyAction());
-  /// if (isWaitingFor([BuyAction, SellAction])) { // Show a spinner }
+  /// if (store.isWaiting([BuyAction, SellAction])) { // Show a spinner }
   /// ```
-  bool isWaitingFor(Object actionOrTypeOrList) => _store.isWaitingFor(actionOrTypeOrList);
+  bool isWaiting(Object actionOrTypeOrList) => _store.isWaiting(actionOrTypeOrList);
 
   /// This is an optional method that may be overridden to run during action
   /// dispatching, before `reduce`. If this method throws an error, the
@@ -197,7 +200,7 @@ abstract class ReduxAction<St> {
   /// /// This mixin prevents reentrant actions. You can only call the action if it's not already
   /// /// running. Example: `class LoadInfo extends ReduxAction<AppState> with NonReentrant { ... }`
   /// mixin NonReentrant implements ReduxAction<AppState> {
-  ///   bool abortDispatch() => isWaitingFor(runtimeType);
+  ///   bool abortDispatch() => isWaiting(runtimeType);
   /// }
   /// ```
   ///
@@ -263,7 +266,7 @@ abstract class ReduxAction<St> {
 /// /// This mixin prevents reentrant actions. You can only call the action if it's not already
 /// /// running. Example: `class LoadInfo extends ReduxAction<AppState> with NonReentrant { ... }`
 /// mixin NonReentrant implements ReduxAction<AppState> {
-///   bool abortDispatch() => isWaitingFor(runtimeType);
+///   bool abortDispatch() => isWaiting(runtimeType);
 /// }
 /// ```
 ///

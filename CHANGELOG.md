@@ -3,14 +3,22 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# 22.0.0
+# 22.1.0-dev.1
 
-* When you dispatch an async action, you can now use `var isWaiting = store.isWaitingFor(MyAction)`
-  to check if the action is currently being processed. You can then use this boolean to show a
-  loading spinner in your widget, for example. Note you can also check for specific actions, or any
-  type from a list of action types. See
+* When you dispatch an async action, you can now use `var isWaiting = context.isWaiting(MyAction)`
+  to check if the action of the given type is currently being processed. You can then use this
+  boolean to show a loading spinner in your widget.
+  Note: Inside your `VmFactory` you can also use `isWaiting: isWaiting(MyAction)`. See
   the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_spinner.dart">
   Show Spinner Example</a>.
+
+* You can now use `var isFailed = context.isFailed(MyAction)` to check if the given action has
+  thrown an `UserException`. You can then use this boolean to show an error message.
+  You can also get the exception with `var exception = context.exceptionFor(MyAction)` to use its
+  error message. You can also clear the exception with `context.clearException(MyAction)`.
+  Note: Inside your `VmFactory` you can also use `isFailed: isFailed(MyAction)` etc. See
+  the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_error_dialog.dart">
+  Show Error Dialog Example</a>.
 
 * Some features of the `async_redux` package are now available in a standalone Dart-only core
   package: https://pub.dev/packages/async_redux_core. You may use that core package when you
@@ -32,14 +40,17 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   then you don't need to change anything: `throw UserException('Error message')` will continue to
   work as before. However, for other more advanced features you will have to read
   the `UserException` documentation and adapt. In the new public API of `UserException` you can now
-  specify a `message`, `reason` and `code` in the constructor, and then you can use
-  methods `addCallbacks`, `addCause` and `addProps` to add more information:
+  specify a `message`, `reason`, `code`, `errorText` and `ifOpenDialog` in the constructor, and
+  then you can use methods `addCallbacks`, `addCause`, `addProps`, `withErrorText` and `noDialog`
+  to add more information:
 
   ```dart
   throw UserException('Invalid number', reason: 'Must be less than 42')
      .addCallbacks(onOk: () => print('OK'), onCancel: () => print('CANCEL'))
      .addCause(FormatException('Invalid input'))
-     .addProps({'number': 42}));
+     .addProps({'number': 42}))                                                  
+     .withErrorText('Type a smaller number')
+     .noDialog;
   ```                  
 
   Note the `code` parameter can only be a number now. If you were using a different type,
@@ -54,51 +65,39 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
 
 * BREAKING CHANGE: `StoreProvider.of` was removed. You can now access the store inside of
-  widgets, and have your widgets rebuild when the state changes, by using `StoreProvider.state`
-  and `StoreProvider.dispatch` etc. This is only useful when you want to access the store `state`,
-  `dispatch` and wait for actions directly inside your widgets, instead of using
-  the `StoreConnector` (dumb widget / smart widget pattern). For example:
+  widgets, and have your widgets rebuild when the state changes, by using `context.state`
+  and `context.dispatch` etc. This is only useful when you want to access the store state,
+  and dispatch actions directly inside your widgets, instead of using the `StoreConnector` (dumb
+  widget / smart widget pattern). For example:
 
   ```dart
-  // Read state (will rebuild when the state changes)
-  var myInfo = StoreProvider.state<AppState>(context).myInfo;
-  
-  // Dispatch action
-  StoreProvider.dispatch<AppState>(context, MyAction());
-  
-  // Use isWaiting to show a spinner. 
-  var isWaiting = StoreProvider.isWaitingFor(<AppState>(context, MyAction);
-  ```      
-
-  However, to use this you should instead define these extension methods in your own code
-  (supposing your state class is called `AppState`):
-
-  ```dart  
-  extension BuildContextExtension on BuildContext {
-     AppState get state => StoreProvider.state<AppState>(this);
-     FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatch(this, action, notify: notify);
-     Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatchAndWait(this, action, notify: notify);
-     ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) => StoreProvider.dispatchSync(this, action, notify: notify);
-     bool isWaitingFor(Object actionOrTypeOrList) => StoreProvider.isWaitingFor<AppState>(this, actionOrTypeOrList);  
-  }
-  ```
-
-  Which allow you to write it like this:
-
-  ```
-  // Read state (will rebuild when the state changes)
+  // Read state (will rebuild when the state changes) 
   var myInfo = context.state.myInfo;
   
   // Dispatch action
   context.dispatch(MyAction());
-                                 
-  // Use isWaiting to show a spinner. 
-  var isWaiting = context.isWaitingFor(MyAction);
-  ```   
+  
+  // Use isWaiting to show a spinner
+  if (context.isWaiting(MyAction)) return CircularProgressIndicator();
+  
+  // Use isFailed to show an error message
+  if (context.isFailed(MyAction)) return Text('Loading failed');
+                                                                   
+  // Use exceptionFor to get the error message from the exception
+  if (context.isFailed(MyAction)) return Text(context.exceptionFor(MyAction).message);
+  
+  // Use clearException to clear the error
+  context.clearException(MyAction);
+  ```      
 
-  Or, if you want a fully documented version, copy the
-  file ([build_context_extension](https://raw.githubusercontent.com/marcglasberg/async_redux/master/lib/src/build_context_extension)),
-  rename it with a `.dart` extension and put it in a visible location in your own code.
+  However, to use this you should instead define this extension method in your own code
+  (supposing your state class is called `AppState`):
+
+  ```dart  
+  extension BuildContextExtension on BuildContext {
+     AppState get state => getState<AppState>();       
+  }
+  ```     
 
   See
   the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_conector_vs_provider.dart.dart">

@@ -114,8 +114,8 @@ class PageVmFactory extends VmFactory<AppState, MyHomePageConnector, PageViewMod
 
   @override
   PageViewModel fromStore() => PageViewModel(
-        /// If there is any waiting, `state.wait.isWaiting` will return true.
-        waiting: state.wait.isWaiting,
+        /// If there is any waiting, `state.wait.isWaitingAny` will return true.
+        waiting: state.wait.isWaitingAny,
 
         onGetDescription: (int index) => dispatch(GetDescriptionAction(index)),
       );
@@ -164,8 +164,8 @@ class ItemVmFactory extends VmFactory<AppState, MyItemConnector, ItemViewModel> 
   ItemViewModel fromStore() => ItemViewModel(
         description: state.descriptions[connector.index] ?? "",
 
-        /// If index is waiting, `state.wait.isWaitingFor(index)` returns true.
-        waiting: state.wait.isWaitingFor("button-download", ref: connector.index),
+        /// If index is waiting, `state.wait.isWaiting(index)` returns true.
+        waiting: state.wait.isWaiting("button-download", ref: connector.index),
       );
 }
 

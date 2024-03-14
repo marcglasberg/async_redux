@@ -23,9 +23,9 @@ enum WaitOperation { add, remove, clear }
 ///
 /// In the ViewModel, you can check the flags/references, like this:
 ///
-/// * To check if there is any waiting: state.wait.isWaiting
-/// * To check if is waiting a specific flag: state.wait.isWaitingFor(myFlag);
-/// * To check if is waiting a specific flag/reference: state.wait.isWaitingFor(myFlag, ref: myRef);
+/// * To check if there is any waiting: state.wait.isWaitingAny
+/// * To check if is waiting a specific flag: state.wait.isWaiting(myFlag);
+/// * To check if is waiting a specific flag/reference: state.wait.isWaiting(myFlag, ref: myRef);
 ///
 @immutable
 class Wait {
@@ -42,10 +42,10 @@ class Wait {
   /// `dispatch(WaitAction.add(appointment, ref: time ?? Wait.ALL));`
   ///
   /// And then later check if you are waiting for a specific time:
-  /// `if (wait.isWaitingFor(appointment, ref: time) { ... }`
+  /// `if (wait.isWaiting(appointment, ref: time) { ... }`
   ///
   /// Or if you are waiting for the whole day:
-  /// `if (wait.isWaitingFor(appointment, ref: Wait.ALL) { ... }`
+  /// `if (wait.isWaiting(appointment, ref: Wait.ALL) { ... }`
   ///
   static const ALL = Object();
 
@@ -85,8 +85,7 @@ class Wait {
     }
   }
 
-  Wait process(
-    WaitOperation operation, {
+  Wait process(WaitOperation operation, {
     required Object? flag,
     Object? ref,
   }) {
@@ -101,18 +100,17 @@ class Wait {
   }
 
   /// Return true if there is any waiting (any flag).
-  bool get isWaiting => _flags.isNotEmpty;
+  bool get isWaitingAny => _flags.isNotEmpty;
 
   /// Return true if is waiting for a specific flag.
   /// If [ref] is null, it returns true if it's waiting for any reference of the flag.
   /// If [ref] is not null, it returns true if it's waiting for that specific reference of the flag.
-  bool isWaitingFor(Object? flag, {Object? ref}) {
+  bool isWaiting(Object? flag, {Object? ref}) {
     Set? refs = _flags[flag];
 
-    if (ref == null)
-      return refs != null && refs.isNotEmpty;
-    else
-      return refs != null && refs.contains(ref);
+    return (ref == null) //
+        ? (refs != null) && refs.isNotEmpty //
+        : (refs != null) && refs.contains(ref);
   }
 
   /// Return true if is waiting for ANY flag of the specific type.
@@ -134,7 +132,8 @@ class Wait {
   /// if (wait.isWaitingForType<MyAction>()) { ... }
   /// ```
   bool isWaitingForType<T>() {
-    for (Object? flag in _flags.keys) if (flag is T) return true;
+    for (Object? flag in _flags.keys)
+      if (flag is T) return true;
     return false;
   }
 
@@ -148,11 +147,10 @@ class Wait {
     }
   }
 
-  void clearWhere(
-          bool Function(
-            Object? flag,
-            Set<Object?> refs,
-          ) test) =>
+  void clearWhere(bool Function(
+      Object? flag,
+      Set<Object?> refs,
+      ) test) =>
       _flags.removeWhere(test);
 
   Map<Object?, Set<Object?>> _deepCopy() {

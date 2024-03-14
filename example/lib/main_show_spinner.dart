@@ -40,7 +40,7 @@ class HomePage extends StatelessWidget {
         ),
       ),
       // Here we disable the button while the `WaitAndIncrementAction` action is running.
-      floatingActionButton: context.isWaitingFor(WaitAndIncrementAction)
+      floatingActionButton: context.isWaiting(WaitAndIncrementAction)
           ? const FloatingActionButton(
               disabledElevation: 0,
               onPressed: null,
@@ -69,7 +69,7 @@ class WaitAndIncrementAction extends ReduxAction<AppState> {
 class CounterWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    var isWaiting = context.isWaitingFor(WaitAndIncrementAction);
+    var isWaiting = context.isWaiting(WaitAndIncrementAction);
 
     return Text(
       '${context.state.counter}',
@@ -78,21 +78,8 @@ class CounterWidget extends StatelessWidget {
   }
 }
 
-extension BuildContextExtension<T extends AppState> on BuildContext {
-  //
-  AppState get state => StoreProvider.state<AppState>(this);
-
-  FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) =>
-      StoreProvider.dispatch(this, action, notify: notify);
-
-  Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) =>
-      StoreProvider.dispatchAndWait(this, action, notify: notify);
-
-  ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) =>
-      StoreProvider.dispatchSync(this, action, notify: notify);
-
-  bool isWaitingFor(Object actionOrTypeOrList) =>
-      StoreProvider.isWaitingFor<AppState>(this, actionOrTypeOrList);
+extension _BuildContextExtension on BuildContext {
+  AppState get state => getState<AppState>();
 }
 
 class AppState {

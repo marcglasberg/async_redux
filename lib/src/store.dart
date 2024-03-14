@@ -9,6 +9,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/src/process_persistence.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 
 part 'redux_action.dart';
@@ -548,6 +549,15 @@ class Store<St> {
     bool notify = true,
   }) {
     //
+
+    // If the action is failable (that is to say, we have already called [isFailed] for this
+    // action, then we notify the UI. We don't notify if the action was never checked.
+    bool failable = _actionsWeCanCheckFailed.contains(action.runtimeType);
+    if (failable) {
+      _failedActions.remove(action.runtimeType);
+      _changeController.add(state);
+    }
+
     if (_ifActionIsSync(action)) {
       return _processAction_Sync(action, notify: notify);
     }
@@ -557,9 +567,10 @@ class Store<St> {
       // If it's sync it will finish immediately, so there's no need to add it.
       _activeAsyncActions.add(action);
 
-      // If it's awaitable (that is to say, we have already called isWaitingForType/isWaitingForAction
-      // for this action, then we notify the UI. We don't notify if the action was never checked.
-      if (_awaitableAsyncActions.contains(action.runtimeType)) {
+      // If the action is awaitable (that is to say, we have already called [isWaiting] for this
+      // action, then we notify the UI. We don't notify if the action was never checked.
+      // Note: if it's failable, we already notified the UI.
+      if (!failable && _awaitableAsyncActions.contains(action.runtimeType)) {
         _changeController.add(state);
       }
 
@@ -567,62 +578,66 @@ class Store<St> {
     }
   }
 
-  /// You can use [isWaitingFor] to check if:
+  /// You can use [isWaiting] and pass it [actionOrActionTypeOrList] to check if:
   /// * A specific async ACTION is currently being processed.
   /// * An async action of a specific TYPE is currently being processed.
   /// * If any of a few given async actions or action types is currently being processed.
   ///
   /// If you wait for an action TYPE, then it returns false when:
-  /// - The ASYNC action of type [actionType] is NOT currently being processed.
-  /// - If [actionType] is not really a type that extends [ReduxAction].
-  /// - The action of type [actionType] is a SYNC action (since those finish immediately).
+  /// - The ASYNC action of the type is NOT currently being processed.
+  /// - If the type is not really a type that extends [ReduxAction].
+  /// - The action of the type is a SYNC action (since those finish immediately).
   ///
   /// If you wait for an ACTION, then it returns false when:
-  /// - The ASYNC [action] is NOT currently being processed.
-  /// - If [action] is a SYNC action (since those finish immediately).
-  //
+  /// - The ASYNC action is NOT currently being processed.
+  /// - If the action is a SYNC action (since those finish immediately).
+  ///
+  /// Trying to wait for any other type of object will return null and throw
+  /// a [StoreException] after the async gap.
+  ///
   /// Examples:
   ///
   /// ```dart
   /// // Waiting for an action TYPE:
   /// dispatch(MyAction());
-  /// if (store.isWaitingFor(MyAction)) { // Show a spinner }
+  /// if (store.isWaiting(MyAction)) { // Show a spinner }
   ///
   /// // Waiting for an ACTION:
   /// var action = MyAction();
   /// dispatch(action);
-  /// if (store.isWaitingFor(action)) { // Show a spinner }
+  /// if (store.isWaiting(action)) { // Show a spinner }
   ///
   /// // Waiting for any of the given action TYPES:
   /// dispatch(BuyAction());
-  /// if (store.isWaitingFor([BuyAction, SellAction])) { // Show a spinner }
+  /// if (store.isWaiting([BuyAction, SellAction])) { // Show a spinner }
   /// ```
-  bool isWaitingFor(Object actionOrTypeOrList) {
+  bool isWaiting(Object actionOrActionTypeOrList) {
     //
     // 1) If a type was passed:
-    if (actionOrTypeOrList is Type) {
-      _awaitableAsyncActions.add(actionOrTypeOrList);
-      return _activeAsyncActions.any((action) => action.runtimeType == actionOrTypeOrList);
+    if (actionOrActionTypeOrList is Type) {
+      _awaitableAsyncActions.add(actionOrActionTypeOrList);
+      return _activeAsyncActions.any((action) => action.runtimeType == actionOrActionTypeOrList);
     }
     //
     // 2) If an action was passed:
-    else if (actionOrTypeOrList is ReduxAction<St>) {
-      _awaitableAsyncActions.add(actionOrTypeOrList.runtimeType);
-      return _activeAsyncActions.contains(actionOrTypeOrList);
+    else if (actionOrActionTypeOrList is ReduxAction) {
+      _awaitableAsyncActions.add(actionOrActionTypeOrList.runtimeType);
+      return _activeAsyncActions.contains(actionOrActionTypeOrList);
     }
     //
     // 3) If a list was passed:
-    else if (actionOrTypeOrList is Iterable) {
-      for (var actionOrType in actionOrTypeOrList) {
+    else if (actionOrActionTypeOrList is Iterable) {
+      for (var actionOrType in actionOrActionTypeOrList) {
         if (actionOrType is Type) {
           _awaitableAsyncActions.add(actionOrType);
           return _activeAsyncActions.any((action) => action.runtimeType == actionOrType);
-        } else if (actionOrType is ReduxAction<St>) {
+        } else if (actionOrType is ReduxAction) {
           _awaitableAsyncActions.add(actionOrType.runtimeType);
           return _activeAsyncActions.contains(actionOrType);
         } else {
           Future.microtask(() {
-            throw StoreException("You can't do isWaitingFor([${actionOrTypeOrList.runtimeType}]), "
+            throw StoreException(
+                "You can't do isWaiting([${actionOrActionTypeOrList.runtimeType}]), "
                 "but only an action Type, a ReduxAction, or a List of them.");
           });
         }
@@ -633,11 +648,105 @@ class Store<St> {
     // async gap, so we don't interrupt the code. But we return false (not waiting).
     else {
       Future.microtask(() {
-        throw StoreException("You can't do isWaitingFor(${actionOrTypeOrList.runtimeType}), "
+        throw StoreException("You can't do isWaiting(${actionOrActionTypeOrList.runtimeType}), "
             "but only an action Type, a ReduxAction, or a List of them.");
       });
 
       return false;
+    }
+  }
+
+  /// Returns true if an [actionOrActionTypeOrList] failed with an [UserException].
+  /// Note: This method uses the EXACT type in [actionOrActionTypeOrList]. Subtypes are not considered.
+  bool isFailed(Object actionOrActionTypeOrList) => exceptionFor(actionOrActionTypeOrList) != null;
+
+  /// Returns the [UserException] of the [actionTypeOrList] that failed.
+  ///
+  /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
+  /// of object will return null and throw a [StoreException] after the async gap.
+  ///
+  /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
+  UserException? exceptionFor(Object actionTypeOrList) {
+    //
+    // 1) If a type was passed:
+    if (actionTypeOrList is Type) {
+      _actionsWeCanCheckFailed.add(actionTypeOrList);
+      var action = _failedActions[actionTypeOrList];
+      var error = action?.status.wrappedError;
+      return (error is UserException) ? error : null;
+    }
+    //
+    // 2) If a list was passed:
+    else if (actionTypeOrList is Iterable) {
+      for (var actionType in actionTypeOrList) {
+        _actionsWeCanCheckFailed.add(actionType);
+        if (actionType is Type) {
+          var error = _failedActions.entries
+              .firstWhereOrNull((entry) => entry.key == actionType)
+              ?.value
+              .status
+              .wrappedError;
+          return (error is UserException) ? error : null;
+        } else {
+          Future.microtask(() {
+            throw StoreException("You can't do exceptionFor([${actionTypeOrList.runtimeType}]), "
+                "but only an action Type, or a List of types.");
+          });
+        }
+      }
+      return null;
+    }
+    // 3) If something different was passed, it's an error. We show the error after the
+    // async gap, so we don't interrupt the code. But we return null.
+    else {
+      Future.microtask(() {
+        throw StoreException("You can't do exceptionFor(${actionTypeOrList.runtimeType}), "
+            "but only an action Type, or a List of types.");
+      });
+
+      return null;
+    }
+  }
+
+  /// Removes the given [actionTypeOrList] from the list of action types that failed.
+  ///
+  /// Note that dispatching an action already removes that action type from the exceptions list.
+  /// This removal happens as soon as the action is dispatched, not when it finishes.
+  ///
+  /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
+  /// of object will return null and throw a [StoreException] after the async gap.
+  ///
+  /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
+  void clearException(Object actionTypeOrList) {
+    //
+    // 1) If a type was passed:
+    if (actionTypeOrList is Type) {
+      var result = _failedActions.remove(actionTypeOrList);
+      if (result != null) _changeController.add(state);
+    }
+    //
+    // 2) If a list was passed:
+    else if (actionTypeOrList is Iterable) {
+      Object? result;
+      for (var actionType in actionTypeOrList) {
+        if (actionType is Type) {
+          result = _failedActions.remove(actionTypeOrList);
+        } else {
+          Future.microtask(() {
+            throw StoreException("You can't clearException([${actionTypeOrList.runtimeType}]), "
+                "but only an action Type, or a List of types.");
+          });
+        }
+      }
+      if (result != null) _changeController.add(state);
+    }
+    // 3) If something different was passed, it's an error. We show the error after the
+    // async gap, so we don't interrupt the code. But we return null.
+    else {
+      Future.microtask(() {
+        throw StoreException("You can't clearException(${actionTypeOrList.runtimeType}), "
+            "but only an action Type, or a List of types.");
+      });
     }
   }
 
@@ -916,10 +1025,28 @@ class Store<St> {
   }
 
   /// The async actions that are currently being processed.
+  /// Use [isWaiting] to know if an action is currently being processed.
   final Set<ReduxAction<St>> _activeAsyncActions = HashSet<ReduxAction<St>>.identity();
 
   /// Async actions that we may put into [_activeAsyncActions].
+  /// This helps knowing when to rebuild to make [isWaiting] work.
   final Set<Type> _awaitableAsyncActions = HashSet<Type>.identity();
+
+  /// The async actions that have failed recently.
+  /// When an action fails by throwing an UserException, it's added to this map (indexed by its
+  /// action type), and removed when it's dispatched.
+  /// Use [isFailed], [exceptionFor] and [clearException] to know if you should display
+  /// some error message due to an action failure.
+  ///
+  /// Note: Throwing an UserException can show a modal dialog to the user, and also show the error
+  /// as a message in the UI. If you don't want to show the dialog you can use the `noDialog`
+  /// getter in the error message: `throw UserException('Invalid input').noDialog`.
+  ///
+  final Map<Object, ReduxAction<St>> _failedActions = HashMap<Object, ReduxAction<St>>();
+
+  /// Async actions that we may put into [_failedActions].
+  /// This helps knowing when to rebuild to make [isWaiting] work.
+  final Set<Type> _actionsWeCanCheckFailed = HashSet<Type>.identity();
 
   /// Given a [newState] returns true if the state is different from the current state.
   bool ifStateChanged(St? newState, ReduxAction<St> action) {
@@ -974,14 +1101,19 @@ class Store<St> {
 
     action._status = action._status.copy(wrappedError: errorOrNull);
 
+    // Memorizes the action that failed. We'll remove it when it's dispatched again.
+    _failedActions[action.runtimeType] = action;
+
     afterWasRun.value = true;
     _after(action);
 
     // Memorizes errors of type UserException (in the error queue).
     // These errors are usually shown to the user in a modal dialog, and are not logged.
     if (errorOrNull is UserException) {
-      _addError(errorOrNull);
-      _changeController.add(state);
+      if (errorOrNull.ifOpenDialog) {
+        _addError(errorOrNull);
+        _changeController.add(state);
+      }
     } else if (errorOrNull is AbortDispatchException) {
       action._status = action._status.copy(isDispatchAborted: true);
     }

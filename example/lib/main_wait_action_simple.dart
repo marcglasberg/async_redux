@@ -23,7 +23,7 @@ late Store<AppState> store;
 /// void before() => dispatch(WaitAction.add(this));
 /// ```
 ///
-/// The [ViewModel] will read this info from `state.wait.isWaiting` to
+/// The [ViewModel] will read this info from `state.wait.isWaitingAny` to
 /// turn on the modal barrier.
 ///
 /// When the async process finishes, the action's before method will

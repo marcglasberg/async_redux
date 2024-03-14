@@ -627,55 +627,57 @@ class _StoreStreamListenerState<St, Model> //
 /// ```
 /// See the documentation for more information on how to use the `converter` parameter.
 ///
-/// 3) Use the static methods of [StoreProvider], like explained below:
+/// 3) Use the extension methods on [BuildContext], like explained below:
 ///
-/// You can read the state of the store using the [state] method:
+/// You can read the state of the store using the `context.state` method:
 ///
 /// ```dart
-/// var state = StoreProvider.state<AppState>(context);
+/// var state = context.state;
 /// ```
 ///
 /// You can dispatch actions using the [dispatch], [dispatchAndWait] and [dispatchSync] method:
 ///
 /// ```dart
-/// StoreProvider.dispatch(context, action);
-/// StoreProvider.dispatchAndWait(context, action);
-/// StoreProvider.dispatchSync(context, action);
-/// ```
-///
-/// IMPORTANT: It's recommended that you define this extension in your own code:
-///
-/// ```dart
-/// extension BuildContextExtension on BuildContext {
-///
-///   AppState get state => StoreProvider.state<AppState>(this);
-///
-///   FutureOr<ActionStatus> dispatch(ReduxAction<AppState> action, {bool notify = true}) =>
-///       StoreProvider.dispatch(this, action, notify: notify);
-///
-///   Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action, {bool notify = true}) =>
-///       StoreProvider.dispatchAndWait(this, action, notify: notify);
-///
-///   ActionStatus dispatchSync(ReduxAction<AppState> action, {bool notify = true}) =>
-///       StoreProvider.dispatchSync(this, action, notify: notify);
-///
-///   bool isWaitingFor(Object actionOrTypeOrList) =>
-///       StoreProvider.isWaitingFor<AppState>(this, actionOrTypeOrList);
-/// }
-/// ```
-///
-/// This will allow you to write:
-///
-/// ```dart
-/// var state = context.state;
 /// context.dispatch(action);
 /// context.dispatchAndWait(action);
 /// context.dispatchSync(action);
-/// context.isWaitingFor(MyAction);
 /// ```
-
+///
+/// You can also use `context.isWaiting`, `context.isFailed()`, `context.exceptionFor()`
+/// and `context.clearException()`.
+///
+/// IMPORTANT: You need to define this extension in your own code:
+///
+/// ```dart
+/// extension BuildContextExtension on BuildContext {
+///   AppState get state => getState<AppState>();
+/// ```
 class StoreProvider<St> extends InheritedWidget {
   final Store<St> _store;
+
+  // Explanation
+  // -----------
+  //
+  // The hierarchy is:
+  // StoreProvider -> _InheritedUntypedDoesNotRebuild -> _WidgetListensOnChange -> _InheritedUntypedRebuilds
+  //
+  // Where:
+  // * StoreProvider is a public, <St> TYPED inherited widget, from where we read
+  //       the `state` of type `St`.
+  //
+  // * _InheritedUntypedDoesNotRebuild is an UNTYPED inherited widget used by `dispatch`,
+  //       `dispatchAndWait` and `dispatchSync`. That's useful because they can dispatch without
+  //       the knowing the St type, but it DOES NOT REBUILD.
+  //
+  // * _WidgetListensOnChange is a StatefulWidget that listens to the store (onChange) and
+  //       rebuilds the whenever there is a new state available.
+  //
+  // * _InheritedUntypedRebuilds is an UNTYPED inherited widget that is used by `isWaiting`,
+  //       `isFailed` and `exceptionFor`. That's useful because these methods can find it without
+  //       the knowing the St type, but it REBUILDS. Note: `_InheritedUntypedRebuilds._isOn` is
+  //       true only after `state`, `isWaiting`, `isFailed` and `exceptionFor` are used for the
+  //       first time. This is to make it faster by avoiding `updateShouldNotify` before this
+  //       inner provider is necessary.
 
   StoreProvider({
     Key? key,
@@ -684,45 +686,77 @@ class StoreProvider<St> extends InheritedWidget {
   })  : _store = store,
         super(
           key: key,
-          child: _StatefulWrapper(store: store, child: child),
+          child: _InheritedUntypedDoesNotRebuild(store: store, child: child),
         );
 
   /// Get the state, without a StoreConnector.
   /// Note: Widgets that use this method will rebuild whenever the state changes.
+  ///
+  /// It's recommended that you define this extension in your own code:
+  /// ```dart
+  /// extension BuildContextExtension on BuildContext {
+  ///   AppState get state => getState<AppState>();
+  /// }
+  /// ```
+  ///
+  /// This will allow you to write:
+  ///
+  /// ```dart
+  /// var state = context.state;
+  /// ```
   static St state<St>(BuildContext context, {Object? debug}) {
-    final _InnerStoreProvider<St>? provider =
-        context.dependOnInheritedWidgetOfExactType<_InnerStoreProvider<St>>();
+    final _InheritedUntypedRebuilds? provider =
+        context.dependOnInheritedWidgetOfExactType<_InheritedUntypedRebuilds>();
 
-    if (provider == null) throw StoreConnectorError(_typeOf<StoreProvider<St>>(), debug);
+    if (provider == null)
+      throw throw _exceptionForWrongStoreType(_typeOf<_InheritedUntypedRebuilds>(), debug);
+
+    St state;
+    try {
+      state = provider._store.state as St;
+    } catch (error) {
+      throw _exceptionForWrongStateType(provider._store.state, St);
+    }
 
     // We only turn on rebuilds when this `state` method is used for the first time.
     // This is to make it faster when this method is not used, which is the
     // case if the state is only accessed via StoreConnector.
-    _InnerStoreProvider._isOn = true;
+    _InheritedUntypedRebuilds._isOn = true;
 
-    return provider._store.state;
+    return state;
   }
 
   /// This WILL create a dependency, and WILL potentially rebuild the state.
-  static Store<St> _getStoreWithDependency<St>(BuildContext context, {Object? debug}) {
-    final _InnerStoreProvider<St>? provider =
-        context.dependOnInheritedWidgetOfExactType<_InnerStoreProvider<St>>();
+  static Store _getStoreWithDependency(BuildContext context, {Object? debug}) {
+    //
+    final _InheritedUntypedRebuilds? provider =
+        context.dependOnInheritedWidgetOfExactType<_InheritedUntypedRebuilds>();
 
-    if (provider == null) throw StoreConnectorError(_typeOf<StoreProvider<St>>(), debug);
+    if (provider == null) throw _exceptionForWrongStoreType(_typeOf<StoreProvider>(), debug);
 
     // We only turn on rebuilds when this `state` method is used for the first time.
     // This is to make it faster when this method is not used, which is the
     // case if the state is only accessed via StoreConnector.
-    _InnerStoreProvider._isOn = true;
+    _InheritedUntypedRebuilds._isOn = true;
 
     return provider._store;
   }
 
-  static Store<St> _of<St>(BuildContext context, [Object? debug]) {
+  static Store<St> _ofTyped<St>(BuildContext context, [Object? debug]) {
     final StoreProvider<St>? provider =
         context.dependOnInheritedWidgetOfExactType<StoreProvider<St>>();
 
-    if (provider == null) throw StoreConnectorError(_typeOf<StoreProvider<St>>(), debug);
+    if (provider == null) throw _exceptionForWrongStoreType(_typeOf<StoreProvider<St>>(), debug);
+
+    return provider._store;
+  }
+
+  static Store _ofUntyped(BuildContext context, [Object? debug]) {
+    final _InheritedUntypedDoesNotRebuild? provider =
+        context.dependOnInheritedWidgetOfExactType<_InheritedUntypedDoesNotRebuild>();
+
+    if (provider == null)
+      throw _exceptionForWrongStoreType(_typeOf<_InheritedUntypedDoesNotRebuild>(), debug);
 
     return provider._store;
   }
@@ -733,42 +767,92 @@ class StoreProvider<St> extends InheritedWidget {
   /// Dispatch an action without a StoreConnector.
   /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
   /// whenever the state changes.
+  ///
+  /// It's recommended that you use the BuildContext extension instead: `context.dispatch(action)`.
+  ///
   static FutureOr<ActionStatus> dispatch<St>(BuildContext context, ReduxAction<St> action,
           {Object? debug, bool notify = true}) =>
-      _of<St>(context, debug).dispatch(action, notify: notify);
+      _ofUntyped(context, debug).dispatch(action, notify: notify);
 
   /// Dispatch an action without a StoreConnector.
   /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
   /// whenever the state changes.
+  ///
+  /// It's recommended that you use the BuildContext extension instead: `context.dispatchAndWait(action)`.
+  ///
   static Future<ActionStatus> dispatchAndWait<St>(BuildContext context, ReduxAction<St> action,
           {Object? debug, bool notify = true}) =>
-      _of<St>(context, debug).dispatchAndWait(action, notify: notify);
+      _ofUntyped(context, debug).dispatchAndWait(action, notify: notify);
 
   /// Dispatch an action without a StoreConnector.
   /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
   /// whenever the state changes.
+  ///
+  ///
+  /// It's recommended that you use the BuildContext extension instead: `context.dispatchSync(action)`.
+  ///
   static ActionStatus dispatchSync<St>(BuildContext context, ReduxAction<St> action,
           {Object? debug, bool notify = true}) =>
-      _of<St>(context, debug).dispatchSync(action, notify: notify);
+      _ofUntyped(context, debug).dispatchSync(action, notify: notify);
 
   /// Get the state, without a StoreConnector.
   /// This will NOT create a dependency, and will NOT rebuild the state.
   static Store<St> _getStore<St>(BuildContext context, {Object? debug}) => //
-      _of<St>(context, debug);
+      _ofTyped<St>(context, debug);
 
-  /// If an ASYNC action of the exact given [actionType] is currently being processed, returns true.
-  /// Returns false when:
-  /// - The ASYNC action of type [actionType] is NOT currently being processed.
-  /// - If [actionType] is not really a type that extends [ReduxAction].
-  /// - The action of type [actionType] is a SYNC action.
+  /// You can use [isWaiting] and pass it [actionOrActionTypeOrList] to check if:
+  /// * A specific async ACTION is currently being processed.
+  /// * An async action of a specific TYPE is currently being processed.
+  /// * If any of a few given async actions or action types is currently being processed.
   ///
-  /// Example:
+  /// If you wait for an action TYPE, then it returns false when:
+  /// - The ASYNC action of the type is NOT currently being processed.
+  /// - If the type is not really a type that extends [ReduxAction].
+  /// - The action of the type is a SYNC action (since those finish immediately).
+  ///
+  /// If you wait for an ACTION, then it returns false when:
+  /// - The ASYNC action is NOT currently being processed.
+  /// - If the action is a SYNC action (since those finish immediately).
+  ///
+  /// Trying to wait for any other type of object will return null and throw
+  /// a [StoreException] after the async gap.
+  ///
+  static bool isWaiting(BuildContext context, Object actionOrTypeOrList) =>
+      _getStoreWithDependency(context).isWaiting(actionOrTypeOrList);
+
+  /// Returns true if an [actionOrTypeOrList] failed with an [UserException].
+  ///
+  /// It's recommended that you use the BuildContext extension instead:
   ///
   /// ```dart
-  /// if (store.isWaitingForType(MyAction)) { // Show a spinner. }
+  /// if (context.isFailed(MyAction)) { // Show an error message. }
   /// ```
-  static bool isWaitingFor<St>(BuildContext context, Object actionOrTypeOrList) =>
-      _getStoreWithDependency<St>(context).isWaitingFor(actionOrTypeOrList);
+  static bool isFailed(BuildContext context, Object actionOrTypeOrList) =>
+      _getStoreWithDependency(context).isFailed(actionOrTypeOrList);
+
+  /// Returns the [UserException] of the [actionTypeOrList] that failed.
+  ///
+  /// The [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
+  /// of object will return null and throw a [StoreException] after the async gap.
+  ///
+  /// It's recommended that you use the BuildContext extension instead:
+  ///
+  /// ```dart
+  /// if (context.isFailed(SaveUserAction)) Text(context.exceptionFor(SaveUserAction)!.reason ?? '');
+  /// ```
+  static UserException? exceptionFor(BuildContext context, Object actionOrTypeOrList) =>
+      _getStoreWithDependency(context).exceptionFor(actionOrTypeOrList);
+
+  /// Removes the given [actionTypeOrList] from the list of action types that failed.
+  ///
+  /// Note that dispatching an action already removes that action type from the exceptions list.
+  /// This removal happens as soon as the action is dispatched, not when it finishes.
+  ///
+  /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
+  /// of object will return null and throw a [StoreException] after the async gap.
+  ///
+  static void clearException(BuildContext context, Object actionOrTypeOrList) =>
+      _getStoreWithDependency(context).clearException(actionOrTypeOrList);
 
   @override
   bool updateShouldNotify(StoreProvider<St> oldWidget) {
@@ -778,24 +862,50 @@ class StoreProvider<St> extends InheritedWidget {
   }
 }
 
-class _StatefulWrapper<St> extends StatefulWidget {
-  final Widget child;
-  final Store<St> store;
+/// Is an UNTYPED inherited widget used by `dispatch`, `dispatchAndWait` and `dispatchSync`.
+/// That's useful because they can dispatch without the knowing the St type, but it DOES NOT
+/// REBUILD.
+class _InheritedUntypedDoesNotRebuild extends InheritedWidget {
+  final Store _store;
 
-  _StatefulWrapper({required this.store, required this.child});
+  _InheritedUntypedDoesNotRebuild({
+    Key? key,
+    required Store store,
+    required Widget child,
+  })  : _store = store,
+        super(
+          key: key,
+          child: _WidgetListensOnChange(store: store, child: child),
+        );
 
   @override
-  _StatefulWrapperState<St> createState() => _StatefulWrapperState<St>();
+  bool updateShouldNotify(_InheritedUntypedDoesNotRebuild oldWidget) {
+    // Only notify dependents if the store instance changes,
+    // not on every state change within the store.
+    return _store != oldWidget._store;
+  }
 }
 
-class _StatefulWrapperState<St> extends State<_StatefulWrapper<St>> {
+/// is a StatefulWidget that listens to the store (onChange) and
+/// rebuilds the whenever there is a new state available.
+class _WidgetListensOnChange extends StatefulWidget {
+  final Widget child;
+  final Store store;
+
+  _WidgetListensOnChange({required this.store, required this.child});
+
+  @override
+  _WidgetListensOnChangeState createState() => _WidgetListensOnChangeState();
+}
+
+class _WidgetListensOnChangeState extends State<_WidgetListensOnChange> {
   // TODO: DONT REMOVE
-  // St? _recentState;
+  // Object? _recentState;
 
   @override
   void initState() {
     super.initState();
-    widget.store.onChange.where(_stateChanged).listen((St state) {
+    widget.store.onChange.where(_stateChanged).listen((state) {
       if (mounted) {
         // TODO: DONT REMOVE
         // _recentState = state;
@@ -814,52 +924,160 @@ class _StatefulWrapperState<St> extends State<_StatefulWrapper<St>> {
   // For the moment, if you use the [StoreProvider.state] method, it will rebuild the widget
   // whenever the state changes, even if the part of the state that the widget depends on
   // didn't change. Currently, the only way to avoid this is to use the [StoreConnector].
-  // TODO: DONT REMOVE:  bool _stateChanged(St state) => !identical(_recentState, widget.store.state);
-  bool _stateChanged(St state) => true;
+  // TODO: DONT REMOVE:  bool _stateChanged(state) => !identical(_recentState, widget.store.state);
+  bool _stateChanged(state) => true;
 
   @override
   Widget build(BuildContext context) {
     // The Inner InheritedWidget is rebuilt whenever the store's state changes,
     // triggering rebuilds for widgets that depend on the specific parts of the state.
-    return _InnerStoreProvider<St>(
+    return _InheritedUntypedRebuilds(
       store: widget.store,
       child: widget.child,
     );
   }
 }
 
-class _InnerStoreProvider<St> extends InheritedWidget {
+/// Is an UNTYPED inherited widget that is used by `isWaiting`, `isFailed` and `exceptionFor`.
+/// That's useful because these methods can find it without the knowing the St type, but
+/// it REBUILDS. Note: `_InheritedUntypedRebuilds._isOn` is true only after `state`, `isWaiting`,
+/// `isFailed` and `exceptionFor` are used for the first time. This is to make it faster by
+/// avoiding `updateShouldNotify` before this inner provider is necessary.
+class _InheritedUntypedRebuilds extends InheritedWidget {
   static var _isOn = false;
-  final Store<St> _store;
+  final Store _store;
 
-  _InnerStoreProvider({
+  _InheritedUntypedRebuilds({
     Key? key,
-    required Store<St> store,
+    required Store store,
     required Widget child,
   })  : _store = store,
         super(key: key, child: child);
 
   @override
-  bool updateShouldNotify(_InnerStoreProvider<St> oldWidget) {
+  bool updateShouldNotify(_InheritedUntypedRebuilds oldWidget) {
     return _isOn;
   }
 }
 
-class StoreConnectorError extends Error {
-  final Type type;
-  final Object? debug;
-
-  StoreConnectorError(this.type, [this.debug]);
-
-  @override
-  String toString() {
-    return '''Error: No $type found. (debug info: ${debug.runtimeType})
+StoreException _exceptionForWrongStoreType(Type type, [Object? debug]) {
+  return StoreException('''Error: No $type found. (debug info: ${debug.runtimeType})
 
     To fix, please try:
   
   * Wrapping your MaterialApp with the StoreProvider<St>, rather than an individual Route
   * Providing full type information to your Store<St>, StoreProvider<St> and StoreConnector<St, Model>
   * Ensure you are using consistent and complete imports. E.g. always use `import 'package:my_app/app_state.dart';
-      ''';
-  }
+      ''');
+}
+
+StoreException _exceptionForWrongStateType(Object? state, Type wrongType) {
+  return StoreException(
+      'Error: State is of type ${state.runtimeType} but you typed it as $wrongType.');
+}
+
+extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
+  //
+  /// Get the state, without a StoreConnector.
+  /// Note: Widgets that use this method will rebuild whenever the state changes.
+  ///
+  /// It's recommended that you define this extension in your own code:
+  /// ```dart
+  /// extension BuildContextExtension on BuildContext {
+  ///   AppState get state => getState<AppState>();
+  /// }
+  /// ```
+  ///
+  /// This will allow you to write:
+  ///
+  /// ```dart
+  /// var state = context.state;
+  /// ```
+  St getState<St>() => StoreProvider.state<St>(this);
+
+  /// Dispatch an action without a StoreConnector.
+  /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
+  /// whenever the state changes.
+  FutureOr<ActionStatus> dispatch(ReduxAction action, {bool notify = true}) =>
+      StoreProvider.dispatch(this, action, notify: notify);
+
+  /// Dispatch an action without a StoreConnector.
+  /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
+  /// whenever the state changes.
+  Future<ActionStatus> dispatchAndWait(ReduxAction action, {bool notify = true}) =>
+      StoreProvider.dispatchAndWait(this, action, notify: notify);
+
+  /// Dispatch an action without a StoreConnector.
+  /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
+  /// whenever the state changes.
+  ActionStatus dispatchSync(ReduxAction action, {bool notify = true}) =>
+      StoreProvider.dispatchSync(this, action, notify: notify);
+
+  /// You can use [isWaiting] and pass it [actionOrActionTypeOrList] to check if:
+  /// * A specific async ACTION is currently being processed.
+  /// * An async action of a specific TYPE is currently being processed.
+  /// * If any of a few given async actions or action types is currently being processed.
+  ///
+  /// If you wait for an action TYPE, then it returns false when:
+  /// - The ASYNC action of the type is NOT currently being processed.
+  /// - If the type is not really a type that extends [ReduxAction].
+  /// - The action of the type is a SYNC action (since those finish immediately).
+  ///
+  /// If you wait for an ACTION, then it returns false when:
+  /// - The ASYNC action is NOT currently being processed.
+  /// - If the action is a SYNC action (since those finish immediately).
+  ///
+  /// Trying to wait for any other type of object will return null and throw
+  /// a [StoreException] after the async gap.
+  ///
+  /// Examples:
+  ///
+  /// ```dart
+  /// // Waiting for an action TYPE:
+  /// dispatch(MyAction());
+  /// if (context.isWaiting(MyAction)) { // Show a spinner }
+  ///
+  /// // Waiting for an ACTION:
+  /// var action = MyAction();
+  /// dispatch(action);
+  /// if (context.isWaiting(action)) { // Show a spinner }
+  ///
+  /// // Waiting for any of the given action TYPES:
+  /// dispatch(BuyAction());
+  /// if (context.isWaiting([BuyAction, SellAction])) { // Show a spinner }
+  /// ```
+  bool isWaiting(Object actionOrTypeOrList) => StoreProvider.isWaiting(this, actionOrTypeOrList);
+
+  /// Returns true if an [actionOrTypeOrList] failed with an [UserException].
+  ///
+  /// Example:
+  ///
+  /// ```dart
+  /// if (context.isFailed(MyAction)) { // Show an error message. }
+  /// ```
+  bool isFailed(Object actionOrTypeOrList) => StoreProvider.isFailed(this, actionOrTypeOrList);
+
+  /// Returns the [UserException] of the [actionTypeOrList] that failed.
+  ///
+  /// The [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
+  /// of object will return null and throw a [StoreException] after the async gap.
+  ///
+  /// Example:
+  ///
+  /// ```dart
+  /// if (context.isFailed(SaveUserAction)) Text(context.exceptionFor(SaveUserAction)!.reason ?? '');
+  /// ```
+  UserException? exceptionFor(Object actionOrTypeOrList) =>
+      StoreProvider.exceptionFor(this, actionOrTypeOrList);
+
+  /// Removes the given [actionTypeOrList] from the list of action types that failed.
+  ///
+  /// Note that dispatching an action already removes that action type from the exceptions list.
+  /// This removal happens as soon as the action is dispatched, not when it finishes.
+  ///
+  /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
+  /// of object will return null and throw a [StoreException] after the async gap.
+  ///
+  void clearException(Object actionOrTypeOrList) =>
+      StoreProvider.clearException(this, actionOrTypeOrList);
 }
