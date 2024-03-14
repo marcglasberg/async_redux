@@ -108,10 +108,12 @@ class MyWidget extends StatelessWidget {
     if (context.isFailed(LoadText)) return Text('Loading failed...');
     
     return Column(children: [
-      Text(context.state),                
-      ElevatedButton(
-        child: Text('Load')),            
-        onPressed: () => context.dispatch(LoadText())) // Dispatch the action.               
+      
+       Text(context.state), // Show the state
+                      
+       ElevatedButton(
+         child: Text('Load')),            
+         onPressed: () => context.dispatch(LoadText())) // Dispatch the action.               
     ]);    
 }}
 ```
