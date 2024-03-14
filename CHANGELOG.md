@@ -3,7 +3,7 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# 22.1.0-dev.3
+# 22.1.0-dev.4
 
 * You can now use `var isWaiting = context.isWaiting(MyAction)` to check if an async action of
   the given type is currently being processed. You can then use this boolean to show a loading
@@ -43,7 +43,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
       if (context.isFailed(LoadText)) Text('No Internet connection');
       ```
 
-    - `OnlyWithInternet` aborts the action silently (without showing any dialogs)
+    - `AbortWhenNoInternet` aborts the action silently (without showing any dialogs)
       if there is no internet connection.
 
     - `NonReentrant` prevents reentrant actions, so that when you dispatch an action

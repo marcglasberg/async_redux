@@ -153,7 +153,7 @@ You can add **mixins** to your actions, to accomplish common tasks:
   if (context.isFailed(LoadText)) Text('No Internet connection');
   ```
 
-* Adding `with OnlyWithInternet` aborts the action silently (without showing any dialogs)
+* Adding `with AbortWhenNoInternet` aborts the action silently (without showing any dialogs)
   if there is no internet connection.
 
 * Adding `with NonReentrant` prevents reentrant actions, so that when you dispatch an action that's

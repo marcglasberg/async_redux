@@ -28,92 +28,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 /// if (context.isFailed(LoadText)) Text(context.exceptionFor(LoadText)?.errorText ?? 'No Internet connection');
 /// ```
 ///
-/// If you don't want the dialog to open, you can use the mixin [CheckInternetNoDialog] instead.
+/// If you don't want the dialog to open, you can add the [NoDialog] mixin.
 ///
-/// If you want to customize the dialog, you can override the method [connectionException] and
-/// return an [UserException] with the desired message.
-///
-/// IMPORTANT: It only checks if the internet is on or off on the device, not if the internet
-/// provider is really providing the service or if the server is available. So, it is possible that
-/// this function returns true and the request still fails.
-///
-/// Notes:
-/// - This mixin can safely be combined with [NonReentrant].
-/// - It should not be combined with other mixins that override [before].
-/// - It should not be combined with other mixins that check the internet connection.
-///
-/// See also:
-/// * [CheckInternetNoDialog] - If you want to show a message in your widget when there is no internet.
-/// * [OnlyWithInternet] - If you want to silently abort the action when there is no internet.
-///
-mixin CheckInternet<St> implements ReduxAction<St> {
-  bool get ifOpenDialog => true;
-
-  UserException connectionException(ConnectivityResult result) =>
-      ConnectionException.noConnectivity;
-
-  /// If you are running tests, you can override this method to simulate the internet connection.
-  /// Return true if there is internet, and false if there is no internet.
-  /// If you return null, it will use the real internet connection status.
-  bool? get internetOnOffSimulation => forceInternetOnOffSimulation();
-
-  /// If you have a configuration variable in your app, that you want to use to simulate the
-  /// internet connection, you can replace this method to return the value of the configuration
-  /// variable. For example: `CheckInternet.forceInternetOnOffSimulation = () => Config.isInternetOn;`
-  /// Return true if there is internet, and false if there is no internet.
-  /// If you return null, it will use the real internet connection status.
-  static bool? Function() forceInternetOnOffSimulation = () => null;
-
-  /// Returns true if there is internet.
-  /// Note: This can be used to check if there is internet before making a request to the server.
-  /// However, it only checks if the internet is on or off on the device, not if the internet
-  /// provider is really providing the service or if the server is available. So, it is possible that
-  /// this function returns true and the request still fails.
-  Future<ConnectivityResult> checkConnectivity() async {
-    if (internetOnOffSimulation != null)
-      return internetOnOffSimulation! ? ConnectivityResult.wifi : ConnectivityResult.none;
-
-    return await (Connectivity().checkConnectivity());
-  }
-
-  @override
-  Future<void> before() async {
-    var result = await checkConnectivity();
-
-    if (result == ConnectivityResult.none) {
-      var _exception = connectionException(result).withDialog(ifOpenDialog);
-      throw ifOpenDialog ? _exception : _exception.noDialog;
-    }
-  }
-}
-
-/// This mixin can be used to check if there is internet when you run some action that needs
-/// internet connection. Just add `with CheckInternetNoDialog<AppState>` to your action. Example:
-///
-/// ```dart
-/// class LoadText extends ReduxAction<AppState> with CheckInternetNoDialog<AppState> {
-///   Future<String> reduce() async {
-///     var response = await http.get('http://numbersapi.com/42');
-///     return response.body;
-///   }}
-/// ```
-///
-/// I will automatically check if there is internet before running the action. If there is no
-/// internet, the action will fail, stop executing, and if you want you can display some
-/// information in your widgets:
-///
-/// ```dart
-/// if (context.isFailed(LoadText)) Text('No Internet connection');
-/// ```
-///
-/// Or you can use the exception text itself:
-/// ```dart
-/// if (context.isFailed(LoadText)) Text(context.exceptionFor(LoadText)?.errorText ?? 'No Internet connection');
-/// ```
-///
-/// If you also want a dialog to open, you can use the mixin [CheckInternet] instead.
-///
-/// If you want to customize the exception `errorText`, you can override the
+/// If you want to customize the dialog or the `errorText`, you can override the
 /// method [connectionException] and return an [UserException] with the desired message.
 ///
 /// IMPORTANT: It only checks if the internet is on or off on the device, not if the internet
@@ -126,27 +43,83 @@ mixin CheckInternet<St> implements ReduxAction<St> {
 /// - It should not be combined with other mixins that check the internet connection.
 ///
 /// See also:
-/// * [CheckInternet] - If you want to show a dialog to the user when there is no internet.
-/// * [OnlyWithInternet] - If you want to silently abort the action when there is no internet.
+/// * [NoDialog] - To just show a message in your widget, and not open a dialog.
+/// * [AbortWhenNoInternet] - If you want to silently abort the action when there is no internet.
 ///
-mixin CheckInternetNoDialog<St> on CheckInternet<St> {
+mixin CheckInternet<St> on ReduxAction<St> {
+  bool get ifOpenDialog => true;
+
+  UserException connectionException(ConnectivityResult result) =>
+      ConnectionException.noConnectivity;
+
+  /// If you are running tests, you can override this method to simulate the internet connection
+  /// as permanently on or off.
+  /// Return `true` if there is internet, and `false` if there is no internet.
+  /// Return `null` to use the real internet connection status.
+  bool? get internetOnOffSimulation => forceInternetOnOffSimulation();
+
+  /// If you have a configuration object that specifies if the internet connection should be
+  /// simulated as on or off, you can replace this method to return that configuration value.
+  /// For example: `CheckInternet.forceInternetOnOffSimulation = () => Config.isInternetOn;`
+  /// Return `true` if there is internet, and `false` if there is no internet.
+  /// Return `null` to use the real internet connection status.
+  static bool? Function() forceInternetOnOffSimulation = () => null;
+
+  Future<ConnectivityResult> checkConnectivity() async {
+    if (internetOnOffSimulation != null)
+      return internetOnOffSimulation! ? ConnectivityResult.wifi : ConnectivityResult.none;
+
+    return await (Connectivity().checkConnectivity());
+  }
+
   @override
-  bool get ifOpenDialog => false;
+  Future<void> before() async {
+    var result = await checkConnectivity();
+
+    if (result == ConnectivityResult.none)
+      throw connectionException(result).withDialog(ifOpenDialog);
+  }
 }
 
-/// This mixin can be used to check if there is internet when you run some action that needs
-/// internet connection. Just add `with OnlyWithInternet<AppState>` to your action. For example:
+/// This mixin can only be applied on [CheckInternet]. Example:
 ///
 /// ```dart
-/// class LoadText extends ReduxAction<AppState> with OnlyWithInternet<AppState> {
+/// class LoadText extends ReduxAction<AppState> with CheckInternet<AppState>, NoDialog {
 ///   Future<String> reduce() async {
 ///     var response = await http.get('http://numbersapi.com/42');
 ///     return response.body;
 ///   }}
 /// ```
 ///
-/// I will automatically check if there is internet before running the action. If there is no
-/// internet, the action will abort silently, as if it had never been dispatched.
+/// It will turn off showing a dialog when there is no internet. But you can still display
+/// some information in your widgets:
+///
+/// ```dart
+/// if (context.isFailed(LoadText)) Text('No Internet connection');
+/// ```
+///
+/// Or you can use the exception text itself:
+/// ```dart
+/// if (context.isFailed(LoadText)) Text(context.exceptionFor(LoadText)?.errorText ?? 'No Internet connection');
+/// ```
+///
+mixin NoDialog<St> on CheckInternet<St> {
+  @override
+  bool get ifOpenDialog => false;
+}
+
+/// This mixin can be used to check if there is internet when you run some action that needs it.
+/// If there is no internet, the action will abort silently, as if it had never been dispatched.
+///
+/// Just add `with AbortWhenNoInternet<AppState>` to your action. For example:
+///
+/// ```dart
+/// class LoadText extends ReduxAction<AppState> with AbortWhenNoInternet<AppState> {
+///   Future<String> reduce() async {
+///     var response = await http.get('http://numbersapi.com/42');
+///     return response.body;
+///   }}
+/// ```
 ///
 /// IMPORTANT: It only checks if the internet is on or off on the device, not if the internet
 /// provider is really providing the service or if the server is available. So, it is possible that
@@ -159,22 +132,25 @@ mixin CheckInternetNoDialog<St> on CheckInternet<St> {
 ///
 /// See also:
 /// * [CheckInternet] - If you want to show a dialog to the user when there is no internet.
-/// * [CheckInternetNoDialog] - If you want to show a message in your widget when there is no internet.
+/// * [NoDialog] - To just show a message in your widget, and not open a dialog.
 ///
-mixin OnlyWithInternet<St> implements ReduxAction<St> {
-  bool get ifOpenDialog => true;
-
-  /// If you are running tests, you can override this method to simulate the internet connection.
-  /// Return true if there is internet, and false if there is no internet.
-  /// If you return null, it will use the real internet connection status.
+mixin AbortWhenNoInternet<St> on ReduxAction<St> {
+  /// If you are running tests, you can override this method to simulate the internet connection
+  /// as permanently on or off.
+  /// Return `true` if there is internet, and `false` if there is no internet.
+  /// Return `null` to use the real internet connection status.
   bool? get internetOnOffSimulation => CheckInternet.forceInternetOnOffSimulation();
 
-  UserException connectionException(ConnectivityResult result) =>
-      ConnectionException.noConnectivity;
+  Future<ConnectivityResult> checkConnectivity() async {
+    if (internetOnOffSimulation != null)
+      return internetOnOffSimulation! ? ConnectivityResult.wifi : ConnectivityResult.none;
+
+    return await (Connectivity().checkConnectivity());
+  }
 
   @override
   Future<void> before() async {
-    var result = await (Connectivity().checkConnectivity());
+    var result = await checkConnectivity();
     if (result == ConnectivityResult.none) throw AbortDispatchException();
   }
 }
@@ -190,9 +166,9 @@ mixin OnlyWithInternet<St> implements ReduxAction<St> {
 /// ```
 ///
 /// Notes:
-/// - This mixin can safely be combined with [CheckInternet], [CheckInternetNoDialog], and [OnlyWithInternet].
+/// - This mixin can safely be combined with [CheckInternet], [NoDialog], and [AbortWhenNoInternet].
 /// - It should not be combined with other mixins that override [abortDispatch].
-mixin NonReentrant<St> implements ReduxAction<St> {
+mixin NonReentrant<St> on ReduxAction<St> {
   @override
   bool abortDispatch() => isWaiting(runtimeType);
 }
