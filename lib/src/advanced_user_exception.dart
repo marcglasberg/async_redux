@@ -155,7 +155,7 @@ class AdvancedUserException extends UserException {
   @useResult
   @mustBeOverridden
   @override
-  UserException get noDialog => AdvancedUserException(
+  UserException withDialog(bool ifOpenDialog) => AdvancedUserException(
         message,
         reason: reason,
         code: code,
@@ -164,7 +164,7 @@ class AdvancedUserException extends UserException {
         props: props,
         hardCause: hardCause,
         errorText: errorText,
-        ifOpenDialog: false,
+        ifOpenDialog: ifOpenDialog,
       );
 
   @useResult

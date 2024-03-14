@@ -132,7 +132,37 @@ class LoadTextAndIncrement extends Action {
 }
 ```
 
-Testing is very easy. Just dispatch actions and wait for them to finish.
+You can add **mixins** to your actions, to accomplish common tasks:
+
+* Adding `with CheckInternet` ensures actions only run with internet, otherwise an error dialog
+  prompts users to check their connection.
+
+  ```dart
+  class LoadText extends Action with CheckInternet<AppState> {
+      
+  Future<String> reduce() async {
+      var response = await http.get('http://numbersapi.com/42');
+      ...      
+  }}
+  ```
+
+* Adding `with CheckInternetNoDialog` is similar, but no dialog is opened.
+  If there is no Internet, you can display some information in your widgets:
+
+  ```dart
+  if (context.isFailed(LoadText)) Text('No Internet connection');
+  ```
+
+* Adding `with OnlyWithInternet` aborts the action silently (without showing any dialogs)
+  if there is no internet connection.
+
+* Adding `with NonReentrant` prevents reentrant actions, so that when you dispatch an action that's
+  already running it gets aborted.
+
+Other mixins will be provided in the future, for Throttling, Debouncing and Caching.
+And you can also create your own mixins.
+
+Testing your app is very easy. Just dispatch actions and wait for them to finish.
 Then, verify the new state or check if some error was thrown:
 
 ```dart
@@ -193,48 +223,6 @@ Object? wrap(error, stackTrace, action) {
     ? UserException('Error connecting to Firebase')
     : error;
 }   
-```
-
-Another interesting feature for Team Leads is the ability to prepare special action **mixins** to
-do common tasks. You can get creative, but let's see some examples. This one checks the internet
-connection:
-
-```dart
-mixin CheckInternet implements Action {
-  Future<void> before() async {
-    if (!await hasInternet()) throw UserException('Check the internet');
-  }}
-```
-
-Adding `with CheckInternet` to actions will make sure they only run if there is an internet
-connection, and will show an error dialog asking users to "_Check the internet_" if there isn't:
-
-```dart
-class LoadText extends Action with CheckInternet {
-  
-  Future<String> reduce() async {
-    var response = await http.get('http://numbersapi.com/42');
-    ...      
-  }}
-```
-
-As another example, this mixin aborts the action silently (without showing any dialogs)
-if there is no internet connection:
-
-```dart
-mixin OnlyWithInternet implements Action {
-  Future<void> before() async {
-    if (!await hasInternet()) throw AbortDispatchException();
-  }}
-```
-
-And this mixin prevents reentrant actions, so that you can only dispatch the action if it's not
-already running:
-
-```dart
-mixin NonReentrant implements Action {  
-  bool abortDispatch() => isWaiting(runtimeType);
-}
 ```
 
 Another interesting feature for Team Leads is the ability to create a base action class that all
@@ -3493,64 +3481,63 @@ that's what you want.
 
 <br>
 
-## How to deal with Streams
+## How to deal with Streams and Timers
 
-The following advice works for any Redux version, including AsyncRedux.
+Follow this advice:
 
-AsyncRedux plays well with Streams, as long as you know how to use them:
+- Don't send the streams and timers down to the dumb-widget, and not even to the Connector.
+  If you are declaring, subscribing to, or unsubscribing from streams inside of widgets, it means
+  you are mixing Redux with some other architecture. You _can_ do that, but it's not recommended
+  and not necessary.
 
-- Don't send the streams down to the dumb-widget, and not even to the Connector. If you are
-  declaring, subscribing to, or unsubscribing from streams inside of widgets, it means you are
-  mixing Redux with some other architecture. You _can_ do that, but it's not recommended and not
-  necessary.
-- Don't put streams into the store state. They are not app state, and they should not be persisted
-  to the local filesystem. Instead, they are something that "generates state".
+- Don't put streams and timers into the store state. They are not app state, and they should not be
+  persisted to the local filesystem. Instead, they are something that "generates state changes".
 
-<br>
+Let's pretend you want to listen to changes to the user name, in a Firestore database.
+First, create an action to start listening, and another action to cancel. We could name
+them `StartListenUserNameAction` and `CancelListenUserNameAction`.
 
-### So, how do you use streams?
-
-Let's pretend you want to listen to changes to the user name, in a Firestore database. First, create
-an action to start listening, and another action to cancel. We could name
-them `StartListenUserNameAction`
-and `CancelListenUserNameAction`.
-
-- If the stream should run all the time, you may dispatch the start action as soon as the app
+- If the stream/timer should run all the time, you may dispatch the start action as soon as the app
   starts, right after you create the store, possibly in `main`. And cancel it when the app finishes.
 
-- If the stream should run only when the user is viewing some screen, you may dispatch the action
-  from the `initState` method of the screen widget, and cancel it from the `dispose` method. Note:
-  More precisely, these things are done by the callbacks that the Connectors create and send down to
-  the stateful dumb-widgets.
+- If the stream/timer should run only when the user is viewing some screen, you may dispatch the
+  action from `initState` (of the screen widget) or `onInit` (StoreConnector), and cancel it from
+  the `dispose` (of the screen widget) or `onDispose` (StoreConnector).
 
-- If the stream should run only when some actions demand it, their reducers may dispatch the actions
-  to start and cancel as needed.
+- If the stream/timer should run only when some action demands it, the action reducer may dispatch
+  some other action to start and cancel them as needed.
 
-<br>
+While you should NOT put streams/timers in the store state, you can put them in the
+store "properties". The `props` are a map that you can use to store any object you want,
+and they are accessible from the reducers.
 
-### Where the stream subscriptions themselves are stored
+```dart
+class StartTimerAction extends ReduxAction<AppState> {
 
-As discussed above, you should NOT put them in the store state. Instead, save them in some
-convenient place elsewhere, where your reducers may access them. Remember you **only** need to
-access them from the reducers. If you have separate business and client layers, put them into the
-business layer.
+  Future<AppState> reduce() async {
+    props["my timer"] = Timer.periodic(Duration(seconds: 1), (timer) {
+      dispatch(DoSomethingAction(timer.tick));
+    });
+    return null;	
+  }
+}
 
-Some ideas:
+class StopTimerAction extends ReduxAction<AppState> {
+    
+  Future<AppState> reduce() async {
+    Timer? timer = props["my timer"];
+    if (timer != null) {
+       timer.cancel();
+       props.remove("my timer");
+    }
+    return null;	
+  }
+}  
+```
 
-- Put them as static variables of the specific **actions** that start them. For
-  example, `userNameStream` could be a static field of the `StartListenUserNameAction` class.
-
-- Put them in the **state classes** that most relate to them, but as **static** variables, not
-  instance variables (which would be store state). For example, if your `AppState` contains
-  some `UserState`, then `userNameStream`
-  could be a static field of the `UserState` class.
-
-- Save them in global static variables.
-
-- Use a service locator, like <a href="https://pub.dev/packages/get_it">get_it</a>.
-
-Or put them wherever you think makes sense. In all cases above, you can still inject them with
-mocks, for tests.
+If your stream/timer should only be removed when the app shuts down, you can
+call `store.disposeProps();` when the app finishes. This will automatically close/cancel/ignore
+all stream related objects, timers and futures in the props, and then also remove them from there.
 
 <br>
 
@@ -3559,7 +3546,7 @@ mocks, for tests.
 When you create the stream, define its callback so that it dispatches an appropriate action. Each
 time the stream gets some data it will pass it to this action's constructor. The action's reducer
 will put the data into the store state, from where it will be automatically sent down to the widgets
-that observe them (through their Connector/ViewModel).
+that observe them.
 
 For example:
 
@@ -3575,14 +3562,15 @@ streamSub = stream.listen((QuerySnapshot querySnapshot) {
 
 ### To sum up:
 
-1. Put your stream subscriptions where they can be accessed by the reducers, but NOT inside the
-   store state.
+1. Put your stream/timer where it can be accessed by the reducers, like in the store
+   props or any other suitable place, but NOT inside the store state.
 
-2. Don't use streams directly in widgets (not in the Connector widget, and not in the dumb-widget).
+2. Don't use streams or timers directly in widgets (not in the Connector widget, and not in the
+   dumb-widget).
 
-3. Create actions to start and cancel streams, and call them when necessary.
+3. Create actions to start and cancel streams and timers, and call them when necessary.
 
-4. The stream callback should dispatch actions to put the snapshot data into the store state.
+4. The stream/timer callback should dispatch actions to put the snapshot data into the store state.
 
 <br>
 

@@ -21,7 +21,38 @@ abstract class ReduxAction<St> {
 
   ActionStatus get status => _status;
 
-  Object? get env => _store._environment;
+  /// Gets the store environment.
+  /// This can be used to create a global value, but scoped to the store.
+  /// For example, you could have a service locator, here, or a configuration value.
+  ///
+  /// See also: [prop] and [setProp].
+  Object? get env => _store.env;
+
+  /// Gets a property from the store.
+  /// This can be used to save global values, but scoped to the store.
+  /// For example, you could save timers, streams or futures used by actions.
+  ///
+  /// ```dart
+  /// setProp("timer", Timer(Duration(seconds: 1), () => print("tick")));
+  /// var timer = prop<Timer>("timer");
+  /// timer.cancel();
+  /// ```
+  ///
+  /// See also: [setProp] and [env].
+  V prop<V>(Object? key) => store.prop<V>(key);
+
+  /// Sets a property in the store.
+  /// This can be used to save global values, but scoped to the store.
+  /// For example, you could save timers, streams or futures used by actions.
+  ///
+  /// ```dart
+  /// setProp("timer", Timer(Duration(seconds: 1), () => print("tick")));
+  /// var timer = prop<Timer>("timer");
+  /// timer.cancel();
+  /// ```
+  ///
+  /// See also: [prop] and [env].
+  void setProp(Object? key, Object? value) => store.setProp(key, value);
 
   /// To wait for the next microtask: `await microtask;`
   Future get microtask => Future.microtask(() {});

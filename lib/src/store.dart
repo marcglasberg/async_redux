@@ -95,6 +95,7 @@ class Store<St> {
   Store({
     required St initialState,
     Object? environment,
+    Map<Object?, Object?> props = const {},
     bool syncStream = false,
     TestInfoPrinter? testInfoPrinter,
     List<ActionObserver<St>>? actionObservers,
@@ -110,6 +111,7 @@ class Store<St> {
     int? maxErrorsQueued,
   })  : _state = initialState,
         _environment = environment,
+        _props = HashMap()..addAll(props),
         _stateTimestamp = DateTime.now().toUtc(),
         _changeController = StreamController.broadcast(sync: syncStream),
         _actionObservers = actionObservers,
@@ -140,7 +142,120 @@ class Store<St> {
 
   final Object? _environment;
 
+  final Map<Object?, Object?> _props;
+
+  /// Gets the store environment.
+  /// This can be used to create a global value, but scoped to the store.
+  /// For example, you could have a service locator, here, or a configuration value.
+  ///
+  /// This is also directly accessible in [ReduxAction] and in [VmFactory], as `env`.
+  ///
+  /// See also: [prop] and [setProp].
   Object? get env => _environment;
+
+  /// Gets a property from the store.
+  /// This can be used to save global values, but scoped to the store.
+  /// For example, you could save timers, streams or futures used by actions.
+  ///
+  /// ```dart
+  /// setProp("timer", Timer(Duration(seconds: 1), () => print("tick")));
+  /// var timer = prop<Timer>("timer");
+  /// timer.cancel();
+  /// ```
+  ///
+  /// This is also directly accessible in [ReduxAction] and in [VmFactory], as `prop`.
+  ///
+  /// See also: [setProp] and [env].
+  V prop<V>(Object? key) => _props[key] as V;
+
+  /// Sets a property in the store.
+  /// This can be used to save global values, but scoped to the store.
+  /// For example, you could save timers, streams or futures used by actions.
+  ///
+  /// ```dart
+  /// setProp("timer", Timer(Duration(seconds: 1), () => print("tick")));
+  /// var timer = prop<Timer>("timer");
+  /// timer.cancel();
+  /// ```
+  ///
+  /// This is also directly accessible in [ReduxAction] and in [VmFactory], as `prop`.
+  ///
+  /// See also: [prop] and [env].
+  void setProp(Object? key, Object? value) => _props[key] = value;
+
+  /// The [disposeProps] method is used to clean up resources associated with the store's
+  /// properties, by stopping, closing, ignoring and removing timers, streams, sinks, and futures
+  /// that are saved as properties in the store.
+  ///
+  /// In more detail: This method accepts an optional predicate function that takes a prop `key`
+  /// and a `value` as an argument and returns a boolean.
+  ///
+  /// * If you don't provide a predicate function, all properties which are `Timer`, `Future`, or
+  /// `Stream` related will be closed/cancelled/ignored as appropriate, and then removed from the
+  /// props. Other properties will not be removed.
+  ///
+  /// * If the predicate function is provided and returns `true` for a given property, that
+  /// property will be removed from the props. Also, if the property is a `Timer`, `Future`, or
+  /// `Stream` related, it will be closed/cancelled/ignored as appropriate.
+  ///
+  /// * If the predicate function is provided and returns `false` for a given property,
+  /// that property will not be removed from the props.
+  ///
+  /// This method is particularly useful when the store is being shut down, right before or after
+  /// you called the [shutdown] method.
+  ///
+  /// Example usage:
+  ///
+  /// ```dart
+  /// // Dispose of all Timers, Futures, Stream related etc.
+  /// store.disposeProps();
+  ///
+  /// // Dispose only Timers.
+  /// store.disposeProps(({Object? key, Object? value}) => value is Timer);
+  /// ```
+  ///
+  void disposeProps([bool Function({Object? key, Object? value})? predicate]) {
+    var keysToRemove = [];
+
+    for (var MapEntry(key: key, value: value) in _props.entries) {
+      bool removeIt = true;
+
+      if (predicate == null) {
+        bool ifClosed = _closeTimerFutureStream(value);
+        if (!ifClosed) removeIt = false;
+      }
+      //
+      // A predicate was provided,
+      else {
+        var removeIt = predicate(key: key, value: value);
+        if (removeIt) _closeTimerFutureStream(value);
+      }
+
+      if (removeIt) keysToRemove.add(key);
+    }
+
+    // After the iteration, remove all keys at the same time.
+    keysToRemove.forEach((key) => _props.remove(key));
+  }
+
+  /// If [obj] is a timer, future or stream related, it will be closed/cancelled/ignored,
+  /// and `true` will be returned. For other object types, the method returns `false`.
+  bool _closeTimerFutureStream(Object? obj) {
+    if (obj is Timer)
+      obj.cancel();
+    else if (obj is Future)
+      obj.ignore();
+    else if (obj is StreamSubscription)
+      obj.cancel();
+    else if (obj is StreamConsumer)
+      obj.close();
+    else if (obj is Sink)
+      obj.close();
+    else
+      return false;
+
+    return true;
+  }
 
   DateTime _stateTimestamp;
 
@@ -432,6 +547,8 @@ class Store<St> {
 
   /// Call this method to shut down the store.
   /// It won't accept dispatches or change the state anymore.
+  ///
+  /// See also: [isShutdown] and [disposeProps].
   void shutdown() {
     _shutdown = true;
   }

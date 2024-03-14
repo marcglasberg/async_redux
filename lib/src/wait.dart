@@ -85,7 +85,8 @@ class Wait {
     }
   }
 
-  Wait process(WaitOperation operation, {
+  Wait process(
+    WaitOperation operation, {
     required Object? flag,
     Object? ref,
   }) {
@@ -132,8 +133,7 @@ class Wait {
   /// if (wait.isWaitingForType<MyAction>()) { ... }
   /// ```
   bool isWaitingForType<T>() {
-    for (Object? flag in _flags.keys)
-      if (flag is T) return true;
+    for (Object? flag in _flags.keys) if (flag is T) return true;
     return false;
   }
 
@@ -147,17 +147,18 @@ class Wait {
     }
   }
 
-  void clearWhere(bool Function(
-      Object? flag,
-      Set<Object?> refs,
-      ) test) =>
+  void clearWhere(
+          bool Function(
+            Object? flag,
+            Set<Object?> refs,
+          ) test) =>
       _flags.removeWhere(test);
 
   Map<Object?, Set<Object?>> _deepCopy() {
     Map<Object?, Set<Object?>> newFlags = {};
 
-    for (MapEntry<Object?, Set<Object?>> flag in _flags.entries) {
-      newFlags[flag.key] = Set.of(flag.value);
+    for (var MapEntry(key: key, value: value) in _flags.entries) {
+      newFlags[key] = Set.of(value);
     }
 
     return newFlags;

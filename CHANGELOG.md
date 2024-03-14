@@ -3,22 +3,54 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# 22.1.0-dev.1
+# 22.1.0-dev.2
 
-* When you dispatch an async action, you can now use `var isWaiting = context.isWaiting(MyAction)`
-  to check if the action of the given type is currently being processed. You can then use this
-  boolean to show a loading spinner in your widget.
+* You can now use `var isWaiting = context.isWaiting(MyAction)` to check if an async action of
+  the given type is currently being processed. You can then use this boolean to show a loading
+  spinner in your widget.
   Note: Inside your `VmFactory` you can also use `isWaiting: isWaiting(MyAction)`. See
   the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_spinner.dart">
   Show Spinner Example</a>.
+      
 
-* You can now use `var isFailed = context.isFailed(MyAction)` to check if the given action has
-  thrown an `UserException`. You can then use this boolean to show an error message.
+* You can now use `var isFailed = context.isFailed(MyAction)` to check if an action of the given
+  type has thrown an `UserException`. You can then use this boolean to show an error message.
   You can also get the exception with `var exception = context.exceptionFor(MyAction)` to use its
-  error message. You can also clear the exception with `context.clearException(MyAction)`.
+  error message, and clear the exception with `context.clearException(MyAction)`.
   Note: Inside your `VmFactory` you can also use `isFailed: isFailed(MyAction)` etc. See
   the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_error_dialog.dart">
   Show Error Dialog Example</a>.
+         
+
+* You can add **mixins** to your actions, to accomplish common tasks:
+
+    - `CheckInternet` ensures actions only run with internet, otherwise an error dialog
+      prompts users to check their connection:
+
+    ```dart
+    class LoadText extends ReduxAction<AppState> with CheckInternet<AppState> {
+        
+    Future<String> reduce() async {
+        var response = await http.get('http://numbersapi.com/42');
+        ...      
+    }}
+    ```
+
+    - `CheckInternetNoDialog` is similar, but no dialog is opened.
+      If there is no Internet, you can display some information in your widgets:
+
+      ```dart
+      if (context.isFailed(LoadText)) Text('No Internet connection');
+      ```
+
+    - `OnlyWithInternet` aborts the action silently (without showing any dialogs)
+      if there is no internet connection.
+
+    - `NonReentrant` prevents reentrant actions, so that when you dispatch an action
+      that's already running it gets aborted (no errors are shown).
+
+  Other mixins will be provided in the future, for Throttling, Debouncing and Caching.
+    
 
 * Some features of the `async_redux` package are now available in a standalone Dart-only core
   package: https://pub.dev/packages/async_redux_core. You may use that core package when you
@@ -34,6 +66,70 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   > You should continue to use this async_redux package, which already exports
   > the code that's now in the core package.
 
+
+* You can now access the store inside of widgets, and have your widgets rebuild when the state
+  changes, by using `context.state` and `context.dispatch` etc. This is only useful when you want to
+  access the store state, and dispatch actions directly inside your widgets, instead of using
+  the `StoreConnector` (dumb widget / smart widget pattern). For example:
+
+  ```dart
+  // Read state (will rebuild when the state changes) 
+  var myInfo = context.state.myInfo;
+  
+  // Dispatch action
+  context.dispatch(MyAction());
+  
+  // Use isWaiting to show a spinner
+  if (context.isWaiting(MyAction)) return CircularProgressIndicator();
+  
+  // Use isFailed to show an error message
+  if (context.isFailed(MyAction)) return Text('Loading failed');
+                                                                   
+  // Use exceptionFor to get the error message from the exception
+  if (context.isFailed(MyAction)) return Text(context.exceptionFor(MyAction).message);
+  
+  // Use clearException to clear the error
+  context.clearException(MyAction);
+  ```      
+
+  However, to use `context.state` like shown above you must define this extension method in your own
+  code (supposing your state class is called `AppState`):
+
+  ```dart  
+  extension BuildContextExtension on BuildContext {
+     AppState get state => getState<AppState>();       
+  }
+  ```     
+
+  See
+  the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_conector_vs_provider.dart.dart">
+  Connector vc Provider Example</a>.
+
+
+* You can now get and set properties in the `Store` using the `prop` and `setProp` methods.
+  These methods are available in `Store`, in `ReduxAction`, and in `VmFactory`.
+  They can be used to save global values, but scoped to the store.
+  For example, you could save timers, streams or futures used by actions:
+
+  ```dart  
+  setProp("timer", Timer(Duration(seconds: 1), () => print("tick")));
+  var timer = prop<Timer>("timer");
+  timer.cancel();
+  ```   
+
+  You can later use `store.disposeProps` to stop, close or ignore, all stream related objects,
+  timers and futures, saved as props in the store. It will also remove them from there.
+
+# 22.0.0
+
+* BREAKING CHANGE: `StoreConnector.model` was removed, after being deprecated for a long
+  time. Please, use the `vm` parameter instead. See classes `VmFactory` and `Vm`.
+
+* BREAKING CHANGE: `ReduxAction.reduceWithState()` was removed, after being deprecated for a long
+  time.
+
+* BREAKING CHANGE: `StoreProvider.of` was removed. See `context.state` and `context.dispatch` etc,
+  in version 22.1.0 above.
 
 * BREAKING CHANGE: The `UserException` class was modified so that it was possible to move it to the
   `async_redux_core`. If your use of `UserException` was limited to specifying the error message,
@@ -63,46 +159,27 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   language by using the [i18n_extension](https://pub.dev/packages/i18n_extension) translations
   package.
 
-
-* BREAKING CHANGE: `StoreProvider.of` was removed. You can now access the store inside of
-  widgets, and have your widgets rebuild when the state changes, by using `context.state`
-  and `context.dispatch` etc. This is only useful when you want to access the store state,
-  and dispatch actions directly inside your widgets, instead of using the `StoreConnector` (dumb
-  widget / smart widget pattern). For example:
+* To test the view-model generated by a `VmFactory`, you can now use the static
+  method `Vm.createFrom(store, factory)`. The method will return the view-model, which you can use
+  to inspect the view-model properties directly, or call any of the view-model callbacks. Example:
 
   ```dart
-  // Read state (will rebuild when the state changes) 
-  var myInfo = context.state.myInfo;
+  var store = Store(initialState: User("Mary"));
+  var vm = Vm.createFrom(store, MyFactory());
   
-  // Dispatch action
-  context.dispatch(MyAction());
+  // Checking a view-model property.    
+  expect(vm.user.name, "Mary");
   
-  // Use isWaiting to show a spinner
-  if (context.isWaiting(MyAction)) return CircularProgressIndicator();
+  // Calling a view-model callback and waiting for the action to finish.  
+  vm.onChangeNameTo("Bill"); // Dispatches SetNameAction("Bill").
+  await store.waitActionType(SetNameAction);
+  expect(store.state.name, "Bill");    
   
-  // Use isFailed to show an error message
-  if (context.isFailed(MyAction)) return Text('Loading failed');
-                                                                   
-  // Use exceptionFor to get the error message from the exception
-  if (context.isFailed(MyAction)) return Text(context.exceptionFor(MyAction).message);
-  
-  // Use clearException to clear the error
-  context.clearException(MyAction);
-  ```      
-
-  However, to use this you should instead define this extension method in your own code
-  (supposing your state class is called `AppState`):
-
-  ```dart  
-  extension BuildContextExtension on BuildContext {
-     AppState get state => getState<AppState>();       
-  }
-  ```     
-
-  See
-  the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_conector_vs_provider.dart.dart">
-  Connector vc Provider Example</a>.
-
+  // Calling a view-model callback and waiting for the state to change.
+  vm.onChangeNameTo("Bill"); // Dispatches SetNameAction("Bill").
+  await store.waitCondition((state) => state.name == "Bill");
+  expect(store.state.name, "Bill");
+  ```
 
 * DEPRECATION WARNING: While the `StoreTester` is a powerful tool with advanced features that are
   beneficial for the most complex testing scenarios, for **almost all tests** it's now recommended
@@ -143,35 +220,6 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
   Note the `StoreTester` will NOT be removed, now or in the future. It's just not the recommended
   way to test the store anymore.
-
-
-* To test the view-model generated by a `VmFactory`, you can now use the static
-  method `Vm.createFrom(store, factory)`. The method will return the view-model, which you can use
-  to inspect the view-model properties directly, or call any of the view-model callbacks. Example:
-
-  ```dart
-  var store = Store(initialState: User("Mary"));
-  var vm = Vm.createFrom(store, MyFactory());
-  
-  // Checking a view-model property.    
-  expect(vm.user.name, "Mary");
-  
-  // Calling a view-model callback and waiting for the action to finish.  
-  vm.onChangeNameTo("Bill"); // Dispatches SetNameAction("Bill").
-  await store.waitActionType(SetNameAction);
-  expect(store.state.name, "Bill");    
-  
-  // Calling a view-model callback and waiting for the state to change.
-  vm.onChangeNameTo("Bill"); // Dispatches SetNameAction("Bill").
-  await store.waitCondition((state) => state.name == "Bill");
-  expect(store.state.name, "Bill");
-  ```
-
-* BREAKING CHANGE: `StoreConnector.model` was removed, after being deprecated for a long
-  time. Please, use the `vm` parameter instead. See classes `VmFactory` and `Vm`.
-
-* BREAKING CHANGE: `ReduxAction.reduceWithState()` was removed, after being deprecated for a long
-  time.
 
 # 21.7.1
 
