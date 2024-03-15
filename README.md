@@ -459,7 +459,7 @@ The reducer has direct access to:
 The abstract `reduce()` method signature has a return type of `FutureOr<AppState?>`, but
 your concrete reducers must return one or the other: `AppState?` or `Future<AppState?>`.
 
-That's necessary because AsyncRedux knows if a reducer is sync or async by checking your `reducer()`
+That's necessary because AsyncRedux knows if a reducer is sync or async by checking your `reduce()`
 method signature. If it is `FutureOr<AppState?>`, it can't know if it's sync or async,
 and will throw a `StoreException`:
 
@@ -802,7 +802,7 @@ print(status.status.hasFinishedMethodAfter);
 
 #### What's the order of execution of sync and async reducers?
 
-A reducer is only sync if both `reducer()` return `AppState` AND `before()` return `void`. If you
+A reducer is only sync if both `reduce()` return `AppState` AND `before()` return `void`. If you
 any of them return a `Future`, then the reducer is async.
 
 When you dispatch **sync** reducers, they are executed synchronously, in the order they are called.

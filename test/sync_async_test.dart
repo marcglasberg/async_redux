@@ -20,13 +20,13 @@ void main() {
     //
     var state = "";
 
-    String reducer() {
+    String reduce() {
       Future.microtask(() => state += "A");
       return "B";
     }
 
     /// There is no 'A' after calling the reducer, because it ran SYNC.
-    state = reducer();
+    state = reduce();
     expect(state, "B");
 
     /// After a microtask, 'A' appears.
@@ -42,7 +42,7 @@ void main() {
     //
     var state = "";
 
-    Future<String> reducer() async {
+    Future<String> reduce() async {
       state += "A";
       Future.microtask(() => state += "B");
       state += "C";
@@ -54,7 +54,7 @@ void main() {
 
     /// There is no 'E' yet, because even if the reducer is async,
     /// the then() method ran SYNC after the value was returned.
-    await reducer().then((newState) => state += newState);
+    await reduce().then((newState) => state += newState);
     expect(state, "ACBDF");
 
     /// After a microtask, 'E' appears.
@@ -77,14 +77,14 @@ void main() {
     //
     var state = "";
 
-    Future<String> reducer() async {
+    Future<String> reduce() async {
       Future.microtask(() => state += "B");
       return "A";
     }
 
     // The reducer returned 'A', but the microtask that adds 'B'
     // ran before the then() method had the chance to run.
-    await reducer().then((newState) => state += newState);
+    await reduce().then((newState) => state += newState);
     expect(state, "BA");
 
     // It's all finished by now, nothing yet to run.

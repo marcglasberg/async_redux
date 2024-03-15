@@ -12,10 +12,23 @@ part of async_redux_store;
 ///
 abstract class ReduxAction<St> {
   late Store<St> _store;
+  late St _initialState;
   ActionStatus _status = ActionStatus();
   bool _completedFuture = false;
 
-  void setStore(Store<St> store) => _store = store;
+  void setStore(Store<St> store) {
+    _store = store;
+    _initialState = _store.state;
+  }
+
+  /// Returns the state as it was when the action was dispatched.
+  ///
+  /// It can be the same or different from `this.state`, which is the current state in the store,
+  /// because other actions may have changed the current state since this action was dispatched.
+  ///
+  /// In the case of SYNC actions that do not dispatch other SYNC actions,
+  /// `this.state` and `this.initialState` will be the same.
+  St get initialState => _initialState;
 
   Store<St> get store => _store;
 

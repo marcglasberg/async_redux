@@ -1030,20 +1030,20 @@ class Store<St> {
     // Make sure the action reducer returns an acceptable type.
     _checkReducerType(action.reduce, false);
 
-    Reducer<St> reducer = action.wrapReduce(action.reduce);
+    Reducer<St> _reduce = action.wrapReduce(action.reduce);
 
     // Make sure the wrapReduce also returns an acceptable type.
     _checkReducerType(action.reduce, true);
 
-    if (_wrapReduce != null) reducer = _wrapReduce.wrapReduce(reducer, this);
+    if (_wrapReduce != null) _reduce = _wrapReduce.wrapReduce(_reduce, this);
 
     // Sync reducer.
-    if (reducer is St? Function()) {
-      _registerState(reducer(), action, notify: notify);
+    if (_reduce is St? Function()) {
+      _registerState(_reduce(), action, notify: notify);
     }
     //
     // Async reducer.
-    else if (reducer is Future<St?> Function()) {
+    else if (_reduce is Future<St?> Function()) {
       /// When a reducer returns a state, we need to apply that state immediately in the store.
       /// If we wait even a single microtask, another reducer may change the store-state before we
       /// have the chance to apply the state. This would result in the later reducer overriding the
@@ -1081,7 +1081,7 @@ class Store<St> {
 
       action._completedFuture = false;
 
-      return reducer().then((state) {
+      return _reduce().then((state) {
         _registerState(state, action, notify: notify);
 
         if (action._completedFuture) {
@@ -1096,7 +1096,7 @@ class Store<St> {
     else {
       throw StoreException("Reducer should return `St?` or `Future<St?>`. "
           "Do not return `FutureOr<St?>`. "
-          "Reduce is of type: '${reducer.runtimeType}'.");
+          "Reduce is of type: '${_reduce.runtimeType}'.");
     }
   }
 

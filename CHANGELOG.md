@@ -3,7 +3,25 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# 22.1.0
+# 22.2.0
+
+* In the `reduce` method of your actions you can now access the _initial state_ of the action, by
+  using the `initialState` getter. In other words, you have access to a copy of the state as it was
+  when the action was first dispatched. This is useful when you need to calculate some value
+  asynchronously, and then you only want to apply the result to the state if that value hasn't
+  changed in the meantime. For example:
+
+  ```dart
+  class MyAction extends ReduxAction<AppState> {
+    Future<AppState> reduce() async {
+      var newValue = await someAsyncStuff();
+      if (state.value == initialState.value) return state.copyWith(value: newValue);
+      else return null;
+    }
+  }
+  ```   
+
+# 22.1.0      
 
 * You can now use `var isWaiting = context.isWaiting(MyAction)` to check if an async action of
   the given type is currently being processed. You can then use this boolean to show a loading
