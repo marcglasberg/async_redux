@@ -3,6 +3,7 @@ export 'src/action_mixins.dart';
 export 'src/action_observer.dart';
 export 'src/advanced_user_exception.dart';
 export 'src/cache.dart';
+export 'src/connection_exception.dart';
 export 'src/error_observer.dart';
 export 'src/event_redux.dart';
 export 'src/global_wrap_error.dart';

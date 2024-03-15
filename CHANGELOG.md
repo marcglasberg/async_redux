@@ -3,7 +3,7 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# 22.1.0-dev.4
+# 22.1.0-dev.5
 
 * You can now use `var isWaiting = context.isWaiting(MyAction)` to check if an async action of
   the given type is currently being processed. You can then use this boolean to show a loading
@@ -11,7 +11,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   Note: Inside your `VmFactory` you can also use `isWaiting: isWaiting(MyAction)`. See
   the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_spinner.dart">
   Show Spinner Example</a>.
-      
+
 
 * You can now use `var isFailed = context.isFailed(MyAction)` to check if an action of the given
   type has thrown an `UserException`. You can then use this boolean to show an error message.
@@ -20,26 +20,28 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   Note: Inside your `VmFactory` you can also use `isFailed: isFailed(MyAction)` etc. See
   the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_error_dialog.dart">
   Show Error Dialog Example</a>.
-         
+
 
 * You can add **mixins** to your actions, to accomplish common tasks:
 
     - `CheckInternet` ensures actions only run with internet, otherwise an error dialog
       prompts users to check their connection:
 
-    ```dart
-    class LoadText extends ReduxAction<AppState> with CheckInternet<AppState> {
-        
-    Future<String> reduce() async {
-        var response = await http.get('http://numbersapi.com/42');
-        ...      
-    }}
-    ```
+      ```dart
+      class LoadText extends ReduxAction<AppState> with CheckInternet {
+          
+      Future<String> reduce() async {
+          var response = await http.get('http://numbersapi.com/42');
+          ...      
+      }}
+      ```
 
-    - `CheckInternetNoDialog` is similar, but no dialog is opened.
-      If there is no Internet, you can display some information in your widgets:
+    - `NoDialog` can be added to `CheckInternet` so that no dialog is opened.
+      Instead, you can display some information in your widgets:
 
       ```dart
+      class LoadText extends Action with CheckInternet, NoDialog { ... }
+      
       if (context.isFailed(LoadText)) Text('No Internet connection');
       ```
 
@@ -49,8 +51,14 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
     - `NonReentrant` prevents reentrant actions, so that when you dispatch an action
       that's already running it gets aborted (no errors are shown).
 
+    - `Retry` retries the action a few times with exponential backoff, if it fails.
+      Add `UnlimitedRetries` to retry the action indefinitely:
+
+      ```dart
+      class LoadText extends ReduxAction<AppState> with Retry, UnlimitedRetries, NonReentrant { 
+      ```
+
   Other mixins will be provided in the future, for Throttling, Debouncing and Caching.
-    
 
 * Some features of the `async_redux` package are now available in a standalone Dart-only core
   package: https://pub.dev/packages/async_redux_core. You may use that core package when you

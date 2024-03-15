@@ -134,11 +134,11 @@ class LoadTextAndIncrement extends Action {
 
 You can add **mixins** to your actions, to accomplish common tasks:
 
-* Adding `with CheckInternet` ensures actions only run with internet, otherwise an error dialog
-  prompts users to check their connection.
+* `CheckInternet` ensures actions only run with internet, otherwise an error dialog
+  prompts users to check their connection:
 
   ```dart
-  class LoadText extends Action with CheckInternet<AppState> {
+  class LoadText extends Action with CheckInternet {
       
   Future<String> reduce() async {
       var response = await http.get('http://numbersapi.com/42');
@@ -146,21 +146,27 @@ You can add **mixins** to your actions, to accomplish common tasks:
   }}
   ```
 
-* Adding `with CheckInternetNoDialog` is similar, but no dialog is opened.
-  If there is no Internet, you can display some information in your widgets:
+* `NoDialog` can be added to `CheckInternet` so that no dialog is opened.
+  Instead, you can display some information in your widgets:
 
   ```dart
+  class LoadText extends Action with CheckInternet, NoDialog { ... }
+  
   if (context.isFailed(LoadText)) Text('No Internet connection');
   ```
 
-* Adding `with AbortWhenNoInternet` aborts the action silently (without showing any dialogs)
+* `AbortWhenNoInternet` aborts the action silently (without showing any dialogs)
   if there is no internet connection.
 
-* Adding `with NonReentrant` prevents reentrant actions, so that when you dispatch an action that's
+* `NonReentrant` prevents reentrant actions, so that when you dispatch an action that's
   already running it gets aborted.
 
-Other mixins will be provided in the future, for Throttling, Debouncing and Caching.
-And you can also create your own mixins.
+* `Retry` retries the action a few times with exponential backoff, if it fails.
+  Add `UnlimitedRetries` to retry the action indefinitely:
+
+  ```dart
+  class LoadText extends ReduxAction<AppState> with Retry, UnlimitedRetries, NonReentrant { 
+  ```
 
 Testing your app is very easy. Just dispatch actions and wait for them to finish.
 Then, verify the new state or check if some error was thrown:

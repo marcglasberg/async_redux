@@ -3,10 +3,10 @@ import 'package:async_redux/async_redux.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 /// This mixin can be used to check if there is internet when you run some action that needs
-/// internet connection. Just add `with CheckInternet<AppState>` to your action. For example:
+/// internet connection. Just add `with CheckInternet` to your action. For example:
 ///
 /// ```dart
-/// class LoadText extends ReduxAction<AppState> with CheckInternet<AppState> {
+/// class LoadText extends ReduxAction<AppState> with CheckInternet {
 ///   Future<String> reduce() async {
 ///     var response = await http.get('http://numbersapi.com/42');
 ///     return response.body;
@@ -84,7 +84,7 @@ mixin CheckInternet<St> on ReduxAction<St> {
 /// This mixin can only be applied on [CheckInternet]. Example:
 ///
 /// ```dart
-/// class LoadText extends ReduxAction<AppState> with CheckInternet<AppState>, NoDialog {
+/// class LoadText extends ReduxAction<AppState> with CheckInternet, NoDialog {
 ///   Future<String> reduce() async {
 ///     var response = await http.get('http://numbersapi.com/42');
 ///     return response.body;
@@ -173,6 +173,116 @@ mixin NonReentrant<St> on ReduxAction<St> {
   bool abortDispatch() => isWaiting(runtimeType);
 }
 
+/// This mixin will retry the [reduce] method if it throws an error.
+/// Note: If the `before` method throws an error, the retry will NOT happen.
+///
+/// * Initial Delay: The delay before the first retry attempt.
+/// * Multiplier: The factor by which the delay increases for each subsequent retry.
+/// * Maximum Retries: The maximum number of retries before giving up.
+/// * Maximum Delay: The maximum delay between retries to avoid excessively long wait times.
+///
+/// Default Parameters:
+/// * [initialDelay] is `350` milliseconds.
+/// * [multiplier] is `2`, which means the default delays are: 350 millis, 700 millis, and 1.4 seg.
+/// * [maxRetries] is `3`, meaning it will try a total of 4 times.
+/// * [maxDelay] is `5` seconds.
+///
+/// If you want to retry unlimited times, you can add the [UnlimitedRetries] mixin.
+///
+/// Note: The retry delay only starts after the reducer finishes executing. For example,
+/// if the reducer takes 1 second to fail, and the retry delay is 350 millis, the first
+/// retry will happen 1.35 seconds after the first reducer started.
+///
+/// When the action finally fails, the last error will be rethrown, and the previous ones will
+/// be ignored.
+///
+/// You should NOT combine this with [CheckInternet] or [AbortWhenNoInternet],
+/// because the retry will not work.
+///
+/// However, for most actions that use [Retry], consider also adding [NonReentrant] to avoid
+/// multiple instances of the same action running at the same time:
+///
+/// ```dart
+/// class MyAction extends ReduxAction<AppState> with Retry, NonReentrant { ... }
+/// ```
+///
+/// Keep in mind that all actions using the [Retry] mixin will become asynchronous, even if the
+/// original action was synchronous.
+///
+mixin Retry<St> on ReduxAction<St> {
+  //
+  /// The delay before the first retry attempt.
+  Duration get initialDelay => const Duration(milliseconds: 350);
+
+  /// The factor by which the delay increases for each subsequent retry.
+  /// Must be greater than 1, otherwise it will be set to 2.
+  double get multiplier => 2;
+
+  /// The maximum number of retries before giving up.
+  /// Must be greater than 0, otherwise it will not retry.
+  /// The total number of attempts is maxRetries + 1.
+  int get maxRetries => 3;
+
+  /// The maximum delay between retries to avoid excessively long wait times.
+  /// The default is 5 seconds.
+  Duration get maxDelay => const Duration(seconds: 5);
+
+  int _attempts = 0;
+
+  /// The number of retry attempts so far. If the action has not been retried yet, it will be 0.
+  /// If the action finished successfully, it will be equal or less than [maxRetries].
+  /// If the action failed and gave up, it will be equal to [maxRetries] plus 1.
+  int get attempts => _attempts;
+
+  @override
+  Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
+        FutureOr<St?> newState;
+        try {
+          newState = reduce();
+          if (newState is Future) newState = await newState;
+        } catch (error) {
+          _attempts++;
+          if (_attempts > maxRetries) rethrow;
+
+          var currentDelay = nextDelay();
+          await Future.delayed(currentDelay);
+          return wrapReduce(reduce)();
+        }
+        return newState;
+      };
+
+  Duration? _currentDelay;
+
+  /// Start with the [initialDelay], and then increase it by [multiplier] each time this is called.
+  /// If the delay exceeds [maxDelay], it will be set to [maxDelay].
+  Duration nextDelay() {
+    var _multiplier = multiplier;
+    if (_multiplier <= 1) _multiplier = 2;
+
+    _currentDelay = (_currentDelay == null) //
+        ? initialDelay //
+        : _currentDelay! * _multiplier;
+
+    if (_currentDelay! > maxDelay) _currentDelay = maxDelay;
+
+    return _currentDelay!;
+  }
+}
+
+/// Add [UnlimitedRetries] to the [Retry] mixin, to retry indefinitely:
+///
+/// ```dart
+/// class MyAction extends ReduxAction<AppState> with Retry, UnlimitedRetries { ... }
+/// ```
+///
+/// Note: If you `await dispatchAndWait(action)` and the action uses [UnlimitedRetries],
+/// it may never finish if it keeps failing. So, be careful when using it.
+///
+mixin UnlimitedRetries<St> on Retry<St> {
+  @override
+  int get maxRetries => 1000000000;
+}
+
 /// Throttling is a technique that ensures a function is called at most once in a specified period.
 /// If the function is triggered multiple times within this period, it will only execute once at
 /// the start or end (depending on the implementation) of that period, and all other calls will be
@@ -209,82 +319,3 @@ mixin NonReentrant<St> on ReduxAction<St> {
 /// result instead of running the action again.
 // TODO:
 //mixin Cache<St> implements ReduxAction<St> {}
-
-/// The [ConnectionException] is a type of [UserException] that warns the user when the connection
-/// is not working. Use [ConnectionException.noConnectivity] for a simple version that warns the
-/// users they should check the connection. Use factory [create] to give more complete messages,
-/// indicating the host that is having problems.
-///
-class ConnectionException extends AdvancedUserException {
-  //
-  // Usage: `throw ConnectionException.noConnectivity`;
-  static const noConnectivity = ConnectionException();
-
-  /// Usage: `throw ConnectionException.noConnectivityWithRetry(() {...})`;
-  ///
-  /// A dialog will open. When the user presses OK or dismisses the dialog in any way,
-  /// the [onRetry] callback will be called.
-  ///
-  static ConnectionException noConnectivityWithRetry(void Function()? onRetry) =>
-      ConnectionException(onRetry: onRetry);
-
-  /// Creates a [ConnectionException].
-  ///
-  /// If you pass it an [onRetry] callback, it will call it when the user presses
-  /// the "Ok" button in the dialog. Otherwise, it will just close the dialog.
-  ///
-  /// If you pass it a [host], it will say "It was not possible to connect to $host".
-  /// Otherwise, it will simply say "There is no Internet connection".
-  ///
-  const ConnectionException({
-    void Function()? onRetry,
-    this.host,
-    String? errorText,
-    bool ifOpenDialog = true,
-  }) : super(
-          (host != null) ? 'There is no Internet' : 'It was not possible to connect to $host.',
-          reason: 'Please, verify your connection.',
-          code: null,
-          onOk: onRetry,
-          onCancel: null,
-          hardCause: null,
-          errorText: errorText ?? 'No Internet connection',
-          ifOpenDialog: ifOpenDialog,
-        );
-
-  final String? host;
-
-  @override
-  UserException addReason(String? reason) {
-    throw UnsupportedError('You cannot use this.');
-  }
-
-  @override
-  UserException mergedWith(UserException? anotherUserException) {
-    throw UnsupportedError('You cannot use this.');
-  }
-
-  @override
-  UserException withErrorText(String? newErrorText) => ConnectionException(
-        host: host,
-        onRetry: onOk,
-        errorText: newErrorText,
-        ifOpenDialog: ifOpenDialog,
-      );
-
-  @override
-  UserException withDialog(bool ifOpenDialog) => ConnectionException(
-        host: host,
-        onRetry: onOk,
-        errorText: errorText,
-        ifOpenDialog: ifOpenDialog,
-      );
-
-  @override
-  UserException get noDialog => ConnectionException(
-        host: host,
-        onRetry: onOk,
-        errorText: errorText,
-        ifOpenDialog: ifOpenDialog,
-      );
-}
