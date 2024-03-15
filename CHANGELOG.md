@@ -3,7 +3,7 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# 22.1.0-dev.5
+# 22.1.0
 
 * You can now use `var isWaiting = context.isWaiting(MyAction)` to check if an async action of
   the given type is currently being processed. You can then use this boolean to show a loading
