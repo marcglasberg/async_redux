@@ -325,3 +325,15 @@ class AbortDispatchException implements Exception {
   @override
   int get hashCode => 0;
 }
+
+/// The [UpdateStateAction] action is used to update the state of the Redux store, by applying
+/// the given [updateFunction] to the current state.
+class UpdateStateAction<St> extends ReduxAction<St> {
+  //
+  final St Function(St) updateFunction;
+
+  UpdateStateAction(this.updateFunction);
+
+  @override
+  St reduce() => updateFunction(state);
+}

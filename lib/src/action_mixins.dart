@@ -283,6 +283,184 @@ mixin UnlimitedRetries<St> on Retry<St> {
   int get maxRetries => 1000000000;
 }
 
+/// The [OptimisticUpdate] mixin is still EXPERIMENTAL. You can use it, but test it well.
+/// ---
+///
+/// Let's use a "Todo" app as an example. We want to save a new Todo to a TodoList.
+///
+/// This code saves the Todo, then reloads the TotoList from the cloud:
+///
+/// ```dart
+/// class SaveTodo extends ReduxAction<AppState> {
+///    final Todo newTodo;
+///    SaveTodo(this.newTodo);
+///
+///    Future<AppState> reduce() async {
+///
+///       try {
+///          // Saves the new Todo to the cloud.
+///          await saveTodo(newTodo);
+///       }
+///       finally {
+///          // Loads the complete TodoList from the cloud.
+///          var reloadedTodoList = await loadTodoList();
+///          return state.copy(todoList: reloadedTodoList);
+///       }
+///    }
+/// }
+/// ```
+///
+/// The problem with the above code is that it make take a second to update the todoList in
+/// the screen, while we save then load, which is not a good user experience.
+///
+/// The solution is optimistically updating the TodoList before saving the new Todo to the cloud:
+///
+/// ```dart
+/// class SaveTodo extends ReduxAction<AppState> {
+///    final Todo newTodo;
+///    SaveTodo(this.newTodo);
+///
+///    Future<AppState> reduce() async {
+///
+///       // Updates the TodoList optimistically.
+///       dispatch(UpdateStateAction((state) => state.copy(todoList: state.todoList.add(newTodo))));
+///
+///       try {
+///          // Saves the new Todo to the cloud.
+///          await saveTodo(newTodo);
+///       }
+///       finally {
+///          // Loads the complete TodoList from the cloud.
+///          var reloadedTodoList = await loadTodoList();
+///          return state.copy(todoList: reloadedTodoList);
+///       }
+///    }
+/// }
+/// ```
+///
+/// That's better. But if the saving fails, the users still have to wait for the reload until
+/// they see the reverted state. We can further improve this:
+///
+/// ```dart
+/// class SaveTodo extends ReduxAction<AppState> {
+///    final Todo newTodo;
+///    SaveTodo(this.newTodo);
+///
+///    Future<AppState> reduce() async {
+///
+///       // Updates the TodoList optimistically.
+///       var newTodoList = state.todoList.add(newTodo);
+///       dispatch(UpdateStateAction((state) => state.copy(todoList: newTodoList)));
+///
+///       try {
+///          // Saves the new Todo to the cloud.
+///          await saveTodo(newTodo);
+///       }
+///       catch (e) {
+///          // If the state still contains our optimistic update, we rollback.
+///          // If the state now contains something else, we DO NOT rollback.
+///          if (state.todoList == newTodoList) {
+///             return state.copy(todoList: initialState.todoList); // Rollback.
+///          }
+///       }
+///       finally {
+///          // Loads the complete TodoList from the cloud.
+///          var reloadedTodoList = await loadTodoList();
+///          dispatch(UpdateStateAction((state) => state.copy(todoList: reloadedTodoList)));
+///       }
+///    }
+/// }
+/// ```
+///
+/// Now the user sees the rollback immediately after the saving fails.
+///
+/// Note: If you are using a realtime database or Websockets to receive real-time updates from the
+/// server, you may not need the finally block above, as long as the `newTodoList` above can be
+/// told apart from the current `state.todoList`. This can be a problem if the state in question
+/// is a primitive (boolean, number etc) or string.
+///
+/// The [OptimisticUpdate] mixin helps you implement the above code for you, when you
+/// provide the following:
+///
+/// * newValue: Is the new value, that you want to see saved and applied to the sate.
+/// * getValueFromState: Is a function that extract the value from the given state.
+/// * reloadValue: Is a function that reloads the value from the cloud.
+/// * applyState: Is a function that applies the given value to the given state.
+///
+mixin OptimisticUpdate<St> on ReduxAction<St> {
+  //
+  /// You should return here the value that you want to update. For example, if you want to add
+  /// a new Todo to the todoList, you should return the new todoList with the new Todo added.
+  ///
+  /// You can access the fields of the action, and the state, and return the new value.
+  ///
+  /// ```
+  /// Object? newValue() => state.todoList.add(newTodo);
+  /// ```
+  Object? newValue();
+
+  /// Using the given `state`, you should return the `value` from that state.
+  ///
+  /// ```
+  /// Object? getValueFromState(state) => state.todoList.add(newTodo);
+  /// ```
+  Object? getValueFromState(St state);
+
+  /// Using the given `state`, you should apply the given `value` to it, and return the result.
+  ///
+  /// ```
+  /// St applyState(state) => state.copy(todoList: newTodoList);
+  /// ```
+  St applyState(Object? value, St state);
+
+  /// You should save the `value` or other related value in the cloud.
+  ///
+  /// ```
+  /// void saveValue(newTodoList) => saveTodo(todo);
+  /// ```
+  Future<void> saveValue(Object? newValue) {
+    throw UnimplementedError();
+  }
+
+  /// You should reload the `value` from the cloud.
+  /// If you want to skip this step, simply don't provide this method.
+  ///
+  /// ```
+  /// Object? reloadValue() => loadTodoList();
+  /// ```
+  Future<Object?> reloadValue() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<St?> reduce() async {
+    // Updates the value optimistically.
+    var _newValue = newValue();
+    dispatch(UpdateStateAction((state) => applyState(_newValue, state)));
+
+    try {
+      // Saves the new Todo to the cloud.
+      await saveValue(_newValue);
+    } catch (e) {
+      // If the state still contains our optimistic update, we rollback.
+      // If the state now contains something else, we DO NOT rollback.
+      if (getValueFromState(state) == _newValue) {
+        var initialValue = getValueFromState(initialState);
+        return applyState(initialValue, state); // Rollback.
+      }
+    } finally {
+      try {
+        Object? reloadedValue = await reloadValue();
+        dispatch(UpdateStateAction((state) => applyState(reloadedValue, state)));
+      } on UnimplementedError catch (e) {
+        // If the reload was not implemented, do nothing.
+      }
+    }
+
+    return null;
+  }
+}
+
 /// Throttling is a technique that ensures a function is called at most once in a specified period.
 /// If the function is triggered multiple times within this period, it will only execute once at
 /// the start or end (depending on the implementation) of that period, and all other calls will be

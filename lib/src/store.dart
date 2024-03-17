@@ -680,12 +680,12 @@ class Store<St> {
     }
     //
     else {
-      // Note: Only if the action is async it makes sense to add it to the list of active actions.
-      // If it's sync it will finish immediately, so there's no need to add it.
-      _activeAsyncActions.add(action);
+      // Note: Only if the action is async it makes sense to add it to the list of actions in
+      // progress. If it's sync it will finish immediately, so there's no need to add it.
+      _asyncActionsInProgress.add(action);
 
       // If the action is awaitable (that is to say, we have already called [isWaiting] for this
-      // action, then we notify the UI. We don't notify if the action was never checked.
+      // action), then we notify the UI. We don't notify if the action was never checked.
       // Note: if it's failable, we already notified the UI.
       if (!failable && _awaitableAsyncActions.contains(action.runtimeType)) {
         _changeController.add(state);
@@ -733,13 +733,13 @@ class Store<St> {
     // 1) If a type was passed:
     if (actionOrActionTypeOrList is Type) {
       _awaitableAsyncActions.add(actionOrActionTypeOrList);
-      return _activeAsyncActions.any((action) => action.runtimeType == actionOrActionTypeOrList);
+      return _asyncActionsInProgress.any((action) => action.runtimeType == actionOrActionTypeOrList);
     }
     //
     // 2) If an action was passed:
     else if (actionOrActionTypeOrList is ReduxAction) {
       _awaitableAsyncActions.add(actionOrActionTypeOrList.runtimeType);
-      return _activeAsyncActions.contains(actionOrActionTypeOrList);
+      return _asyncActionsInProgress.contains(actionOrActionTypeOrList);
     }
     //
     // 3) If a list was passed:
@@ -747,10 +747,10 @@ class Store<St> {
       for (var actionOrType in actionOrActionTypeOrList) {
         if (actionOrType is Type) {
           _awaitableAsyncActions.add(actionOrType);
-          return _activeAsyncActions.any((action) => action.runtimeType == actionOrType);
+          return _asyncActionsInProgress.any((action) => action.runtimeType == actionOrType);
         } else if (actionOrType is ReduxAction) {
           _awaitableAsyncActions.add(actionOrType.runtimeType);
-          return _activeAsyncActions.contains(actionOrType);
+          return _asyncActionsInProgress.contains(actionOrType);
         } else {
           Future.microtask(() {
             throw StoreException(
@@ -847,7 +847,7 @@ class Store<St> {
       Object? result;
       for (var actionType in actionTypeOrList) {
         if (actionType is Type) {
-          result = _failedActions.remove(actionTypeOrList);
+          result = _failedActions.remove(actionType);
         } else {
           Future.microtask(() {
             throw StoreException("You can't clearException([${actionTypeOrList.runtimeType}]), "
@@ -1119,7 +1119,7 @@ class Store<St> {
     // Reducers may return null state, or the unaltered state, when they don't want to change the
     // state. Note: If the action is an "active action" it will be removed, so we have to
     // add the state to _changeController even if it's the same state.
-    if (((state != null) && !identical(_state, state)) || _activeAsyncActions.contains(action)) {
+    if (((state != null) && !identical(_state, state)) || _asyncActionsInProgress.contains(action)) {
       _state = state ?? _state;
       _stateTimestamp = DateTime.now().toUtc();
 
@@ -1143,10 +1143,10 @@ class Store<St> {
 
   /// The async actions that are currently being processed.
   /// Use [isWaiting] to know if an action is currently being processed.
-  final Set<ReduxAction<St>> _activeAsyncActions = HashSet<ReduxAction<St>>.identity();
+  final Set<ReduxAction<St>> _asyncActionsInProgress = HashSet<ReduxAction<St>>.identity();
 
-  /// Async actions that we may put into [_activeAsyncActions].
-  /// This helps knowing when to rebuild to make [isWaiting] work.
+  /// Async actions that we may put into [_asyncActionsInProgress].
+  /// This helps to know when to rebuild to make [isWaiting] work.
   final Set<Type> _awaitableAsyncActions = HashSet<Type>.identity();
 
   /// The async actions that have failed recently.
@@ -1159,17 +1159,11 @@ class Store<St> {
   /// as a message in the UI. If you don't want to show the dialog you can use the `noDialog`
   /// getter in the error message: `throw UserException('Invalid input').noDialog`.
   ///
-  final Map<Object, ReduxAction<St>> _failedActions = HashMap<Object, ReduxAction<St>>();
+  final Map<Type, ReduxAction<St>> _failedActions = HashMap<Type, ReduxAction<St>>();
 
   /// Async actions that we may put into [_failedActions].
-  /// This helps knowing when to rebuild to make [isWaiting] work.
+  /// This helps to know when to rebuild to make [isWaiting] work.
   final Set<Type> _actionsWeCanCheckFailed = HashSet<Type>.identity();
-
-  /// Given a [newState] returns true if the state is different from the current state.
-  bool ifStateChanged(St? newState, ReduxAction<St> action) {
-    return (newState != null && !identical(_state, newState)) ||
-        _activeAsyncActions.contains(action);
-  }
 
   /// Returns the processed error. Returns `null` if the error is meant to be "swallowed".
   Object? _processError(
@@ -1270,7 +1264,7 @@ class Store<St> {
   ) {
     if (!afterWasRun.value) _after(action);
 
-    _activeAsyncActions.remove(action);
+    _asyncActionsInProgress.remove(action);
 
     createTestInfoSnapshot(state!, action, error, processedError, ini: false);
 
