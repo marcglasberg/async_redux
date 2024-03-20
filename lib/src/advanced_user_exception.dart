@@ -39,10 +39,10 @@ import "package:meta/meta.dart";
 class AdvancedUserException extends UserException {
   //
 
-  /// Callback to be called after the user views the error and taps OK.
+  /// Callback to be called after the user views the error, and taps OK in the dialog.
   final VoidCallback? onOk;
 
-  /// Callback to be called after the user views the error and taps CANCEL.
+  /// Callback to be called after the user views the error, and taps CANCEL in the dialog.
   final VoidCallback? onCancel;
 
   /// The hard cause is some error which caused the [UserException], but that is not

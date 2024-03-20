@@ -3,7 +3,7 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# 22.2.0
+# 22.3.0
 
 * In the `reduce` method of your actions you can now access the _initial state_ of the action, by
   using the `initialState` getter. In other words, you have access to a copy of the state as it was
@@ -21,7 +21,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   }
   ```   
 
-# 22.1.0      
+# 22.1.0
 
 * You can now use `var isWaiting = context.isWaiting(MyAction)` to check if an async action of
   the given type is currently being processed. You can then use this boolean to show a loading
@@ -34,7 +34,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 * You can now use `var isFailed = context.isFailed(MyAction)` to check if an action of the given
   type has thrown an `UserException`. You can then use this boolean to show an error message.
   You can also get the exception with `var exception = context.exceptionFor(MyAction)` to use its
-  error message, and clear the exception with `context.clearException(MyAction)`.
+  error message, and clear the exception with `context.clearExceptionFor(MyAction)`.
   Note: Inside your `VmFactory` you can also use `isFailed: isFailed(MyAction)` etc. See
   the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_error_dialog.dart">
   Show Error Dialog Example</a>.
@@ -114,8 +114,8 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   // Use exceptionFor to get the error message from the exception
   if (context.isFailed(MyAction)) return Text(context.exceptionFor(MyAction).message);
   
-  // Use clearException to clear the error
-  context.clearException(MyAction);
+  // Use clearExceptionFor to clear the error
+  context.clearExceptionFor(MyAction);
   ```      
 
   However, to use `context.state` like shown above you must define this extension method in your own
@@ -212,8 +212,9 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   to use the `Store` directly. This approach involves waiting for an action to complete its dispatch
   process or for the store state to meet a certain condition. After this, you can verify the current
   state or action using the new
-  methods `store.dispatchAndWait`, `store.waitCondition`, `store.waitActionType`,
-  and `store.waitAnyActionType`. For example:
+  methods `store.dispatchAndWait`, `store.waitCondition`, `store.waitActionCondition`,
+  `store.waitAllActions`, `store.waitActionType`, `store.waitAllActionTypes`,
+  and `store.waitAnyActionTypeFinishes`. For example:
 
   ```dart
   // Wait for some action to dispatch and check the state. 
@@ -229,19 +230,51 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   dispatch(ChangeNameAction("Bill"));
   var action = await store.waitCondition((state) => state.name == "Bill");
   expect(action, isA<ChangeNameAction>());
-  expect(store.state.name, 'Bill');
+  expect(store.state.name, 'Bill'); 
+  
+  // Wait until no actions are in progress.
+  dispatch(BuyStock('IBM'));
+  dispatch(BuyStock('TSLA'));  
+  await waitAllActions();                 
+  expect(state.stocks, ['IBM', 'TSLA']);
          
   // Wait until some action of a given type is dispatched.
   dispatch(DoALotOfStuffAction()); 
   var action = store.waitActionType(ChangeNameAction);
   expect(action, isA<ChangeNameAction>());
   expect(action.status.isCompleteOk, isTrue);
-  expect(store.state.name, 'Bill');
+  expect(store.state.name, 'Bill');      
+  
+  // Dispatches two actions in PARALLEL and wait for their TYPES:
+  expect(store.state.portfolio, ['TSLA']);
+  dispatch(BuyAction('IBM'));
+  dispatch(SellAction('TSLA'));
+  await store.waitAllActionTypes([BuyAction, SellAction]);
+  expect(store.state.portfolio, ['IBM']);                
+  
+  // Dispatches two actions in PARALLEL and wait for them:
+  let action1 = BuyAction('IBM');
+  let action2 = BuyAction('TSLA');
+  dispatch(action1);
+  dispatch(action2);
+  await store.waitActions([action1, action2]);
+  expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+  
+  // Dispatches actions and wait until no actions are in progress.
+  dispatch(BuyAction('IBM'));
+  dispatch(SellAction('TSLA'));
+  await store.waitActions();
+  expect(the result of all actions...);
+  
+  // Dispatches two actions in SERIES and wait for them:
+  await dispatchAndWait(SomeAsyncAction());
+  await dispatchAndWait(AnotherAsyncAction());
+  expect(the result of both actions...);
   
   // Wait until some action of any of the given types is dispatched.
-  dispatch(BuyAction('IBM')); 
-  var action = store.waitAnyActionType([BuyAction, SellAction]);  
-  expect(store.state.portfolio.contains('IBM'), isTrue);
+  dispatch(ProcessStocksAction()); 
+  var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);  
+  expect(store.state.portfolio.contains('IBM'), isTrue);  
   ```                          
 
   Note the `StoreTester` will NOT be removed, now or in the future. It's just not the recommended

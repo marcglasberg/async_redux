@@ -204,6 +204,11 @@ abstract class ReduxAction<St> {
   ///    return identical(oldState, state) ? newState : null;
   /// };
   /// ```
+  ///
+  /// Note: If you return a function that returns a `Future`, the action will be ASYNC.
+  /// If you return a function that returns `St`, the action will be SYNC only if the
+  /// `before` and `reduce` methods are also SYNC.
+  ///
   Reducer<St> wrapReduce(Reducer<St> reduce) => reduce;
 
   /// If any error is thrown by `reduce` or `before`, you have the chance
@@ -282,6 +287,21 @@ abstract class ReduxAction<St> {
     scheduleMicrotask(() {
       _completedFuture = true;
     });
+  }
+
+  /// Returns true if the action is SYNC, and false if the action is ASYNC.
+  /// The action is considered SYNC if the `before` method, the `reduce` method,
+  /// and the `wrapReduce` methods are all synchronous.
+  bool isSync() {
+    //
+    /// Must check that it's NOT `Future<void> Function()`, as `void Function()` doesn't work.
+    bool beforeMethodIsSync = before is! Future<void> Function();
+
+    bool reduceMethodIsSync = reduce is St? Function();
+
+    bool wrapReduceMethodIsSync = wrapReduce(() => null) is! Future<St?> Function();
+
+    return (beforeMethodIsSync && reduceMethodIsSync && wrapReduceMethodIsSync);
   }
 
   /// Returns the runtimeType, without the generic part.

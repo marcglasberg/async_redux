@@ -855,8 +855,8 @@ if (context.isFailed(MyAction)) return Text('Loading failed');
 // Use exceptionFor to get the error message from the exception
 if (context.isFailed(MyAction)) return Text(context.exceptionFor(MyAction).message);
 
-// Use clearException to clear the error
-context.clearException(MyAction);
+// Use clearExceptionFor to clear the error
+context.clearExceptionFor(MyAction);
 ```  
 
 In more detail:
@@ -887,7 +887,7 @@ In more detail:
 * `context.exceptionFor()` - Returns the `UserException` of the action of the given type that
   failed.
 
-* `context.clearException()` - Removes the given type from the list of action types that failed.
+* `context.clearExceptionFor()` - Removes the given type from the list of action types that failed.
 
 Try running
 the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_conector_vs_provider.dart.dart">
@@ -1565,12 +1565,80 @@ dialog to the user, but you don't want to interrupt the action by throwing an ex
 
 ## Testing
 
-It's often said that vanilla Redux **reducers** are easy to test because they're pure functions.
-While this is true, real-world applications are composed not only of sync reducers, but also of
-middleware async code, which is not easy to test at all.
+Testing involves waiting for an action to complete its dispatch process,
+or for the store state to meet a certain condition. After this, you can verify the current
+state or action using the
+methods `store.dispatchAndWait`, `store.waitCondition`, `store.waitActionCondition`,
+`store.waitAllActions`, `store.waitActionType`, `store.waitAllActionTypes`,
+and `store.waitAnyActionTypeFinishes`. For example:
 
-AsyncRedux provides the `StoreTester` class that makes it easy to test both sync and async reducers.
+```dart
+// Wait for some action to dispatch and check the state. 
+await store.dispatchAndWait(MyAction());
+expect(store.state.name, 'John')
 
+// Wait for some action to dispatch, and check for errors in the action status. 
+var status = await dispatchAndWait(MyAction());
+expect(status.originalError, isA<UserException>());
+
+// Wait for some state condition
+expect(store.state.name, 'John')               
+dispatch(ChangeNameAction("Bill"));
+var action = await store.waitCondition((state) => state.name == "Bill");
+expect(action, isA<ChangeNameAction>());
+expect(store.state.name, 'Bill'); 
+
+// Wait until no actions are in progress.
+dispatch(BuyStock('IBM'));
+dispatch(BuyStock('TSLA'));  
+await waitAllActions();                 
+expect(state.stocks, ['IBM', 'TSLA']);
+     
+// Wait until some action of a given type is dispatched.
+dispatch(DoALotOfStuffAction()); 
+var action = store.waitActionType(ChangeNameAction);
+expect(action, isA<ChangeNameAction>());
+expect(action.status.isCompleteOk, isTrue);
+expect(store.state.name, 'Bill');      
+
+// Dispatches two actions in PARALLEL and wait for their TYPES:
+expect(store.state.portfolio, ['TSLA']);
+dispatch(BuyAction('IBM'));
+dispatch(SellAction('TSLA'));
+await store.waitAllActionTypes([BuyAction, SellAction]);
+expect(store.state.portfolio, ['IBM']);                
+
+// Dispatches two actions in PARALLEL and wait for them:
+let action1 = BuyAction('IBM');
+let action2 = BuyAction('TSLA');
+dispatch(action1);
+dispatch(action2);
+await store.waitActions([action1, action2]);
+expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+
+// Dispatches actions and wait until no actions are in progress.
+dispatch(BuyAction('IBM'));
+dispatch(SellAction('TSLA'));
+await store.waitActions();
+expect(the result of all actions...);
+
+// Dispatches two actions in SERIES and wait for them:
+await dispatchAndWait(SomeAsyncAction());
+await dispatchAndWait(AnotherAsyncAction());
+expect(the result of both actions...);
+
+// Wait until some action of any of the given types is dispatched.
+dispatch(ProcessStocksAction()); 
+var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);  
+expect(store.state.portfolio.contains('IBM'), isTrue);  
+```                         
+
+## Testing with StoreTester (deprecated)
+
+For **almost all tests** it's now recommended to use the `Store` directly, as shown in the previous
+section.
+
+Older/deprecated code may still use the old `StoreTester`.
 Start by creating the store-tester from a store:
 
 ```dart
@@ -1797,8 +1865,10 @@ The method will return the **view-model**, which you can use to:
 * Inspect the view-model properties directly, or
 
 * Call any of the view-model callbacks. If the callbacks dispatch actions,
-  you use `await store.waitActionType(MyAction)`,
-  or `await store.waitAllActionTypes([MyAction, OtherAction])`,
+  you use `await store.waitAllActions()`,
+  or `await store.waitActionType(MyAction)`,
+  or `await store.waitAllActionTypes([MyAction, OtherAction])`,  
+  or `await store.waitAnyActionTypeFinishes([MyAction, OtherAction])`,  
   or `await store.waitCondition((state) => ...)`,
   or if necessary you can even record all dispatched actions and state changes
   with `Store.record.start()` and `Store.record.stop()`.

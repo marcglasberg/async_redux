@@ -152,7 +152,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     onChanged: (text) {
                       // This is optional, as the exception is already cleared when the
                       // action dispatches again. Comment it out to see the difference.
-                      if (text.length >= 4) context.clearException(SaveUserAction);
+                      if (text.length >= 4) context.clearExceptionFor(SaveUserAction);
                     },
                     onSubmitted: widget.onSaveName,
                   ),

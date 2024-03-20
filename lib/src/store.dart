@@ -430,11 +430,12 @@ class Store<St> {
     _stateTimestamp = DateTime.now().toUtc();
   }
 
-  /// Returns a future which will complete when the given [condition] is true.
-  /// The condition can access the state. You may also provide a [timeoutInSeconds], which
-  /// by default is 10 minutes. If you want, you can modify [StoreTester.defaultTimeout] to change
-  /// the default timeout. Note: To disable the timeout, modify this to a large value,
-  /// like 300000000 (almost 10 years).
+  /// Returns a future which will complete when the given state [condition] is true.
+  /// If the condition is already true when the method is called, the future completes immediately.
+  ///
+  /// You may also provide a [timeoutMillis], which by default is 10 minutes. If you want, you
+  /// can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  /// Note: To disable the timeout, modify this to a large value, like 300000000 (almost 10 years).
   ///
   /// This method is useful in tests, and it returns the action which changed
   /// the store state into the condition, in case you need it:
@@ -448,89 +449,610 @@ class Store<St> {
   /// should avoid waiting for conditions that may take a very long time to complete,
   /// as checking the condition is an overhead to every state change.
   ///
-  Future<ReduxAction<St>> waitCondition(
+  /// Examples:
+  ///
+  /// ```ts
+  /// // Dispatches an actions that changes the state, then await for the state change:
+  /// expect(store.state.name, 'John')
+  /// dispatch(ChangeNameAction("Bill"));
+  /// var action = await store.waitCondition((state) => state.name == "Bill");
+  /// expect(action, isA<ChangeNameAction>());
+  /// expect(store.state.name, 'Bill');
+  ///
+  /// // Dispatches actions and wait until no actions are in progress.
+  /// dispatch(BuyStock('IBM'));
+  /// dispatch(BuyStock('TSLA'));
+  /// await waitAllActions();
+  /// expect(state.stocks, ['IBM', 'TSLA']);
+  ///
+  /// // Dispatches two actions in PARALLEL and wait for their TYPES:
+  /// expect(store.state.portfolio, ['TSLA']);
+  /// dispatch(BuyAction('IBM'));
+  /// dispatch(SellAction('TSLA'));
+  /// await store.waitAllActionTypes([BuyAction, SellAction]);
+  /// expect(store.state.portfolio, ['IBM']);
+  ///
+  /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
+  /// dispatch(BuyAction('IBM'));
+  /// dispatch(BuyAction('TSLA'));
+  /// await store.waitActions();
+  /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+  ///
+  /// // Dispatches two actions in PARALLEL and wait for them:
+  /// let action1 = BuyAction('IBM');
+  /// let action2 = SellAction('TSLA');
+  /// dispatch(action1);
+  /// dispatch(action2);
+  /// await store.waitActions([action1, action2]);
+  /// expect(store.state.portfolio.contains('IBM'), isTrue);
+  /// expect(store.state.portfolio.contains('TSLA'), isFalse);
+  ///
+  /// // Dispatches two actions in SERIES and wait for them:
+  /// await dispatchAndWait(BuyAction('IBM'));
+  /// await dispatchAndWait(SellAction('TSLA'));
+  /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+  ///
+  /// // Wait until some action of a given type is dispatched.
+  /// dispatch(DoALotOfStuffAction());
+  /// var action = store.waitActionType(ChangeNameAction);
+  /// expect(action, isA<ChangeNameAction>());
+  /// expect(action.status.isCompleteOk, isTrue);
+  /// expect(store.state.name, 'Bill');
+  ///
+  /// // Wait until some action of any of the given types is dispatched.
+  /// dispatch(ProcessStocksAction());
+  /// var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);
+  /// expect(store.state.portfolio.contains('IBM'), isTrue);
+  /// ```
+  ///
+  /// See also:
+  /// [waitCondition] - Waits until the state is in a given condition.
+  /// [waitActionCondition] - Waits until the actions in progress meet a given condition.
+  /// [waitAllActions] - Waits until the given actions are NOT in progress, or no actions are in progress.
+  /// [waitActionType] - Waits until an action of a given type is NOT in progress.
+  /// [waitAllActionTypes] - Waits until all actions of the given type are NOT in progress.
+  /// [waitAnyActionTypeFinishes] - Waits until ANY action of the given types finish dispatching.
+  ///
+  Future<ReduxAction<St>?> waitCondition(
     bool Function(St) condition, {
-    int? timeoutInSeconds,
+    int? timeoutMillis,
   }) async {
-    var conditionTester = StoreTester.simple(this);
-    try {
-      var info = await conditionTester.waitConditionGetLast(
-        (TestInfo<St>? info) => condition(info!.state),
-        timeoutInSeconds: timeoutInSeconds ?? StoreTester.defaultTimeout,
-      );
-      var action = info.action;
-      if (action == null) throw StoreExceptionTimeout();
-      return action;
-    } finally {
-      await conditionTester.cancel();
+    if (condition(_state))
+      return null;
+    else {
+      // TODO: Implement this without the StoreTester, to allow it to be tree-shaken.
+      var conditionTester = StoreTester.simple(this);
+      try {
+        var info = await conditionTester
+            .waitConditionGetLast(
+              testImmediately: false,
+              (TestInfo<St>? info) => condition(info!.state),
+              timeoutInSeconds: 300000000000,
+            )
+            .timeout(Duration(milliseconds: timeoutMillis ?? StoreTester.defaultTimeoutMillis),
+                onTimeout: () => throw TimeoutException(null,
+                    Duration(milliseconds: timeoutMillis ?? StoreTester.defaultTimeoutMillis)));
+        var action = info.action;
+        if (action == null)
+          throw TimeoutException(
+              null, Duration(milliseconds: timeoutMillis ?? StoreTester.defaultTimeoutMillis));
+        return action;
+      } finally {
+        await conditionTester.cancel();
+      }
     }
   }
 
-  /// Returns a future which will complete when an action of the given type is dispatched, and
-  /// then waits until it finishes. Ignores other actions types.
+  // This map will hold the completers for each condition checker function.
+  // 1) The set key is the condition checker function.
+  // 2) The value is the completer, that informs of:
+  //    - The set of actions in progress when the condition is met.
+  //    - The action that triggered the condition.
+  final _actionConditionCompleters = <bool Function(Set<ReduxAction<St>>, ReduxAction<St>?),
+      Completer<(Set<ReduxAction<St>>, ReduxAction<St>?)>>{};
+
+  /// Returns a future that completes when some actions meet the given [condition].
+  /// If the condition is already true when the method is called, the future completes immediately.
   ///
-  /// You may also provide a [timeoutInSeconds], which by default is 10 minutes.
-  /// If you want, you can modify [StoreTester.defaultTimeout] to change the default timeout.
-  ///
-  /// This method returns the action, which you can use to check its `status`:
+  /// The [condition] is a function that takes the set of actions "in progress", as well as an
+  /// action that just entered the set (by being dispatched) or left the set (by finishing
+  /// dispatching). The function should return `true` when the condition is met, and `false`
+  /// otherwise. For example:
   ///
   /// ```dart
-  /// var action = await store.waitActionType(MyAction);
-  /// expect(action.status.originalError, isA<UserException>());
+  /// var action = await store.waitActionCondition((actionsInProgress, triggerAction) { ... }
   /// ```
+  ///
+  /// You get back the set of the actions being dispatched that met the condition, as well as
+  /// the action that triggered the condition by being added or removed from the set.
+  ///
+  /// Note: The condition is only checked when some action is dispatched or finishes dispatching.
+  /// It's not checked every time action statuses change.
+  ///
+  /// You may also provide a [timeoutMillis], which by default is 10 minutes.
+  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  ///
+  /// Examples:
+  ///
+  /// ```ts
+  /// // Dispatches an actions that changes the state, then await for the state change:
+  /// expect(store.state.name, 'John')
+  /// dispatch(ChangeNameAction("Bill"));
+  /// var action = await store.waitCondition((state) => state.name == "Bill");
+  /// expect(action, isA<ChangeNameAction>());
+  /// expect(store.state.name, 'Bill');
+  ///
+  /// // Dispatches actions and wait until no actions are in progress.
+  /// dispatch(BuyStock('IBM'));
+  /// dispatch(BuyStock('TSLA'));
+  /// await waitAllActions();
+  /// expect(state.stocks, ['IBM', 'TSLA']);
+  ///
+  /// // Dispatches two actions in PARALLEL and wait for their TYPES:
+  /// expect(store.state.portfolio, ['TSLA']);
+  /// dispatch(BuyAction('IBM'));
+  /// dispatch(SellAction('TSLA'));
+  /// await store.waitAllActionTypes([BuyAction, SellAction]);
+  /// expect(store.state.portfolio, ['IBM']);
+  ///
+  /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
+  /// dispatch(BuyAction('IBM'));
+  /// dispatch(BuyAction('TSLA'));
+  /// await store.waitActions();
+  /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+  ///
+  /// // Dispatches two actions in PARALLEL and wait for them:
+  /// let action1 = BuyAction('IBM');
+  /// let action2 = SellAction('TSLA');
+  /// dispatch(action1);
+  /// dispatch(action2);
+  /// await store.waitActions([action1, action2]);
+  /// expect(store.state.portfolio.contains('IBM'), isTrue);
+  /// expect(store.state.portfolio.contains('TSLA'), isFalse);
+  ///
+  /// // Dispatches two actions in SERIES and wait for them:
+  /// await dispatchAndWait(BuyAction('IBM'));
+  /// await dispatchAndWait(SellAction('TSLA'));
+  /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+  ///
+  /// // Wait until some action of a given type is dispatched.
+  /// dispatch(DoALotOfStuffAction());
+  /// var action = store.waitActionType(ChangeNameAction);
+  /// expect(action, isA<ChangeNameAction>());
+  /// expect(action.status.isCompleteOk, isTrue);
+  /// expect(store.state.name, 'Bill');
+  ///
+  /// // Wait until some action of any of the given types is dispatched.
+  /// dispatch(ProcessStocksAction());
+  /// var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);
+  /// expect(store.state.portfolio.contains('IBM'), isTrue);
+  /// ```
+  ///
+  /// See also:
+  /// [waitCondition] - Waits until the state is in a given condition.
+  /// [waitActionCondition] - Waits until the actions in progress meet a given condition.
+  /// [waitAllActions] - Waits until the given actions are NOT in progress, or no actions are in progress.
+  /// [waitActionType] - Waits until an action of a given type is NOT in progress.
+  /// [waitAllActionTypes] - Waits until all actions of the given type are NOT in progress.
+  /// [waitAnyActionTypeFinishes] - Waits until ANY action of the given types finish dispatching.
   ///
   /// You should only use this method in tests.
   @visibleForTesting
-  Future<ReduxAction<St>> waitActionType(
+  Future<(Set<ReduxAction<St>>, ReduxAction<St>?)> waitActionCondition(
+    bool Function(Set<ReduxAction<St>>, ReduxAction<St>?) condition, {
+    int? timeoutMillis,
+  }) {
+    //
+    // If it's already true, return the actions in progress.
+    if (condition(_actionsInProgress, null))
+      return Future.value((_actionsInProgress.toSet(), null));
+    //
+    else {
+      var completer = Completer<(Set<ReduxAction<St>>, ReduxAction<St>?)>();
+
+      _actionConditionCompleters[condition] = completer;
+
+      return completer.future.timeout(
+        Duration(milliseconds: timeoutMillis ?? StoreTester.defaultTimeoutMillis),
+        onTimeout: () {
+          _actionConditionCompleters.remove(condition);
+          throw TimeoutException(
+              null, Duration(milliseconds: timeoutMillis ?? StoreTester.defaultTimeoutMillis));
+        },
+      );
+    }
+  }
+
+  /// Returns a future that completes when ALL given actions finished dispatching.
+  ///
+  /// However, if you don't provide any actions, the future will complete when ALL actions
+  /// finished dispatching. In other words, when no actions are currently in progress.
+  ///
+  /// Examples:
+  ///
+  /// ```ts
+  /// // Dispatches an actions that changes the state, then await for the state change:
+  /// expect(store.state.name, 'John')
+  /// dispatch(ChangeNameAction("Bill"));
+  /// var action = await store.waitCondition((state) => state.name == "Bill");
+  /// expect(action, isA<ChangeNameAction>());
+  /// expect(store.state.name, 'Bill');
+  ///
+  /// // Dispatches actions and wait until no actions are in progress.
+  /// dispatch(BuyStock('IBM'));
+  /// dispatch(BuyStock('TSLA'));
+  /// await waitAllActions();
+  /// expect(state.stocks, ['IBM', 'TSLA']);
+  ///
+  /// // Dispatches two actions in PARALLEL and wait for their TYPES:
+  /// expect(store.state.portfolio, ['TSLA']);
+  /// dispatch(BuyAction('IBM'));
+  /// dispatch(SellAction('TSLA'));
+  /// await store.waitAllActionTypes([BuyAction, SellAction]);
+  /// expect(store.state.portfolio, ['IBM']);
+  ///
+  /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
+  /// dispatch(BuyAction('IBM'));
+  /// dispatch(BuyAction('TSLA'));
+  /// await store.waitActions();
+  /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+  ///
+  /// // Dispatches two actions in PARALLEL and wait for them:
+  /// let action1 = BuyAction('IBM');
+  /// let action2 = SellAction('TSLA');
+  /// dispatch(action1);
+  /// dispatch(action2);
+  /// await store.waitActions([action1, action2]);
+  /// expect(store.state.portfolio.contains('IBM'), isTrue);
+  /// expect(store.state.portfolio.contains('TSLA'), isFalse);
+  ///
+  /// // Dispatches two actions in SERIES and wait for them:
+  /// await dispatchAndWait(BuyAction('IBM'));
+  /// await dispatchAndWait(SellAction('TSLA'));
+  /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+  ///
+  /// // Wait until some action of a given type is dispatched.
+  /// dispatch(DoALotOfStuffAction());
+  /// var action = store.waitActionType(ChangeNameAction);
+  /// expect(action, isA<ChangeNameAction>());
+  /// expect(action.status.isCompleteOk, isTrue);
+  /// expect(store.state.name, 'Bill');
+  ///
+  /// // Wait until some action of any of the given types is dispatched.
+  /// dispatch(ProcessStocksAction());
+  /// var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);
+  /// expect(store.state.portfolio.contains('IBM'), isTrue);
+  /// ```
+  ///
+  /// See also:
+  /// [waitCondition] - Waits until the state is in a given condition.
+  /// [waitActionCondition] - Waits until the actions in progress meet a given condition.
+  /// [waitAllActions] - Waits until the given actions are NOT in progress, or no actions are in progress.
+  /// [waitActionType] - Waits until an action of a given type is NOT in progress.
+  /// [waitAllActionTypes] - Waits until all actions of the given type are NOT in progress.
+  /// [waitAnyActionTypeFinishes] - Waits until ANY action of the given types finish dispatching.
+  ///
+  Future<void> waitAllActions([List<ReduxAction<St>>? actions]) {
+    if (actions == null) {
+      return this.waitActionCondition((actions, triggerAction) => actions.isEmpty);
+    } else {
+      return this.waitActionCondition((actionsInProgress, triggerAction) {
+        for (var action in actions) {
+          if (actionsInProgress.contains(action)) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+  }
+
+  /// Returns a future that completes when an action of the given type in NOT in progress
+  /// (it's not being dispatched):
+  ///
+  /// - If no action of the given type is currently in progress when the method is called,
+  /// the future completes immediately, and returns `null`.
+  ///
+  /// - If an action of the given type is in progress, the future completes when the action
+  /// finishes, and returns the action. You can use the returned action to check its `status`:
+  ///
+  ///   ```dart
+  ///   var action = await store.waitActionType(MyAction);
+  ///   expect(action.status.originalError, isA<UserException>());
+  ///   ```
+  ///
+  /// You may also provide a [timeoutMillis], which by default is 10 minutes.
+  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  ///
+  /// Examples:
+  ///
+  /// ```ts
+  /// // Dispatches an actions that changes the state, then await for the state change:
+  /// expect(store.state.name, 'John')
+  /// dispatch(ChangeNameAction("Bill"));
+  /// var action = await store.waitCondition((state) => state.name == "Bill");
+  /// expect(action, isA<ChangeNameAction>());
+  /// expect(store.state.name, 'Bill');
+  ///
+  /// // Dispatches actions and wait until no actions are in progress.
+  /// dispatch(BuyStock('IBM'));
+  /// dispatch(BuyStock('TSLA'));
+  /// await waitAllActions();
+  /// expect(state.stocks, ['IBM', 'TSLA']);
+  ///
+  /// // Dispatches two actions in PARALLEL and wait for their TYPES:
+  /// expect(store.state.portfolio, ['TSLA']);
+  /// dispatch(BuyAction('IBM'));
+  /// dispatch(SellAction('TSLA'));
+  /// await store.waitAllActionTypes([BuyAction, SellAction]);
+  /// expect(store.state.portfolio, ['IBM']);
+  ///
+  /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
+  /// dispatch(BuyAction('IBM'));
+  /// dispatch(BuyAction('TSLA'));
+  /// await store.waitActions();
+  /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+  ///
+  /// // Dispatches two actions in PARALLEL and wait for them:
+  /// let action1 = BuyAction('IBM');
+  /// let action2 = SellAction('TSLA');
+  /// dispatch(action1);
+  /// dispatch(action2);
+  /// await store.waitActions([action1, action2]);
+  /// expect(store.state.portfolio.contains('IBM'), isTrue);
+  /// expect(store.state.portfolio.contains('TSLA'), isFalse);
+  ///
+  /// // Dispatches two actions in SERIES and wait for them:
+  /// await dispatchAndWait(BuyAction('IBM'));
+  /// await dispatchAndWait(SellAction('TSLA'));
+  /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+  ///
+  /// // Wait until some action of a given type is dispatched.
+  /// dispatch(DoALotOfStuffAction());
+  /// var action = store.waitActionType(ChangeNameAction);
+  /// expect(action, isA<ChangeNameAction>());
+  /// expect(action.status.isCompleteOk, isTrue);
+  /// expect(store.state.name, 'Bill');
+  ///
+  /// // Wait until some action of any of the given types is dispatched.
+  /// dispatch(ProcessStocksAction());
+  /// var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);
+  /// expect(store.state.portfolio.contains('IBM'), isTrue);
+  /// ```
+  ///
+  /// See also:
+  /// [waitCondition] - Waits until the state is in a given condition.
+  /// [waitActionCondition] - Waits until the actions in progress meet a given condition.
+  /// [waitAllActions] - Waits until the given actions are NOT in progress, or no actions are in progress.
+  /// [waitActionType] - Waits until an action of a given type is NOT in progress.
+  /// [waitAllActionTypes] - Waits until all actions of the given type are NOT in progress.
+  /// [waitAnyActionTypeFinishes] - Waits until ANY action of the given types finish dispatching.
+  ///
+  /// You should only use this method in tests.
+  @visibleForTesting
+  Future<ReduxAction<St>?> waitActionType(
     Type actionType, {
-    int? timeoutInSeconds,
+    int? timeoutMillis,
   }) async {
-    var conditionTester = StoreTester.simple(this);
-    try {
-      var info = await conditionTester.waitUntil(
-        actionType,
-        timeoutInSeconds: timeoutInSeconds ?? StoreTester.defaultTimeout,
-      );
-      var action = info.action;
-      if (action == null) throw StoreExceptionTimeout();
-      return action;
-    } finally {
-      await conditionTester.cancel();
-    }
+    var (_, triggerAction) = await this.waitActionCondition(
+      timeoutMillis: timeoutMillis,
+      (actionsInProgress, triggerAction) {
+        if (actionsInProgress.any((action) => action.runtimeType == actionType)) return false;
+        return true;
+      },
+    );
+
+    return triggerAction;
   }
 
-  /// Returns a future which will complete when an action of ANY of the given types is dispatched,
-  /// and then waits until it finishes. Ignores other actions types.
+  /// Returns a future that completes when ALL actions of the given type are NOT in progress
+  /// (none of them is being dispatched):
   ///
-  /// You may also provide a [timeoutInSeconds], which by default is 10 minutes.
-  /// If you want, you can modify [StoreTester.defaultTimeout] to change the default timeout.
+  /// - If no action of any of the given types is currently in progress when the method is called,
+  /// the future completes immediately.
   ///
-  /// This method returns the action, which you can use to check its `status`:
+  /// - If an action of any of the given types is in progress, the future completes only when
+  /// no action of any of the given types is in progress anymore.
   ///
-  /// ```dart
-  /// var action = await store.waitAnyActionType([MyAction, OtherAction]);
-  /// expect(action.status.originalError, isA<UserException>());
+  /// You may also provide a [timeoutMillis], which by default is 10 minutes.
+  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  ///
+  /// Examples:
+  ///
+  /// ```ts
+  /// // Dispatches an actions that changes the state, then await for the state change:
+  /// expect(store.state.name, 'John')
+  /// dispatch(ChangeNameAction("Bill"));
+  /// var action = await store.waitCondition((state) => state.name == "Bill");
+  /// expect(action, isA<ChangeNameAction>());
+  /// expect(store.state.name, 'Bill');
+  ///
+  /// // Dispatches actions and wait until no actions are in progress.
+  /// dispatch(BuyStock('IBM'));
+  /// dispatch(BuyStock('TSLA'));
+  /// await waitAllActions();
+  /// expect(state.stocks, ['IBM', 'TSLA']);
+  ///
+  /// // Dispatches two actions in PARALLEL and wait for their TYPES:
+  /// expect(store.state.portfolio, ['TSLA']);
+  /// dispatch(BuyAction('IBM'));
+  /// dispatch(SellAction('TSLA'));
+  /// await store.waitAllActionTypes([BuyAction, SellAction]);
+  /// expect(store.state.portfolio, ['IBM']);
+  ///
+  /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
+  /// dispatch(BuyAction('IBM'));
+  /// dispatch(BuyAction('TSLA'));
+  /// await store.waitActions();
+  /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+  ///
+  /// // Dispatches two actions in PARALLEL and wait for them:
+  /// let action1 = BuyAction('IBM');
+  /// let action2 = SellAction('TSLA');
+  /// dispatch(action1);
+  /// dispatch(action2);
+  /// await store.waitActions([action1, action2]);
+  /// expect(store.state.portfolio.contains('IBM'), isTrue);
+  /// expect(store.state.portfolio.contains('TSLA'), isFalse);
+  ///
+  /// // Dispatches two actions in SERIES and wait for them:
+  /// await dispatchAndWait(BuyAction('IBM'));
+  /// await dispatchAndWait(SellAction('TSLA'));
+  /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+  ///
+  /// // Wait until some action of a given type is dispatched.
+  /// dispatch(DoALotOfStuffAction());
+  /// var action = store.waitActionType(ChangeNameAction);
+  /// expect(action, isA<ChangeNameAction>());
+  /// expect(action.status.isCompleteOk, isTrue);
+  /// expect(store.state.name, 'Bill');
+  ///
+  /// // Wait until some action of any of the given types is dispatched.
+  /// dispatch(ProcessStocksAction());
+  /// var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);
+  /// expect(store.state.portfolio.contains('IBM'), isTrue);
   /// ```
+  ///
+  /// See also:
+  /// [waitCondition] - Waits until the state is in a given condition.
+  /// [waitActionCondition] - Waits until the actions in progress meet a given condition.
+  /// [waitAllActions] - Waits until the given actions are NOT in progress, or no actions are in progress.
+  /// [waitActionType] - Waits until an action of a given type is NOT in progress.
+  /// [waitAllActionTypes] - Waits until all actions of the given type are NOT in progress.
+  /// [waitAnyActionTypeFinishes] - Waits until ANY action of the given types finish dispatching.
   ///
   /// You should only use this method in tests.
   @visibleForTesting
-  Future<ReduxAction<St>> waitAnyActionType(
+  Future<void> waitAllActionTypes(
     List<Type> actionTypes, {
-    bool ignoreIni = true,
-    int? timeoutInSeconds,
+    int? timeoutMillis,
   }) async {
-    var conditionTester = StoreTester.simple(this);
-    try {
-      var info = await conditionTester.waitUntilAny(
-        actionTypes,
-        timeoutInSeconds: timeoutInSeconds ?? StoreTester.defaultTimeout,
+    if (actionTypes.isEmpty) {
+      await this.waitActionCondition(
+        timeoutMillis: timeoutMillis,
+        (actions, triggerAction) => actions.isEmpty,
       );
-      var action = info.action;
-      if (action == null) throw StoreExceptionTimeout();
-      return action;
-    } finally {
-      await conditionTester.cancel();
+    } else {
+      await this.waitActionCondition(
+        timeoutMillis: timeoutMillis,
+        (actionsInProgress, triggerAction) {
+          for (var actionType in actionTypes) {
+            if (actionsInProgress.any((action) => action.runtimeType == actionType)) return false;
+          }
+          return true;
+        },
+      );
     }
+  }
+
+  /// Returns a future which will complete when an action of ANY of the given types FINISHES
+  /// dispatching. IMPORTANT: This method is different than the other similar methods, because
+  /// it does NOT complete immediately if no action of the given types is in progress. Instead,
+  /// it waits until an action of any of the given types finishes dispatching, even if they
+  /// were not yet in progress when the method was called.
+  ///
+  /// This method returns the action that completed the future, which you can use to check
+  /// its `status`.
+  ///
+  /// It's useful when the actions you are waiting for are not yet dispatched when you call this
+  /// method. For example, suppose action `StartAction` starts a process that takes some time
+  /// to run and then dispatches an action called `MyFinalAction`. You can then write:
+  ///
+  /// ```dart
+  /// dispatch(StartAction());
+  /// var action = await store.waitAnyActionTypeFinishes([MyFinalAction]);
+  /// expect(action.status.originalError, isA<UserException>());
+  /// ```
+  ///
+  /// You may also provide a [timeoutMillis], which by default is 10 minutes.
+  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  ///
+  /// Examples:
+  ///
+  /// ```ts
+  /// // Dispatches an actions that changes the state, then await for the state change:
+  /// expect(store.state.name, 'John')
+  /// dispatch(ChangeNameAction("Bill"));
+  /// var action = await store.waitCondition((state) => state.name == "Bill");
+  /// expect(action, isA<ChangeNameAction>());
+  /// expect(store.state.name, 'Bill');
+  ///
+  /// // Dispatches actions and wait until no actions are in progress.
+  /// dispatch(BuyStock('IBM'));
+  /// dispatch(BuyStock('TSLA'));
+  /// await waitAllActions();
+  /// expect(state.stocks, ['IBM', 'TSLA']);
+  ///
+  /// // Dispatches two actions in PARALLEL and wait for their TYPES:
+  /// expect(store.state.portfolio, ['TSLA']);
+  /// dispatch(BuyAction('IBM'));
+  /// dispatch(SellAction('TSLA'));
+  /// await store.waitAllActionTypes([BuyAction, SellAction]);
+  /// expect(store.state.portfolio, ['IBM']);
+  ///
+  /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
+  /// dispatch(BuyAction('IBM'));
+  /// dispatch(BuyAction('TSLA'));
+  /// await store.waitActions();
+  /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+  ///
+  /// // Dispatches two actions in PARALLEL and wait for them:
+  /// let action1 = BuyAction('IBM');
+  /// let action2 = SellAction('TSLA');
+  /// dispatch(action1);
+  /// dispatch(action2);
+  /// await store.waitActions([action1, action2]);
+  /// expect(store.state.portfolio.contains('IBM'), isTrue);
+  /// expect(store.state.portfolio.contains('TSLA'), isFalse);
+  ///
+  /// // Dispatches two actions in SERIES and wait for them:
+  /// await dispatchAndWait(BuyAction('IBM'));
+  /// await dispatchAndWait(SellAction('TSLA'));
+  /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+  ///
+  /// // Wait until some action of a given type is dispatched.
+  /// dispatch(DoALotOfStuffAction());
+  /// var action = store.waitActionType(ChangeNameAction);
+  /// expect(action, isA<ChangeNameAction>());
+  /// expect(action.status.isCompleteOk, isTrue);
+  /// expect(store.state.name, 'Bill');
+  ///
+  /// // Wait until some action of any of the given types is dispatched.
+  /// dispatch(ProcessStocksAction());
+  /// var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);
+  /// expect(store.state.portfolio.contains('IBM'), isTrue);
+  /// ```
+  ///
+  /// See also:
+  /// [waitCondition] - Waits until the state is in a given condition.
+  /// [waitActionCondition] - Waits until the actions in progress meet a given condition.
+  /// [waitAllActions] - Waits until the given actions are NOT in progress, or no actions are in progress.
+  /// [waitActionType] - Waits until an action of a given type is NOT in progress.
+  /// [waitAllActionTypes] - Waits until all actions of the given type are NOT in progress.
+  /// [waitAnyActionTypeFinishes] - Waits until ANY action of the given types finish dispatching.
+  ///
+  /// You should only use this method in tests.
+  @visibleForTesting
+  Future<ReduxAction<St>> waitAnyActionTypeFinishes(
+    List<Type> actionTypes, {
+    int? timeoutMillis,
+  }) async {
+    var (_, triggerAction) = await this.waitActionCondition(
+      timeoutMillis: timeoutMillis,
+      (actionsInProgress, triggerAction) {
+        // If the triggerAction is one of the actionTypes,
+        if ((triggerAction != null) && actionTypes.contains(triggerAction.runtimeType)) {
+          // If the actions in progress do not contain the triggerAction, then the triggerAction has finished.
+          // Otherwise, the triggerAction has just been dispatched.
+          bool isFinished = !actionsInProgress.contains(triggerAction);
+          return isFinished;
+        }
+        return false;
+      },
+    );
+
+    // Always non-null, because the condition is only met when an action finishes.
+    return triggerAction!;
   }
 
   /// Adds an error at the end of the error queue.
@@ -609,7 +1131,7 @@ class Store<St> {
   /// - [dispatch] which dispatches both sync and async actions.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) {
-    if (!_ifActionIsSync(action)) {
+    if (!action.isSync()) {
       throw StoreException(
           "Can't dispatchSync(${action.runtimeType}) because ${action.runtimeType} is async.");
     }
@@ -618,12 +1140,19 @@ class Store<St> {
   }
 
   FutureOr<ActionStatus> _dispatch(ReduxAction<St> action, {required bool notify}) {
+    //
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 
     if (_shutdown || action.abortDispatch()) return ActionStatus(isDispatchAborted: true);
 
     _dispatchCount++;
+
+    if (action.status.isDispatched)
+      throw new StoreException(
+          'The action was already dispatched. Please, create a new action each time.');
+
+    action._status = action._status.copy(isDispatched: true);
 
     if (_actionObservers != null)
       for (ActionObserver observer in _actionObservers) {
@@ -666,33 +1195,61 @@ class Store<St> {
     bool notify = true,
   }) {
     //
+    _calculateIsWaitingIsFailed(action);
 
-    // If the action is failable (that is to say, we have already called [isFailed] for this
-    // action, then we notify the UI. We don't notify if the action was never checked.
-    bool failable = _actionsWeCanCheckFailed.contains(action.runtimeType);
-    if (failable) {
-      _failedActions.remove(action.runtimeType);
-      _changeController.add(state);
-    }
-
-    if (_ifActionIsSync(action)) {
+    if (action.isSync())
       return _processAction_Sync(action, notify: notify);
-    }
-    //
-    else {
-      // Note: Only if the action is async it makes sense to add it to the list of actions in
-      // progress. If it's sync it will finish immediately, so there's no need to add it.
-      _asyncActionsInProgress.add(action);
+    else
+      return _processAction_Async(action, notify: notify);
+  }
 
-      // If the action is awaitable (that is to say, we have already called [isWaiting] for this
-      // action), then we notify the UI. We don't notify if the action was never checked.
-      // Note: if it's failable, we already notified the UI.
-      if (!failable && _awaitableAsyncActions.contains(action.runtimeType)) {
+  void _calculateIsWaitingIsFailed(ReduxAction<St> action) {
+    //
+    // If the action is failable (that is to say, we have once called `isFailed` for this action),
+    bool failable = _actionsWeCanCheckFailed.contains(action.runtimeType);
+
+    bool theUIHasAlreadyUpdated = false;
+
+    if (failable) {
+      // Dispatch is starting, so we remove the action from the list of failed actions.
+      var removedAction = _failedActions.remove(action.runtimeType);
+
+      // Then we notify the UI. Note we don't notify if the action was never checked.
+      if (removedAction != null) {
+        theUIHasAlreadyUpdated = true;
         _changeController.add(state);
       }
-
-      return _processAction_Async(action, notify: notify);
     }
+
+    // Add the action to the list of actions in progress.
+    // Note: We add both SYNC and ASYNC actions. The SYNC actions are important too,
+    // to prevent NonReentrant sync actions, where they call themselves.
+    bool ifWasAdded = _actionsInProgress.add(action);
+    if (ifWasAdded) _checkAllActionConditions(action);
+
+    // Note: If the UI hasn't updated yet, AND
+    // the action is awaitable (that is to say, we have already called `isWaiting` for this action),
+    if (!theUIHasAlreadyUpdated && _awaitableActions.contains(action.runtimeType)) {
+      _changeController.add(state);
+    }
+  }
+
+  /// The [triggerAction] is the action that was just added or removed in the list
+  /// of [_actionsInProgress] that triggered the check.
+  ///
+  void _checkAllActionConditions(ReduxAction<St> triggerAction) {
+    List<bool Function(Set<ReduxAction<St>>, ReduxAction<St>?)?> keysToRemove = [];
+
+    _actionConditionCompleters.forEach((condition, completer) {
+      if (condition(_actionsInProgress, triggerAction)) {
+        completer.complete((_actionsInProgress.toSet(), triggerAction));
+        keysToRemove.add(condition);
+      }
+    });
+
+    keysToRemove.forEach((key) {
+      _actionConditionCompleters.remove(key);
+    });
   }
 
   /// You can use [isWaiting] and pass it [actionOrActionTypeOrList] to check if:
@@ -732,25 +1289,25 @@ class Store<St> {
     //
     // 1) If a type was passed:
     if (actionOrActionTypeOrList is Type) {
-      _awaitableAsyncActions.add(actionOrActionTypeOrList);
-      return _asyncActionsInProgress.any((action) => action.runtimeType == actionOrActionTypeOrList);
+      _awaitableActions.add(actionOrActionTypeOrList);
+      return _actionsInProgress.any((action) => action.runtimeType == actionOrActionTypeOrList);
     }
     //
     // 2) If an action was passed:
     else if (actionOrActionTypeOrList is ReduxAction) {
-      _awaitableAsyncActions.add(actionOrActionTypeOrList.runtimeType);
-      return _asyncActionsInProgress.contains(actionOrActionTypeOrList);
+      _awaitableActions.add(actionOrActionTypeOrList.runtimeType);
+      return _actionsInProgress.contains(actionOrActionTypeOrList);
     }
     //
     // 3) If a list was passed:
     else if (actionOrActionTypeOrList is Iterable) {
       for (var actionOrType in actionOrActionTypeOrList) {
         if (actionOrType is Type) {
-          _awaitableAsyncActions.add(actionOrType);
-          return _asyncActionsInProgress.any((action) => action.runtimeType == actionOrType);
+          _awaitableActions.add(actionOrType);
+          return _actionsInProgress.any((action) => action.runtimeType == actionOrType);
         } else if (actionOrType is ReduxAction) {
-          _awaitableAsyncActions.add(actionOrType.runtimeType);
-          return _asyncActionsInProgress.contains(actionOrType);
+          _awaitableActions.add(actionOrType.runtimeType);
+          return _actionsInProgress.contains(actionOrType);
         } else {
           Future.microtask(() {
             throw StoreException(
@@ -834,7 +1391,7 @@ class Store<St> {
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
-  void clearException(Object actionTypeOrList) {
+  void clearExceptionFor(Object actionTypeOrList) {
     //
     // 1) If a type was passed:
     if (actionTypeOrList is Type) {
@@ -850,7 +1407,7 @@ class Store<St> {
           result = _failedActions.remove(actionType);
         } else {
           Future.microtask(() {
-            throw StoreException("You can't clearException([${actionTypeOrList.runtimeType}]), "
+            throw StoreException("You can't clearExceptionFor([${actionTypeOrList.runtimeType}]), "
                 "but only an action Type, or a List of types.");
           });
         }
@@ -861,21 +1418,10 @@ class Store<St> {
     // async gap, so we don't interrupt the code. But we return null.
     else {
       Future.microtask(() {
-        throw StoreException("You can't clearException(${actionTypeOrList.runtimeType}), "
+        throw StoreException("You can't clearExceptionFor(${actionTypeOrList.runtimeType}), "
             "but only an action Type, or a List of types.");
       });
     }
-  }
-
-  bool _ifActionIsSync(ReduxAction<St> action) {
-    //
-    /// Note: before MUST check that it's NOT Future<void> Function(),
-    /// because checking if it's void Function() doesn't work.
-    bool beforeMethodIsSync = action.before is! Future<void> Function();
-
-    bool reduceMethodIsSync = action.reduce is St? Function();
-
-    return (beforeMethodIsSync && reduceMethodIsSync);
   }
 
   /// We check the return type of methods `before` and `reduce` to decide if the
@@ -897,7 +1443,6 @@ class Store<St> {
     Object? originalError, processedError;
 
     try {
-      action._status = ActionStatus();
       var result = action.before();
       if (result is Future) throw StoreException(_beforeTypeErrorMsg);
 
@@ -951,7 +1496,6 @@ class Store<St> {
     Object? result, originalError, processedError;
 
     try {
-      action._status = new ActionStatus();
       result = action.before();
       if (result is Future) await result;
       action._status = action._status.copy(hasFinishedMethodBefore: true);
@@ -1119,7 +1663,7 @@ class Store<St> {
     // Reducers may return null state, or the unaltered state, when they don't want to change the
     // state. Note: If the action is an "active action" it will be removed, so we have to
     // add the state to _changeController even if it's the same state.
-    if (((state != null) && !identical(_state, state)) || _asyncActionsInProgress.contains(action)) {
+    if (((state != null) && !identical(_state, state)) || _actionsInProgress.contains(action)) {
       _state = state ?? _state;
       _stateTimestamp = DateTime.now().toUtc();
 
@@ -1141,18 +1685,18 @@ class Store<St> {
       );
   }
 
-  /// The async actions that are currently being processed.
+  /// The actions that are currently being processed.
   /// Use [isWaiting] to know if an action is currently being processed.
-  final Set<ReduxAction<St>> _asyncActionsInProgress = HashSet<ReduxAction<St>>.identity();
+  final Set<ReduxAction<St>> _actionsInProgress = HashSet<ReduxAction<St>>.identity();
 
-  /// Async actions that we may put into [_asyncActionsInProgress].
+  /// Actions that we may put into [_actionsInProgress].
   /// This helps to know when to rebuild to make [isWaiting] work.
-  final Set<Type> _awaitableAsyncActions = HashSet<Type>.identity();
+  final Set<Type> _awaitableActions = HashSet<Type>.identity();
 
   /// The async actions that have failed recently.
   /// When an action fails by throwing an UserException, it's added to this map (indexed by its
   /// action type), and removed when it's dispatched.
-  /// Use [isFailed], [exceptionFor] and [clearException] to know if you should display
+  /// Use [isFailed], [exceptionFor] and [clearExceptionFor] to know if you should display
   /// some error message due to an action failure.
   ///
   /// Note: Throwing an UserException can show a modal dialog to the user, and also show the error
@@ -1264,7 +1808,8 @@ class Store<St> {
   ) {
     if (!afterWasRun.value) _after(action);
 
-    _asyncActionsInProgress.remove(action);
+    bool ifWasRemoved = _actionsInProgress.remove(action);
+    if (ifWasRemoved) _checkAllActionConditions(action);
 
     createTestInfoSnapshot(state!, action, error, processedError, ini: false);
 
@@ -1426,6 +1971,40 @@ class ActionStatus {
         originalError: originalError ?? this.originalError,
         wrappedError: wrappedError ?? this.wrappedError,
       );
+
+  @override
+  String toString() => 'ActionStatus{'
+      'isDispatched: $isDispatched, '
+      'hasFinishedMethodBefore: $hasFinishedMethodBefore, '
+      'hasFinishedMethodReduce: $hasFinishedMethodReduce, '
+      'hasFinishedMethodAfter: $hasFinishedMethodAfter, '
+      'isDispatchAborted: $isDispatchAborted, '
+      'originalError: $originalError, '
+      'wrappedError: $wrappedError'
+      '}';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ActionStatus &&
+          runtimeType == other.runtimeType &&
+          isDispatched == other.isDispatched &&
+          hasFinishedMethodBefore == other.hasFinishedMethodBefore &&
+          hasFinishedMethodReduce == other.hasFinishedMethodReduce &&
+          hasFinishedMethodAfter == other.hasFinishedMethodAfter &&
+          isDispatchAborted == other.isDispatchAborted &&
+          originalError == other.originalError &&
+          wrappedError == other.wrappedError;
+
+  @override
+  int get hashCode =>
+      isDispatched.hashCode ^
+      hasFinishedMethodBefore.hashCode ^
+      hasFinishedMethodReduce.hashCode ^
+      hasFinishedMethodAfter.hashCode ^
+      isDispatchAborted.hashCode ^
+      originalError.hashCode ^
+      wrappedError.hashCode;
 }
 
 class _Flag<T> {

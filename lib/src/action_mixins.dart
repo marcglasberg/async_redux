@@ -206,8 +206,8 @@ mixin NonReentrant<St> on ReduxAction<St> {
 /// class MyAction extends ReduxAction<AppState> with Retry, NonReentrant { ... }
 /// ```
 ///
-/// Keep in mind that all actions using the [Retry] mixin will become asynchronous, even if the
-/// original action was synchronous.
+/// Keep in mind that all actions using the [Retry] mixin will become asynchronous,
+/// even if the original action was synchronous.
 ///
 mixin Retry<St> on ReduxAction<St> {
   //
@@ -225,7 +225,7 @@ mixin Retry<St> on ReduxAction<St> {
 
   /// The maximum delay between retries to avoid excessively long wait times.
   /// The default is 5 seconds.
-  Duration get maxDelay => const Duration(seconds: 5);
+  Duration get maxDelay => const Duration(milliseconds: 5000);
 
   int _attempts = 0;
 
@@ -435,24 +435,26 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
   @override
   Future<St?> reduce() async {
     // Updates the value optimistically.
-    var _newValue = newValue();
-    dispatch(UpdateStateAction((state) => applyState(_newValue, state)));
+    final _newValue = newValue();
+    final action = UpdateStateAction((St state) => applyState(_newValue, state));
+    dispatch(action);
 
     try {
-      // Saves the new Todo to the cloud.
+      // Saves the new value to the cloud.
       await saveValue(_newValue);
     } catch (e) {
       // If the state still contains our optimistic update, we rollback.
       // If the state now contains something else, we DO NOT rollback.
       if (getValueFromState(state) == _newValue) {
-        var initialValue = getValueFromState(initialState);
+        final initialValue = getValueFromState(initialState);
         return applyState(initialValue, state); // Rollback.
       }
     } finally {
       try {
-        Object? reloadedValue = await reloadValue();
-        dispatch(UpdateStateAction((state) => applyState(reloadedValue, state)));
-      } on UnimplementedError catch (e) {
+        final Object? reloadedValue = await reloadValue();
+        final action = UpdateStateAction((St state) => applyState(reloadedValue, state));
+        dispatch(action);
+      } on UnimplementedError catch (_) {
         // If the reload was not implemented, do nothing.
       }
     }

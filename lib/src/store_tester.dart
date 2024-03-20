@@ -21,8 +21,11 @@ class StoreTester<St> {
   //
   /// The global default timeout for the wait functions is 10 minutes.
   /// This value is not final and can be modified.
-  /// To disable the timeout, modify this to a large value, like 300000000 (almost 10 years).
-  static var defaultTimeout = 300000000;
+  /// To disable the timeout, modify this to a large value, like 300000000000 (almost 10 years).
+  static var defaultTimeoutMillis = 60 * 1000 * 10;
+
+  /// The default timeout in seconds.
+  static int get defaultTimeout => defaultTimeoutMillis ~/ 1000;
 
   /// If the default debug info should be printed to the console or not.
   static bool printDefaultDebugInfo = true;
@@ -370,8 +373,8 @@ class StoreTester<St> {
     return testInfo;
   }
 
-  /// Runs until an action of any of the given types is dispatched, and then waits until it finishes.
-  /// Returns the info after the action finishes. **Ignores other** actions types.
+  /// Runs until an action of any of the given types is dispatched, and then waits until it
+  /// finishes. Returns the info after the action finishes. **Ignores other** actions types.
   ///
   Future<TestInfo<St>> waitUntilAny(
     List<Type> actionTypes, {

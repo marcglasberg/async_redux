@@ -644,7 +644,7 @@ class _StoreStreamListenerState<St, Model> //
 /// ```
 ///
 /// You can also use `context.isWaiting`, `context.isFailed()`, `context.exceptionFor()`
-/// and `context.clearException()`.
+/// and `context.clearExceptionFor()`.
 ///
 /// IMPORTANT: You need to define this extension in your own code:
 ///
@@ -851,8 +851,8 @@ class StoreProvider<St> extends InheritedWidget {
   /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
-  static void clearException(BuildContext context, Object actionOrTypeOrList) =>
-      _getStoreWithDependency(context).clearException(actionOrTypeOrList);
+  static void clearExceptionFor(BuildContext context, Object actionOrTypeOrList) =>
+      _getStoreWithDependency(context).clearExceptionFor(actionOrTypeOrList);
 
   @override
   bool updateShouldNotify(StoreProvider<St> oldWidget) {
@@ -1078,6 +1078,6 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
-  void clearException(Object actionOrTypeOrList) =>
-      StoreProvider.clearException(this, actionOrTypeOrList);
+  void clearExceptionFor(Object actionOrTypeOrList) =>
+      StoreProvider.clearExceptionFor(this, actionOrTypeOrList);
 }
