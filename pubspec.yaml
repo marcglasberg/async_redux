@@ -1,6 +1,6 @@
 name: async_redux
 description: Redux state management. An optimized Redux version, which is very easy to learn and use, yet powerful and tailored for Flutter. It allows both sync and async reducers.
-version: 22.3.0
+version: 22.4.0
 # author: Marcelo Glasberg <marcglasberg@gmail.com>
 homepage: https://github.com/marcglasberg/async_redux
 topics:

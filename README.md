@@ -3681,6 +3681,62 @@ part of the state, your observer can save only that part, and your action can re
 
 <br>
 
+## Using Async Redux with the flutter_hooks package
+
+For those who want to use `flutter_hooks` with Async Redux, add the following code to your app:
+
+```dart
+/// The `converter` function should return the part of the state that the widget needs.
+T useAppState<T>(T Function(AppState state) converter, { bool distinct = true }) {
+    final store = StoreProvider.storeBackdoor<AppState>(useContext(), debug: 'useAppState hook');
+    return use(_AppStateHook(store: store, converter: converter, distinct: distinct));
+}
+
+Dispatch useDispatch() => return useContext().dispatch;
+DispatchSync useDispatchSync() => return useContext().dispatchSync;
+DispatchAndWait useDispatchAndWait() => return useContext().dispatchAndWait;
+bool Function(Object) useIsWaiting(Object actionOrTypeOrList) => useContext().isWaiting;
+bool Function(Object) useIsFailed(Object actionOrTypeOrList) => useContext().useIsFailed;
+UserException? Function(Object) exceptionFor(Object actionOrTypeOrList) => useContext().exceptionFor;
+void Function(Object) clearExceptionFor(Object actionOrTypeOrList) => useContext().clearExceptionFor;
+
+class _AppStateHook<T, S extends AppState> extends Hook<T> {
+    const _AppStateHook({required this.store,required this.converter,this.distinct = true});
+    final T Function(S) converter;
+    final bool distinct;
+    final Store<S> store; 
+    HookState<T, Hook<T>> createState() => _AppState_StateHook<T, S>();    
+}
+
+class _AppState_StateHook<T, S extends AppState> extends HookState<T, _AppStateHook<T, S>> {
+    StreamSubscription? _storeSubscription;
+    late T _state;
+    bool get isInitialised => _storeSubscription != null;
+    
+    void initHook() {
+      super.initHook();
+      _updateState(hook.store.state);
+      final onStoreChanged = hook.store.onChange;
+      _storeSubscription = onStoreChanged.listen(_updateState);
+    }
+    
+    T build(BuildContext context) => return _state;
+    
+    void dispose() {
+      _storeSubscription?.cancel();
+      super.dispose();
+    }
+    
+    void _updateState(S appState) {
+      final state = hook.converter(appState);
+      if (isInitialised && hook.distinct && state == _state) return;
+      setState(() => _state = state);
+    }
+}
+``` 
+
+<br>
+
 ## Recommended Directory Structure
 
 You probably have your own way of organizing your directory structure, but if you want some
