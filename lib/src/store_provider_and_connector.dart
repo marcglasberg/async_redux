@@ -609,7 +609,7 @@ class _StoreStreamListenerState<St, Model> //
 /// ```dart
 /// StoreConnector(
 ///    vm: () => Factory(this),
-///    builder: (context, vm) => return MyHomePage(user: vm.user)
+///    builder: (context, vm) => MyHomePage(user: vm.user)
 /// );
 /// ```
 ///
@@ -876,11 +876,11 @@ class StoreProvider<St> extends InheritedWidget {
   ///   return use(_AppStateHook(store: store, converter: converter, distinct: distinct));
   /// }
   ///
-  /// Dispatch useDispatch() => return useContext().dispatch;
-  /// DispatchSync useDispatchSync() => return useContext().dispatchSync;
-  /// DispatchAndWait useDispatchAndWait() => return useContext().dispatchAndWait;
+  /// Dispatch useDispatch() => useContext().dispatch;
+  /// DispatchSync useDispatchSync() => useContext().dispatchSync;
+  /// DispatchAndWait useDispatchAndWait() => useContext().dispatchAndWait;
   /// bool Function(Object) useIsWaiting(Object actionOrTypeOrList) => useContext().isWaiting;
-  /// bool Function(Object) useIsFailed(Object actionOrTypeOrList) => useContext().useIsFailed;
+  /// bool Function(Object) useIsFailed(Object actionOrTypeOrList) => useContext().isFailed;
   /// UserException? Function(Object) exceptionFor(Object actionOrTypeOrList) => useContext().exceptionFor;
   /// void Function(Object) clearExceptionFor(Object actionOrTypeOrList) => useContext().clearExceptionFor;
   ///
@@ -908,7 +908,7 @@ class StoreProvider<St> extends InheritedWidget {
   ///   }
   ///
   ///   @override
-  ///   T build(BuildContext context) => return _state;
+  ///   T build(BuildContext context) => _state;
   ///
   ///   @override
   ///   void dispose() {

@@ -73,7 +73,7 @@ class MockStore<St> extends Store<St> {
   /// The action may be sync or async.
   ///
   /// ```dart
-  /// store.dispatch(new MyAction());
+  /// store.dispatch(MyAction());
   /// ```
   ///
   /// Method [dispatch] is of type [Dispatch].
@@ -104,8 +104,8 @@ class MockStore<St> extends Store<St> {
   /// the action finishes.
   ///
   /// ```dart
-  /// await store.dispatchAndWait(new DoThisFirstAction());
-  /// store.dispatch(new DoThisSecondAction());
+  /// await store.dispatchAndWait(DoThisFirstAction());
+  /// store.dispatch(DoThisSecondAction());
   /// ```
   ///
   /// Note: While the state change from the action's reducer will have been applied when the
@@ -116,7 +116,7 @@ class MockStore<St> extends Store<St> {
   /// which means you can also get the final status of the action after you `await` it:
   ///
   /// ```dart
-  /// var status = await store.dispatchAndWait(new MyAction());
+  /// var status = await store.dispatchAndWait(MyAction());
   /// ```
   ///
   /// See also:

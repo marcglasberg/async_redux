@@ -306,7 +306,7 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// The action may be sync or async.
   ///
   /// ```dart
-  /// dispatch(new MyAction());
+  /// dispatch(MyAction());
   /// ```
   ///
   /// Method [dispatch] is of type [Dispatch].
@@ -324,8 +324,8 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// the action finishes.
   ///
   /// ```dart
-  /// await dispatchAndWait(new DoThisFirstAction());
-  /// dispatch(new DoThisSecondAction());
+  /// await dispatchAndWait(DoThisFirstAction());
+  /// dispatch(DoThisSecondAction());
   /// ```
   ///
   /// Note: While the state change from the action's reducer will have been applied when the
@@ -336,7 +336,7 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// which means you can also get the final status of the action after you `await` it:
   ///
   /// ```dart
-  /// var status = await dispatchAndWait(new MyAction());
+  /// var status = await dispatchAndWait(MyAction());
   /// ```
   ///
   /// See also:

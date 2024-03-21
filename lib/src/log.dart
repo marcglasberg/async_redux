@@ -87,7 +87,7 @@ class Log<St> implements ActionObserver<St> {
     int dispatchCount,
     DateTime timestamp,
   ) {
-    return "{$action, St: $state, ts: ${new DateTime.now()}}";
+    return "{$action, St: $state, ts: ${DateTime.now()}}";
   }
 
   /// A formatter that puts each attribute on it's own line.
@@ -101,7 +101,7 @@ class Log<St> implements ActionObserver<St> {
     return "{\n"
         "  $dispatchCount) $action,\n"
         "  St: $state,\n"
-        "  Timestamp: ${new DateTime.now()}\n"
+        "  Timestamp: ${DateTime.now()}\n"
         "}";
   }
 
@@ -109,7 +109,7 @@ class Log<St> implements ActionObserver<St> {
   void observe(ReduxAction<St> action, int dispatchCount, {required bool ini}) {
     logger.log(
       level,
-      formatter(null, action, ini, dispatchCount, new DateTime.now()),
+      formatter(null, action, ini, dispatchCount, DateTime.now()),
     );
   }
 }
