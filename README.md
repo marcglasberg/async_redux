@@ -1613,13 +1613,13 @@ let action1 = BuyAction('IBM');
 let action2 = BuyAction('TSLA');
 dispatch(action1);
 dispatch(action2);
-await store.waitActions([action1, action2]);
+await store.waitAllActions([action1, action2]);
 expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
 
 // Dispatches actions and wait until no actions are in progress.
 dispatch(BuyAction('IBM'));
 dispatch(SellAction('TSLA'));
-await store.waitActions();
+await store.waitAllActions();
 expect(the result of all actions...);
 
 // Dispatches two actions in SERIES and wait for them:
@@ -1627,7 +1627,7 @@ await dispatchAndWait(SomeAsyncAction());
 await dispatchAndWait(AnotherAsyncAction());
 expect(the result of both actions...);
 
-// Wait until some action of any of the given types is dispatched.
+// Wait until some action of the given types is dispatched.
 dispatch(ProcessStocksAction()); 
 var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);  
 expect(store.state.portfolio.contains('IBM'), isTrue);  

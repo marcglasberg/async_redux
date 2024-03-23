@@ -373,7 +373,7 @@ class StoreTester<St> {
     return testInfo;
   }
 
-  /// Runs until an action of any of the given types is dispatched, and then waits until it
+  /// Runs until an action of the given types is dispatched, and then waits until it
   /// finishes. Returns the info after the action finishes. **Ignores other** actions types.
   ///
   Future<TestInfo<St>> waitUntilAny(

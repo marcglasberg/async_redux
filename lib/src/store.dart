@@ -475,7 +475,7 @@ class Store<St> {
   /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
   /// dispatch(BuyAction('IBM'));
   /// dispatch(BuyAction('TSLA'));
-  /// await store.waitActions();
+  /// await store.waitAllActions();
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
   /// // Dispatches two actions in PARALLEL and wait for them:
@@ -483,7 +483,7 @@ class Store<St> {
   /// let action2 = SellAction('TSLA');
   /// dispatch(action1);
   /// dispatch(action2);
-  /// await store.waitActions([action1, action2]);
+  /// await store.waitAllActions([action1, action2]);
   /// expect(store.state.portfolio.contains('IBM'), isTrue);
   /// expect(store.state.portfolio.contains('TSLA'), isFalse);
   ///
@@ -499,7 +499,7 @@ class Store<St> {
   /// expect(action.status.isCompleteOk, isTrue);
   /// expect(store.state.name, 'Bill');
   ///
-  /// // Wait until some action of any of the given types is dispatched.
+  /// // Wait until some action of the given types is dispatched.
   /// dispatch(ProcessStocksAction());
   /// var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);
   /// expect(store.state.portfolio.contains('IBM'), isTrue);
@@ -563,8 +563,8 @@ class Store<St> {
   /// var action = await store.waitActionCondition((actionsInProgress, triggerAction) { ... }
   /// ```
   ///
-  /// You get back the set of the actions being dispatched that met the condition, as well as
-  /// the action that triggered the condition by being added or removed from the set.
+  /// You get back an unmodifiable set of the actions being dispatched that met the condition,
+  /// as well as the action that triggered the condition by being added or removed from the set.
   ///
   /// Note: The condition is only checked when some action is dispatched or finishes dispatching.
   /// It's not checked every time action statuses change.
@@ -598,7 +598,7 @@ class Store<St> {
   /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
   /// dispatch(BuyAction('IBM'));
   /// dispatch(BuyAction('TSLA'));
-  /// await store.waitActions();
+  /// await store.waitAllActions();
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
   /// // Dispatches two actions in PARALLEL and wait for them:
@@ -606,7 +606,7 @@ class Store<St> {
   /// let action2 = SellAction('TSLA');
   /// dispatch(action1);
   /// dispatch(action2);
-  /// await store.waitActions([action1, action2]);
+  /// await store.waitAllActions([action1, action2]);
   /// expect(store.state.portfolio.contains('IBM'), isTrue);
   /// expect(store.state.portfolio.contains('TSLA'), isFalse);
   ///
@@ -622,7 +622,7 @@ class Store<St> {
   /// expect(action.status.isCompleteOk, isTrue);
   /// expect(store.state.name, 'Bill');
   ///
-  /// // Wait until some action of any of the given types is dispatched.
+  /// // Wait until some action of the given types is dispatched.
   /// dispatch(ProcessStocksAction());
   /// var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);
   /// expect(store.state.portfolio.contains('IBM'), isTrue);
@@ -639,13 +639,16 @@ class Store<St> {
   /// You should only use this method in tests.
   @visibleForTesting
   Future<(Set<ReduxAction<St>>, ReduxAction<St>?)> waitActionCondition(
-    bool Function(Set<ReduxAction<St>>, ReduxAction<St>?) condition, {
+    bool Function(Set<ReduxAction<St>> actions, ReduxAction<St>? triggerAction) condition, {
     int? timeoutMillis,
   }) {
     //
-    // If it's already true, return the actions in progress.
-    if (condition(_actionsInProgress, null))
-      return Future.value((_actionsInProgress.toSet(), null));
+    var unmodifiableActionsInProgress = UnmodifiableSetView(_actionsInProgress);
+
+    // If the condition is already true when `waitActionCondition` is called,
+    // complete and return the actions in progress.
+    if (condition(unmodifiableActionsInProgress, null))
+      return Future.value((unmodifiableActionsInProgress, null));
     //
     else {
       var completer = Completer<(Set<ReduxAction<St>>, ReduxAction<St>?)>();
@@ -694,7 +697,7 @@ class Store<St> {
   /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
   /// dispatch(BuyAction('IBM'));
   /// dispatch(BuyAction('TSLA'));
-  /// await store.waitActions();
+  /// await store.waitAllActions();
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
   /// // Dispatches two actions in PARALLEL and wait for them:
@@ -702,7 +705,7 @@ class Store<St> {
   /// let action2 = SellAction('TSLA');
   /// dispatch(action1);
   /// dispatch(action2);
-  /// await store.waitActions([action1, action2]);
+  /// await store.waitAllActions([action1, action2]);
   /// expect(store.state.portfolio.contains('IBM'), isTrue);
   /// expect(store.state.portfolio.contains('TSLA'), isFalse);
   ///
@@ -718,7 +721,7 @@ class Store<St> {
   /// expect(action.status.isCompleteOk, isTrue);
   /// expect(store.state.name, 'Bill');
   ///
-  /// // Wait until some action of any of the given types is dispatched.
+  /// // Wait until some action of the given types is dispatched.
   /// dispatch(ProcessStocksAction());
   /// var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);
   /// expect(store.state.portfolio.contains('IBM'), isTrue);
@@ -790,7 +793,7 @@ class Store<St> {
   /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
   /// dispatch(BuyAction('IBM'));
   /// dispatch(BuyAction('TSLA'));
-  /// await store.waitActions();
+  /// await store.waitAllActions();
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
   /// // Dispatches two actions in PARALLEL and wait for them:
@@ -798,7 +801,7 @@ class Store<St> {
   /// let action2 = SellAction('TSLA');
   /// dispatch(action1);
   /// dispatch(action2);
-  /// await store.waitActions([action1, action2]);
+  /// await store.waitAllActions([action1, action2]);
   /// expect(store.state.portfolio.contains('IBM'), isTrue);
   /// expect(store.state.portfolio.contains('TSLA'), isFalse);
   ///
@@ -814,7 +817,7 @@ class Store<St> {
   /// expect(action.status.isCompleteOk, isTrue);
   /// expect(store.state.name, 'Bill');
   ///
-  /// // Wait until some action of any of the given types is dispatched.
+  /// // Wait until some action of the given types is dispatched.
   /// dispatch(ProcessStocksAction());
   /// var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);
   /// expect(store.state.portfolio.contains('IBM'), isTrue);
@@ -837,8 +840,7 @@ class Store<St> {
     var (_, triggerAction) = await this.waitActionCondition(
       timeoutMillis: timeoutMillis,
       (actionsInProgress, triggerAction) {
-        if (actionsInProgress.any((action) => action.runtimeType == actionType)) return false;
-        return true;
+        return !actionsInProgress.any((action) => action.runtimeType == actionType);
       },
     );
 
@@ -848,11 +850,11 @@ class Store<St> {
   /// Returns a future that completes when ALL actions of the given type are NOT in progress
   /// (none of them is being dispatched):
   ///
-  /// - If no action of any of the given types is currently in progress when the method is called,
+  /// - If no action of the given types is currently in progress when the method is called,
   /// the future completes immediately.
   ///
-  /// - If an action of any of the given types is in progress, the future completes only when
-  /// no action of any of the given types is in progress anymore.
+  /// - If an action of the given types is in progress, the future completes only when
+  /// no action of the given types is in progress anymore.
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
   /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
@@ -883,7 +885,7 @@ class Store<St> {
   /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
   /// dispatch(BuyAction('IBM'));
   /// dispatch(BuyAction('TSLA'));
-  /// await store.waitActions();
+  /// await store.waitAllActions();
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
   /// // Dispatches two actions in PARALLEL and wait for them:
@@ -891,7 +893,7 @@ class Store<St> {
   /// let action2 = SellAction('TSLA');
   /// dispatch(action1);
   /// dispatch(action2);
-  /// await store.waitActions([action1, action2]);
+  /// await store.waitAllActions([action1, action2]);
   /// expect(store.state.portfolio.contains('IBM'), isTrue);
   /// expect(store.state.portfolio.contains('TSLA'), isFalse);
   ///
@@ -907,7 +909,7 @@ class Store<St> {
   /// expect(action.status.isCompleteOk, isTrue);
   /// expect(store.state.name, 'Bill');
   ///
-  /// // Wait until some action of any of the given types is dispatched.
+  /// // Wait until some action of the given types is dispatched.
   /// dispatch(ProcessStocksAction());
   /// var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);
   /// expect(store.state.portfolio.contains('IBM'), isTrue);
@@ -945,10 +947,10 @@ class Store<St> {
     }
   }
 
-  /// Returns a future which will complete when an action of ANY of the given types FINISHES
-  /// dispatching. IMPORTANT: This method is different than the other similar methods, because
+  /// Returns a future which will complete when ANY action of the given types FINISHES
+  /// dispatching. IMPORTANT: This method is different from the other similar methods, because
   /// it does NOT complete immediately if no action of the given types is in progress. Instead,
-  /// it waits until an action of any of the given types finishes dispatching, even if they
+  /// it waits until an action of the given types finishes dispatching, even if they
   /// were not yet in progress when the method was called.
   ///
   /// This method returns the action that completed the future, which you can use to check
@@ -993,7 +995,7 @@ class Store<St> {
   /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
   /// dispatch(BuyAction('IBM'));
   /// dispatch(BuyAction('TSLA'));
-  /// await store.waitActions();
+  /// await store.waitAllActions();
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
   /// // Dispatches two actions in PARALLEL and wait for them:
@@ -1001,7 +1003,7 @@ class Store<St> {
   /// let action2 = SellAction('TSLA');
   /// dispatch(action1);
   /// dispatch(action2);
-  /// await store.waitActions([action1, action2]);
+  /// await store.waitAllActions([action1, action2]);
   /// expect(store.state.portfolio.contains('IBM'), isTrue);
   /// expect(store.state.portfolio.contains('TSLA'), isFalse);
   ///
@@ -1017,7 +1019,7 @@ class Store<St> {
   /// expect(action.status.isCompleteOk, isTrue);
   /// expect(store.state.name, 'Bill');
   ///
-  /// // Wait until some action of any of the given types is dispatched.
+  /// // Wait until some action of the given types is dispatched.
   /// dispatch(ProcessStocksAction());
   /// var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);
   /// expect(store.state.portfolio.contains('IBM'), isTrue);
@@ -1240,9 +1242,11 @@ class Store<St> {
   void _checkAllActionConditions(ReduxAction<St> triggerAction) {
     List<bool Function(Set<ReduxAction<St>>, ReduxAction<St>?)?> keysToRemove = [];
 
+    var unmodifiableActionsInProgress = UnmodifiableSetView(_actionsInProgress);
+
     _actionConditionCompleters.forEach((condition, completer) {
-      if (condition(_actionsInProgress, triggerAction)) {
-        completer.complete((_actionsInProgress.toSet(), triggerAction));
+      if (condition(unmodifiableActionsInProgress, triggerAction)) {
+        completer.complete((unmodifiableActionsInProgress, triggerAction));
         keysToRemove.add(condition);
       }
     });

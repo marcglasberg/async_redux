@@ -3,7 +3,7 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# 22.4.1
+# 22.4.2
 
 * For those who use `flutter_hooks`, you can now use the
   new https://pub.dev/packages/flutter_hooks_async_redux package
@@ -263,13 +263,13 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   let action2 = BuyAction('TSLA');
   dispatch(action1);
   dispatch(action2);
-  await store.waitActions([action1, action2]);
+  await store.waitAllActions([action1, action2]);
   expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   
   // Dispatches actions and wait until no actions are in progress.
   dispatch(BuyAction('IBM'));
   dispatch(SellAction('TSLA'));
-  await store.waitActions();
+  await store.waitAllActions();
   expect(the result of all actions...);
   
   // Dispatches two actions in SERIES and wait for them:
@@ -277,7 +277,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   await dispatchAndWait(AnotherAsyncAction());
   expect(the result of both actions...);
   
-  // Wait until some action of any of the given types is dispatched.
+  // Wait until some action of the given types is dispatched.
   dispatch(ProcessStocksAction()); 
   var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);  
   expect(store.state.portfolio.contains('IBM'), isTrue);  

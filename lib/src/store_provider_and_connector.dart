@@ -683,7 +683,7 @@ class StoreProvider<St> extends InheritedWidget {
     Key? key,
     required Store<St> store,
     required Widget child,
-  })  : _store = store,
+  })  : _store = _init(store),
         super(
           key: key,
           child: _InheritedUntypedDoesNotRebuild(store: store, child: child),
@@ -732,7 +732,8 @@ class StoreProvider<St> extends InheritedWidget {
     final _InheritedUntypedRebuilds? provider =
         context.dependOnInheritedWidgetOfExactType<_InheritedUntypedRebuilds>();
 
-    if (provider == null) throw _exceptionForWrongStoreType(_typeOf<StoreProvider>(), debug: debug);
+    if (provider == null)
+      throw _exceptionForWrongStoreType(_typeOf<_InheritedUntypedRebuilds>(), debug: debug);
 
     // We only turn on rebuilds when this `state` method is used for the first time.
     // This is to make it faster when this method is not used, which is the
@@ -855,82 +856,51 @@ class StoreProvider<St> extends InheritedWidget {
   static void clearExceptionFor(BuildContext context, Object actionOrTypeOrList) =>
       _getStoreWithDependency(context).clearExceptionFor(actionOrTypeOrList);
 
-  /// The [storeBackdoor] gives you direct access to the store for advanced use-cases, which means
-  /// you should avoid using it if you don't have a good reason to do so.
+  /// Avoid using if you don't have a good reason to do so.
   ///
-  /// It does NOT create a dependency like [_getStoreWithDependency] does, and it does NOT rebuild
-  /// the state when the state changes, when you access it like this:
-  /// `var state = StoreProvider.storeBackdoor(context, this).state;`
+  /// The [backdoorStoreBackdoorInheritedWidget] gives you direct access to the store for advanced
+  /// use-cases. It does NOT create a dependency like [_getStoreWithDependency] does, and it does
+  /// NOT rebuild the state when the state changes, when you access it like this:
+  /// `var state = StoreProvider.backdoorInheritedWidget(context, this).state;`.
   ///
-  /// Note: The recommended way to access the state in your app is to
-  /// use [StoreProvider.state], which can be accessed through the built-in
-  /// extension `context.getState<AppState>`, or define your own extension to simply
-  /// write `context.state`.
-  ///
-  /// The [storeBackdoor] can be used with `flutter_hooks`, for example, to create a custom hook:
-  ///
-  /// ```dart
-  /// /// The `converter` function should return the part of the state that the widget needs.
-  /// T useAppState<T>(T Function(AppState s) converter, { bool distinct = true }) {
-  ///   final store = StoreProvider.storeBackdoor<AppState>(useContext(), debug: 'useAppState hook');
-  ///   return use(_AppStateHook(store: store, converter: converter, distinct: distinct));
-  /// }
-  ///
-  /// Dispatch useDispatch() => useContext().dispatch;
-  /// DispatchSync useDispatchSync() => useContext().dispatchSync;
-  /// DispatchAndWait useDispatchAndWait() => useContext().dispatchAndWait;
-  /// bool Function(Object) useIsWaiting(Object actionOrTypeOrList) => useContext().isWaiting;
-  /// bool Function(Object) useIsFailed(Object actionOrTypeOrList) => useContext().isFailed;
-  /// UserException? Function(Object) exceptionFor(Object actionOrTypeOrList) => useContext().exceptionFor;
-  /// void Function(Object) clearExceptionFor(Object actionOrTypeOrList) => useContext().clearExceptionFor;
-  ///
-  /// class _AppStateHook<T, S extends AppState> extends Hook<T> {
-  ///   const _AppStateHook({required this.store,required this.converter,this.distinct = true});
-  ///   final T Function(S) converter;
-  ///   final bool distinct;
-  ///   final Store<S> store;
-  ///
-  ///   @override
-  ///   HookState<T, Hook<T>> createState() => _AppState_StateHook<T, S>();
-  /// }
-  ///
-  /// class _AppState_StateHook<T, S extends AppState> extends HookState<T, _AppStateHook<T, S>> {
-  ///   StreamSubscription? _storeSubscription;
-  ///   late T _state;
-  ///   bool get isInitialised => _storeSubscription != null;
-  ///
-  ///   @override
-  ///   void initHook() {
-  ///     super.initHook();
-  ///     _updateState(hook.store.state);
-  ///     final onStoreChanged = hook.store.onChange;
-  ///     _storeSubscription = onStoreChanged.listen(_updateState);
-  ///   }
-  ///
-  ///   @override
-  ///   T build(BuildContext context) => _state;
-  ///
-  ///   @override
-  ///   void dispose() {
-  ///     _storeSubscription?.cancel();
-  ///     super.dispose();
-  ///   }
-  ///
-  ///   void _updateState(S appState) {
-  ///     final state = hook.converter(appState);
-  ///     if (isInitialised && hook.distinct && state == _state) return;
-  ///     setState(() => _state = state);
-  ///   }
-  /// }
-  /// ```
-  ///
-  static Store<St> storeBackdoor<St>(BuildContext context, {Object? debug}) {
+  static Store<St> backdoorInheritedWidget<St>(BuildContext context, {Object? debug}) {
     final StoreProvider<St>? provider =
         context.dependOnInheritedWidgetOfExactType<StoreProvider<St>>();
-
-    if (provider == null) throw _exceptionForWrongStoreType(_typeOf<StoreProvider>(), debug: debug);
-
+    if (provider == null)
+      throw _exceptionForWrongStoreType(_typeOf<StoreProvider<St>>(), debug: debug);
     return provider._store;
+  }
+
+  /// Avoid using if you don't have a good reason to do so.
+  ///
+  /// The [backdoorStaticGlobal] gives you direct access to the store for advanced use-cases.
+  /// It does NOT need the context, as it gets the store from the static
+  /// field [_staticStoreBackdoor]. Note this field is set when the [StoreProvider] is created,
+  /// which assumes the [StoreProvider] is used only once in your app. This is usually a
+  /// reasonable assumption, but can break in tests. It does NOT create a dependency
+  /// like [_getStoreWithDependency] does, and it does NOT rebuild the state when the state changes,
+  /// when you access it like this: `var state = StoreProvider.backdoorStaticGlobal<AppState>().state;`.
+  ///
+  static Store<St> backdoorStaticGlobal<St>() {
+    if (_staticStoreBackdoor == null)
+      throw StoreException('Error: No Redux store found. '
+          'Did you forget to use the StoreProvider?');
+
+    if (_staticStoreBackdoor is! Store<St>) {
+      var type = _typeOf<Store<St>>;
+      throw StoreException('Error: Store is of type ${_staticStoreBackdoor.runtimeType} '
+          'and not of type $type. Please provide the correct type.');
+    }
+
+    return _staticStoreBackdoor as Store<St>;
+  }
+
+  /// See [backdoorStaticGlobal].
+  static Store? _staticStoreBackdoor;
+
+  static Store<St> _init<St>(Store<St> store) {
+    _staticStoreBackdoor = store;
+    return store;
   }
 
   @override
