@@ -666,10 +666,15 @@ class Store<St> {
     }
   }
 
-  /// Returns a future that completes when ALL given actions finished dispatching.
+  /// Returns a future that completes when ALL given [actions] finished dispatching.
   ///
   /// However, if you don't provide any actions, the future will complete when ALL actions
   /// finished dispatching. In other words, when no actions are currently in progress.
+  ///
+  /// Note: Waiting until no actions are in progress should only be done in test, never
+  /// in production, as it's very easy to create a deadlock. However, waiting for specific
+  /// actions to finish is safe in production, as long as you're waiting for actions you
+  /// just dispatched.
   ///
   /// Examples:
   ///

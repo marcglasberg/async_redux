@@ -386,6 +386,65 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// ```
   bool isWaiting(Object actionOrTypeOrList) => _store.isWaiting(actionOrTypeOrList);
 
+  /// Returns true if an [actionOrActionTypeOrList] failed with an [UserException].
+  /// Note: This method uses the EXACT type in [actionOrActionTypeOrList]. Subtypes are not considered.
+  bool isFailed(Object actionOrTypeOrList) => _store.isFailed(actionOrTypeOrList);
+
+  /// Returns the [UserException] of the [actionTypeOrList] that failed.
+  ///
+  /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
+  /// of object will return null and throw a [StoreException] after the async gap.
+  ///
+  /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
+  UserException? exceptionFor(Object actionTypeOrList) => _store.exceptionFor(actionTypeOrList);
+
+  /// Removes the given [actionTypeOrList] from the list of action types that failed.
+  ///
+  /// Note that dispatching an action already removes that action type from the exceptions list.
+  /// This removal happens as soon as the action is dispatched, not when it finishes.
+  ///
+  /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
+  /// of object will return null and throw a [StoreException] after the async gap.
+  ///
+  /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
+  void clearExceptionFor(Object actionTypeOrList) => _store.clearExceptionFor(actionTypeOrList);
+
+  /// Returns a future which will complete when the given state [condition] is true.
+  /// If the condition is already true when the method is called, the future completes immediately.
+  ///
+  /// You may also provide a [timeoutMillis], which by default is 10 minutes. If you want, you
+  /// can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  /// Note: To disable the timeout, modify this to a large value, like 300000000 (almost 10 years).
+  ///
+  /// ```dart
+  /// var action = await store.waitCondition((state) => state.name == "Bill");
+  /// expect(action, isA<ChangeNameAction>());
+  /// ```
+  Future<ReduxAction<St>?> waitCondition(
+    bool Function(St) condition, {
+    int? timeoutMillis,
+  }) =>
+      _store.waitCondition(condition, timeoutMillis: timeoutMillis);
+
+  /// Returns a future that completes when ALL given [actions] finished dispatching.
+  ///
+  /// Example:
+  ///
+  /// ```ts
+  /// // Dispatching two actions in PARALLEL and waiting for both to finish.
+  /// var action1 = ChangeNameAction('Bill');
+  /// var action2 = ChangeAgeAction(42);
+  /// await waitAllActions([action1, action2]);
+  ///
+  /// // Compare this to dispatching the actions in SERIES:
+  /// await dispatchAndWait(action1);
+  /// await dispatchAndWait(action2);
+  /// ```
+  Future<void> waitAllActions(List<ReduxAction<St>> actions) {
+    if (actions.isEmpty) throw StoreException('You have to provide a non-empty list of actions.');
+    return _store.waitAllActions(actions);
+  }
+
   /// Gets the first error from the error queue, and removes it from the queue.
   UserException? getAndRemoveFirstError() => _store.getAndRemoveFirstError();
 }

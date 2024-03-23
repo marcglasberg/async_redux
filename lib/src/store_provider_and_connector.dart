@@ -207,7 +207,7 @@ class StoreConnector<St, Model> extends StatelessWidget
   @override
   Widget build(BuildContext context) {
     return _StoreStreamListener<St, Model>(
-      store: StoreProvider._getStore<St>(context, debug: debug),
+      store: StoreProvider.backdoorInheritedWidget<St>(context, debug: debug),
       debug: debug,
       storeConnector: this,
       builder: builder,
@@ -689,8 +689,8 @@ class StoreProvider<St> extends InheritedWidget {
           child: _InheritedUntypedDoesNotRebuild(store: store, child: child),
         );
 
-  /// Get the state, without a StoreConnector.
-  /// Note: Widgets that use this method will rebuild whenever the state changes.
+  /// Get the state, without a `StoreConnector`.
+  /// Note: Widgets that use this method WILL rebuild whenever the state changes.
   ///
   /// It's recommended that you define this extension in your own code:
   /// ```dart
@@ -704,26 +704,36 @@ class StoreProvider<St> extends InheritedWidget {
   /// ```dart
   /// var state = context.state;
   /// ```
-  static St state<St>(BuildContext context, {Object? debug}) {
-    final _InheritedUntypedRebuilds? provider =
-        context.dependOnInheritedWidgetOfExactType<_InheritedUntypedRebuilds>();
+  ///
+  /// Note: For advanced use cases, if you need to get the state without rebuilding
+  /// when the state changes, you can use [notify] false.
+  ///
+  static St state<St>(BuildContext context, {bool notify = true, Object? debug}) {
+    if (notify) {
+      final _InheritedUntypedRebuilds? provider =
+          context.dependOnInheritedWidgetOfExactType<_InheritedUntypedRebuilds>();
 
-    if (provider == null)
-      throw throw _exceptionForWrongStoreType(_typeOf<_InheritedUntypedRebuilds>(), debug: debug);
+      if (provider == null)
+        throw throw _exceptionForWrongStoreType(_typeOf<_InheritedUntypedRebuilds>(), debug: debug);
 
-    St state;
-    try {
-      state = provider._store.state as St;
-    } catch (error) {
-      throw _exceptionForWrongStateType(provider._store.state, St);
+      St state;
+      try {
+        state = provider._store.state as St;
+      } catch (error) {
+        throw _exceptionForWrongStateType(provider._store.state, St);
+      }
+
+      // We only turn on rebuilds when this `state` method is used for the first time.
+      // This is to make it faster when this method is not used, which is the
+      // case if the state is only accessed via StoreConnector.
+      _InheritedUntypedRebuilds._isOn = true;
+
+      return state;
     }
-
-    // We only turn on rebuilds when this `state` method is used for the first time.
-    // This is to make it faster when this method is not used, which is the
-    // case if the state is only accessed via StoreConnector.
-    _InheritedUntypedRebuilds._isOn = true;
-
-    return state;
+    // Get the state without rebuilding when the state later changes.
+    else {
+      return StoreProvider.backdoorInheritedWidget<St>(context, debug: debug).state;
+    }
   }
 
   /// This WILL create a dependency, and WILL potentially rebuild the state.
@@ -739,16 +749,6 @@ class StoreProvider<St> extends InheritedWidget {
     // This is to make it faster when this method is not used, which is the
     // case if the state is only accessed via StoreConnector.
     _InheritedUntypedRebuilds._isOn = true;
-
-    return provider._store;
-  }
-
-  static Store<St> _ofTyped<St>(BuildContext context, {Object? debug}) {
-    final StoreProvider<St>? provider =
-        context.dependOnInheritedWidgetOfExactType<StoreProvider<St>>();
-
-    if (provider == null)
-      throw _exceptionForWrongStoreType(_typeOf<StoreProvider<St>>(), debug: debug);
 
     return provider._store;
   }
@@ -780,16 +780,6 @@ class StoreProvider<St> extends InheritedWidget {
   /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
   /// whenever the state changes.
   ///
-  /// It's recommended that you use the BuildContext extension instead: `context.dispatchAndWait(action)`.
-  ///
-  static Future<ActionStatus> dispatchAndWait<St>(BuildContext context, ReduxAction<St> action,
-          {Object? debug, bool notify = true}) =>
-      _ofUntyped(context, debug: debug).dispatchAndWait(action, notify: notify);
-
-  /// Dispatch an action without a StoreConnector.
-  /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
-  /// whenever the state changes.
-  ///
   ///
   /// It's recommended that you use the BuildContext extension instead: `context.dispatchSync(action)`.
   ///
@@ -797,10 +787,53 @@ class StoreProvider<St> extends InheritedWidget {
           {Object? debug, bool notify = true}) =>
       _ofUntyped(context, debug: debug).dispatchSync(action, notify: notify);
 
-  /// Get the state, without a StoreConnector.
-  /// This will NOT create a dependency, and will NOT rebuild the state.
-  static Store<St> _getStore<St>(BuildContext context, {Object? debug}) => //
-      _ofTyped<St>(context, debug: debug);
+  /// Dispatch an action without a StoreConnector.
+  /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
+  /// whenever the state changes.
+  ///
+  /// It's recommended that you use the BuildContext extension instead: `context.dispatchAndWait(action)`.
+  ///
+  static Future<ActionStatus> dispatchAndWait<St>(BuildContext context, ReduxAction<St> action,
+          {Object? debug, bool notify = true}) =>
+      _ofUntyped(context, debug: debug).dispatchAndWait(action, notify: notify);
+
+  /// Returns a future which will complete when the given state [condition] is true.
+  /// If the condition is already true when the method is called, the future completes immediately.
+  ///
+  /// You may also provide a [timeoutMillis], which by default is 10 minutes. If you want, you
+  /// can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  /// Note: To disable the timeout, modify this to a large value, like 300000000 (almost 10 years).
+  ///
+  /// ```dart
+  /// var action = await store.waitCondition((state) => state.name == "Bill");
+  /// expect(action, isA<ChangeNameAction>());
+  /// ```
+  static Future<ReduxAction<St>?> waitCondition<St>(
+    BuildContext context,
+    bool Function(St) condition, {
+    int? timeoutMillis,
+  }) =>
+      StoreProvider.backdoorInheritedWidget<St>(context)
+          .waitCondition(condition, timeoutMillis: timeoutMillis);
+
+  /// Returns a future that completes when ALL given [actions] finished dispatching.
+  ///
+  /// Example:
+  ///
+  /// ```ts
+  /// // Dispatching two actions in PARALLEL and waiting for both to finish.
+  /// var action1 = ChangeNameAction('Bill');
+  /// var action2 = ChangeAgeAction(42);
+  /// await waitAllActions([action1, action2]);
+  ///
+  /// // Compare this to dispatching the actions in SERIES:
+  /// await dispatchAndWait(action1);
+  /// await dispatchAndWait(action2);
+  /// ```
+  static Future<void> waitAllActions<St>(BuildContext context, List<ReduxAction<St>> actions) {
+    if (actions.isEmpty) throw StoreException('You have to provide a non-empty list of actions.');
+    return StoreProvider.backdoorInheritedWidget<St>(context).waitAllActions(actions);
+  }
 
   /// You can use [isWaiting] and pass it [actionOrActionTypeOrList] to check if:
   /// * A specific async ACTION is currently being processed.
@@ -858,16 +891,18 @@ class StoreProvider<St> extends InheritedWidget {
 
   /// Avoid using if you don't have a good reason to do so.
   ///
-  /// The [backdoorStoreBackdoorInheritedWidget] gives you direct access to the store for advanced
-  /// use-cases. It does NOT create a dependency like [_getStoreWithDependency] does, and it does
-  /// NOT rebuild the state when the state changes, when you access it like this:
+  /// The [backdoorInheritedWidget] gives you direct access to the store for advanced
+  /// use-cases. It does NOT create a dependency like [_getStoreWithDependency] does,
+  /// and it does NOT rebuild the state when the state changes, when you access it like this:
   /// `var state = StoreProvider.backdoorInheritedWidget(context, this).state;`.
   ///
   static Store<St> backdoorInheritedWidget<St>(BuildContext context, {Object? debug}) {
     final StoreProvider<St>? provider =
         context.dependOnInheritedWidgetOfExactType<StoreProvider<St>>();
+
     if (provider == null)
       throw _exceptionForWrongStoreType(_typeOf<StoreProvider<St>>(), debug: debug);
+
     return provider._store;
   }
 
