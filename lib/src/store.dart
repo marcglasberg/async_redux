@@ -462,7 +462,7 @@ class Store<St> {
   /// // Dispatches actions and wait until no actions are in progress.
   /// dispatch(BuyStock('IBM'));
   /// dispatch(BuyStock('TSLA'));
-  /// await waitAllActions();
+  /// await waitAllActions([]);
   /// expect(state.stocks, ['IBM', 'TSLA']);
   ///
   /// // Dispatches two actions in PARALLEL and wait for their TYPES:
@@ -475,7 +475,7 @@ class Store<St> {
   /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
   /// dispatch(BuyAction('IBM'));
   /// dispatch(BuyAction('TSLA'));
-  /// await store.waitAllActions();
+  /// await store.waitAllActions([]);
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
   /// // Dispatches two actions in PARALLEL and wait for them:
@@ -552,7 +552,10 @@ class Store<St> {
       Completer<(Set<ReduxAction<St>>, ReduxAction<St>?)>>{};
 
   /// Returns a future that completes when some actions meet the given [condition].
-  /// If the condition is already true when the method is called, the future completes immediately.
+  ///
+  /// If [completeImmediately] is `false` (the default), this method will throw an error if the
+  /// condition was already true when the method was called. Otherwise, the future will complete
+  /// immediately and throw no error.
   ///
   /// The [condition] is a function that takes the set of actions "in progress", as well as an
   /// action that just entered the set (by being dispatched) or left the set (by finishing
@@ -585,7 +588,7 @@ class Store<St> {
   /// // Dispatches actions and wait until no actions are in progress.
   /// dispatch(BuyStock('IBM'));
   /// dispatch(BuyStock('TSLA'));
-  /// await waitAllActions();
+  /// await waitAllActions([]);
   /// expect(state.stocks, ['IBM', 'TSLA']);
   ///
   /// // Dispatches two actions in PARALLEL and wait for their TYPES:
@@ -598,7 +601,7 @@ class Store<St> {
   /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
   /// dispatch(BuyAction('IBM'));
   /// dispatch(BuyAction('TSLA'));
-  /// await store.waitAllActions();
+  /// await store.waitAllActions([]);
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
   /// // Dispatches two actions in PARALLEL and wait for them:
@@ -639,16 +642,36 @@ class Store<St> {
   /// You should only use this method in tests.
   @visibleForTesting
   Future<(Set<ReduxAction<St>>, ReduxAction<St>?)> waitActionCondition(
+    //
+    // The condition receives the current actions in progress, and the action that triggered the condition.
     bool Function(Set<ReduxAction<St>> actions, ReduxAction<St>? triggerAction) condition, {
+    //
+    // If [completeImmediately] is `false` (the default), this method will throw an error if the
+    // condition is already true when the method is called. Otherwise, the future will complete
+    /// immediately and throw no error.
+    bool completeImmediately = false,
+    //
+    // Error message in case the condition was already true when the method was called,
+    // and `completeImmediately` is false.
+    String completedErrorMessage = "Awaited action condition was already true",
+    //
+    // The maximum time to wait for the condition to be met. The default is 10 minutes.
+    // To disable it, modify it to a large value, like 300000000000 (almost 10 years).
     int? timeoutMillis,
   }) {
     //
     var unmodifiableActionsInProgress = UnmodifiableSetView(_actionsInProgress);
 
-    // If the condition is already true when `waitActionCondition` is called,
-    // complete and return the actions in progress.
-    if (condition(unmodifiableActionsInProgress, null))
-      return Future.value((unmodifiableActionsInProgress, null));
+    // If the condition is already true when `waitActionCondition` is called.
+
+    if (condition(unmodifiableActionsInProgress, null)) {
+      // Complete and return the actions in progress and the trigger action.
+      if (completeImmediately)
+        return Future.value((unmodifiableActionsInProgress, null));
+      // Throw an error.
+      else
+        throw StoreException(completedErrorMessage + ", and the future completed immediately.");
+    }
     //
     else {
       var completer = Completer<(Set<ReduxAction<St>>, ReduxAction<St>?)>();
@@ -666,15 +689,20 @@ class Store<St> {
     }
   }
 
-  /// Returns a future that completes when ALL given [actions] finished dispatching.
+  /// Returns a future that completes when ALL given [actions] finish dispatching.
   ///
-  /// However, if you don't provide any actions, the future will complete when ALL actions
-  /// finished dispatching. In other words, when no actions are currently in progress.
+  /// If [completeImmediately] is `false` (the default), this method will throw an error if none
+  /// of the given actions are in progress when the method is called. Otherwise, the future will
+  /// complete immediately and throw no error.
   ///
-  /// Note: Waiting until no actions are in progress should only be done in test, never
-  /// in production, as it's very easy to create a deadlock. However, waiting for specific
-  /// actions to finish is safe in production, as long as you're waiting for actions you
-  /// just dispatched.
+  /// However, if you don't provide any actions (empty list or `null`), the future will complete
+  /// when ALL current actions in progress finish dispatching. In other words, when no actions are
+  /// currently in progress. In this case, if [completeImmediately] is `false`, the method will
+  /// throw an error if no actions are in progress when the method is called.
+  ///
+  /// Note: Waiting until no actions are in progress should only be done in test, never in
+  /// production, as it's very easy to create a deadlock. However, waiting for specific actions to
+  /// finish is safe in production, as long as you're waiting for actions you just dispatched.
   ///
   /// Examples:
   ///
@@ -689,7 +717,7 @@ class Store<St> {
   /// // Dispatches actions and wait until no actions are in progress.
   /// dispatch(BuyStock('IBM'));
   /// dispatch(BuyStock('TSLA'));
-  /// await waitAllActions();
+  /// await waitAllActions([]);
   /// expect(state.stocks, ['IBM', 'TSLA']);
   ///
   /// // Dispatches two actions in PARALLEL and wait for their TYPES:
@@ -702,7 +730,7 @@ class Store<St> {
   /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
   /// dispatch(BuyAction('IBM'));
   /// dispatch(BuyAction('TSLA'));
-  /// await store.waitAllActions();
+  /// await store.waitAllActions([]);
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
   /// // Dispatches two actions in PARALLEL and wait for them:
@@ -740,29 +768,38 @@ class Store<St> {
   /// [waitAllActionTypes] - Waits until all actions of the given type are NOT in progress.
   /// [waitAnyActionTypeFinishes] - Waits until ANY action of the given types finish dispatching.
   ///
-  Future<void> waitAllActions([List<ReduxAction<St>>? actions]) {
-    if (actions == null) {
-      return this.waitActionCondition((actions, triggerAction) => actions.isEmpty);
+  Future<void> waitAllActions(List<ReduxAction<St>>? actions, {bool completeImmediately = false}) {
+    if (actions == null || actions.isEmpty) {
+      return this.waitActionCondition(
+          completeImmediately: completeImmediately,
+          completedErrorMessage: "No actions were in progress",
+          (actions, triggerAction) => actions.isEmpty);
     } else {
-      return this.waitActionCondition((actionsInProgress, triggerAction) {
-        for (var action in actions) {
-          if (actionsInProgress.contains(action)) {
-            return false;
+      return this.waitActionCondition(
+        completeImmediately: completeImmediately,
+        completedErrorMessage: "None of the given actions were in progress",
+        (actionsInProgress, triggerAction) {
+          for (var action in actions) {
+            if (actionsInProgress.contains(action)) return false;
           }
-        }
-        return true;
-      });
+          return true;
+        },
+      );
     }
   }
 
   /// Returns a future that completes when an action of the given type in NOT in progress
   /// (it's not being dispatched):
   ///
-  /// - If no action of the given type is currently in progress when the method is called,
-  /// the future completes immediately, and returns `null`.
+  /// - If NO action of the given type is currently in progress when the method is called,
+  ///   and [completeImmediately] is `false` (the default), this method will throw an error.
+  ///
+  /// - If NO action of the given type is currently in progress when the method is called,
+  ///   and [completeImmediately] is `true`, the future completes immediately, returns `null`,
+  ///   and throws no error.
   ///
   /// - If an action of the given type is in progress, the future completes when the action
-  /// finishes, and returns the action. You can use the returned action to check its `status`:
+  ///   finishes, and returns the action. You can use the returned action to check its `status`:
   ///
   ///   ```dart
   ///   var action = await store.waitActionType(MyAction);
@@ -785,7 +822,7 @@ class Store<St> {
   /// // Dispatches actions and wait until no actions are in progress.
   /// dispatch(BuyStock('IBM'));
   /// dispatch(BuyStock('TSLA'));
-  /// await waitAllActions();
+  /// await waitAllActions([]);
   /// expect(state.stocks, ['IBM', 'TSLA']);
   ///
   /// // Dispatches two actions in PARALLEL and wait for their TYPES:
@@ -798,7 +835,7 @@ class Store<St> {
   /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
   /// dispatch(BuyAction('IBM'));
   /// dispatch(BuyAction('TSLA'));
-  /// await store.waitAllActions();
+  /// await store.waitAllActions([]);
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
   /// // Dispatches two actions in PARALLEL and wait for them:
@@ -840,9 +877,12 @@ class Store<St> {
   @visibleForTesting
   Future<ReduxAction<St>?> waitActionType(
     Type actionType, {
+    bool completeImmediately = false,
     int? timeoutMillis,
   }) async {
     var (_, triggerAction) = await this.waitActionCondition(
+      completeImmediately: completeImmediately,
+      completedErrorMessage: "No action of the given type was in progress",
       timeoutMillis: timeoutMillis,
       (actionsInProgress, triggerAction) {
         return !actionsInProgress.any((action) => action.runtimeType == actionType);
@@ -855,11 +895,14 @@ class Store<St> {
   /// Returns a future that completes when ALL actions of the given type are NOT in progress
   /// (none of them is being dispatched):
   ///
-  /// - If no action of the given types is currently in progress when the method is called,
-  /// the future completes immediately.
+  /// - If NO action of the given types is currently in progress when the method is called,
+  ///   and [completeImmediately] is `false` (the default), this method will throw an error.
   ///
-  /// - If an action of the given types is in progress, the future completes only when
-  /// no action of the given types is in progress anymore.
+  /// - If NO action of the given type is currently in progress when the method is called,
+  ///   and [completeImmediately] is `true`, the future completes immediately and throws no error.
+  ///
+  /// - If any action of the given types is in progress, the future completes only when
+  ///   no action of the given types is in progress anymore.
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
   /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
@@ -877,7 +920,7 @@ class Store<St> {
   /// // Dispatches actions and wait until no actions are in progress.
   /// dispatch(BuyStock('IBM'));
   /// dispatch(BuyStock('TSLA'));
-  /// await waitAllActions();
+  /// await waitAllActions([]);
   /// expect(state.stocks, ['IBM', 'TSLA']);
   ///
   /// // Dispatches two actions in PARALLEL and wait for their TYPES:
@@ -890,7 +933,7 @@ class Store<St> {
   /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
   /// dispatch(BuyAction('IBM'));
   /// dispatch(BuyAction('TSLA'));
-  /// await store.waitAllActions();
+  /// await store.waitAllActions([]);
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
   /// // Dispatches two actions in PARALLEL and wait for them:
@@ -932,15 +975,20 @@ class Store<St> {
   @visibleForTesting
   Future<void> waitAllActionTypes(
     List<Type> actionTypes, {
+    bool completeImmediately = false,
     int? timeoutMillis,
   }) async {
     if (actionTypes.isEmpty) {
       await this.waitActionCondition(
+        completeImmediately: completeImmediately,
+        completedErrorMessage: "No actions are in progress",
         timeoutMillis: timeoutMillis,
         (actions, triggerAction) => actions.isEmpty,
       );
     } else {
       await this.waitActionCondition(
+        completeImmediately: completeImmediately,
+        completedErrorMessage: "No action of the given types was in progress",
         timeoutMillis: timeoutMillis,
         (actionsInProgress, triggerAction) {
           for (var actionType in actionTypes) {
@@ -987,7 +1035,7 @@ class Store<St> {
   /// // Dispatches actions and wait until no actions are in progress.
   /// dispatch(BuyStock('IBM'));
   /// dispatch(BuyStock('TSLA'));
-  /// await waitAllActions();
+  /// await waitAllActions([]);
   /// expect(state.stocks, ['IBM', 'TSLA']);
   ///
   /// // Dispatches two actions in PARALLEL and wait for their TYPES:
@@ -1000,7 +1048,7 @@ class Store<St> {
   /// // Dispatches actions in PARALLEL and wait until no actions are in progress.
   /// dispatch(BuyAction('IBM'));
   /// dispatch(BuyAction('TSLA'));
-  /// await store.waitAllActions();
+  /// await store.waitAllActions([]);
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
   /// // Dispatches two actions in PARALLEL and wait for them:
@@ -1045,6 +1093,7 @@ class Store<St> {
     int? timeoutMillis,
   }) async {
     var (_, triggerAction) = await this.waitActionCondition(
+      completedErrorMessage: "Assertion error",
       timeoutMillis: timeoutMillis,
       (actionsInProgress, triggerAction) {
         // If the triggerAction is one of the actionTypes,

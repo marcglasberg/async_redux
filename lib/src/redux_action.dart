@@ -318,6 +318,11 @@ abstract class ReduxAction<St> {
       _store.waitCondition(condition, timeoutMillis: timeoutMillis);
 
   /// Returns a future that completes when ALL given [actions] finished dispatching.
+  /// You MUST provide at list one action, or an error will be thrown.
+  ///
+  /// If [completeImmediately] is `false` (the default), this method will throw an error if none
+  /// of the given actions are in progress when the method is called. Otherwise, the future will
+  /// complete immediately and throw no error.
   ///
   /// Example:
   ///
@@ -331,9 +336,9 @@ abstract class ReduxAction<St> {
   /// await dispatchAndWait(action1);
   /// await dispatchAndWait(action2);
   /// ```
-  Future<void> waitAllActions(List<ReduxAction<St>> actions) {
+  Future<void> waitAllActions(List<ReduxAction<St>> actions, {bool completeImmediately = false}) {
     if (actions.isEmpty) throw StoreException('You have to provide a non-empty list of actions.');
-    return _store.waitAllActions(actions);
+    return _store.waitAllActions(actions, completeImmediately: completeImmediately);
   }
 
   /// An async reducer (one that returns Future<AppState?>) must never complete without at least

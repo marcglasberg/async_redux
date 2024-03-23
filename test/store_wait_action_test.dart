@@ -48,20 +48,38 @@ void main() {
   test('waitAllActions', () async {
     // Returns a future that completes when no actions are in progress.
     // Since no actions are currently in progress, the future completes immediately.
+    // We are ACCEPTING futures completed immediately.
     var store = Store<State>(initialState: State(1));
-    await store.waitAllActions();
+    await store.waitAllActions([], completeImmediately: true);
+
+    // Returns a future that completes when no actions are in progress.
+    // Since no actions are currently in progress, the future completes immediately.
+    // We are NOT accepting futures completed immediately: should throw a StoreException.
+    store = Store<State>(initialState: State(1));
+    await expectLater(
+      () => store.waitAllActions([]),
+      throwsA(isA<StoreException>()),
+    );
+
+    // Returns a future that completes when no actions are in progress.
+    // There is an actions is progress.
+    store = Store<State>(initialState: State(1));
+    store.dispatchAndWait(DelayedAction(1, delayMillis: 1));
+    expect(store.state.count, 1);
+    await store.waitAllActions([]);
+    expect(store.state.count, 2);
   });
 
   test('waitActionType', () async {
     // Returns a future that completes when the actions of the given type is NOT in progress.
     // Since no actions are currently in progress, the future completes immediately.
     var store = Store<State>(initialState: State(1));
-    await store.waitActionType(DelayedAction);
+    await store.waitActionType(DelayedAction, completeImmediately: true);
 
     // Again, since no actions are currently in progress, the future completes immediately.
     // The timeout is irrelevant.
     store = Store<State>(initialState: State(1));
-    await store.waitActionType(DelayedAction, timeoutMillis: 1);
+    await store.waitActionType(DelayedAction, timeoutMillis: 1, completeImmediately: true);
 
     // An actions of the given type is in progress.
     // But then the action ends.
@@ -113,7 +131,8 @@ void main() {
     // meet the given condition. Since no actions are currently in progress, and we're checking
     // to see if there are no actions in progress, the future completes immediately.
     var store = Store<State>(initialState: State(1));
-    await store.waitActionCondition((actions, triggerAction) => actions.isEmpty);
+    await store.waitActionCondition((actions, triggerAction) => actions.isEmpty,
+        completeImmediately: true);
   });
 
   test('waitAnyActionTypeFinishes', () async {
@@ -151,7 +170,7 @@ void main() {
       .run((_) async {
     final store = Store<State>(initialState: State(1));
 
-    await store.waitAllActions();
+    await store.waitAllActions([], completeImmediately: true);
     expect(store.state.count, 1);
   });
 
@@ -171,7 +190,7 @@ void main() {
     store.dispatch(DelayedAction(1000, delayMillis: 20));
 
     expect(store.state.count, 1);
-    await store.waitAllActions();
+    await store.waitAllActions([]);
     expect(store.state.count, 1 + 10 + 100 + 1000);
   });
 

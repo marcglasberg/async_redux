@@ -62,7 +62,7 @@ void main() {
     expect(store.isWaiting(NonReentrantAsyncAction), true);
 
     // We wait for all actions to finish dispatching.
-    await store.waitAllActions();
+    await store.waitAllActions([]);
     expect(store.isWaiting(NonReentrantAsyncAction), false);
 
     // The only action that ran was the first one, which incremented by 10 (1+10 = 11).
