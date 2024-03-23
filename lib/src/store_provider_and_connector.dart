@@ -690,7 +690,9 @@ class StoreProvider<St> extends InheritedWidget {
         );
 
   /// Get the state, without a `StoreConnector`.
-  /// Note: Widgets that use this method WILL rebuild whenever the state changes.
+  ///
+  /// Widgets that use this method WILL rebuild whenever the state changes
+  /// (unless you pass the [notify] parameter as `false`).
   ///
   /// It's recommended that you define this extension in your own code:
   /// ```dart
@@ -704,10 +706,6 @@ class StoreProvider<St> extends InheritedWidget {
   /// ```dart
   /// var state = context.state;
   /// ```
-  ///
-  /// Note: For advanced use cases, if you need to get the state without rebuilding
-  /// when the state changes, you can use [notify] false.
-  ///
   static St state<St>(BuildContext context, {bool notify = true, Object? debug}) {
     if (notify) {
       final _InheritedUntypedRebuilds? provider =
@@ -732,12 +730,13 @@ class StoreProvider<St> extends InheritedWidget {
     }
     // Get the state without rebuilding when the state later changes.
     else {
-      return StoreProvider.backdoorInheritedWidget<St>(context, debug: debug).state;
+      return backdoorInheritedWidget<St>(context, debug: debug).state;
     }
   }
 
   /// This WILL create a dependency, and WILL potentially rebuild the state.
-  static Store _getStoreWithDependency(BuildContext context, {Object? debug}) {
+  /// You don't need `St` to call this method.
+  static Store _getStoreWithDependency_Untyped(BuildContext context, {Object? debug}) {
     //
     final _InheritedUntypedRebuilds? provider =
         context.dependOnInheritedWidgetOfExactType<_InheritedUntypedRebuilds>();
@@ -753,7 +752,9 @@ class StoreProvider<St> extends InheritedWidget {
     return provider._store;
   }
 
-  static Store _ofUntyped(BuildContext context, {Object? debug}) {
+  /// This WILL NOT create a dependency, and may NOT rebuild the state.
+  /// You don't need `St` to call this method.
+  static Store _getStoreNoDependency_Untyped(BuildContext context, {Object? debug}) {
     final _InheritedUntypedDoesNotRebuild? provider =
         context.dependOnInheritedWidgetOfExactType<_InheritedUntypedDoesNotRebuild>();
 
@@ -766,36 +767,53 @@ class StoreProvider<St> extends InheritedWidget {
   /// Workaround to capture generics.
   static Type _typeOf<T>() => T;
 
-  /// Dispatch an action without a StoreConnector.
-  /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
-  /// whenever the state changes.
+  /// Dispatch an action with [ReduxAction.dispatch]
+  /// without needing a `StoreConnector`. Example:
   ///
-  /// It's recommended that you use the BuildContext extension instead: `context.dispatch(action)`.
+  /// ```dart
+  /// StoreProvider.dispatch(context, MyAction());
+  /// ```
   ///
+  /// However, it's recommended that you use the built-in `BuildContext` extension instead:
+  ///
+  /// ```dart
+  /// context.dispatch(action)`.
+  /// ```
   static FutureOr<ActionStatus> dispatch<St>(BuildContext context, ReduxAction<St> action,
           {Object? debug, bool notify = true}) =>
-      _ofUntyped(context, debug: debug).dispatch(action, notify: notify);
+      _getStoreNoDependency_Untyped(context, debug: debug).dispatch(action, notify: notify);
 
-  /// Dispatch an action without a StoreConnector.
-  /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
-  /// whenever the state changes.
+  /// Dispatch an action with [ReduxAction.dispatchSync]
+  /// without needing a `StoreConnector`. Example:
   ///
+  /// ```dart
+  /// StoreProvider.dispatchSync(context, MyAction());
+  /// ```
   ///
-  /// It's recommended that you use the BuildContext extension instead: `context.dispatchSync(action)`.
+  /// However, it's recommended that you use the built-in `BuildContext` extension instead:
   ///
+  /// ```dart
+  /// context.dispatchSync(action)`.
+  /// ```
   static ActionStatus dispatchSync<St>(BuildContext context, ReduxAction<St> action,
           {Object? debug, bool notify = true}) =>
-      _ofUntyped(context, debug: debug).dispatchSync(action, notify: notify);
+      _getStoreNoDependency_Untyped(context, debug: debug).dispatchSync(action, notify: notify);
 
-  /// Dispatch an action without a StoreConnector.
-  /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
-  /// whenever the state changes.
+  /// Dispatch an action with [ReduxAction.dispatchAndWait]
+  /// without needing a `StoreConnector`. Example:
   ///
-  /// It's recommended that you use the BuildContext extension instead: `context.dispatchAndWait(action)`.
+  /// ```dart
+  /// var status = await StoreProvider.dispatchAndWait(context, MyAction());
+  /// ```
   ///
+  /// However, it's recommended that you use the built-in `BuildContext` extension instead:
+  ///
+  /// ```dart
+  /// var status = await context.dispatchAndWait(action)`.
+  /// ```
   static Future<ActionStatus> dispatchAndWait<St>(BuildContext context, ReduxAction<St> action,
           {Object? debug, bool notify = true}) =>
-      _ofUntyped(context, debug: debug).dispatchAndWait(action, notify: notify);
+      _getStoreNoDependency_Untyped(context, debug: debug).dispatchAndWait(action, notify: notify);
 
   /// Returns a future which will complete when the given state [condition] is true.
   /// If the condition is already true when the method is called, the future completes immediately.
@@ -813,8 +831,7 @@ class StoreProvider<St> extends InheritedWidget {
     bool Function(St) condition, {
     int? timeoutMillis,
   }) =>
-      StoreProvider.backdoorInheritedWidget<St>(context)
-          .waitCondition(condition, timeoutMillis: timeoutMillis);
+      backdoorInheritedWidget<St>(context).waitCondition(condition, timeoutMillis: timeoutMillis);
 
   /// Returns a future that completes when ALL given [actions] finished dispatching.
   ///
@@ -832,7 +849,7 @@ class StoreProvider<St> extends InheritedWidget {
   /// ```
   static Future<void> waitAllActions<St>(BuildContext context, List<ReduxAction<St>> actions) {
     if (actions.isEmpty) throw StoreException('You have to provide a non-empty list of actions.');
-    return StoreProvider.backdoorInheritedWidget<St>(context).waitAllActions(actions);
+    return backdoorInheritedWidget<St>(context).waitAllActions(actions);
   }
 
   /// You can use [isWaiting] and pass it [actionOrActionTypeOrList] to check if:
@@ -852,8 +869,16 @@ class StoreProvider<St> extends InheritedWidget {
   /// Trying to wait for any other type of object will return null and throw
   /// a [StoreException] after the async gap.
   ///
-  static bool isWaiting(BuildContext context, Object actionOrTypeOrList) =>
-      _getStoreWithDependency(context).isWaiting(actionOrTypeOrList);
+  /// Widgets that use this method WILL rebuild whenever the state changes
+  /// (unless you pass the [notify] parameter as `false`).
+  ///
+  static bool isWaiting(
+    BuildContext context,
+    Object actionOrTypeOrList, {
+    bool notify = true,
+  }) =>
+      (notify ? _getStoreWithDependency_Untyped : _getStoreNoDependency_Untyped)(context)
+          .isWaiting(actionOrTypeOrList);
 
   /// Returns true if an [actionOrTypeOrList] failed with an [UserException].
   ///
@@ -862,8 +887,17 @@ class StoreProvider<St> extends InheritedWidget {
   /// ```dart
   /// if (context.isFailed(MyAction)) { // Show an error message. }
   /// ```
-  static bool isFailed(BuildContext context, Object actionOrTypeOrList) =>
-      _getStoreWithDependency(context).isFailed(actionOrTypeOrList);
+  ///
+  /// Widgets that use this method WILL rebuild whenever the state changes
+  /// (unless you pass the [notify] parameter as `false`).
+  ///
+  static bool isFailed(
+    BuildContext context,
+    Object actionOrTypeOrList, {
+    bool notify = true,
+  }) =>
+      (notify ? _getStoreWithDependency_Untyped : _getStoreNoDependency_Untyped)(context)
+          .isFailed(actionOrTypeOrList);
 
   /// Returns the [UserException] of the [actionTypeOrList] that failed.
   ///
@@ -875,8 +909,17 @@ class StoreProvider<St> extends InheritedWidget {
   /// ```dart
   /// if (context.isFailed(SaveUserAction)) Text(context.exceptionFor(SaveUserAction)!.reason ?? '');
   /// ```
-  static UserException? exceptionFor(BuildContext context, Object actionOrTypeOrList) =>
-      _getStoreWithDependency(context).exceptionFor(actionOrTypeOrList);
+  ///
+  /// Widgets that use this method WILL rebuild whenever the state changes
+  /// (unless you pass the [notify] parameter as `false`).
+  ///
+  static UserException? exceptionFor(
+    BuildContext context,
+    Object actionOrTypeOrList, {
+    bool notify = true,
+  }) =>
+      (notify ? _getStoreWithDependency_Untyped : _getStoreNoDependency_Untyped)(context)
+          .exceptionFor(actionOrTypeOrList);
 
   /// Removes the given [actionTypeOrList] from the list of action types that failed.
   ///
@@ -886,13 +929,21 @@ class StoreProvider<St> extends InheritedWidget {
   /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
-  static void clearExceptionFor(BuildContext context, Object actionOrTypeOrList) =>
-      _getStoreWithDependency(context).clearExceptionFor(actionOrTypeOrList);
+  /// Widgets that use this method WILL rebuild whenever the state changes
+  /// (unless you pass the [notify] parameter as `false`).
+  ///
+  static void clearExceptionFor(
+    BuildContext context,
+    Object actionOrTypeOrList, {
+    bool notify = true,
+  }) =>
+      (notify ? _getStoreWithDependency_Untyped : _getStoreNoDependency_Untyped)(context)
+          .clearExceptionFor(actionOrTypeOrList);
 
   /// Avoid using if you don't have a good reason to do so.
   ///
   /// The [backdoorInheritedWidget] gives you direct access to the store for advanced
-  /// use-cases. It does NOT create a dependency like [_getStoreWithDependency] does,
+  /// use-cases. It does NOT create a dependency like [_getStoreWithDependency_Untyped] does,
   /// and it does NOT rebuild the state when the state changes, when you access it like this:
   /// `var state = StoreProvider.backdoorInheritedWidget(context, this).state;`.
   ///
@@ -913,7 +964,7 @@ class StoreProvider<St> extends InheritedWidget {
   /// field [_staticStoreBackdoor]. Note this field is set when the [StoreProvider] is created,
   /// which assumes the [StoreProvider] is used only once in your app. This is usually a
   /// reasonable assumption, but can break in tests. It does NOT create a dependency
-  /// like [_getStoreWithDependency] does, and it does NOT rebuild the state when the state changes,
+  /// like [_getStoreWithDependency_Untyped] does, and it does NOT rebuild the state when the state changes,
   /// when you access it like this: `var state = StoreProvider.backdoorStaticGlobal<AppState>().state;`.
   ///
   static Store<St> backdoorStaticGlobal<St>() {
@@ -1079,21 +1130,71 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// ```
   St getState<St>() => StoreProvider.state<St>(this);
 
-  /// Dispatch an action without a StoreConnector.
-  /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
-  /// whenever the state changes.
+  /// Dispatches the action, applying its reducer, and possibly changing the store state.
+  /// The action may be sync or async.
+  ///
+  /// ```dart
+  /// store.dispatch(MyAction());
+  /// ```
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of this action, even if it changes the state.
+  ///
+  /// Method [dispatch] is of type [Dispatch].
+  ///
+  /// See also:
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  ///
   FutureOr<ActionStatus> dispatch(ReduxAction action, {bool notify = true}) =>
       StoreProvider.dispatch(this, action, notify: notify);
 
-  /// Dispatch an action without a StoreConnector.
-  /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
-  /// whenever the state changes.
+  /// Dispatches the action, applying its reducer, and possibly changing the store state.
+  /// The action may be sync or async. In both cases, it returns a [Future] that resolves when
+  /// the action finishes.
+  ///
+  /// ```dart
+  /// await context.dispatchAndWait(DoThisFirstAction());
+  /// context.dispatch(DoThisSecondAction());
+  /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of this action, even if it changes the state.
+  ///
+  /// Note: While the state change from the action's reducer will have been applied when the
+  /// Future resolves, other independent processes that the action may have started may still
+  /// be in progress.
+  ///
+  /// Method [dispatchAndWait] is of type [DispatchAndWait]. It returns `Future<ActionStatus>`,
+  /// which means you can also get the final status of the action after you `await` it:
+  ///
+  /// ```dart
+  /// var status = await context.dispatchAndWait(MyAction());
+  /// ```
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  ///
   Future<ActionStatus> dispatchAndWait(ReduxAction action, {bool notify = true}) =>
       StoreProvider.dispatchAndWait(this, action, notify: notify);
 
-  /// Dispatch an action without a StoreConnector.
-  /// Note: It's efficient to use this, as Widgets that using this will NOT necessarily rebuild
-  /// whenever the state changes.
+  /// Dispatches the action, applying its reducer, and possibly changing the store state.
+  /// However, if the action is ASYNC, it will throw a [StoreException].
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of this action, even if it changes the state.
+  ///
+  /// Method [dispatchSync] is of type [DispatchSync]. It returns `ActionStatus`,
+  /// which means you can also get the final status of the action:
+  ///
+  /// ```dart
+  /// var status = store.dispatchSync(MyAction());
+  /// ```
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  ///
   ActionStatus dispatchSync(ReduxAction action, {bool notify = true}) =>
       StoreProvider.dispatchSync(this, action, notify: notify);
 

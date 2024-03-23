@@ -306,14 +306,17 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// The action may be sync or async.
   ///
   /// ```dart
-  /// dispatch(MyAction());
+  /// store.dispatch(MyAction());
   /// ```
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of this action, even if it changes the state.
   ///
   /// Method [dispatch] is of type [Dispatch].
   ///
   /// See also:
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  ///
   Dispatch<St> get dispatch => _store.dispatch;
 
   @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
@@ -324,9 +327,12 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// the action finishes.
   ///
   /// ```dart
-  /// await dispatchAndWait(DoThisFirstAction());
-  /// dispatch(DoThisSecondAction());
+  /// await store.dispatchAndWait(DoThisFirstAction());
+  /// store.dispatch(DoThisSecondAction());
   /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of this action, even if it changes the state.
   ///
   /// Note: While the state change from the action's reducer will have been applied when the
   /// Future resolves, other independent processes that the action may have started may still
@@ -336,22 +342,32 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// which means you can also get the final status of the action after you `await` it:
   ///
   /// ```dart
-  /// var status = await dispatchAndWait(MyAction());
+  /// var status = await store.dispatchAndWait(MyAction());
   /// ```
   ///
   /// See also:
   /// - [dispatch] which dispatches both sync and async actions.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  ///
   DispatchAndWait<St> get dispatchAndWait => _store.dispatchAndWait;
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
   /// However, if the action is ASYNC, it will throw a [StoreException].
   ///
-  /// Method [dispatchSync] is of type [DispatchSync].
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of this action, even if it changes the state.
+  ///
+  /// Method [dispatchSync] is of type [DispatchSync]. It returns `ActionStatus`,
+  /// which means you can also get the final status of the action:
+  ///
+  /// ```dart
+  /// var status = store.dispatchSync(MyAction());
+  /// ```
   ///
   /// See also:
   /// - [dispatch] which dispatches both sync and async actions.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  ///
   DispatchSync<St> get dispatchSync => _store.dispatchSync;
 
   /// You can use [isWaiting] to check if:

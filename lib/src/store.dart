@@ -1090,18 +1090,43 @@ class Store<St> {
   /// ```dart
   /// store.dispatch(MyAction());
   /// ```
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of this action, even if it changes the state.
   ///
   /// Method [dispatch] is of type [Dispatch].
   ///
   /// See also:
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  ///
   FutureOr<ActionStatus> dispatch(ReduxAction<St> action, {bool notify = true}) =>
       _dispatch(action, notify: notify);
 
-  @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
-  Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) =>
-      dispatchAndWait(action, notify: notify);
+  /// Dispatches the action, applying its reducer, and possibly changing the store state.
+  /// However, if the action is ASYNC, it will throw a [StoreException].
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of this action, even if it changes the state.
+  ///
+  /// Method [dispatchSync] is of type [DispatchSync]. It returns `ActionStatus`,
+  /// which means you can also get the final status of the action:
+  ///
+  /// ```dart
+  /// var status = store.dispatchSync(MyAction());
+  /// ```
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  ///
+  ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) {
+    if (!action.isSync()) {
+      throw StoreException(
+          "Can't dispatchSync(${action.runtimeType}) because ${action.runtimeType} is async.");
+    }
+
+    return _dispatch(action, notify: notify) as ActionStatus;
+  }
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
   /// The action may be sync or async. In both cases, it returns a [Future] that resolves when
@@ -1111,6 +1136,9 @@ class Store<St> {
   /// await store.dispatchAndWait(DoThisFirstAction());
   /// store.dispatch(DoThisSecondAction());
   /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of this action, even if it changes the state.
   ///
   /// Note: While the state change from the action's reducer will have been applied when the
   /// Future resolves, other independent processes that the action may have started may still
@@ -1126,25 +1154,13 @@ class Store<St> {
   /// See also:
   /// - [dispatch] which dispatches both sync and async actions.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  ///
   Future<ActionStatus> dispatchAndWait(ReduxAction<St> action, {bool notify = true}) =>
       Future.value(_dispatch(action, notify: notify));
 
-  /// Dispatches the action, applying its reducer, and possibly changing the store state.
-  /// However, if the action is ASYNC, it will throw a [StoreException].
-  ///
-  /// Method [dispatchSync] is of type [DispatchSync].
-  ///
-  /// See also:
-  /// - [dispatch] which dispatches both sync and async actions.
-  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
-  ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) {
-    if (!action.isSync()) {
-      throw StoreException(
-          "Can't dispatchSync(${action.runtimeType}) because ${action.runtimeType} is async.");
-    }
-
-    return _dispatch(action, notify: notify) as ActionStatus;
-  }
+  @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
+  Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) =>
+      dispatchAndWait(action, notify: notify);
 
   FutureOr<ActionStatus> _dispatch(ReduxAction<St> action, {required bool notify}) {
     //
