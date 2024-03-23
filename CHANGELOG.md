@@ -227,38 +227,22 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   await store.dispatchAndWait(MyAction());
   expect(store.state.name, 'John')
   
-  // Wait for some action to dispatch, and check for errors in the action status. 
+  // Wait for some action to dispatch, and check for errors in the action status.
   var status = await dispatchAndWait(MyAction());
   expect(status.originalError, isA<UserException>());
   
-  // Wait for some state condition
-  expect(store.state.name, 'John')               
-  dispatch(ChangeNameAction("Bill"));
-  var action = await store.waitCondition((state) => state.name == "Bill");
-  expect(action, isA<ChangeNameAction>());
-  expect(store.state.name, 'Bill'); 
+  // Dispatches two actions in SERIES (one after the other).
+  await dispatchAndWait(SomeAsyncAction());
+  await dispatchAndWait(AnotherAsyncAction());
   
-  // Wait until no actions are in progress.
-  dispatch(BuyStock('IBM'));
-  dispatch(BuyStock('TSLA'));  
-  await waitAllActions([]);                 
-  expect(state.stocks, ['IBM', 'TSLA']);
-         
-  // Wait until some action of a given type is dispatched.
-  dispatch(DoALotOfStuffAction()); 
-  var action = store.waitActionType(ChangeNameAction);
-  expect(action, isA<ChangeNameAction>());
-  expect(action.status.isCompleteOk, isTrue);
-  expect(store.state.name, 'Bill');      
-  
-  // Dispatches two actions in PARALLEL and wait for their TYPES:
+  // Dispatches two actions in PARALLEL and wait for their TYPES.
   expect(store.state.portfolio, ['TSLA']);
   dispatch(BuyAction('IBM'));
   dispatch(SellAction('TSLA'));
   await store.waitAllActionTypes([BuyAction, SellAction]);
-  expect(store.state.portfolio, ['IBM']);                
+  expect(store.state.portfolio, ['IBM']);
   
-  // Dispatches two actions in PARALLEL and wait for them:
+  // Dispatches two actions in PARALLEL and wait for them.
   let action1 = BuyAction('IBM');
   let action2 = BuyAction('TSLA');
   dispatch(action1);
@@ -266,21 +250,30 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
   await store.waitAllActions([action1, action2]);
   expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   
-  // Dispatches actions and wait until no actions are in progress.
-  dispatch(BuyAction('IBM'));
-  dispatch(SellAction('TSLA'));
-  await store.waitAllActions([]);
-  expect(the result of all actions...);
+  // Wait until no actions are in progress.
+  dispatch(BuyStock('IBM'));
+  dispatch(BuyStock('TSLA'));  
+  await waitAllActions([]);                 
+  expect(state.stocks, ['IBM', 'TSLA']);
   
-  // Dispatches two actions in SERIES and wait for them:
-  await dispatchAndWait(SomeAsyncAction());
-  await dispatchAndWait(AnotherAsyncAction());
-  expect(the result of both actions...);
+  // Wait for some action of a given type.
+  dispatch(ChangeNameAction());
+  var action = store.waitActionType(ChangeNameAction);
+  expect(action, isA<ChangeNameAction>());
+  expect(action.status.isCompleteOk, isTrue);
+  expect(store.state.name, 'Bill');
   
-  // Wait until some action of the given types is dispatched.
-  dispatch(ProcessStocksAction()); 
+  // Wait until any action of the given types finishes dispatching.
+  dispatch(BuyOrSellAction());   
   var action = store.waitAnyActionTypeFinishes([BuyAction, SellAction]);  
-  expect(store.state.portfolio.contains('IBM'), isTrue);  
+  expect(store.state.portfolio.contains('IBM'), isTrue);
+  
+  // Wait for some state condition.
+  expect(store.state.name, 'John')               
+  dispatch(ChangeNameAction("Bill"));
+  var action = await store.waitCondition((state) => state.name == "Bill");
+  expect(action, isA<ChangeNameAction>());
+  expect(store.state.name, 'Bill');  
   ```                          
 
   Note the `StoreTester` will NOT be removed, now or in the future. It's just not the recommended
