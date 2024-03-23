@@ -135,7 +135,7 @@ showcasing the fundamentals and best practices described in the AsyncRedux READM
 
   See
   the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_conector_vs_provider.dart.dart">
-  Connector vc Provider Example</a>.
+  Connector vs Provider Example</a>.
 
 
 * You can now get and set properties in the `Store` using the `prop` and `setProp` methods.
