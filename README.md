@@ -3685,7 +3685,7 @@ Note: If your state is called `AppState`, you can define your own `useAppState` 
 
 ```dart
 T useAppState<T>(T Function(AppState state) converter, {bool distinct = true}) =>
-useSelector<T, AppState>(converter, distinct: distinct);
+   useSelector<T, AppState>(converter, distinct: distinct);
 ```
 
 This will simplify the use of the hook, like this:
