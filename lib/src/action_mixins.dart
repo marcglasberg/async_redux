@@ -242,7 +242,7 @@ mixin Retry<St> on ReduxAction<St> {
           if (newState is Future) newState = await newState;
         } catch (error) {
           _attempts++;
-          if (_attempts > maxRetries) rethrow;
+          if ((maxRetries >= 0) && (_attempts > maxRetries)) rethrow;
 
           var currentDelay = nextDelay();
           await Future.delayed(currentDelay);
@@ -275,12 +275,14 @@ mixin Retry<St> on ReduxAction<St> {
 /// class MyAction extends ReduxAction<AppState> with Retry, UnlimitedRetries { ... }
 /// ```
 ///
+/// This is the same as setting [maxRetries] to -1.
+///
 /// Note: If you `await dispatchAndWait(action)` and the action uses [UnlimitedRetries],
 /// it may never finish if it keeps failing. So, be careful when using it.
 ///
 mixin UnlimitedRetries<St> on Retry<St> {
   @override
-  int get maxRetries => 1000000000;
+  int get maxRetries => -1;
 }
 
 /// The [OptimisticUpdate] mixin is still EXPERIMENTAL. You can use it, but test it well.
