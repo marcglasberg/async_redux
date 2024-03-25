@@ -13,9 +13,17 @@ void main() {
     var store = Store<State>(initialState: State(1));
     await store.waitCondition((state) => state.count == 1);
 
+    // If we disallow the future to complete immediately, it will throw a TimeoutException.
+    store = Store<State>(initialState: State(1));
+    expect(() => store.waitCondition((state) => state.count == 1, completeImmediately: false),
+        throwsA(isA<StoreException>()));
+
     // The state is NEVER in the condition, but the timeout will end it.
     await expectLater(
-      () => store.waitCondition((state) => state.count == 2, timeoutMillis: 10),
+      () {
+        print('state = ${store.state}');
+        return store.waitCondition((state) => state.count == 2, timeoutMillis: 10);
+      },
       throwsA(isA<TimeoutException>()),
     );
 

@@ -19,13 +19,9 @@ typedef StateCondition<St> = bool Function(TestInfo<St> info);
 ///
 class StoreTester<St> {
   //
-  /// The global default timeout for the wait functions is 10 minutes.
+  /// The default timeout in seconds is 10 minutes.
   /// This value is not final and can be modified.
-  /// To disable the timeout, make it 0 or -1.
-  static int defaultTimeoutMillis = 60 * 1000 * 10;
-
-  /// The default timeout in seconds.
-  static int get defaultTimeout => defaultTimeoutMillis ~/ 1000;
+  static int defaultTimeout = 60 * 10;
 
   /// If the default debug info should be printed to the console or not.
   static bool printDefaultDebugInfo = true;
@@ -930,6 +926,10 @@ class TestInfoList<St> {
   void _add(TestInfo<St> info) => _info.add(info);
 }
 
+/// Note: The [StoreExceptionTimeout] is used in the [StoreTester] only.
+/// In the wait methods of the [Store] (like [Store.waitCondition] etc),
+/// the timeouts throw [TimeoutException].
+///
 class StoreExceptionTimeout extends StoreException {
   StoreExceptionTimeout() : super("Timeout.");
 

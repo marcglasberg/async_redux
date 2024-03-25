@@ -3,7 +3,7 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
-# 22.4.7
+# 22.4.8
 
 * For those who use `flutter_hooks`, you can now use the
   new https://pub.dev/packages/flutter_hooks_async_redux package

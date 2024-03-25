@@ -66,9 +66,8 @@ typedef DispatchAndWait<St> = Future<ActionStatus> Function(
 /// methods which can throw errors.
 ///
 /// 4) `bool abortDispatch()` ➜ If this returns true, the action will not be
-/// dispatched: `before`, `reduce` and `after` will not be called, and the action
-/// will not be visible to the `StoreTester`. This is only useful under rare
-/// circumstances, and you should only use it if you know what you are doing.
+/// dispatched: `before`, `reduce` and `after` will not be called. This is only useful
+/// under rare circumstances, and you should only use it if you know what you are doing.
 ///
 /// 5) `Object? wrapError(error)` ➜ If any error is thrown by `before` or `reduce`,
 /// you have the chance to further process it by using `wrapError`. Usually this
@@ -425,17 +424,28 @@ class Store<St> {
   }
 
   /// Beware: Changes the state directly. Use only for TESTS.
+  /// This will not notify the listeners nor complete wait conditions.
   void defineState(St state) {
     _state = state;
     _stateTimestamp = DateTime.now().toUtc();
   }
 
+  /// The global default timeout for the wait functions like [waitCondition] etc
+  /// is 10 minutes. This value is not final and can be modified.
+  /// To disable the timeout, make it -1.
+  static int defaultTimeoutMillis = 60 * 1000 * 10;
+
   /// Returns a future which will complete when the given state [condition] is true.
-  /// If the condition is already true when the method is called, the future completes immediately.
+  ///
+  /// If [completeImmediately] is `true` (the default), the future will complete immediately and
+  /// throw no error. Otherwise, this method will throw [StoreException] if the condition is
+  /// already true when the method is called. Note: The default here is `true`, while in the
+  /// other `wait` methods like [waitActionCondition] it's `false`. This makes sense because of
+  /// the different use cases for these methods.
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
-  /// To disable the timeout, make it 0 or -1.
-  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  /// To disable the timeout, make it -1.
+  /// If you want, you can modify [defaultTimeoutMillis] to change the default timeout.
   ///
   /// This method is useful in tests, and it returns the action which changed
   /// the store state into the condition, in case you need it:
@@ -515,39 +525,52 @@ class Store<St> {
   ///
   Future<ReduxAction<St>?> waitCondition(
     bool Function(St) condition, {
+    //
+    /// If `completeImmediately` is `true` (the default), the future will complete
+    /// immediately and throw no error. Otherwise, this method will throw [StoreException]
+    /// if the condition is already true when the method is called. Note: The default here
+    /// is `true`, while in the other `wait` methods like [waitActionCondition] it's `false`.
+    /// This makes sense because of the different use cases for these methods.
+    bool completeImmediately = true,
+    //
+    /// The maximum time to wait for the condition to be met. The default is 10 minutes.
+    /// To disable the timeout, make it -1.
     int? timeoutMillis,
   }) async {
-    if (condition(_state))
-      return null;
+    //
+    // If the condition is already true when `waitCondition` is called.
+    if (condition(_state)) {
+      // Complete and return null (no trigger action).
+      if (completeImmediately)
+        return Future.value(null);
+      // else throw an error.
+      else
+        throw StoreException("Awaited state condition was already true, "
+            "and the future completed immediately.");
+    }
+    //
     else {
-      int timeout = timeoutMillis ?? StoreTester.defaultTimeoutMillis;
+      var completer = Completer<ReduxAction<St>?>();
 
-      // TODO: Implement this without the StoreTester, to allow it to be tree-shaken.
-      var conditionTester = StoreTester.simple(this);
-      try {
-        var future = conditionTester.waitConditionGetLast(
-          testImmediately: false,
-          (TestInfo<St>? info) => condition(info!.state),
-          timeoutInSeconds: -1,
+      _stateConditionCompleters[condition] = completer;
+
+      int timeout = timeoutMillis ?? defaultTimeoutMillis;
+      var future = completer.future;
+
+      if (timeout >= 0)
+        future = completer.future.timeout(
+          Duration(milliseconds: timeout),
+          onTimeout: () {
+            _stateConditionCompleters.remove(condition);
+            throw TimeoutException(null, Duration(milliseconds: timeout));
+          },
         );
 
-        if (timeout > 0)
-          future = future.timeout(
-            Duration(milliseconds: timeout),
-            onTimeout: () => throw TimeoutException(null, Duration(milliseconds: timeout)),
-          );
-
-        var info = await future;
-        var action = info.action;
-        if (action == null) throw TimeoutException(null, Duration(milliseconds: timeout));
-        return action;
-      } finally {
-        await conditionTester.cancel();
-      }
+      return future;
     }
   }
 
-  // This map will hold the completers for each condition checker function.
+  // This map will hold the completers for each ACTION condition checker function.
   // 1) The set key is the condition checker function.
   // 2) The value is the completer, that informs of:
   //    - The set of actions in progress when the condition is met.
@@ -555,11 +578,16 @@ class Store<St> {
   final _actionConditionCompleters = <bool Function(Set<ReduxAction<St>>, ReduxAction<St>?),
       Completer<(Set<ReduxAction<St>>, ReduxAction<St>?)>>{};
 
+  // This map will hold the completers for each STATE condition checker function.
+  // 1) The set key is the condition checker function.
+  // 2) The value is the completer, that informs the action that triggered the condition.
+  final _stateConditionCompleters = <bool Function(St), Completer<ReduxAction<St>?>>{};
+
   /// Returns a future that completes when some actions meet the given [condition].
   ///
-  /// If [completeImmediately] is `false` (the default), this method will throw an error if the
-  /// condition was already true when the method was called. Otherwise, the future will complete
-  /// immediately and throw no error.
+  /// If [completeImmediately] is `false` (the default), this method will throw [StoreException]
+  /// if the condition was already true when the method was called. Otherwise, the future will
+  /// complete immediately and throw no error.
   ///
   /// The [condition] is a function that takes the set of actions "in progress", as well as an
   /// action that just entered the set (by being dispatched) or left the set (by finishing
@@ -577,8 +605,8 @@ class Store<St> {
   /// It's not checked every time action statuses change.
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
-  /// To disable the timeout, make it 0 or -1.
-  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  /// To disable the timeout, make it -1.
+  /// If you want, you can modify [defaultTimeoutMillis] to change the default timeout.
   ///
   /// Examples:
   ///
@@ -662,7 +690,7 @@ class Store<St> {
     String completedErrorMessage = "Awaited action condition was already true",
     //
     /// The maximum time to wait for the condition to be met. The default is 10 minutes.
-    /// To disable the timeout, make it 0 or -1.
+    /// To disable the timeout, make it -1.
     int? timeoutMillis,
   }) {
     //
@@ -681,10 +709,10 @@ class Store<St> {
 
       _actionConditionCompleters[condition] = completer;
 
-      int timeout = timeoutMillis ?? StoreTester.defaultTimeoutMillis;
+      int timeout = timeoutMillis ?? defaultTimeoutMillis;
       var future = completer.future;
 
-      if (timeout > 0)
+      if (timeout >= 0)
         future = completer.future.timeout(
           Duration(milliseconds: timeout),
           onTimeout: () {
@@ -699,9 +727,9 @@ class Store<St> {
 
   /// Returns a future that completes when ALL given [actions] finish dispatching.
   ///
-  /// If [completeImmediately] is `false` (the default), this method will throw an error if none
-  /// of the given actions are in progress when the method is called. Otherwise, the future will
-  /// complete immediately and throw no error.
+  /// If [completeImmediately] is `false` (the default), this method will throw [StoreException]
+  /// if none of the given actions are in progress when the method is called. Otherwise, the future
+  /// will complete immediately and throw no error.
   ///
   /// However, if you don't provide any actions (empty list or `null`), the future will complete
   /// when ALL current actions in progress finish dispatching. In other words, when no actions are
@@ -713,8 +741,8 @@ class Store<St> {
   /// finish is safe in production, as long as you're waiting for actions you just dispatched.
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
-  /// To disable the timeout, make it 0 or -1.
-  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  /// To disable the timeout, make it -1.
+  /// If you want, you can modify [defaultTimeoutMillis] to change the default timeout.
   ///
   /// Examples:
   ///
@@ -826,8 +854,8 @@ class Store<St> {
   ///   ```
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
-  /// To disable the timeout, make it 0 or -1.
-  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  /// To disable the timeout, make it -1.
+  /// If you want, you can modify [defaultTimeoutMillis] to change the default timeout.
   ///
   /// Examples:
   ///
@@ -926,8 +954,8 @@ class Store<St> {
   ///   no action of the given types is in progress anymore.
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
-  /// To disable the timeout, make it 0 or -1.
-  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  /// To disable the timeout, make it -1.
+  /// If you want, you can modify [defaultTimeoutMillis] to change the default timeout.
   ///
   /// Examples:
   ///
@@ -1043,8 +1071,8 @@ class Store<St> {
   /// ```
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
-  /// To disable the timeout, make it 0 or -1.
-  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  /// To disable the timeout, make it -1.
+  /// If you want, you can modify [defaultTimeoutMillis] to change the default timeout.
   ///
   /// Examples:
   ///
@@ -1336,7 +1364,7 @@ class Store<St> {
   /// of [_actionsInProgress] that triggered the check.
   ///
   void _checkAllActionConditions(ReduxAction<St> triggerAction) {
-    List<bool Function(Set<ReduxAction<St>>, ReduxAction<St>?)?> keysToRemove = [];
+    List<bool Function(Set<ReduxAction<St>>, ReduxAction<St>?)> keysToRemove = [];
 
     _actionConditionCompleters.forEach((condition, completer) {
       if (condition(actionsInProgress(), triggerAction)) {
@@ -1347,6 +1375,22 @@ class Store<St> {
 
     keysToRemove.forEach((key) {
       _actionConditionCompleters.remove(key);
+    });
+  }
+
+  /// The [triggerAction] is the action that modified the state to trigger the condition.
+  void _checkAllStateConditions(ReduxAction<St> triggerAction) {
+    List<bool Function(St)> keysToRemove = [];
+
+    _stateConditionCompleters.forEach((condition, completer) {
+      if (condition(_state)) {
+        completer.complete(triggerAction);
+        keysToRemove.add(condition);
+      }
+    });
+
+    keysToRemove.forEach((key) {
+      _stateConditionCompleters.remove(key);
     });
   }
 
@@ -1768,6 +1812,8 @@ class Store<St> {
       if (notify) {
         _changeController.add(state ?? _state);
       }
+
+      _checkAllStateConditions(action);
     }
     St newState = _state;
 

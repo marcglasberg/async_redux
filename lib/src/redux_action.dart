@@ -8,7 +8,7 @@ part of async_redux_store;
 /// Actions must extend this class.
 ///
 /// Important: Do NOT override operator == and hashCode. Actions must retain
-/// their default [Object] comparison by identity, or the StoreTester may not work.
+/// their default [Object] comparison by identity, for Async Redux to work.
 ///
 abstract class ReduxAction<St> {
   late Store<St> _store;
@@ -305,8 +305,8 @@ abstract class ReduxAction<St> {
   /// If the condition is already true when the method is called, the future completes immediately.
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
-  /// To disable the timeout, make it 0 or -1.
-  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  /// To disable the timeout, make it -1.
+  /// If you want, you can modify [Store.defaultTimeoutMillis] to change the default timeout.
   ///
   /// ```dart
   /// var action = await store.waitCondition((state) => state.name == "Bill");
@@ -321,9 +321,9 @@ abstract class ReduxAction<St> {
   /// Returns a future that completes when ALL given [actions] finished dispatching.
   /// You MUST provide at list one action, or an error will be thrown.
   ///
-  /// If [completeImmediately] is `false` (the default), this method will throw an error if none
-  /// of the given actions are in progress when the method is called. Otherwise, the future will
-  /// complete immediately and throw no error.
+  /// If [completeImmediately] is `false` (the default), this method will throw [StoreException]
+  /// if none of the given actions are in progress when the method is called. Otherwise, the future
+  /// will complete immediately and throw no error.
   ///
   /// Example:
   ///

@@ -429,8 +429,8 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// If the condition is already true when the method is called, the future completes immediately.
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
-  /// To disable the timeout, make it 0 or -1.
-  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
+  /// To disable the timeout, make it -1.
+  /// If you want, you can modify [Store.defaultTimeoutMillis] to change the default timeout.
   ///
   /// ```dart
   /// var action = await store.waitCondition((state) => state.name == "Bill");
@@ -445,9 +445,9 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// Returns a future that completes when ALL given [actions] finished dispatching.
   /// You MUST provide at list one action, or an error will be thrown.
   ///
-  /// If [completeImmediately] is `false` (the default), this method will throw an error if none
-  /// of the given actions are in progress when the method is called. Otherwise, the future will
-  /// complete immediately and throw no error.
+  /// If [completeImmediately] is `false` (the default), this method will throw [StoreException]
+  /// if none of the given actions are in progress when the method is called. Otherwise, the future
+  /// will complete immediately and throw no error.
   ///
   /// Example:
   ///
