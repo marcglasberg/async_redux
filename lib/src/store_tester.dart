@@ -21,8 +21,8 @@ class StoreTester<St> {
   //
   /// The global default timeout for the wait functions is 10 minutes.
   /// This value is not final and can be modified.
-  /// To disable the timeout, modify this to a large value, like 300000000000 (almost 10 years).
-  static var defaultTimeoutMillis = 60 * 1000 * 10;
+  /// To disable the timeout, make it 0 or -1.
+  static int defaultTimeoutMillis = 60 * 1000 * 10;
 
   /// The default timeout in seconds.
   static int get defaultTimeout => defaultTimeoutMillis ~/ 1000;

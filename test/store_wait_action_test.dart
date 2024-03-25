@@ -136,8 +136,8 @@ void main() {
   });
 
   test('waitAnyActionTypeFinishes', () async {
-    // Returns a future that completes when an action of ANY of the given types finish after
-    // the method is called. We start an action before calling the method, then call the method.
+    // Returns a future that completes when ANY action of the given types finish after the
+    // method is called. We start an action before calling the method, then call the method.
     // As soon as the action finishes, the future completes.
     var store = Store<State>(initialState: State(1));
     store.dispatch(DelayedAction(1, delayMillis: 10));

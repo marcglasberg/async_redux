@@ -175,10 +175,11 @@ abstract class ReduxAction<St> {
   /// (comparing by `identical`, not `equals`).
   FutureOr<St?> reduce();
 
-  /// You may wrap the reducer to allow for some pre or post-processing.
+  /// You may wrap the reducer to allow for some pre- or post-processing.
   /// For example, if you want to prevent an async reducer to change the current state,
   /// if the current state has already changed since when the reducer started:
-  /// ```
+  ///
+  /// ```dart
   /// Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
   ///    var oldState = state;
   ///    AppState? newState = await reduce();
@@ -303,9 +304,9 @@ abstract class ReduxAction<St> {
   /// Returns a future which will complete when the given state [condition] is true.
   /// If the condition is already true when the method is called, the future completes immediately.
   ///
-  /// You may also provide a [timeoutMillis], which by default is 10 minutes. If you want, you
-  /// can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
-  /// Note: To disable the timeout, modify this to a large value, like 300000000 (almost 10 years).
+  /// You may also provide a [timeoutMillis], which by default is 10 minutes.
+  /// To disable the timeout, make it 0 or -1.
+  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
   ///
   /// ```dart
   /// var action = await store.waitCondition((state) => state.name == "Bill");

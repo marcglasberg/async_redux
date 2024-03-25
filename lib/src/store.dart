@@ -433,9 +433,9 @@ class Store<St> {
   /// Returns a future which will complete when the given state [condition] is true.
   /// If the condition is already true when the method is called, the future completes immediately.
   ///
-  /// You may also provide a [timeoutMillis], which by default is 10 minutes. If you want, you
-  /// can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
-  /// Note: To disable the timeout, modify this to a large value, like 300000000 (almost 10 years).
+  /// You may also provide a [timeoutMillis], which by default is 10 minutes.
+  /// To disable the timeout, make it 0 or -1.
+  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
   ///
   /// This method is useful in tests, and it returns the action which changed
   /// the store state into the condition, in case you need it:
@@ -520,22 +520,26 @@ class Store<St> {
     if (condition(_state))
       return null;
     else {
+      int timeout = timeoutMillis ?? StoreTester.defaultTimeoutMillis;
+
       // TODO: Implement this without the StoreTester, to allow it to be tree-shaken.
       var conditionTester = StoreTester.simple(this);
       try {
-        var info = await conditionTester
-            .waitConditionGetLast(
-              testImmediately: false,
-              (TestInfo<St>? info) => condition(info!.state),
-              timeoutInSeconds: 300000000000,
-            )
-            .timeout(Duration(milliseconds: timeoutMillis ?? StoreTester.defaultTimeoutMillis),
-                onTimeout: () => throw TimeoutException(null,
-                    Duration(milliseconds: timeoutMillis ?? StoreTester.defaultTimeoutMillis)));
+        var future = conditionTester.waitConditionGetLast(
+          testImmediately: false,
+          (TestInfo<St>? info) => condition(info!.state),
+          timeoutInSeconds: -1,
+        );
+
+        if (timeout > 0)
+          future = future.timeout(
+            Duration(milliseconds: timeout),
+            onTimeout: () => throw TimeoutException(null, Duration(milliseconds: timeout)),
+          );
+
+        var info = await future;
         var action = info.action;
-        if (action == null)
-          throw TimeoutException(
-              null, Duration(milliseconds: timeoutMillis ?? StoreTester.defaultTimeoutMillis));
+        if (action == null) throw TimeoutException(null, Duration(milliseconds: timeout));
         return action;
       } finally {
         await conditionTester.cancel();
@@ -573,6 +577,7 @@ class Store<St> {
   /// It's not checked every time action statuses change.
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
+  /// To disable the timeout, make it 0 or -1.
   /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
   ///
   /// Examples:
@@ -643,32 +648,30 @@ class Store<St> {
   @visibleForTesting
   Future<(Set<ReduxAction<St>>, ReduxAction<St>?)> waitActionCondition(
     //
-    // The condition receives the current actions in progress, and the action that triggered the condition.
+    //
+    /// The condition receives the current actions in progress, and the action that triggered the condition.
     bool Function(Set<ReduxAction<St>> actions, ReduxAction<St>? triggerAction) condition, {
     //
-    // If [completeImmediately] is `false` (the default), this method will throw an error if the
-    // condition is already true when the method is called. Otherwise, the future will complete
+    /// If `completeImmediately` is `false` (the default), this method will throw an error if the
+    /// condition is already true when the method is called. Otherwise, the future will complete
     /// immediately and throw no error.
     bool completeImmediately = false,
     //
-    // Error message in case the condition was already true when the method was called,
-    // and `completeImmediately` is false.
+    /// Error message in case the condition was already true when the method was called,
+    /// and `completeImmediately` is false.
     String completedErrorMessage = "Awaited action condition was already true",
     //
-    // The maximum time to wait for the condition to be met. The default is 10 minutes.
-    // To disable it, modify it to a large value, like 300000000000 (almost 10 years).
+    /// The maximum time to wait for the condition to be met. The default is 10 minutes.
+    /// To disable the timeout, make it 0 or -1.
     int? timeoutMillis,
   }) {
     //
-    var unmodifiableActionsInProgress = UnmodifiableSetView(_actionsInProgress);
-
     // If the condition is already true when `waitActionCondition` is called.
-
-    if (condition(unmodifiableActionsInProgress, null)) {
+    if (condition(actionsInProgress(), null)) {
       // Complete and return the actions in progress and the trigger action.
       if (completeImmediately)
-        return Future.value((unmodifiableActionsInProgress, null));
-      // Throw an error.
+        return Future.value((actionsInProgress(), null));
+      // else throw an error.
       else
         throw StoreException(completedErrorMessage + ", and the future completed immediately.");
     }
@@ -678,14 +681,19 @@ class Store<St> {
 
       _actionConditionCompleters[condition] = completer;
 
-      return completer.future.timeout(
-        Duration(milliseconds: timeoutMillis ?? StoreTester.defaultTimeoutMillis),
-        onTimeout: () {
-          _actionConditionCompleters.remove(condition);
-          throw TimeoutException(
-              null, Duration(milliseconds: timeoutMillis ?? StoreTester.defaultTimeoutMillis));
-        },
-      );
+      int timeout = timeoutMillis ?? StoreTester.defaultTimeoutMillis;
+      var future = completer.future;
+
+      if (timeout > 0)
+        future = completer.future.timeout(
+          Duration(milliseconds: timeout),
+          onTimeout: () {
+            _actionConditionCompleters.remove(condition);
+            throw TimeoutException(null, Duration(milliseconds: timeout));
+          },
+        );
+
+      return future;
     }
   }
 
@@ -703,6 +711,10 @@ class Store<St> {
   /// Note: Waiting until no actions are in progress should only be done in test, never in
   /// production, as it's very easy to create a deadlock. However, waiting for specific actions to
   /// finish is safe in production, as long as you're waiting for actions you just dispatched.
+  ///
+  /// You may also provide a [timeoutMillis], which by default is 10 minutes.
+  /// To disable the timeout, make it 0 or -1.
+  /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
   ///
   /// Examples:
   ///
@@ -768,16 +780,23 @@ class Store<St> {
   /// [waitAllActionTypes] - Waits until all actions of the given type are NOT in progress.
   /// [waitAnyActionTypeFinishes] - Waits until ANY action of the given types finish dispatching.
   ///
-  Future<void> waitAllActions(List<ReduxAction<St>>? actions, {bool completeImmediately = false}) {
+  Future<void> waitAllActions(
+    List<ReduxAction<St>>? actions, {
+    bool completeImmediately = false,
+    int? timeoutMillis,
+  }) {
     if (actions == null || actions.isEmpty) {
       return this.waitActionCondition(
           completeImmediately: completeImmediately,
           completedErrorMessage: "No actions were in progress",
+          timeoutMillis: timeoutMillis,
           (actions, triggerAction) => actions.isEmpty);
     } else {
       return this.waitActionCondition(
         completeImmediately: completeImmediately,
         completedErrorMessage: "None of the given actions were in progress",
+        timeoutMillis: timeoutMillis,
+        //
         (actionsInProgress, triggerAction) {
           for (var action in actions) {
             if (actionsInProgress.contains(action)) return false;
@@ -807,6 +826,7 @@ class Store<St> {
   ///   ```
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
+  /// To disable the timeout, make it 0 or -1.
   /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
   ///
   /// Examples:
@@ -884,6 +904,7 @@ class Store<St> {
       completeImmediately: completeImmediately,
       completedErrorMessage: "No action of the given type was in progress",
       timeoutMillis: timeoutMillis,
+      //
       (actionsInProgress, triggerAction) {
         return !actionsInProgress.any((action) => action.runtimeType == actionType);
       },
@@ -905,6 +926,7 @@ class Store<St> {
   ///   no action of the given types is in progress anymore.
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
+  /// To disable the timeout, make it 0 or -1.
   /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
   ///
   /// Examples:
@@ -990,6 +1012,7 @@ class Store<St> {
         completeImmediately: completeImmediately,
         completedErrorMessage: "No action of the given types was in progress",
         timeoutMillis: timeoutMillis,
+        //
         (actionsInProgress, triggerAction) {
           for (var actionType in actionTypes) {
             if (actionsInProgress.any((action) => action.runtimeType == actionType)) return false;
@@ -1020,6 +1043,7 @@ class Store<St> {
   /// ```
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
+  /// To disable the timeout, make it 0 or -1.
   /// If you want, you can modify [StoreTester.defaultTimeoutMillis] to change the default timeout.
   ///
   /// Examples:
@@ -1095,11 +1119,13 @@ class Store<St> {
     var (_, triggerAction) = await this.waitActionCondition(
       completedErrorMessage: "Assertion error",
       timeoutMillis: timeoutMillis,
+      //
       (actionsInProgress, triggerAction) {
+        //
         // If the triggerAction is one of the actionTypes,
         if ((triggerAction != null) && actionTypes.contains(triggerAction.runtimeType)) {
           // If the actions in progress do not contain the triggerAction, then the triggerAction has finished.
-          // Otherwise, the triggerAction has just been dispatched.
+          // Otherwise, the triggerAction has just been dispatched, which is not what we want.
           bool isFinished = !actionsInProgress.contains(triggerAction);
           return isFinished;
         }
@@ -1312,11 +1338,9 @@ class Store<St> {
   void _checkAllActionConditions(ReduxAction<St> triggerAction) {
     List<bool Function(Set<ReduxAction<St>>, ReduxAction<St>?)?> keysToRemove = [];
 
-    var unmodifiableActionsInProgress = UnmodifiableSetView(_actionsInProgress);
-
     _actionConditionCompleters.forEach((condition, completer) {
-      if (condition(unmodifiableActionsInProgress, triggerAction)) {
-        completer.complete((unmodifiableActionsInProgress, triggerAction));
+      if (condition(actionsInProgress(), triggerAction)) {
+        completer.complete((actionsInProgress(), triggerAction));
         keysToRemove.add(condition);
       }
     });
@@ -1762,6 +1786,11 @@ class Store<St> {
   /// The actions that are currently being processed.
   /// Use [isWaiting] to know if an action is currently being processed.
   final Set<ReduxAction<St>> _actionsInProgress = HashSet<ReduxAction<St>>.identity();
+
+  /// Returns an unmodifiable set of the actions on progress.
+  Set<ReduxAction<St>> actionsInProgress() {
+    return new UnmodifiableSetView(this._actionsInProgress);
+  }
 
   /// Actions that we may put into [_actionsInProgress].
   /// This helps to know when to rebuild to make [isWaiting] work.
