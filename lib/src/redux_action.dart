@@ -431,10 +431,10 @@ class AbortDispatchException implements Exception {
 /// the given [updateFunction] to the current state.
 class UpdateStateAction<St> extends ReduxAction<St> {
   //
-  final St Function(St) updateFunction;
+  final St? Function(St) updateFunction;
 
   UpdateStateAction(this.updateFunction);
 
   @override
-  St reduce() => updateFunction(state);
+  St? reduce() => updateFunction(state);
 }
