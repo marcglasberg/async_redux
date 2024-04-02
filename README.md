@@ -124,12 +124,10 @@ wait for an action to finish:
 ```dart
 class LoadTextAndIncrement extends Action {
 
-  Future<String> reduce() async {
-    var text = await dispatchAndWait(LoadText());
-    dispatch(Increment());
-    return text;
-  }
-}
+  Future<AppState> reduce() async {
+    await dispatchAndWait(LoadText());
+    return state.copy(count: state.count + 1);
+  }}
 ```
 
 You can add **mixins** to your actions, to accomplish common tasks:
