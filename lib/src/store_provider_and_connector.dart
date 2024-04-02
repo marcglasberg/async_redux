@@ -635,11 +635,14 @@ class _StoreStreamListenerState<St, Model> //
 /// var state = context.state;
 /// ```
 ///
-/// You can dispatch actions using the [dispatch], [dispatchAndWait] and [dispatchSync] method:
+/// You can dispatch actions using the [dispatch], [dispatchAll], [dispatchAndWait],
+/// [dispatchAndWaitAll] and [dispatchSync] methods:
 ///
 /// ```dart
 /// context.dispatch(action);
+/// context.dispatchAll([action1, action2]);
 /// context.dispatchAndWait(action);
+/// context.dispatchAndWaitAll([action1, action2]);
 /// context.dispatchSync(action);
 /// ```
 ///
@@ -814,6 +817,47 @@ class StoreProvider<St> extends InheritedWidget {
   static Future<ActionStatus> dispatchAndWait<St>(BuildContext context, ReduxAction<St> action,
           {Object? debug, bool notify = true}) =>
       _getStoreNoDependency_Untyped(context, debug: debug).dispatchAndWait(action, notify: notify);
+
+  /// Dispatch a list of actions with [ReduxAction.dispatchAll]
+  /// without needing a `StoreConnector`. Example:
+  ///
+  /// ```dart
+  /// StoreProvider.dispatchAll(context, [Action1(), Action2()]);
+  /// ```
+  ///
+  /// However, it's recommended that you use the built-in `BuildContext` extension instead:
+  ///
+  /// ```dart
+  /// context.dispatchAll([Action1(), Action2()])`.
+  /// ```
+  static void dispatchAll<St>(
+    BuildContext context,
+    List<ReduxAction<St>> actions, {
+    Object? debug,
+    bool notify = true,
+  }) =>
+      _getStoreNoDependency_Untyped(context, debug: debug).dispatchAll(actions, notify: notify);
+
+  /// Dispatch a list of actions with [ReduxAction.dispatchAndWaitAll]
+  /// without needing a `StoreConnector`. Example:
+  ///
+  /// ```dart
+  /// var status = await StoreProvider.dispatchAndWaitAll(context, [Action1(), Action2()]);
+  /// ```
+  ///
+  /// However, it's recommended that you use the built-in `BuildContext` extension instead:
+  ///
+  /// ```dart
+  /// var status = await context.dispatchAndWaitAll([Action1(), Action2()])`.
+  /// ```
+  static Future<void> dispatchAndWaitAll<St>(
+    BuildContext context,
+    List<ReduxAction<St>> actions, {
+    Object? debug,
+    bool notify = true,
+  }) =>
+      _getStoreNoDependency_Untyped(context, debug: debug)
+          .dispatchAndWaitAll(actions, notify: notify);
 
   /// Returns a future which will complete when the given state [condition] is true.
   /// If the condition is already true when the method is called, the future completes immediately.
@@ -1177,6 +1221,52 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   ///
   Future<ActionStatus> dispatchAndWait(ReduxAction action, {bool notify = true}) =>
       StoreProvider.dispatchAndWait(this, action, notify: notify);
+
+  /// Dispatches all given [actions] in parallel, applying their reducer, and possibly changing
+  /// the store state.
+  ///
+  /// ```dart
+  /// dispatchAll([BuyAction('IBM'), SellAction('TSLA')]);
+  /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of these actions, even if it changes the state.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  ///
+  void dispatchAll(List<ReduxAction<St>> actions, {bool notify = true}) =>
+      StoreProvider.dispatchAll(this, actions, notify: notify);
+
+  /// Dispatches all given [actions] in parallel, applying their reducers, and possibly changing
+  /// the store state. The actions may be sync or async. It returns a [Future] that resolves when
+  /// ALL actions finish.
+  ///
+  /// ```dart
+  /// await store.dispatchAndWaitAll([BuyAction('IBM'), SellAction('TSLA')]);
+  /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of these actions, even if they change the state.
+  ///
+  /// Note: While the state change from the action's reducers will have been applied when the
+  /// Future resolves, other independent processes that the action may have started may still
+  /// be in progress.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchAll] which dispatches all given actions in parallel.
+  ///
+  Future<void> dispatchAndWaitAll(
+    List<ReduxAction<St>> actions, {
+    bool notify = true,
+  }) =>
+      StoreProvider.dispatchAndWaitAll(this, actions, notify: notify);
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
   /// However, if the action is ASYNC, it will throw a [StoreException].

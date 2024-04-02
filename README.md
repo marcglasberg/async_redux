@@ -118,16 +118,61 @@ class MyWidget extends StatelessWidget {
 }}
 ```
 
-Your actions can also dispatch other actions, and you can even use `dispatchAndWait` to
+Your actions can also dispatch other actions, and use `dispatchAndWait` to
 wait for an action to finish:
 
 ```dart
 class LoadTextAndIncrement extends Action {
 
-  Future<AppState> reduce() async {
+  Future<AppState> reduce() async {    
+    
+    // Dispatch and wait for the action to finish
     await dispatchAndWait(LoadText());
+    
+    // Only then, increment the state
     return state.copy(count: state.count + 1);
-  }}
+  }
+}
+```
+
+You can also dispatch actions in parallel and wait for them to finish:
+
+```dart 
+class BuyAndSell extends Action {
+
+  Future<AppState> reduce() async {
+  
+    // Dispatch and wait for both actions to finish
+    await dispatchAndWaitAll([
+      BuyAction('IBM'), 
+      SellAction('TSLA')
+    ]);
+    
+    return state.copy(message: 'New cash balance is ${state.cash}');
+  }
+}
+``` 
+
+You can also use waitCondition to wait until the state changes in a certain way:
+
+```dart
+class SellStockForPrice extends Action {
+  final String stock;
+  final double limitPrice;
+  SellStockForPrice(this.stock, this.limitPrice);
+
+  Future<AppState?> reduce() async {  
+  
+    // Wait until the stock price is higher than the limit price
+    await waitCondition(
+      (state) => state.stocks[stock].price >= limitPrice
+    );
+      
+    dispatch(SellStock(stock));
+    
+    // No further state change    
+    return null; 
+}
 ```
 
 You can add **mixins** to your actions, to accomplish common tasks:
@@ -878,6 +923,8 @@ In more detail:
 
 * `context.dispatch()`, `.dispatchAndWait()` and `.dispatchSync()` - Dispatch an action.
 
+* `context.dispatchAll()`, and `.dispatchAndWaitAll()` - Dispatch multiple actions.
+
 * `context.isWaiting()` - Returns true if the given action type is currently being processed.
 
 * `context.isFailed()` - Returns true if an action of the given type failed with an `UserException`.
@@ -1566,9 +1613,9 @@ dialog to the user, but you don't want to interrupt the action by throwing an ex
 Testing involves waiting for an action to complete its dispatch process,
 or for the store state to meet a certain condition. After this, you can verify the current
 state or action using the
-methods `store.dispatchAndWait`, `store.waitCondition`, `store.waitActionCondition`,
-`store.waitAllActions`, `store.waitActionType`, `store.waitAllActionTypes`,
-and `store.waitAnyActionTypeFinishes`. For example:
+methods `store.dispatchAndWait`, `store.dispatchAndWaitAll`, `store.waitCondition`,
+`store.waitActionCondition`, `store.waitAllActions`, `store.waitActionType`,
+`store.waitAllActionTypes`, and `store.waitAnyActionTypeFinishes`. For example:
 
 ```dart
 // Wait for some action to dispatch and check the state. 
@@ -1596,6 +1643,10 @@ let action2 = BuyAction('TSLA');
 dispatch(action1);
 dispatch(action2);
 await store.waitAllActions([action1, action2]);
+expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
+
+// Another way to dispatch two actions in PARALLEL and wait for them.
+await store.dispatchAndWaitAll([BuyAction('IBM'), BuyAction('TSLA')]);
 expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
 
 // Wait until no actions are in progress.
@@ -2620,7 +2671,9 @@ Future<void> downloadStuff() => dispatchAndWait(DownloadStuffAction());
 return RefreshIndicator(
     onRefresh: downloadStuff;
     child: ListView(...),
-```                                                   
+```                 
+
+Or, if you have multiple actions you can use `dispatchAndWaitAll`.
 
 Try running
 the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_dispatch_future.dart">

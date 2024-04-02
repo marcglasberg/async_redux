@@ -92,7 +92,9 @@ abstract class ReduxAction<St> {
   /// Method [dispatch] is of type [Dispatch].
   ///
   /// See also:
+  /// - [dispatchAll] which dispatches all given actions in parallel.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   ///
   Dispatch<St> get dispatch => _store.dispatch;
@@ -112,7 +114,9 @@ abstract class ReduxAction<St> {
   ///
   /// See also:
   /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAll] which dispatches all given actions in parallel.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   ///
   DispatchSync<St> get dispatchSync => _store.dispatchSync;
 
@@ -144,9 +148,66 @@ abstract class ReduxAction<St> {
   ///
   /// See also:
   /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAll] which dispatches all given actions in parallel.
+  /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   ///
   DispatchAndWait<St> get dispatchAndWait => _store.dispatchAndWait;
+
+  /// Dispatches all given [actions] in parallel, applying their reducers, and possibly changing
+  /// the store state. The actions may be sync or async. It returns a [Future] that resolves when
+  /// ALL actions finish.
+  ///
+  /// ```dart
+  /// var actions = await store.dispatchAndWaitAll([BuyAction('IBM'), SellAction('TSLA')]);
+  /// ```
+  ///
+  /// Note this is exactly the same as doing:
+  ///
+  /// ```dart
+  /// var action1 = BuyAction('IBM');
+  /// var action2 = SellAction('TSLA');
+  /// dispatch(action1);
+  /// dispatch(action2);
+  /// await store.waitAllActions([action1, action2], completeImmediately = true);
+  /// var actions = [action1, action2];
+  /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of these actions, even if they change the state.
+  ///
+  /// Note: While the state change from the action's reducers will have been applied when the
+  /// Future resolves, other independent processes that the action may have started may still
+  /// be in progress.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchAll] which dispatches all given actions in parallel.
+  ///
+  Future<List<ReduxAction<St>>> Function(List<ReduxAction<St>> actions, {bool notify})
+      get dispatchAndWaitAll => _store.dispatchAndWaitAll;
+
+  /// Dispatches all given [actions] in parallel, applying their reducer, and possibly changing
+  /// the store state. It returns the same list of [actions], so that you can instantiate them
+  /// inline, but still get a list of them.
+  ///
+  /// ```dart
+  /// var actions = dispatchAll([BuyAction('IBM'), SellAction('TSLA')]);
+  /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of these actions, even if it changes the state.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  ///
+  List<ReduxAction<St>> Function(List<ReduxAction<St>> actions, {bool notify}) get dispatchAll =>
+      _store.dispatchAll;
 
   /// This is an optional method that may be overridden to run during action
   /// dispatching, before `reduce`. If this method throws an error, the

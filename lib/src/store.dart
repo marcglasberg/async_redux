@@ -1201,6 +1201,7 @@ class Store<St> {
   /// See also:
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchAll] which dispatches all given actions in parallel.
   ///
   FutureOr<ActionStatus> dispatch(ReduxAction<St> action, {bool notify = true}) =>
       _dispatch(action, notify: notify);
@@ -1221,6 +1222,8 @@ class Store<St> {
   /// See also:
   /// - [dispatch] which dispatches both sync and async actions.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
+  /// - [dispatchAll] which dispatches all given actions in parallel.
   ///
   ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) {
     if (!action.isSync()) {
@@ -1256,10 +1259,82 @@ class Store<St> {
   ///
   /// See also:
   /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchAll] which dispatches all given actions in parallel.
   ///
   Future<ActionStatus> dispatchAndWait(ReduxAction<St> action, {bool notify = true}) =>
       Future.value(_dispatch(action, notify: notify));
+
+  /// Dispatches all given [actions] in parallel, applying their reducer, and possibly changing
+  /// the store state. It returns the same list of [actions], so that you can instantiate them
+  /// inline, but still get a list of them.
+  ///
+  /// ```dart
+  /// var actions = dispatchAll([BuyAction('IBM'), SellAction('TSLA')]);
+  /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of these actions, even if it changes the state.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  ///
+  List<ReduxAction<St>> dispatchAll(List<ReduxAction<St>> actions, {bool notify = true}) {
+    for (var action in actions) {
+      dispatch(action, notify: notify);
+    }
+    return actions;
+  }
+
+  /// Dispatches all given [actions] in parallel, applying their reducers, and possibly changing
+  /// the store state. The actions may be sync or async. It returns a [Future] that resolves when
+  /// ALL actions finish.
+  ///
+  /// ```dart
+  /// var actions = await store.dispatchAndWaitAll([BuyAction('IBM'), SellAction('TSLA')]);
+  /// ```
+  ///
+  /// Note this is exactly the same as doing:
+  ///
+  /// ```dart
+  /// var action1 = BuyAction('IBM');
+  /// var action2 = SellAction('TSLA');
+  /// dispatch(action1);
+  /// dispatch(action2);
+  /// await store.waitAllActions([action1, action2], completeImmediately = true);
+  /// var actions = [action1, action2];
+  /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
+  /// of these actions, even if they change the state.
+  ///
+  /// Note: While the state change from the action's reducers will have been applied when the
+  /// Future resolves, other independent processes that the action may have started may still
+  /// be in progress.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchAll] which dispatches all given actions in parallel.
+  ///
+  Future<List<ReduxAction<St>>> dispatchAndWaitAll(
+    List<ReduxAction<St>> actions, {
+    bool notify = true,
+  }) async {
+    var futures = <Future<ActionStatus>>[];
+
+    for (var action in actions) {
+      futures.add(dispatchAndWait(action, notify: notify));
+    }
+    await Future.wait(futures);
+
+    return actions;
+  }
 
   @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
   Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) =>
