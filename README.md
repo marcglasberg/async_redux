@@ -1318,24 +1318,6 @@ dispatch(MyAction1(), notify: false);
 
 <br>
 
-## Alternatives to the Connector
-
-The `StoreConnector` forces you to cleanly separate the widgets from the way they get their data.
-This is better for clean code and will help a lot when you are writing tests.
-
-However, if you want **and you know what you are doing**, here is how to access the store directly
-from inside your widgets (for example in the `build` method):
-
-```dart
-/// Dispatch an action without a StoreConnector.
-StoreProvider.dispatch<AppState>(context, MyAction());
-
-/// Get the state, without a StoreConnector.
-AppState state = StoreProvider.state<AppState>(context); 
-```          
-
-<br>
-
 ### Provider
 
 Another good alternative to the `StoreConnector` is using
@@ -1935,7 +1917,7 @@ await store.waitCondition((state) => state.name == "Bill");
 expect(store.state.name, "Bill");
 ```
 
-#### Testing the StoreConnector's onInit and onInit
+#### Testing the StoreConnector's onInit and onDispose
 
 Suppose you want to start polling information when your user enters a particular screen, and stop
 when the user leaves it. This could be your `StoreConnector`:

@@ -49,7 +49,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 mixin CheckInternet<St> on ReduxAction<St> {
   bool get ifOpenDialog => true;
 
-  UserException connectionException(ConnectivityResult result) =>
+  UserException connectionException(List<ConnectivityResult> result) =>
       ConnectionException.noConnectivity;
 
   /// If you are running tests, you can override this method to simulate the internet connection
@@ -65,9 +65,9 @@ mixin CheckInternet<St> on ReduxAction<St> {
   /// Return `null` to use the real internet connection status.
   static bool? Function() forceInternetOnOffSimulation = () => null;
 
-  Future<ConnectivityResult> checkConnectivity() async {
+  Future<List<ConnectivityResult>> checkConnectivity() async {
     if (internetOnOffSimulation != null)
-      return internetOnOffSimulation! ? ConnectivityResult.wifi : ConnectivityResult.none;
+      return internetOnOffSimulation! ? [ConnectivityResult.wifi] : [ConnectivityResult.none];
 
     return await (Connectivity().checkConnectivity());
   }
@@ -76,7 +76,7 @@ mixin CheckInternet<St> on ReduxAction<St> {
   Future<void> before() async {
     var result = await checkConnectivity();
 
-    if (result == ConnectivityResult.none)
+    if (result.contains(ConnectivityResult.none))
       throw connectionException(result).withDialog(ifOpenDialog);
   }
 }
@@ -141,9 +141,9 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
   /// Return `null` to use the real internet connection status.
   bool? get internetOnOffSimulation => CheckInternet.forceInternetOnOffSimulation();
 
-  Future<ConnectivityResult> checkConnectivity() async {
+  Future<List<ConnectivityResult>> checkConnectivity() async {
     if (internetOnOffSimulation != null)
-      return internetOnOffSimulation! ? ConnectivityResult.wifi : ConnectivityResult.none;
+      return internetOnOffSimulation! ? [ConnectivityResult.wifi] : [ConnectivityResult.none];
 
     return await (Connectivity().checkConnectivity());
   }
@@ -151,7 +151,7 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
   @override
   Future<void> before() async {
     var result = await checkConnectivity();
-    if (result == ConnectivityResult.none) throw AbortDispatchException();
+    if (result.contains(ConnectivityResult.none)) throw AbortDispatchException();
   }
 }
 
