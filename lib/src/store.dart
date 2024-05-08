@@ -11,6 +11,9 @@ import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/src/process_persistence.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+
+import 'connector_tester.dart';
 
 part 'redux_action.dart';
 
@@ -437,10 +440,14 @@ class Store<St> {
 
   /// Returns a future which will complete when the given state [condition] is true.
   ///
-  /// If [completeImmediately] is `true` (the default), the future will complete immediately and
-  /// throw no error. Otherwise, this method will throw [StoreException] if the condition is
-  /// already true when the method is called. Note: The default here is `true`, while in the
-  /// other `wait` methods like [waitActionCondition] it's `false`. This makes sense because of
+  /// If [completeImmediately] is `true` (the default) and the condition was already true when
+  /// the method was called, the future will complete immediately and throw no errors.
+  ///
+  /// If [completeImmediately] is `false` and the condition was already true when
+  /// the method was called, it will throw a [StoreException].
+  ///
+  /// Note: The default here is `true`, while in the other `wait` methods
+  /// like [waitActionCondition] it's `false`. This makes sense because of
   /// the different use cases for these methods.
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
@@ -526,11 +533,15 @@ class Store<St> {
   Future<ReduxAction<St>?> waitCondition(
     bool Function(St) condition, {
     //
-    /// If `completeImmediately` is `true` (the default), the future will complete
-    /// immediately and throw no error. Otherwise, this method will throw [StoreException]
-    /// if the condition is already true when the method is called. Note: The default here
-    /// is `true`, while in the other `wait` methods like [waitActionCondition] it's `false`.
-    /// This makes sense because of the different use cases for these methods.
+    /// If `completeImmediately` is `true` (the default) and the condition was already true when
+    /// the method was called, the future will complete immediately and throw no errors.
+    ///
+    /// If `completeImmediately` is `false` and the condition was already true when
+    /// the method was called, it will throw a [StoreException].
+    ///
+    /// Note: The default here is `true`, while in the other `wait` methods
+    /// like [waitActionCondition] it's `false`. This makes sense because of
+    /// the different use cases for these methods.
     bool completeImmediately = true,
     //
     /// The maximum time to wait for the condition to be met. The default is 10 minutes.
@@ -941,8 +952,8 @@ class Store<St> {
     return triggerAction;
   }
 
-  /// Returns a future that completes when ALL actions of the given type are NOT in progress
-  /// (none of them is being dispatched):
+  /// Returns a future that completes when ALL actions of the given types are NOT in progress
+  /// (none of them are being dispatched):
   ///
   /// - If NO action of the given types is currently in progress when the method is called,
   ///   and [completeImmediately] is `false` (the default), this method will throw an error.
@@ -1386,6 +1397,9 @@ class Store<St> {
     }
   }
 
+  /// Returns a copy of the error queue, containing user exception errors thrown by
+  /// dispatched actions. Note that this is a copy of the queue, so you can't modify the original
+  /// queue here. Instead, use [getAndRemoveFirstError] to consume the errors, one by one.
   Queue<UserException> get errors => Queue<UserException>.of(_errors);
 
   /// We check the return type of methods `before` and `reduce` to decide if the
@@ -2070,6 +2084,33 @@ class Store<St> {
     _stateTimestamp = DateTime.now().toUtc();
     return _changeController.close();
   }
+
+  /// Helps testing the `StoreConnector`s methods, such as `onInit`,
+  /// `onDispose` and `onWillChange`.
+  ///
+  /// For example, suppose you have a `StoreConnector` which dispatches
+  /// `SomeAction` on its `onInit`. How could you test that?
+  ///
+  /// ```
+  /// class MyConnector extends StatelessWidget {
+  ///   Widget build(BuildContext context) => StoreConnector<AppState, Vm>(
+  ///         vm: () => _Factory(),
+  ///         onInit: _onInit,
+  ///         builder: (context, vm) { ... }
+  ///   }
+  ///
+  ///   void _onInit(Store<AppState> store) => store.dispatch(SomeAction());
+  /// }
+  ///
+  /// var store = Store(...);
+  /// var connectorTester = store.getConnectorTester(MyConnector());
+  /// connectorTester.runOnInit();
+  /// var action = await store.waitAnyActionTypeFinishes([SomeAction]);
+  /// expect(action.someValue, 123);
+  /// ```
+  ///
+  ConnectorTester<St, Model> getConnectorTester<Model>(StatelessWidget widgetConnector) =>
+      ConnectorTester<St, Model>(this, widgetConnector);
 
   /// Throws the error after an asynchronous gap.
   void _throws(errorMsg, Object? error, StackTrace stackTrace) {
