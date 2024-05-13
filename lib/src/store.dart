@@ -200,11 +200,11 @@ class Store<St> {
   /// props. Other properties will not be removed.
   ///
   /// * If the predicate function is provided and returns `true` for a given property, that
-  /// property will be removed from the props. Also, if the property is a `Timer`, `Future`, or
-  /// `Stream` related, it will be closed/cancelled/ignored as appropriate.
+  /// property will be removed from the props and, if the property is also a `Timer`, `Future`,
+  /// or `Stream` related, it will be closed/cancelled/ignored as appropriate.
   ///
   /// * If the predicate function is provided and returns `false` for a given property,
-  /// that property will not be removed from the props.
+  /// that property will not be removed from the props, and it will not be closed/cancelled/ignored.
   ///
   /// This method is particularly useful when the store is being shut down, right before or after
   /// you called the [shutdown] method.
@@ -226,12 +226,11 @@ class Store<St> {
       final removeIt = predicate?.call(key: key, value: value) ?? true;
 
       if (removeIt) {
-        final ifClosed = _closeTimerFutureStream(value);
-        // Skip removal if no predicate was provided
-        // and the value was no Future/Stream like
-        if (!ifClosed && predicate == null) continue;
-        // Otherwise remove the property
-        keysToRemove.add(key);
+        final ifTimerFutureStream = _closeTimerFutureStream(value);
+
+        // Removes the key if the predicate was provided and returned true,
+        // or it was not provided but the value is Timer/Future/Stream.
+        if ((predicate != null) || ifTimerFutureStream) keysToRemove.add(key);
       }
     }
 

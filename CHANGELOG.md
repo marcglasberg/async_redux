@@ -3,6 +3,10 @@ an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobil
 Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
 showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
 
+# 23.0.1
+
+* Fixed `disposeProps`.
+
 # 23.0.0
 
 * Now using `connectivity_plus: 6.0.3` or up.
