@@ -10,7 +10,6 @@ import 'dart:collection';
 import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/src/process_persistence.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'connector_tester.dart';
@@ -155,6 +154,10 @@ class Store<St> {
   /// See also: [prop] and [setProp].
   Object? get env => _environment;
 
+  /// Gets the store properties.
+  @visibleForTesting
+  Map<Object?, Object?> get props => _props;
+
   /// Gets a property from the store.
   /// This can be used to save global values, but scoped to the store.
   /// For example, you could save timers, streams or futures used by actions.
@@ -220,20 +223,16 @@ class Store<St> {
     var keysToRemove = [];
 
     for (var MapEntry(key: key, value: value) in _props.entries) {
-      bool removeIt = true;
+      final removeIt = predicate?.call(key: key, value: value) ?? true;
 
-      if (predicate == null) {
-        bool ifClosed = _closeTimerFutureStream(value);
-        if (!ifClosed) removeIt = false;
+      if (removeIt) {
+        final ifClosed = _closeTimerFutureStream(value);
+        // Skip removal if no predicate was provided
+        // and the value was no Future/Stream like
+        if (!ifClosed && predicate == null) continue;
+        // Otherwise remove the property
+        keysToRemove.add(key);
       }
-      //
-      // A predicate was provided,
-      else {
-        var removeIt = predicate(key: key, value: value);
-        if (removeIt) _closeTimerFutureStream(value);
-      }
-
-      if (removeIt) keysToRemove.add(key);
     }
 
     // After the iteration, remove all keys at the same time.
