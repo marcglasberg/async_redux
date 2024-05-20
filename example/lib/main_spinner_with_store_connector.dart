@@ -100,11 +100,10 @@ class WaitAndIncrementAction extends ReduxAction<AppState> {
 class CounterWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    var isWaiting = context.isWaiting(WaitAndIncrementAction);
 
     return Text(
       '${context.state.counter}',
-      style: TextStyle(fontSize: 40, color: isWaiting ? Colors.grey[350] : Colors.black),
+      style: const TextStyle(fontSize: 40, color: Colors.black),
     );
   }
 }
