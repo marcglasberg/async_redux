@@ -17,7 +17,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => StoreProvider<AppState>(
         store: store,
-        child: const MaterialApp(home: HomePage()),
+        child: MaterialApp(
+          home: UserExceptionDialog<AppState>(
+            child: const HomePage(),
+          ),
+        ),
       );
 }
 
@@ -40,7 +44,14 @@ class HomePage extends StatelessWidget {
         ),
       ),
       // Here we disable the button while the `WaitAndIncrementAction` action is running.
-      floatingActionButton: _PlusButtonConnector(),
+      floatingActionButton: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _FailButtonConnector(),
+          const SizedBox(width: 12),
+          _PlusButtonConnector(),
+        ],
+      ),
     );
   }
 }
@@ -51,7 +62,7 @@ class _PlusButtonConnector extends StatelessWidget {
     return StoreConnector<AppState, ViewModel>(
       vm: () => Factory(this),
       builder: (context, vm) {
-        return vm.isWaiting
+        return vm.isWaiting1
             ? const FloatingActionButton(
                 disabledElevation: 0,
                 onPressed: null,
@@ -66,23 +77,46 @@ class _PlusButtonConnector extends StatelessWidget {
   }
 }
 
-class Factory extends VmFactory<AppState, _PlusButtonConnector, ViewModel> {
+class _FailButtonConnector extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StoreConnector<AppState, ViewModel>(
+      vm: () => Factory(this),
+      builder: (context, vm) {
+        return vm.isWaiting2
+            ? const FloatingActionButton(
+                disabledElevation: 0,
+                onPressed: null,
+                child: SizedBox(width: 25, height: 25, child: CircularProgressIndicator()))
+            : FloatingActionButton(
+                disabledElevation: 0,
+                onPressed: () => context.dispatch(FailIncrementAction()),
+                child: const Text('Fail'),
+              );
+      },
+    );
+  }
+}
+
+class Factory extends VmFactory<AppState, Widget, ViewModel> {
   Factory(connector) : super(connector);
 
   @override
   ViewModel fromStore() {
     return ViewModel(
-      isWaiting: isWaiting(WaitAndIncrementAction),
+      isWaiting1: isWaiting(WaitAndIncrementAction),
+      isWaiting2: isWaiting(FailIncrementAction),
     );
   }
 }
 
 class ViewModel extends Vm {
-  final bool isWaiting;
+  final bool isWaiting1, isWaiting2;
 
   ViewModel({
-    required this.isWaiting,
-  }) : super(equals: [isWaiting]);
+    required this.isWaiting1,
+    required this.isWaiting2,
+  }) : super(equals: [isWaiting1, isWaiting2]);
 }
 
 /// This action waits for 2 seconds, then increments the counter by [amount]].
@@ -97,10 +131,18 @@ class WaitAndIncrementAction extends ReduxAction<AppState> {
   }
 }
 
+/// This action waits for 2 seconds, then fails.
+class FailIncrementAction extends ReduxAction<AppState> {
+  @override
+  Future<AppState?> reduce() async {
+    await Future.delayed(const Duration(seconds: 2));
+    throw const UserException('The increment failed!');
+  }
+}
+
 class CounterWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-
     return Text(
       '${context.state.counter}',
       style: const TextStyle(fontSize: 40, color: Colors.black),
