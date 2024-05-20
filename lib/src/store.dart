@@ -1700,7 +1700,7 @@ class Store<St> {
     }
     //
     finally {
-      _finalize(action, originalError, processedError, afterWasRun);
+      _finalize(action, originalError, processedError, afterWasRun, notify);
     }
 
     return action._status;
@@ -1750,7 +1750,7 @@ class Store<St> {
     }
     //
     finally {
-      _finalize(action, originalError, processedError, afterWasRun);
+      _finalize(action, originalError, processedError, afterWasRun, notify);
     }
 
     return action._status;
@@ -2041,11 +2041,18 @@ class Store<St> {
     Object? error,
     Object? processedError,
     _Flag<bool> afterWasRun,
+    bool notify,
   ) {
     if (!afterWasRun.value) _after(action);
 
     bool ifWasRemoved = _actionsInProgress.remove(action);
     if (ifWasRemoved) _checkAllActionConditions(action);
+
+    // If we'll not be notifying, it's possible we need to trigger the change controller, when the
+    // action is awaitable (that is to say, when we have already called `isWaiting` for this action).
+    if (!notify && _awaitableActions.contains(action.runtimeType)) {
+      _changeController.add(state);
+    }
 
     createTestInfoSnapshot(state!, action, error, processedError, ini: false);
 

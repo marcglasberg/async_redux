@@ -438,7 +438,7 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
   Future<St?> reduce() async {
     // Updates the value optimistically.
     final _newValue = newValue();
-    final action = UpdateStateAction((St state) => applyState(_newValue, state));
+    final action = UpdateStateAction.withReducer((St state) => applyState(_newValue, state));
     dispatch(action);
 
     try {
@@ -454,7 +454,7 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
     } finally {
       try {
         final Object? reloadedValue = await reloadValue();
-        final action = UpdateStateAction((St state) => applyState(reloadedValue, state));
+        final action = UpdateStateAction.withReducer((St state) => applyState(reloadedValue, state));
         dispatch(action);
       } on UnimplementedError catch (_) {
         // If the reload was not implemented, do nothing.
