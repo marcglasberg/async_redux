@@ -177,6 +177,68 @@ void main() {
         expect(find.text("isWaiting: false"), findsOneWidget);
       },
     );
+
+    testWidgets(
+      "When 'isWaiting' changes, the widget rebuilds. "
+      "The action fails with a dialog",
+      (tester) async {
+        final store = Store<int>(initialState: 1);
+
+        await tester.pumpWidget(StoreProvider<int>(
+          store: store,
+          child: _IsWaitingConnector(),
+        ));
+
+        // 1) Initially, we're NOT waiting.
+        expect(find.text("isWaiting: false"), findsOneWidget);
+
+        // 2) When we dispatch an ASYNC action, we ARE waiting.
+        store.dispatch(_AsyncChangeStateAction(failWithDialog: true));
+        await tester.pump();
+        expect(find.text("isWaiting: true"), findsOneWidget);
+
+        // 3) After 99 milliseconds we are STILL waiting, because the action takes 100ms to finish.
+        await tester.pump(const Duration(milliseconds: 99));
+        print('store.state.text = ${'isWaiting: ${store.isWaiting(_AsyncChangeStateAction)}'}');
+        expect(find.text("isWaiting: true"), findsOneWidget);
+
+        // 4) After 1 more millisecond we are FINISHED WAITING, as the action finished.
+        await tester.pump(const Duration(milliseconds: 1));
+        print('store.state.text = ${'isWaiting: ${store.isWaiting(_AsyncChangeStateAction)}'}');
+        expect(find.text("isWaiting: false"), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      "When 'isWaiting' changes, the widget rebuilds. "
+      "The action fails with no dialog",
+      (tester) async {
+        final store = Store<int>(initialState: 1);
+
+        await tester.pumpWidget(StoreProvider<int>(
+          store: store,
+          child: _IsWaitingConnector(),
+        ));
+
+        // 1) Initially, we're NOT waiting.
+        expect(find.text("isWaiting: false"), findsOneWidget);
+
+        // 2) When we dispatch an ASYNC action, we ARE waiting.
+        store.dispatch(_AsyncChangeStateAction(failNoDialog: true));
+        await tester.pump();
+        expect(find.text("isWaiting: true"), findsOneWidget);
+
+        // 3) After 99 milliseconds we are STILL waiting, because the action takes 100ms to finish.
+        await tester.pump(const Duration(milliseconds: 99));
+        print('store.state.text = ${'isWaiting: ${store.isWaiting(_AsyncChangeStateAction)}'}');
+        expect(find.text("isWaiting: true"), findsOneWidget);
+
+        // 4) After 1 more millisecond we are FINISHED WAITING, as the action finished.
+        await tester.pump(const Duration(milliseconds: 1));
+        print('store.state.text = ${'isWaiting: ${store.isWaiting(_AsyncChangeStateAction)}'}');
+        expect(find.text("isWaiting: false"), findsOneWidget);
+      },
+    );
   });
 }
 
@@ -360,11 +422,19 @@ class IsWaitingViewModel extends Vm {
 
 class _AsyncChangeStateAction extends ReduxAction<int> {
   //
-  _AsyncChangeStateAction();
+  final bool failWithDialog;
+  final bool failNoDialog;
+
+  _AsyncChangeStateAction({
+    this.failWithDialog = false,
+    this.failNoDialog = false,
+  });
 
   @override
   Future<int?> reduce() async {
     await Future.delayed(const Duration(milliseconds: 100));
+    if (failWithDialog) throw const UserException('Fail');
+    if (failNoDialog) throw const UserException('Fail').noDialog;
     return null;
   }
 }

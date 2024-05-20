@@ -47,7 +47,9 @@ class HomePage extends StatelessWidget {
       floatingActionButton: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _FailButtonConnector(),
+          _FailWithDialog_ButtonConnector(),
+          const SizedBox(width: 12),
+          _FailNoDialog_ButtonConnector(),
           const SizedBox(width: 12),
           _PlusButtonConnector(),
         ],
@@ -77,7 +79,7 @@ class _PlusButtonConnector extends StatelessWidget {
   }
 }
 
-class _FailButtonConnector extends StatelessWidget {
+class _FailWithDialog_ButtonConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, ViewModel>(
@@ -90,8 +92,29 @@ class _FailButtonConnector extends StatelessWidget {
                 child: SizedBox(width: 25, height: 25, child: CircularProgressIndicator()))
             : FloatingActionButton(
                 disabledElevation: 0,
-                onPressed: () => context.dispatch(FailIncrementAction()),
-                child: const Text('Fail'),
+                onPressed: () => context.dispatch(FailWithDialogAction()),
+                child: const Text('Fail with dialog', textAlign: TextAlign.center),
+              );
+      },
+    );
+  }
+}
+
+class _FailNoDialog_ButtonConnector extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StoreConnector<AppState, ViewModel>(
+      vm: () => Factory(this),
+      builder: (context, vm) {
+        return vm.isWaiting3
+            ? const FloatingActionButton(
+                disabledElevation: 0,
+                onPressed: null,
+                child: SizedBox(width: 25, height: 25, child: CircularProgressIndicator()))
+            : FloatingActionButton(
+                disabledElevation: 0,
+                onPressed: () => context.dispatch(FailNoDialogAction()),
+                child: const Text('Fail no dialog', textAlign: TextAlign.center),
               );
       },
     );
@@ -105,18 +128,20 @@ class Factory extends VmFactory<AppState, Widget, ViewModel> {
   ViewModel fromStore() {
     return ViewModel(
       isWaiting1: isWaiting(WaitAndIncrementAction),
-      isWaiting2: isWaiting(FailIncrementAction),
+      isWaiting2: isWaiting(FailWithDialogAction),
+      isWaiting3: isWaiting(FailNoDialogAction),
     );
   }
 }
 
 class ViewModel extends Vm {
-  final bool isWaiting1, isWaiting2;
+  final bool isWaiting1, isWaiting2, isWaiting3;
 
   ViewModel({
     required this.isWaiting1,
     required this.isWaiting2,
-  }) : super(equals: [isWaiting1, isWaiting2]);
+    required this.isWaiting3,
+  }) : super(equals: [isWaiting1, isWaiting2, isWaiting3]);
 }
 
 /// This action waits for 2 seconds, then increments the counter by [amount]].
@@ -131,12 +156,21 @@ class WaitAndIncrementAction extends ReduxAction<AppState> {
   }
 }
 
-/// This action waits for 2 seconds, then fails.
-class FailIncrementAction extends ReduxAction<AppState> {
+/// This action waits for 2 seconds, then fails with a dialog.
+class FailWithDialogAction extends ReduxAction<AppState> {
   @override
   Future<AppState?> reduce() async {
     await Future.delayed(const Duration(seconds: 2));
     throw const UserException('The increment failed!');
+  }
+}
+
+/// This action waits for 2 seconds, then fails with no dialog.
+class FailNoDialogAction extends ReduxAction<AppState> {
+  @override
+  Future<AppState?> reduce() async {
+    await Future.delayed(const Duration(seconds: 2));
+    throw const UserException('The increment failed!').noDialog;
   }
 }
 

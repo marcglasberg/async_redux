@@ -2050,7 +2050,7 @@ class Store<St> {
 
     // If we'll not be notifying, it's possible we need to trigger the change controller, when the
     // action is awaitable (that is to say, when we have already called `isWaiting` for this action).
-    if (!notify && _awaitableActions.contains(action.runtimeType)) {
+    if (_awaitableActions.contains(action.runtimeType) && ((error != null) || !notify)) {
       _changeController.add(state);
     }
 
