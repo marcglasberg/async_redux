@@ -76,6 +76,7 @@ mixin CheckInternet<St> on ReduxAction<St> {
   @mustCallSuper
   @override
   Future<void> before() async {
+    super.before();
     var result = await checkConnectivity();
 
     if (result.contains(ConnectivityResult.none))
@@ -153,6 +154,7 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
   @mustCallSuper
   @override
   Future<void> before() async {
+    super.before();
     var result = await checkConnectivity();
     if (result.contains(ConnectivityResult.none)) throw AbortDispatchException();
   }
