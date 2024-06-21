@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:meta/meta.dart';
 import 'package:async_redux/async_redux.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -72,6 +73,7 @@ mixin CheckInternet<St> on ReduxAction<St> {
     return await (Connectivity().checkConnectivity());
   }
 
+  @mustCallSuper
   @override
   Future<void> before() async {
     var result = await checkConnectivity();
@@ -148,6 +150,7 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
     return await (Connectivity().checkConnectivity());
   }
 
+  @mustCallSuper
   @override
   Future<void> before() async {
     var result = await checkConnectivity();
