@@ -12,13 +12,17 @@
 This means you'll be able to create apps much faster, 
 and other people on your team will easily understand and modify your code.
 
-# What is it?
+## What is it?
 
 An optimized reimagined version of Redux.
 A mature solution, battle-tested in hundreds of real-world applications.
-Written from the ground up, created by [Marcelo Glasberg](https://github.com/marcglasberg).
+Written from the ground up, created by [Marcelo Glasberg](https://github.com/marcglasberg) 
+(see [all my packages](https://pub.dev/publishers/glasberg.dev/packages)).
 
 > There is also a [version for React](https://www.npmjs.com/package/async-redux-react)
+
+> Optionally use it with [Provider](https://pub.dev/packages/provider_for_redux) 
+> or [Flutter Hooks](https://pub.dev/packages/flutter_hooks_async_redux) 
 
 # Documentation
 

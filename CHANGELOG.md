@@ -3,7 +3,7 @@ the <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobi
 Async Redux App Example GitHub Repo</a> for a full-fledged example app showcasing the fundamentals
 and best practices._
 
-# 23.1.0
+# 23.1.1
 
 * New: Async Redux website at https://asyncredux.com
 
