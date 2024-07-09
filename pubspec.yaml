@@ -1,11 +1,14 @@
 name: async_redux
-description: Redux state management. An optimized Redux version, which is very easy to learn and use, yet powerful and tailored for Flutter. It allows both sync and async reducers.
-version: 23.0.2
+description: The modern version of Redux. State management that's simple to learn and easy to use; Powerful enough to handle complex applications with millions of users; Testable.
+version: 23.1.0
 # author: Marcelo Glasberg <marcglasberg@gmail.com>
 homepage: https://github.com/marcglasberg/async_redux
 topics:
   - redux
   - state-management
+  - ui
+  - reactive-programming
+  - testing
 
 environment:
   sdk: '>=3.2.0 <4.0.0'

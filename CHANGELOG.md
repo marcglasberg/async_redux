@@ -1,7 +1,13 @@
-_Please visit
-an <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/MobileAppFlutterRedux/README.md">
-Async Redux App Example Repository</a> in GitHub for a full-fledged example with a complete app
-showcasing the fundamentals and best practices described in the AsyncRedux README.md file._
+_Visit
+the <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/MobileAppFlutterRedux/README.md">
+Async Redux App Example GitHub Repo</a> for a full-fledged example app showcasing the fundamentals
+and best practices._
+
+# 23.1.0
+
+* New: Async Redux website at https://asyncredux.com
+
+* New: [Async Redux for React](https://www.npmjs.com/package/async-redux-react)
 
 # 23.0.2
 
