@@ -3,7 +3,7 @@ the <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobi
 Async Redux App Example GitHub Repo</a> for a full-fledged example app showcasing the fundamentals
 and best practices._
 
-# 23.1.1-dev.0
+# 23.2.0-dev.0
 
 * You can provide a `CloudSync` object to the store constructor. It's similar to the `Persistor`, 
   but can be used to synchronize the state of the application with the server.  
