@@ -102,6 +102,7 @@ class Store<St> {
     List<ActionObserver<St>>? actionObservers,
     List<StateObserver<St>>? stateObservers,
     Persistor<St>? persistor,
+    Persistor<St>? cloudSync,
     ModelObserver? modelObserver,
     ErrorObserver<St>? errorObserver,
     WrapReduce<St>? wrapReduce,
@@ -117,10 +118,12 @@ class Store<St> {
         _changeController = StreamController.broadcast(sync: syncStream),
         _actionObservers = actionObservers,
         _stateObservers = stateObservers,
-        _processPersistence = persistor == null
-            ? //
-            null
+        _processPersistence = (persistor == null)
+            ? null //
             : ProcessPersistence(persistor, initialState),
+        _processCloudSync = (cloudSync == null)
+            ? null //
+            : ProcessPersistence(cloudSync, initialState),
         _modelObserver = modelObserver,
         _errorObserver = errorObserver,
         _wrapError = wrapError,
@@ -295,6 +298,8 @@ class Store<St> {
 
   final ProcessPersistence<St>? _processPersistence;
 
+  final ProcessPersistence<St>? _processCloudSync;
+
   final ModelObserver? _modelObserver;
 
   final ErrorObserver<St>? _errorObserver;
@@ -358,9 +363,9 @@ class Store<St> {
 
   /// Pause the [Persistor] temporarily.
   ///
-  /// When [pausePersistor] is called, the Persistor will not start a new persistence process, until method
-  /// [resumePersistor] is called. This will not affect the current persistence process, if one is currently
-  /// running.
+  /// When [pausePersistor] is called, the Persistor will not start a new persistence process,
+  /// until method [resumePersistor] is called. This will not affect the current persistence
+  /// process, if one is currently running.
   ///
   /// Note: A persistence process starts when the [Persistor.persistDifference] method is called,
   /// and finishes when the future returned by that method completes.
@@ -369,9 +374,21 @@ class Store<St> {
     _processPersistence?.pause();
   }
 
+  /// Pause the [CloudSync] temporarily.
+  ///
+  /// When [pauseCloudSync] is called, the cloud sync will not start a new persistence process,
+  /// until method [resumeCloudSync] is called. This will not affect the current persistence
+  /// process, if one is currently running.
+  ///
+  /// Note: A cloud sync process starts when the [CloudSync.persistDifference] method is called,
+  /// and finishes when the future returned by that method completes.
+  ///
+  void pauseCloudSync() {
+    _processCloudSync?.pause();
+  }
+
   /// Persists the current state (if it's not yet persisted), then pauses the [Persistor]
   /// temporarily.
-  ///
   ///
   /// When [persistAndPausePersistor] is called, this will not affect the current persistence
   /// process, if one is currently running. If no persistence process was running, it will
@@ -387,31 +404,64 @@ class Store<St> {
     _processPersistence?.persistAndPause();
   }
 
+  /// Saves the current state (if it's not yet saved) to the cloud, then pauses
+  /// the [CloudSync] temporarily.
+  ///
+  /// When [persistAndPauseCloudSync] is called, this will not affect the current cloud save
+  /// process, if one is currently running. If no cloud save process was running, it will
+  /// immediately start a new save process (ignoring [CloudSync.throttle]).
+  ///
+  /// Then, the CloudSync will not start another cloud save process, until method
+  /// [resumeCloudSync] is called.
+  ///
+  /// Note: A cloud save process starts when the [CloudSync.persistDifference] method is called,
+  /// and finishes when the future returned by that method completes.
+  ///
+  void persistAndPauseCloudSync() {
+    _processCloudSync?.persistAndPause();
+  }
+
   /// Resumes persistence by the [Persistor],
   /// after calling [pausePersistor] or [persistAndPausePersistor].
   void resumePersistor() {
     _processPersistence?.resume();
   }
 
-  /// Asks the [Persistor] to save the [initialState] in the local persistence.
-  Future<void> saveInitialStateInPersistence(St initialState) async {
-    return _processPersistence?.saveInitialState(initialState);
+  /// Resumes persistence by the [CloudSync],
+  /// after calling [pauseCloudSync] or [persistAndPauseCloudSync].
+  void resumeCloudSync() {
+    _processCloudSync?.resume();
   }
+
+  /// Asks the [Persistor] to save the [initialState] in the local persistence.
+  Future<void> saveInitialStateInPersistence(St initialState) async =>
+      _processPersistence?.saveInitialState(initialState);
+
+  /// Asks the [CloudSync] to save the [initialState] in the cloud.
+  Future<void> saveInitialStateInCloud(St initialState) async =>
+      _processCloudSync?.saveInitialState(initialState);
 
   /// Asks the [Persistor] to read the state from the local persistence.
   /// Important: If you use this, you MUST put this state into the store.
   /// The Persistor will assume that's the case, and will not work properly otherwise.
-  Future<St?> readStateFromPersistence() async {
-    return _processPersistence?.readState();
-  }
+  Future<St?> readStateFromPersistence() async => _processPersistence?.readState();
 
-  /// Asks the [Persistor] to delete the saved state from the local persistence.
-  Future<void> deleteStateFromPersistence() async {
-    return _processPersistence?.deleteState();
-  }
+  /// Asks the [CloudSync] to read the state from the cloud.
+  /// Important: If you use this, you MUST put this state into the store.
+  /// The CloudSync will assume that's the case, and will not work properly otherwise.
+  Future<St?> readStateFromCloudSync() async => _processCloudSync?.readState();
+
+  /// Asks the [Persistor] to delete the saved state from the cloud.
+  Future<void> deleteStateFromPersistence() async => _processPersistence?.deleteState();
+
+  /// Asks the [CloudSync] to delete the saved state from the cloud.
+  Future<void> deleteStateFromCloud() async => _processCloudSync?.deleteState();
 
   /// Gets, from the [Persistor], the last state that was saved to the local persistence.
   St? getLastPersistedStateFromPersistor() => _processPersistence?.lastPersistedState;
+
+  /// Gets, from the [CloudSync], the last state that was saved to the cloud.
+  St? getLastPersistedStateFromCloudSync() => _processCloudSync?.lastPersistedState;
 
   /// Turns on testing capabilities, if not already.
   void initTestInfoController() {
@@ -1909,11 +1959,8 @@ class Store<St> {
         observer.observe(action, prevState, newState, null, dispatchCount);
       }
 
-    if (_processPersistence != null)
-      _processPersistence.process(
-        action,
-        newState,
-      );
+    if (_processPersistence != null) _processPersistence.process(action, newState);
+    if (_processCloudSync != null) _processCloudSync.process(action, newState);
   }
 
   /// The actions that are currently being processed.
