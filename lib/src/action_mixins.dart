@@ -1,7 +1,8 @@
 import 'dart:async';
-import 'package:meta/meta.dart';
+
 import 'package:async_redux/async_redux.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:meta/meta.dart';
 
 /// This mixin can be used to check if there is internet when you run some action that needs
 /// internet connection. Just add `with CheckInternet` to your action. For example:
@@ -459,7 +460,8 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
     } finally {
       try {
         final Object? reloadedValue = await reloadValue();
-        final action = UpdateStateAction.withReducer((St state) => applyState(reloadedValue, state));
+        final action =
+            UpdateStateAction.withReducer((St state) => applyState(reloadedValue, state));
         dispatch(action);
       } on UnimplementedError catch (_) {
         // If the reload was not implemented, do nothing.
@@ -506,3 +508,152 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 /// result instead of running the action again.
 // TODO:
 //mixin Cache<St> implements ReduxAction<St> {}
+
+/// This mixin can be used to check if there is internet when you run some action that needs it.
+/// If there is no internet, the action will abort silently, and then retry the [reduce] method
+/// unlimited times, until there is internet. It will also retry if there is internet but the
+/// action failed.
+///
+/// Just add `with UnlimitedRetryCheckInternet<AppState>` to your action. For example:
+///
+/// ```dart
+/// class LoadText extends AppAction UnlimitedRetryCheckInternet {
+///   Future<String> reduce() async {
+///     var response = await http.get('http://numbersapi.com/42');
+///     return response.body;
+///   }}
+/// ```
+///
+/// IMPORTANT: This mixin combines [Retry], [UnlimitedRetries], [AbortWhenNoInternet]
+/// and [NonReentrant] mixins. You should NOT use it with those mixins, or any other mixin
+/// that checks the internet connection.
+///
+/// IMPORTANT: It only checks if the internet is on or off on the device, not if the internet
+/// provider is really providing the service or if the server is available. So, it is possible that
+/// this function returns true and the request still fails.
+///
+/// Notes:
+/// - It should not be combined with other mixins that override [wrapReduce].
+/// - It should not be combined with other mixins that check the internet connection.
+/// - Make sure your `before` method does not throw an error, or the retry will NOT happen.
+/// - All retried will be printed to the console.
+///
+mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
+  //
+  @override
+  bool abortDispatch() => isWaiting(runtimeType);
+
+  /// The delay before the first retry attempt.
+  Duration get initialDelay => const Duration(milliseconds: 350);
+
+  /// The factor by which the delay increases for each subsequent retry.
+  /// Must be greater than 1, otherwise it will be set to 2.
+  double get multiplier => 2;
+
+  /// Unlimited retries.
+  int get maxRetries => -1;
+
+  /// The maximum delay between retries to avoid excessively long wait times.
+  /// This is for errors that are not related to the Internet.
+  /// The default is 5 seconds.
+  /// See also: [maxDelayNoInternet]
+  Duration get maxDelay => const Duration(milliseconds: 5000);
+
+  /// The maximum delay between retries when there is no Internet.
+  /// The default is 1 second.
+  /// See also: [maxDelay]
+  Duration get maxDelayNoInternet => const Duration(seconds: 1);
+
+  int _attempts = 0;
+
+  /// The number of retry attempts so far. If the action has not been retried yet, it will be 0.
+  /// If the action finished successfully, it will be equal or less than [maxRetries].
+  /// If the action failed and gave up, it will be equal to [maxRetries] plus 1.
+  int get attempts => _attempts;
+
+  /// This prints the retries, including the action name, the attempt, and if the problem was
+  /// no Internet or not. To remove the print message, override with:
+  ///
+  /// ```dart
+  /// void printRetries(String message) {}
+  /// ```
+  void printRetries(String message) => print(message);
+
+  @override
+  Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
+        FutureOr<St?> newState;
+        bool hasInternet = true;
+        try {
+          var result = await checkConnectivity();
+
+          // IMPORTANT: We throw this exception, but it will not ever be shown,
+          // because we are retrying unlimited times. This simply triggers the next retry.
+          if (result.contains(ConnectivityResult.none)) {
+            hasInternet = false;
+            throw const UserException('');
+          }
+
+          if (attempts == 0)
+            printRetries('Trying $runtimeType.');
+          else
+            printRetries('Retrying $runtimeType (attempt $attempts).');
+
+          newState = reduce();
+          if (newState is Future) newState = await newState;
+        }
+        //
+        catch (error) {
+          //
+          if (!hasInternet) {
+            if (attempts == 0)
+              printRetries('Trying $runtimeType; aborted because of no internet.');
+            else
+              printRetries(
+                  'Retrying $runtimeType; aborted because of no internet (attempt $attempts).');
+          }
+
+          _attempts++;
+
+          if ((maxRetries >= 0) && (_attempts > maxRetries)) rethrow;
+
+          var currentDelay = nextDelay(hasInternet: hasInternet);
+          await Future.delayed(currentDelay);
+          return wrapReduce(reduce)();
+        }
+        return newState;
+      };
+
+  Duration? _currentDelay;
+
+  /// Start with the [initialDelay], and then increase it by [multiplier] each time this is called.
+  /// If the delay exceeds [maxDelay], it will be set to [maxDelay].
+  Duration nextDelay({required bool hasInternet}) {
+    var _multiplier = multiplier;
+    if (_multiplier <= 1) _multiplier = 2;
+
+    _currentDelay = (_currentDelay == null) //
+        ? initialDelay //
+        : _currentDelay! * _multiplier;
+
+    if (hasInternet) {
+      if (_currentDelay! > maxDelay) _currentDelay = maxDelay;
+    } else {
+      if (_currentDelay! > maxDelayNoInternet) _currentDelay = maxDelayNoInternet;
+    }
+
+    return _currentDelay!;
+  }
+
+  /// If you are running tests, you can override this method to simulate the internet connection
+  /// as permanently on or off.
+  /// Return `true` if there is internet, and `false` if there is no internet.
+  /// Return `null` to use the real internet connection status.
+  bool? get internetOnOffSimulation => CheckInternet.forceInternetOnOffSimulation();
+
+  Future<List<ConnectivityResult>> checkConnectivity() async {
+    if (internetOnOffSimulation != null)
+      return internetOnOffSimulation! ? [ConnectivityResult.wifi] : [ConnectivityResult.none];
+
+    return await (Connectivity().checkConnectivity());
+  }
+}
