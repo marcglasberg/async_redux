@@ -3,15 +3,19 @@ the <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobi
 Async Redux App Example GitHub Repo</a> for a full-fledged example app showcasing the fundamentals
 and best practices._
 
-# 23.2.0-dev.1
+# 23.2.1
 
-* You can provide a `CloudSync` object to the store constructor. It's similar to the `Persistor`,
-  but can be used to synchronize the state of the application with the server.
+* Fixed `isWaiting()` when an Iterable is used.
+
+# 23.2.0
 
 * You can now use the `UnlimitedRetryCheckInternet` to check if there is internet when you run some
   action that needs it. If there is no internet, the action will abort silently and then retried
   unlimited times, until there is internet. It will also retry if there is internet but the action
   failed.
+
+* You can provide a `CloudSync` object to the store constructor. It's similar to the `Persistor`,
+  but can be used to synchronize the state of the application with the server.
 
 # 23.1.1
 

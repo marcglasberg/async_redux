@@ -1595,7 +1595,6 @@ class Store<St> {
           });
         }
       }
-      return false;
     }
     // 4) If something different was passed, it's an error. We show the error after the
     // async gap, so we don't interrupt the code. But we return false (not waiting).
