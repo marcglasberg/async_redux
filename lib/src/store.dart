@@ -1578,16 +1578,30 @@ class Store<St> {
       return _actionsInProgress.contains(actionOrActionTypeOrList);
     }
     //
-    // 3) If a list was passed:
+    // 3) If an iterable was passed:
+    // 3.1) For each action or action type in the iterable...
     else if (actionOrActionTypeOrList is Iterable) {
       for (var actionOrType in actionOrActionTypeOrList) {
+        //
+        // 3.2) If it's a type.
         if (actionOrType is Type) {
           _awaitableActions.add(actionOrType);
+
+          // 3.2.1) Return true if any of the actions in progress has that exact type.
           return _actionsInProgress.any((action) => action.runtimeType == actionOrType);
-        } else if (actionOrType is ReduxAction) {
+        }
+        //
+        // 3.3) If it's an action.
+        else if (actionOrType is ReduxAction) {
           _awaitableActions.add(actionOrType.runtimeType);
+
+          // 3.3.1) Return true if any of the actions in progress is the exact action.
           return _actionsInProgress.contains(actionOrType);
-        } else {
+        }
+        //
+        // 3.4) If it's not an action and not an action type, throw an exception.
+        // The exception is thrown after the async gap, so that it doesn't interrupt the processes.
+        else {
           Future.microtask(() {
             throw StoreException(
                 "You can't do isWaiting([${actionOrActionTypeOrList.runtimeType}]), "
@@ -1595,6 +1609,8 @@ class Store<St> {
           });
         }
       }
+
+      // 3.5) If the `for` finished without matching any items, return false (it's NOT waiting).
       return false;
     }
     // 4) If something different was passed, it's an error. We show the error after the
