@@ -4,6 +4,7 @@
 // For more info, see: https://pub.dartlang.org/packages/async_redux
 
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:async_redux/async_redux.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
@@ -410,7 +411,20 @@ class _StoreStreamListenerState<St, Model> //
 
   // This prevents unnecessary calculations of the view-model.
   bool _stateChanged(St state) {
-    return !identical(_mostRecentValidState, widget.store.state);
+    return !identical(_mostRecentValidState, widget.store.state) || _actionsInProgressHaveChanged();
+  }
+
+  /// Used by [_actionsInProgressHaveChanged].
+  Set<ReduxAction<St>> _lastActionsInProgress = HashSet<ReduxAction<St>>.identity();
+
+  /// Returns true if the actions in progress have changed since the last time we checked.
+  bool _actionsInProgressHaveChanged() {
+    if (widget.store.actionsInProgressEqualTo(_lastActionsInProgress))
+      return false;
+    else {
+      _lastActionsInProgress = widget.store.copyActionsInProgress();
+      return true;
+    }
   }
 
   // If `shouldUpdateModel` is provided, it will calculate if the STORE state contains
@@ -1041,7 +1055,7 @@ class StoreProvider<St> extends InheritedWidget {
   }
 }
 
-/// Is an UNTYPED inherited widget used by `dispatch`, `dispatchAndWait` and `dispatchSync`.
+/// An UNTYPED inherited widget used by `dispatch`, `dispatchAndWait` and `dispatchSync`.
 /// That's useful because they can dispatch without the knowing the St type, but it DOES NOT
 /// REBUILD.
 class _InheritedUntypedDoesNotRebuild extends InheritedWidget {
@@ -1065,7 +1079,7 @@ class _InheritedUntypedDoesNotRebuild extends InheritedWidget {
   }
 }
 
-/// is a StatefulWidget that listens to the store (onChange) and
+/// A StatefulWidget that listens to the store (onChange) and
 /// rebuilds the whenever there is a new state available.
 class _WidgetListensOnChange extends StatefulWidget {
   final Widget child;
@@ -1095,7 +1109,7 @@ class _WidgetListensOnChangeState extends State<_WidgetListensOnChange> {
 
   // Make sure we're not rebuilding if the state didn't change.
   // Note: This is not necessary because the store only sends the new state if it changed:
-  // `if (state != null && !identical(_state, state)) { ... }`
+  // `if (((state != null) && !identical(_state, state)) ...`
   // I'm leaving it here because in the future I want to improve this by only rebuilding
   // when the part of the state that the widgets depend on changes.
   // To implement that in the future I have to create some special InheritedWidget that
@@ -1117,7 +1131,7 @@ class _WidgetListensOnChangeState extends State<_WidgetListensOnChange> {
   }
 }
 
-/// Is an UNTYPED inherited widget that is used by `isWaiting`, `isFailed` and `exceptionFor`.
+/// An UNTYPED inherited widget that is used by `isWaiting`, `isFailed` and `exceptionFor`.
 /// That's useful because these methods can find it without the knowing the St type, but
 /// it REBUILDS. Note: `_InheritedUntypedRebuilds._isOn` is true only after `state`, `isWaiting`,
 /// `isFailed` and `exceptionFor` are used for the first time. This is to make it faster by

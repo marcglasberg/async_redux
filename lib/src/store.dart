@@ -1988,6 +1988,18 @@ class Store<St> {
     return new UnmodifiableSetView(this._actionsInProgress);
   }
 
+  /// Returns a copy of the set of actions on progress.
+  Set<ReduxAction<St>> copyActionsInProgress() =>
+      HashSet<ReduxAction<St>>.identity()..addAll(actionsInProgress());
+
+  /// Returns true if the actions in progress are equal to the given set.
+  bool actionsInProgressEqualTo(Set<ReduxAction<St>> set) {
+    if (set.length != _actionsInProgress.length) {
+      return false;
+    }
+    return set.containsAll(_actionsInProgress) && _actionsInProgress.containsAll(set);
+  }
+
   /// Actions that we may put into [_actionsInProgress].
   /// This helps to know when to rebuild to make [isWaiting] work.
   final Set<Type> _awaitableActions = HashSet<Type>.identity();
