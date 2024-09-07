@@ -1581,22 +1581,24 @@ class Store<St> {
     // 3) If an iterable was passed:
     // 3.1) For each action or action type in the iterable...
     else if (actionOrActionTypeOrList is Iterable) {
+      bool isWaiting = false;
       for (var actionOrType in actionOrActionTypeOrList) {
         //
         // 3.2) If it's a type.
         if (actionOrType is Type) {
           _awaitableActions.add(actionOrType);
 
-          // 3.2.1) Return true if any of the actions in progress has that exact type.
-          return _actionsInProgress.any((action) => action.runtimeType == actionOrType);
+          // 3.2.1) Is waiting if any of the actions in progress has that exact type.
+          if (!isWaiting)
+            isWaiting = _actionsInProgress.any((action) => action.runtimeType == actionOrType);
         }
         //
         // 3.3) If it's an action.
         else if (actionOrType is ReduxAction) {
           _awaitableActions.add(actionOrType.runtimeType);
 
-          // 3.3.1) Return true if any of the actions in progress is the exact action.
-          return _actionsInProgress.contains(actionOrType);
+          // 3.3.1) Is waiting if any of the actions in progress is the exact action.
+          if (!isWaiting) isWaiting = _actionsInProgress.contains(actionOrType);
         }
         //
         // 3.4) If it's not an action and not an action type, throw an exception.
@@ -1604,21 +1606,21 @@ class Store<St> {
         else {
           Future.microtask(() {
             throw StoreException(
-                "You can't do isWaiting([${actionOrActionTypeOrList.runtimeType}]), "
-                "but only an action Type, a ReduxAction, or a List of them.");
+                "You can't do isWaiting([${actionOrActionTypeOrList.runtimeType}]). "
+                "Use only actions, action types, or a list of them.");
           });
         }
       }
 
       // 3.5) If the `for` finished without matching any items, return false (it's NOT waiting).
-      return false;
+      return isWaiting;
     }
     // 4) If something different was passed, it's an error. We show the error after the
     // async gap, so we don't interrupt the code. But we return false (not waiting).
     else {
       Future.microtask(() {
         throw StoreException("You can't do isWaiting(${actionOrActionTypeOrList.runtimeType}), "
-            "but only an action Type, a ReduxAction, or a List of them.");
+            "Use only actions, action types, or a list of them.");
       });
 
       return false;
