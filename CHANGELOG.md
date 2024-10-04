@@ -3,12 +3,13 @@ the <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobi
 Async Redux App Example GitHub Repo</a> for a full-fledged example app showcasing the fundamentals
 and best practices._
 
-# 23.3.0-dev.1
+# 23.3.0-dev.2
 
 * `LocalPersist` and `LocalJsonPersist` now allow you to define the base directory by setting
-  the `findBaseDirectory` static field. The default is, as before, the application's documents
-  directory. Other options are the cache directory, the downloads directory, or another custom
-  directory.
+  the `useBaseDirectory` static field. The default is, as before, the application's documents
+  directory. Other options are the cache directory (`LocalPersist.useAppCacheDir`), the downloads
+  directory (`LocalPersist.useAppDownloadsDir`), or any other custom
+  directory (`LocalPersist.useCustomBaseDirectory`).
 
 # 23.2.0
 

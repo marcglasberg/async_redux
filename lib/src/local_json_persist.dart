@@ -59,13 +59,15 @@ class LocalJsonPersist {
   /// You can change this variable to globally change the directory:
   /// ```
   /// // Will use the application's cache directory.
-  /// LocalPersist.findDirectoryToUse = LocalPersist.findAppCacheDir;
+  /// LocalPersist.useBaseDirectory = LocalPersist.useAppCacheDir;
   ///
   /// // Will use the application's downloads directory.
-  /// LocalPersist.findDirectoryToUse = LocalPersist.findAppDownloadsDir;
-  /// ```
+  /// LocalPersist.useBaseDirectory = LocalPersist.useAppDownloadsDir;
   ///
-  static Future<void> Function() findBaseDirectory = findAppDocDir;
+  /// // Will use whatever Directory is given.
+  /// LocalPersist.useBaseDirectory = () => LocalPersist.useCustomBaseDirectory(baseDirectory: myDir);
+  /// ```
+  static Future<void> Function() useBaseDirectory = useAppDocumentsDir;
 
   /// The default is adding a ".json" termination to the file name.
   static const String jsonTermination = ".json";
@@ -123,15 +125,24 @@ class LocalJsonPersist {
 
   /// If running from Flutter, this will get the application's documents directory.
   /// If running from tests, it will use the system's temp directory.
-  static Future<void> findAppDocDir() => LocalPersist.findAppDocDir();
+  static Future<void> useAppDocumentsDir() => LocalPersist.useAppDocumentsDir();
 
   /// If running from Flutter, this will get the application's cache directory.
   /// If running from tests, it will use the system's temp directory.
-  static Future<void> findAppCacheDir() => LocalPersist.findAppCacheDir();
+  static Future<void> useAppCacheDir() => LocalPersist.useAppCacheDir();
 
   /// If running from Flutter, this will get the application's downloads directory.
   /// If running from tests, it will use the system's temp directory.
-  static Future<void> findAppDownloadsDir() => LocalPersist.findAppDownloadsDir();
+  static Future<void> useAppDownloadsDir() => LocalPersist.useAppDownloadsDir();
+
+  /// If running from Flutter, the base directory will be the given [baseDirectory].
+  /// If running from tests, it will use the optional [testDirectory], or if this is not provided,
+  /// it will use the system's temp directory.
+  static Future<void> useCustomBaseDirectory({
+    required Directory baseDirectory,
+    Directory? testDirectory,
+  }) =>
+      useCustomBaseDirectory(baseDirectory: baseDirectory, testDirectory: testDirectory);
 
   /// Saves the given simple object as JSON.
   /// If the file exists, it will be overwritten.
@@ -339,7 +350,7 @@ class LocalJsonPersist {
     if (_file != null)
       return _file!;
     else {
-      if (_baseDirectory == null) await findBaseDirectory();
+      if (_baseDirectory == null) await useBaseDirectory();
       String pathNameStr = pathName(
         dbName,
         dbSubDir: dbSubDir,

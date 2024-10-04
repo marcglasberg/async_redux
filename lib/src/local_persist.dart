@@ -93,13 +93,15 @@ class LocalPersist {
   /// You can change this variable to globally change the directory:
   /// ```
   /// // Will use the application's cache directory.
-  /// LocalPersist.findDirectoryToUse = LocalPersist.findAppCacheDir;
+  /// LocalPersist.useBaseDirectory = LocalPersist.useAppCacheDir;
   ///
   /// // Will use the application's downloads directory.
-  /// LocalPersist.findDirectoryToUse = LocalPersist.findAppDownloadsDir;
-  /// ```
+  /// LocalPersist.useBaseDirectory = LocalPersist.useAppDownloadsDir;
   ///
-  static Future<void> Function() findBaseDirectory = LocalPersist.findAppDocDir;
+  /// // Will use whatever Directory is given.
+  /// LocalPersist.useBaseDirectory = () => LocalPersist.useCustomBaseDirectory(baseDirectory: myDir);
+  /// ```
+  static Future<void> Function() useBaseDirectory = LocalPersist.useAppDocumentsDir;
 
   /// The default is adding a ".db" termination to the file name.
   /// This is not final, so you can change it.
@@ -312,7 +314,7 @@ class LocalPersist {
     if (_file != null)
       return _file!;
     else {
-      if (_baseDirectory == null) await findBaseDirectory();
+      if (_baseDirectory == null) await useBaseDirectory();
       String pathNameStr = pathName(
         dbName,
         dbSubDir: dbSubDir,
@@ -344,9 +346,9 @@ class LocalPersist {
   static String _getStringFromEnum(Object dbName) =>
       (dbName is String) ? dbName : dbName.toString().split(".").last;
 
-  /// If running from Flutter, this will get the application's documents directory.
+  /// If running from Flutter, the base directory will be the application's documents directory.
   /// If running from tests, it will use the system's temp directory.
-  static Future<void> findAppDocDir() async {
+  static Future<void> useAppDocumentsDir() async {
     if (_baseDirectory != null) return;
 
     if (_fileSystem == const LocalFileSystem()) {
@@ -359,9 +361,9 @@ class LocalPersist {
       _baseDirectory = _fileSystem.systemTempDirectory;
   }
 
-  /// If running from Flutter, this will get the application's cache directory.
+  /// If running from Flutter, the base directory will be the application's cache directory.
   /// If running from tests, it will use the system's temp directory.
-  static Future<void> findAppCacheDir() async {
+  static Future<void> useAppCacheDir() async {
     if (_baseDirectory != null) return;
 
     if (_fileSystem == const LocalFileSystem()) {
@@ -374,9 +376,9 @@ class LocalPersist {
       _baseDirectory = _fileSystem.systemTempDirectory;
   }
 
-  /// If running from Flutter, this will get the application's downloads directory.
+  /// If running from Flutter, the base directory will be the application's downloads directory.
   /// If running from tests, it will use the system's temp directory.
-  static Future<void> findAppDownloadsDir() async {
+  static Future<void> useAppDownloadsDir() async {
     if (_baseDirectory != null) return;
 
     if (_fileSystem == const LocalFileSystem()) {
@@ -384,6 +386,27 @@ class LocalPersist {
         _baseDirectory = await getDownloadsDirectory();
       } on MissingPluginException catch (_) {
         _baseDirectory = const LocalFileSystem().systemTempDirectory;
+      }
+    } else
+      _baseDirectory = _fileSystem.systemTempDirectory;
+  }
+
+  /// If running from Flutter, the base directory will be the given [baseDirectory].
+  /// If running from tests, it will use the optional [testDirectory], or if this is not provided,
+  /// it will use the system's temp directory.
+  static Future<void> useCustomBaseDirectory({
+    required Directory baseDirectory,
+    Directory? testDirectory,
+  }) async {
+    if (_baseDirectory != null) return;
+
+    if (_fileSystem == const LocalFileSystem()) {
+      try {
+        // Calling this just to detect if we are running from Flutter or tests.
+        await getDownloadsDirectory();
+        _baseDirectory = baseDirectory;
+      } on MissingPluginException catch (_) {
+        _baseDirectory = testDirectory ?? const LocalFileSystem().systemTempDirectory;
       }
     } else
       _baseDirectory = _fileSystem.systemTempDirectory;
