@@ -59,10 +59,10 @@ class LocalJsonPersist {
   /// You can change this variable to globally change the directory:
   /// ```
   /// // Will use the application's cache directory.
-  /// findDirectoryToUse = LocalPersist.findAppCacheDir;
+  /// LocalPersist.findDirectoryToUse = LocalPersist.findAppCacheDir;
   ///
   /// // Will use the application's downloads directory.
-  /// findDirectoryToUse = LocalPersist.findAppDownloadsDir;
+  /// LocalPersist.findDirectoryToUse = LocalPersist.findAppDownloadsDir;
   /// ```
   ///
   static Future<void> Function() findBaseDirectory = findAppDocDir;
