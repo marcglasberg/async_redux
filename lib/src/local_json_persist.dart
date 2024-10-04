@@ -142,7 +142,7 @@ class LocalJsonPersist {
     required Directory baseDirectory,
     Directory? testDirectory,
   }) =>
-      useCustomBaseDirectory(baseDirectory: baseDirectory, testDirectory: testDirectory);
+      LocalPersist.useCustomBaseDirectory(baseDirectory: baseDirectory, testDirectory: testDirectory);
 
   /// Saves the given simple object as JSON.
   /// If the file exists, it will be overwritten.
