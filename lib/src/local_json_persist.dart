@@ -52,12 +52,27 @@ class LocalJsonPersist {
   /// Make it an empty string to remove it.
   static String defaultDbSubDir = "db";
 
+  /// If running from Flutter, the default base directory is the application's documents dir.
+  /// If running from tests (detected by the `LocalFileSystem` not being present),
+  /// it will use the system's temp directory.
+  ///
+  /// You can change this variable to globally change the directory:
+  /// ```
+  /// // Will use the application's cache directory.
+  /// findDirectoryToUse = LocalPersist.findAppCacheDir;
+  ///
+  /// // Will use the application's downloads directory.
+  /// findDirectoryToUse = LocalPersist.findAppDownloadsDir;
+  /// ```
+  ///
+  static Future<void> Function() findBaseDirectory = findAppDocDir;
+
   /// The default is adding a ".json" termination to the file name.
   static const String jsonTermination = ".json";
 
-  static Directory? get appDocDir => _appDocDir;
+  static Directory? get appDocDir => _baseDirectory;
 
-  static Directory? get _appDocDir => LocalPersist.appDocDir;
+  static Directory? get _baseDirectory => LocalPersist.appDocDir;
 
   static f.FileSystem get _fileSystem => LocalPersist.getFileSystem();
 
@@ -105,6 +120,18 @@ class LocalJsonPersist {
         subDirs = null,
         _file = file,
         _fileSystemRef = _fileSystem;
+
+  /// If running from Flutter, this will get the application's documents directory.
+  /// If running from tests, it will use the system's temp directory.
+  static Future<void> findAppDocDir() => LocalPersist.findAppDocDir();
+
+  /// If running from Flutter, this will get the application's cache directory.
+  /// If running from tests, it will use the system's temp directory.
+  static Future<void> findAppCacheDir() => LocalPersist.findAppCacheDir();
+
+  /// If running from Flutter, this will get the application's downloads directory.
+  /// If running from tests, it will use the system's temp directory.
+  static Future<void> findAppDownloadsDir() => LocalPersist.findAppDownloadsDir();
 
   /// Saves the given simple object as JSON.
   /// If the file exists, it will be overwritten.
@@ -312,7 +339,7 @@ class LocalJsonPersist {
     if (_file != null)
       return _file!;
     else {
-      if (_appDocDir == null) await _findAppDocDir();
+      if (_baseDirectory == null) await findBaseDirectory();
       String pathNameStr = pathName(
         dbName,
         dbSubDir: dbSubDir,
@@ -334,7 +361,7 @@ class LocalJsonPersist {
     List<String>? subDirs,
   }) {
     return p.joinAll([
-      LocalJsonPersist._appDocDir!.path,
+      LocalJsonPersist._baseDirectory!.path,
       dbSubDir ?? LocalJsonPersist.defaultDbSubDir,
       if (subDirs != null) ...subDirs,
       "$dbName${LocalJsonPersist.jsonTermination}"
@@ -343,10 +370,6 @@ class LocalJsonPersist {
 
   static String _getStringFromEnum(Object dbName) =>
       (dbName is String) ? dbName : dbName.toString().split(".").last;
-
-  /// If running from Flutter, this will get the application's documents directory.
-  /// If running from tests, it will use the system's temp directory.
-  static Future<void> _findAppDocDir() async => LocalPersist.findAppDocDir();
 
   /// Decodes a single JSON into a simple object, from the given [bytes].
   static Object? decodeJson(Uint8List bytes) {

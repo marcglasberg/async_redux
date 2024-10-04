@@ -86,12 +86,27 @@ class LocalPersist {
   /// Make it an empty string to remove it.
   static String defaultDbSubDir = "db";
 
+  /// If running from Flutter, the default base directory is the application's documents dir.
+  /// If running from tests (detected by the `LocalFileSystem` not being present),
+  /// it will use the system's temp directory.
+  ///
+  /// You can change this variable to globally change the directory:
+  /// ```
+  /// // Will use the application's cache directory.
+  /// findDirectoryToUse = LocalPersist.findAppCacheDir;
+  ///
+  /// // Will use the application's downloads directory.
+  /// findDirectoryToUse = LocalPersist.findAppDownloadsDir;
+  /// ```
+  ///
+  static Future<void> Function() findBaseDirectory = LocalPersist.findAppDocDir;
+
   /// The default is adding a ".db" termination to the file name.
   /// This is not final, so you can change it.
   static String defaultTermination = ".db";
 
-  static Directory? get appDocDir => _appDocDir;
-  static Directory? _appDocDir;
+  static Directory? get appDocDir => _baseDirectory;
+  static Directory? _baseDirectory;
 
   // In a json sequence, each object may have at most 65.536 bytes.
   // Note this refers to a single json object, not to the total json sequence file,
@@ -297,7 +312,7 @@ class LocalPersist {
     if (_file != null)
       return _file!;
     else {
-      if (_appDocDir == null) await findAppDocDir();
+      if (_baseDirectory == null) await findBaseDirectory();
       String pathNameStr = pathName(
         dbName,
         dbSubDir: dbSubDir,
@@ -319,7 +334,7 @@ class LocalPersist {
     List<String>? subDirs,
   }) {
     return p.joinAll([
-      LocalPersist._appDocDir!.path,
+      LocalPersist._baseDirectory!.path,
       dbSubDir ?? LocalPersist.defaultDbSubDir,
       if (subDirs != null) ...subDirs,
       "$dbName${LocalPersist.defaultTermination}"
@@ -332,16 +347,46 @@ class LocalPersist {
   /// If running from Flutter, this will get the application's documents directory.
   /// If running from tests, it will use the system's temp directory.
   static Future<void> findAppDocDir() async {
-    if (_appDocDir != null) return;
+    if (_baseDirectory != null) return;
 
     if (_fileSystem == const LocalFileSystem()) {
       try {
-        _appDocDir = await getApplicationDocumentsDirectory();
+        _baseDirectory = await getApplicationDocumentsDirectory();
       } on MissingPluginException catch (_) {
-        _appDocDir = const LocalFileSystem().systemTempDirectory;
+        _baseDirectory = const LocalFileSystem().systemTempDirectory;
       }
     } else
-      _appDocDir = _fileSystem.systemTempDirectory;
+      _baseDirectory = _fileSystem.systemTempDirectory;
+  }
+
+  /// If running from Flutter, this will get the application's cache directory.
+  /// If running from tests, it will use the system's temp directory.
+  static Future<void> findAppCacheDir() async {
+    if (_baseDirectory != null) return;
+
+    if (_fileSystem == const LocalFileSystem()) {
+      try {
+        _baseDirectory = await getApplicationCacheDirectory();
+      } on MissingPluginException catch (_) {
+        _baseDirectory = const LocalFileSystem().systemTempDirectory;
+      }
+    } else
+      _baseDirectory = _fileSystem.systemTempDirectory;
+  }
+
+  /// If running from Flutter, this will get the application's downloads directory.
+  /// If running from tests, it will use the system's temp directory.
+  static Future<void> findAppDownloadsDir() async {
+    if (_baseDirectory != null) return;
+
+    if (_fileSystem == const LocalFileSystem()) {
+      try {
+        _baseDirectory = await getDownloadsDirectory();
+      } on MissingPluginException catch (_) {
+        _baseDirectory = const LocalFileSystem().systemTempDirectory;
+      }
+    } else
+      _baseDirectory = _fileSystem.systemTempDirectory;
   }
 
   static Uint8List encode(List<Object> simpleObjs) {

@@ -9,7 +9,7 @@ import 'package:async_redux/async_redux.dart';
 /// `UserException`). Then:
 /// * If it returns the same [error] unaltered, this original error will be used.
 /// * If it returns something else, that it will be used instead of the original [error].
-/// * It it returns `null`, the original error will be disabled (swallowed).
+/// * If it returns `null`, the original error will be disabled (swallowed).
 ///
 /// IMPORTANT: If instead of RETURNING an error you THROW an error inside the `wrap` function,
 /// AsyncRedux will catch this error and use it instead the original error. In other
