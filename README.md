@@ -583,7 +583,7 @@ _stackoverflow.com/users/3411681/marcg_</a>
 <a href="https://medium.com/@marcglasberg">_medium.com/@marcglasberg_</a>
 <br>
 
-*My article in the official Flutter documentation*:
+*I wrote Google's official Flutter documentation on layout rules*:
 
 * <a href="https://flutter.dev/docs/development/ui/layout/constraints">Understanding
   constraints</a>
