@@ -3,7 +3,11 @@ the <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobi
 Async Redux App Example GitHub Repo</a> for a full-fledged example app showcasing the fundamentals
 and best practices._
 
-# 23.3.0-dev.3
+## 24.0.0
+
+* Sponsored by [MyText.ai](https://mytext.ai)
+
+[![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
 * `LocalPersist` and `LocalJsonPersist` now allow you to define the base directory by setting
   the `useBaseDirectory` static field. The default is, as before, the application's documents
