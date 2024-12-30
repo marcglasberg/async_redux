@@ -1,29 +1,35 @@
 _Visit
 the <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/MobileAppFlutterRedux/README.md">
-Async Redux App Example GitHub Repo</a> for a full-fledged example app showcasing the fundamentals
-and best practices._
+Async Redux App Example GitHub Repo</a> for a full-fledged example app showcasing the
+fundamentals and best practices._
 
-## 24.0.2
-
-* Sponsored by [MyText.ai](https://mytext.ai)
+Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-* `LocalPersist` and `LocalJsonPersist` now allow you to define the base directory by setting
-  the `useBaseDirectory` static field. The default is, as before, the application's documents
-  directory. Other options are the cache directory (`LocalPersist.useAppCacheDir`), the downloads
-  directory (`LocalPersist.useAppDownloadsDir`), or any other custom
-  directory (`LocalPersist.useCustomBaseDirectory`).
+## 24.0.3
+
+* Fixed translation typo bug.
+
+## 24.0.2
+
+* `LocalPersist` and `LocalJsonPersist` now allow you to define the base directory by
+  setting the `useBaseDirectory` static field. The default is, as before, the
+  application's documents directory. Other options are the cache directory
+  (`LocalPersist.useAppCacheDir`), the downloads directory
+  (`LocalPersist.useAppDownloadsDir`), or any other custom directory
+  (`LocalPersist.useCustomBaseDirectory`).
 
 ## 23.2.0
 
-* You can now use the `UnlimitedRetryCheckInternet` to check if there is internet when you run some
-  action that needs it. If there is no internet, the action will abort silently and then retried
-  unlimited times, until there is internet. It will also retry if there is internet but the action
-  failed.
+* You can now use the `UnlimitedRetryCheckInternet` to check if there is internet when you
+  run some action that needs it. If there is no internet, the action will abort silently
+  and then retried unlimited times, until there is internet. It will also retry if there
+  is internet but the action failed.
 
-* You can provide a `CloudSync` object to the store constructor. It's similar to the `Persistor`,
-  but can be used to synchronize the state of the application with the server. This is experimental.
+* You can provide a `CloudSync` object to the store constructor. It's similar to the
+  `Persistor`, but can be used to synchronize the state of the application with the
+  server. This is experimental.
 
 * Fixed `isWaiting()` for checking multiple actions and when state doesn't change.
 
@@ -72,11 +78,11 @@ and best practices._
 
 ## 22.3.0
 
-* In the `reduce` method of your actions you can now access the _initial state_ of the action, by
-  using the `initialState` getter. In other words, you have access to a copy of the state as it was
-  when the action was first dispatched. This is useful when you need to calculate some value
-  asynchronously, and then you only want to apply the result to the state if that value hasn't
-  changed in the meantime. For example:
+* In the `reduce` method of your actions you can now access the _initial state_ of the
+  action, by using the `initialState` getter. In other words, you have access to a copy of
+  the state as it was when the action was first dispatched. This is useful when you need
+  to calculate some value asynchronously, and then you only want to apply the result to
+  the state if that value hasn't changed in the meantime. For example:
 
   ```dart
   class MyAction extends ReduxAction<AppState> {
@@ -90,18 +96,21 @@ and best practices._
 
 ## 22.1.0
 
-* You can now use `var isWaiting = context.isWaiting(MyAction)` to check if an async action of
-  the given type is currently being processed. You can then use this boolean to show a loading
-  spinner in your widget.
+* You can now use `var isWaiting = context.isWaiting(MyAction)` to check if an async
+  action of the given type is currently being processed. You can then use this boolean to
+  show a
+  loading spinner in your widget.
   Note: Inside your `VmFactory` you can also use `isWaiting: isWaiting(MyAction)`. See
   the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_spinner.dart">
   Show Spinner Example</a>.
 
 
-* You can now use `var isFailed = context.isFailed(MyAction)` to check if an action of the given
-  type has thrown an `UserException`. You can then use this boolean to show an error message.
-  You can also get the exception with `var exception = context.exceptionFor(MyAction)` to use its
-  error message, and clear the exception with `context.clearExceptionFor(MyAction)`.
+* You can now use `var isFailed = context.isFailed(MyAction)` to check if an action of the
+  given type has thrown an `UserException`. You can then use this boolean to show an error
+  message.
+  You can also get the exception with `var exception = context.exceptionFor(MyAction)` to
+  use its error message, and clear the exception with
+  `context.clearExceptionFor(MyAction)`.
   Note: Inside your `VmFactory` you can also use `isFailed: isFailed(MyAction)` etc. See
   the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_error_dialog.dart">
   Show Error Dialog Example</a>.
@@ -145,14 +154,14 @@ and best practices._
 
   Other mixins will be provided in the future, for Throttling, Debouncing and Caching.
 
-* Some features of the `async_redux` package are now available in a standalone Dart-only core
-  package: https://pub.dev/packages/async_redux_core. You may use that core package when you
-  are developing a Dart server (backend) with [Celest](https://celest.dev/), or when developing your
-  own Dart-only package that does not depend on Flutter. Note: For the moment, the core
-  package simply contains the `UserException`, and nothing more. If you now
-  import `async_redux_core` in your Celest server code and throw an `UserException` there, the
-  exception message will automatically be shown in a dialog to the user in your client app (if you
-  use the `UserExceptionDialog` feature).
+* Some features of the `async_redux` package are now available in a standalone Dart-only
+  core package: https://pub.dev/packages/async_redux_core. You may use that core package
+  when you are developing a Dart server (backend) with [Celest](https://celest.dev/), or
+  when developing your own Dart-only package that does not depend on Flutter. Note: For
+  the moment, the corepackage simply contains the `UserException`, and nothing more.
+  If you now import `async_redux_core` in your Celest server code and throw an
+  `UserException` there, the exception message will automatically be shown in a dialog to
+  the user in your client app (if you use the `UserExceptionDialog` feature).
 
   > **For Flutter applications nothing changes.**
   > You don't need to import the core package directly.
@@ -160,10 +169,11 @@ and best practices._
   > the code that's now in the core package.
 
 
-* You can now access the store inside of widgets, and have your widgets rebuild when the state
-  changes, by using `context.state` and `context.dispatch` etc. This is only useful when you want to
-  access the store state, and dispatch actions directly inside your widgets, instead of using
-  the `StoreConnector` (dumb widget / smart widget pattern). For example:
+* You can now access the store inside of widgets, and have your widgets rebuild when the
+  state changes, by using `context.state` and `context.dispatch` etc. This is only useful
+  when you want to access the store state, and dispatch actions directly inside your
+  widgets, instead of using the `StoreConnector` (dumb widget / smart widget pattern). For
+  example:
 
   ```dart
   // Read state (will rebuild when the state changes) 
@@ -185,8 +195,8 @@ and best practices._
   context.clearExceptionFor(MyAction);
   ```      
 
-  However, to use `context.state` like shown above you must define this extension method in your own
-  code (supposing your state class is called `AppState`):
+  However, to use `context.state` like shown above you must define this extension method
+  in your own code (supposing your state class is called `AppState`):
 
   ```dart  
   extension BuildContextExtension on BuildContext {
@@ -199,7 +209,8 @@ and best practices._
   Connector vs Provider Example</a>.
 
 
-* You can now get and set properties in the `Store` using the `prop` and `setProp` methods.
+* You can now get and set properties in the `Store` using the `prop` and `setProp`
+  methods.
   These methods are available in `Store`, in `ReduxAction`, and in `VmFactory`.
   They can be used to save global values, but scoped to the store.
   For example, you could save timers, streams or futures used by actions:
@@ -210,28 +221,30 @@ and best practices._
   timer.cancel();
   ```   
 
-  You can later use `store.disposeProps` to stop, close or ignore, all stream related objects,
-  timers and futures, saved as props in the store. It will also remove them from there.
+  You can later use `store.disposeProps` to stop, close or ignore, all stream related
+  objects, timers and futures, saved as props in the store. It will also remove them from
+  there.
 
 ## 22.0.0
 
 * BREAKING CHANGE: `StoreConnector.model` was removed, after being deprecated for a long
   time. Please, use the `vm` parameter instead. See classes `VmFactory` and `Vm`.
 
-* BREAKING CHANGE: `ReduxAction.reduceWithState()` was removed, after being deprecated for a long
-  time.
+* BREAKING CHANGE: `ReduxAction.reduceWithState()` was removed, after being deprecated for
+  a long time.
 
-* BREAKING CHANGE: `StoreProvider.of` was removed. See `context.state` and `context.dispatch` etc,
-  in version 22.1.0 above.
+* BREAKING CHANGE: `StoreProvider.of` was removed. See `context.state` and
+  `context.dispatch` etc, in version 22.1.0 above.
 
-* BREAKING CHANGE: The `UserException` class was modified so that it was possible to move it to the
-  `async_redux_core`. If your use of `UserException` was limited to specifying the error message,
-  then you don't need to change anything: `throw UserException('Error message')` will continue to
-  work as before. However, for other more advanced features you will have to read
-  the `UserException` documentation and adapt. In the new public API of `UserException` you can now
-  specify a `message`, `reason`, `code`, `errorText` and `ifOpenDialog` in the constructor, and
-  then you can use methods `addCallbacks`, `addCause`, `addProps`, `withErrorText` and `noDialog`
-  to add more information:
+* BREAKING CHANGE: The `UserException` class was modified so that it was possible to move
+  it to the `async_redux_core`. If your use of `UserException` was limited to specifying
+  the error message, then you don't need to change anything:
+  `throw UserException('Error message')` will continue to work as before.
+  However, for other more advanced features you will have to read the `UserException`
+  documentation and adapt. In the new public API of `UserException` you can now
+  specify a `message`, `reason`, `code`, `errorText` and `ifOpenDialog` in the
+  constructor, and then you can use methods `addCallbacks`, `addCause`, `addProps`,
+  `withErrorText` and `noDialog` to add more information:
 
   ```dart
   throw UserException('Invalid number', reason: 'Must be less than 42')
@@ -244,17 +257,18 @@ and best practices._
 
   Note the `code` parameter can only be a number now. If you were using a different type,
   for example enums, you can now include it in the props, like
-  so: `throw UserException('').addProps({'code': myError.invalidInput}).` or you can even create
-  an extension method which allows you to
+  so: `throw UserException('').addProps({'code': myError.invalidInput}).` or you can even
+  create an extension method which allows you to
   write `throw UserException('').withCode(myError.invalidInput).`
-  However, please read the new `UserException` documentation to learn about the recommended way to
-  use `code` to define the text of the error messages, and even easily translate them to the user
-  language by using the [i18n_extension](https://pub.dev/packages/i18n_extension) translations
-  package.
+  However, please read the new `UserException` documentation to learn about the
+  recommended way to use `code` to define the text of the error messages, and even easily
+  translate them to the user language by using
+  the [i18n_extension](https://pub.dev/packages/i18n_extension) translations package.
 
 * To test the view-model generated by a `VmFactory`, you can now use the static
-  method `Vm.createFrom(store, factory)`. The method will return the view-model, which you can use
-  to inspect the view-model properties directly, or call any of the view-model callbacks. Example:
+  method `Vm.createFrom(store, factory)`. The method will return the view-model, which you
+  can use to inspect the view-model properties directly, or call any of the view-model
+  callbacks. Example:
 
   ```dart
   var store = Store(initialState: User("Mary"));
@@ -274,11 +288,11 @@ and best practices._
   expect(store.state.name, "Bill");
   ```
 
-* DEPRECATION WARNING: While the `StoreTester` is a powerful tool with advanced features that are
-  beneficial for the most complex testing scenarios, for **almost all tests** it's now recommended
-  to use the `Store` directly. This approach involves waiting for an action to complete its dispatch
-  process or for the store state to meet a certain condition. After this, you can verify the current
-  state or action using the new
+* DEPRECATION WARNING: While the `StoreTester` is a powerful tool with advanced features
+  that are beneficial for the most complex testing scenarios, for **almost all tests**
+  it's now recommended to use the `Store` directly. This approach involves waiting for an
+  action to complete its dispatch process or for the store state to meet a certain
+  condition. After this, you can verify the current state or action using the new
   methods `store.dispatchAndWait`, `store.waitCondition`, `store.waitActionCondition`,
   `store.waitAllActions`, `store.waitActionType`, `store.waitAllActionTypes`,
   and `store.waitAnyActionTypeFinishes`. For example:
@@ -337,7 +351,8 @@ and best practices._
   expect(store.state.name, 'Bill');  
   ```                          
 
-  Note the `StoreTester` will NOT be removed, now or in the future. It's just not the recommended
+  Note the `StoreTester` will NOT be removed, now or in the future. It's just not the
+  recommended
   way to test the store anymore.
 
 ## 21.7.1
@@ -354,18 +369,23 @@ and best practices._
     - `isCompleted` if the action has completed executing, either with or without errors.
     - `isCompletedOk` if the action has completed with no errors.
     - `isCompletedFailed` if the action has completed with errors.
-    - `originalError` Holds the error thrown by the action's before/reduce methods, if any.
+    - `originalError` Holds the error thrown by the action's before/reduce methods, if
+      any.
     - `wrappedError` Holds the error thrown by the action, after it was processed by the
       action's `wrapError` and the `globalWrapError`.
 
 ## 21.6.0
 
-* DEPRECATION WARNING: The `wrapError` parameter of the `Store` constructor is now deprecated in
+* DEPRECATION WARNING: The `wrapError` parameter of the `Store` constructor is now
+  deprecated in
   favor of the `globalWrapError` parameter. The reason for this deprecation is that the
   new `GlobalWrapError` works in the same way as the action's `ReduxAction.wrapError`,
-  while `WrapError` does not. The difference is that when `WrapError` returns `null`, the original
-  error is not modified, while with `GlobalWrapError` returning `null` will instead disable the
-  error. In other words, where your old `WrapError` returned `null`, your new `GlobalWrapError`
+  while `WrapError` does not. The difference is that when `WrapError` returns `null`, the
+  original
+  error is not modified, while with `GlobalWrapError` returning `null` will instead
+  disable the
+  error. In other words, where your old `WrapError` returned `null`, your new
+  `GlobalWrapError`
   should return the original `error`:
 
   ```
@@ -385,22 +405,31 @@ and best practices._
   whereas `WrapError` cannot.
 
 * Throwing an error in the action's `wrapError` or in the `GlobalWrapError` was disallowed
-  (you needed to make sure it never happened). Now, it's allowed. If instead of RETURNING an error
-  you THROW an error inside these wrappers, AsyncRedux will catch it and use it instead the original
-  error. In other words, returning an error or throwing an error from inside the wrappers now has
-  the same effect. However, it is still recommended to return the error rather than throwing it.
+  (you needed to make sure it never happened). Now, it's allowed. If instead of RETURNING
+  an error
+  you THROW an error inside these wrappers, AsyncRedux will catch it and use it instead
+  the original
+  error. In other words, returning an error or throwing an error from inside the wrappers
+  now has
+  the same effect. However, it is still recommended to return the error rather than
+  throwing it.
 
 ## 21.5.0
 
-* DEPRECATION WARNING: Method `dispatchAsync` was renamed to `dispatchAndWait`. The old name is
-  still available, but deprecated and will be removed. The new name is more descriptive of what the
-  method does, and the fact that `dispatchAndWait` can be used to dispatch both sync and async
-  actions. The only difference between `dispatchAndWait` and `dispatch` is that `dispatchAndWait`
+* DEPRECATION WARNING: Method `dispatchAsync` was renamed to `dispatchAndWait`. The old
+  name is
+  still available, but deprecated and will be removed. The new name is more descriptive of
+  what the
+  method does, and the fact that `dispatchAndWait` can be used to dispatch both sync and
+  async
+  actions. The only difference between `dispatchAndWait` and `dispatch` is that
+  `dispatchAndWait`
   returns a `Future` which can be awaited to know when the action is finished.
 
 ## 21.1.1
 
-* `await StoreTester.dispatchAndWait(action)` dispatches an action, and then waits until it
+* `await StoreTester.dispatchAndWait(action)` dispatches an action, and then waits until
+  it
   finishes. This is the same as
   doing: `storeTester.dispatch(action); await storeTester.wait(action);`.
 
@@ -425,7 +454,8 @@ and best practices._
 
 * Flutter 3.7.5, Dart 2.19.2, fast_immutable_collections: 9.0.0.
 
-* BREAKING CHANGE: The `Action.wrapError(error, stackTrace)` method now also gets the stacktrace
+* BREAKING CHANGE: The `Action.wrapError(error, stackTrace)` method now also gets the
+  stacktrace
   instead of just the error. If your code breaks, just add the extra parameter, like so:
   `Object wrapError(error) => ...` turns into `Object wrapError(error, _) => ...`
 
@@ -433,25 +463,32 @@ and best practices._
 
 * BREAKING CHANGE: When a `Persistor` is provided to the Store, it now considers the
   `initialState` is already persisted. Before this change, it considered nothing was
-  persisted. Note: Before you create the store, you are allowed to call the `Persistor` methods
+  persisted. Note: Before you create the store, you are allowed to call the `Persistor`
+  methods
   directly: `Persistor.saveInitialState()`, `readState()` and `deleteState()`.
   However, after you create the store, please don't call those methods yourself anymore.
-  If you do it, AsyncRedux cannot keep track of which state was persisted. After store creation,
-  if necessary, you should use the corresponding methods `Store.saveInitialStateInPersistence()`,
-  `Store.readStateFromPersistence()` and `Store.deleteStateFromPersistence()`. These methods let
+  If you do it, AsyncRedux cannot keep track of which state was persisted. After store
+  creation,
+  if necessary, you should use the corresponding methods
+  `Store.saveInitialStateInPersistence()`,
+  `Store.readStateFromPersistence()` and `Store.deleteStateFromPersistence()`. These
+  methods let
   AsyncRedux keep track of the persisted state, so that it's able to call
   `Persistor.persistDifference()` with the appropriate parameters.
 
 <br>
 
-* Method `Store.getLastPersistedStateFromPersistor()` returns the state that was last persisted
+* Method `Store.getLastPersistedStateFromPersistor()` returns the state that was last
+  persisted
   to the local persistence. It's unlikely you will use this method yourself.
 
 <br>
 
-* BREAKING CHANGE: The factory declaration used to have two type parameters, but now it has three:
+* BREAKING CHANGE: The factory declaration used to have two type parameters, but now it
+  has three:
   `class Factory extends VmFactory<AppState, MyConnector, MyViewModel>`
-  With that change, you can now reference the view-model inside the Factory methods, by using
+  With that change, you can now reference the view-model inside the Factory methods, by
+  using
   the `vm` getter. Example:
     ```
     ViewModel fromStore() =>
@@ -463,11 +500,14 @@ and best practices._
     void _onTap() => dispatch(SaveValueAction(vm.value)); // Use the value from the vm.
     ```
 
-  Note 1: You can only use the `vm` getter after the `fromStore()` method is called, which means
+  Note 1: You can only use the `vm` getter after the `fromStore()` method is called, which
+  means
   you cannot reference the `vm` inside of the `fromStore()` method itself. If you do that,
-  you'll get a `StoreException`. You also cannot use the `vm` getter if the view-model is null.
+  you'll get a `StoreException`. You also cannot use the `vm` getter if the view-model is
+  null.
 
-  Note 2: To reduce boilerplate, and not having to pass the `AppState` type parameter whenever you
+  Note 2: To reduce boilerplate, and not having to pass the `AppState` type parameter
+  whenever you
   create a Factory, I recommend you define a base Factory, like so:
     ```
     abstract class BaseFactory<T extends Widget?, Model extends Vm> extends VmFactory<AppState, T, Model> {
@@ -503,8 +543,10 @@ and best practices._
   ```
 
   The state-observers are now also called when the action reducer complete with a error.
-  In this case, the `error` object will not be null. This makes it easier to use state-observers
-  for metrics. Please, see the documentation for the recommended clean-code way to do this.
+  In this case, the `error` object will not be null. This makes it easier to use
+  state-observers
+  for metrics. Please, see the documentation for the recommended clean-code way to do
+  this.
 
 ## 16.1.0
 
@@ -513,8 +555,10 @@ and best practices._
 ## 16.0.0
 
 * BREAKING CHANGE: Async `reduce()` methods (those that return Futures) are now called
-  synchronously (in the same microtask of their dispatch), just like a regular async function is.
-  In other words, now dispatching a sync action works just the same as calling a sync function,
+  synchronously (in the same microtask of their dispatch), just like a regular async
+  function is.
+  In other words, now dispatching a sync action works just the same as calling a sync
+  function,
   and dispatching an async action works just the same as calling an async function.
 
   ```
@@ -542,19 +586,26 @@ and best practices._
 
   ```  
 
-  Before version `16.0.0`, the `reduce()` method was called in a later microtask. Please note, the
-  async `reduce()` methods continue to return and apply the state in a later microtask (this did
+  Before version `16.0.0`, the `reduce()` method was called in a later microtask. Please
+  note, the
+  async `reduce()` methods continue to return and apply the state in a later microtask (
+  this did
   not change).
 
-  The above breaking change is unlikely to affect you in any way, but if you want the old behavior,
+  The above breaking change is unlikely to affect you in any way, but if you want the old
+  behavior,
   just add `await microtask;` to the first line of your `reduce()` method.
 
 <br>
 
-* BREAKING CHANGE: When your reducer is async (i.e., returns `Future<AppState>`) you must make sure
-  you **do not return a completed future**, meaning all execution paths of the reducer must pass
-  through at least one `await` keyword. In other words, don't return a Future if you don't need it.
-  If your reducer has no `await`s, you must return `AppState?` instead of `Future<AppState?>`, or
+* BREAKING CHANGE: When your reducer is async (i.e., returns `Future<AppState>`) you must
+  make sure
+  you **do not return a completed future**, meaning all execution paths of the reducer
+  must pass
+  through at least one `await` keyword. In other words, don't return a Future if you don't
+  need it.
+  If your reducer has no `await`s, you must return `AppState?` instead of
+  `Future<AppState?>`, or
   add `await microtask;` to the start of your reducer, or return `null`. For example:
 
   ```dart 
@@ -571,12 +622,16 @@ and best practices._
   Future<AppState?> reduce() async { if (state.someBool) return await calculation(); return state; }
   ```
 
-  If you don't follow this rule, AsyncRedux may seem to work ok, but will eventually misbehave.
+  If you don't follow this rule, AsyncRedux may seem to work ok, but will eventually
+  misbehave.
 
   It's generally easy to make sure you are not returning a completed future.
-  In the rare case your reducer function is very complex, and you are unsure that all code paths
-  pass through an `await`, just add `assertUncompletedFuture();` at the very END of your `reduce`
-  method, right before the `return`. If you do that, an error will be shown in the console if
+  In the rare case your reducer function is very complex, and you are unsure that all code
+  paths
+  pass through an `await`, just add `assertUncompletedFuture();` at the very END of your
+  `reduce`
+  method, right before the `return`. If you do that, an error will be shown in the console
+  if
   the `reduce` method ever returns a completed future.
 
   If you're an advanced user interested in the details, check the
@@ -612,9 +667,12 @@ and best practices._
 
 ## 14.1.1
 
-* The store persistor can now be paused and resumed, with methods `store.pausePersistor()`,
-  `store.persistAndPausePersistor()` and `store.resumePersistor()`. This may be used together with
-  the app lifecycle, to prevent a persistence process to start when the app is being shut down. For
+* The store persistor can now be paused and resumed, with methods
+  `store.pausePersistor()`,
+  `store.persistAndPausePersistor()` and `store.resumePersistor()`. This may be used
+  together with
+  the app lifecycle, to prevent a persistence process to start when the app is being shut
+  down. For
   example:
 
   ```     
@@ -666,12 +724,14 @@ and best practices._
    }
   ```  
 
-* When logging out of the app, you can call `store.deletePersistedState()` to ask the persistor to
+* When logging out of the app, you can call `store.deletePersistedState()` to ask the
+  persistor to
   delete the state from disk.
 
 * BREAKING CHANGE: This is a very minor change, unlikely to affect you. The signature for
   the `Action.wrapError` method has changed from `Object? wrapError(error)`
-  to `Object? wrapError(Object error)`. If you get an error when you upgrade, you can fix it by
+  to `Object? wrapError(Object error)`. If you get an error when you upgrade, you can fix
+  it by
   changing the method that broke into `Object? wrapError(dynamic error)`.
 
 * BREAKING CHANGE: Context is now nullable for these StoreConnector methods:
@@ -709,9 +769,12 @@ and best practices._
 
 ## 13.0.5
 
-* Sometimes, the store state is such that it's not possible to create a view-model. In those cases,
-  the `fromStore()` method in the `Factory` can now return a `null` view-model. In that case,
-  the `builder()` method in the `StoreConnector` can detect that the view-model is `null`, and then
+* Sometimes, the store state is such that it's not possible to create a view-model. In
+  those cases,
+  the `fromStore()` method in the `Factory` can now return a `null` view-model. In that
+  case,
+  the `builder()` method in the `StoreConnector` can detect that the view-model is `null`,
+  and then
   return some widget that does not depend on the view-model. For example:
 
   ```
@@ -739,19 +802,27 @@ and best practices._
 
 ## 13.0.4
 
-* `dispatch` can be used to dispatch both sync and async actions. It returns a `FutureOr`. You can
+* `dispatch` can be used to dispatch both sync and async actions. It returns a `FutureOr`.
+  You can
   await the result or not, as desired.
 
-* `dispatchAsync` can also be used to dispatch both sync and async actions. But it always returns a
-  `Future` (not a `FutureOr`). Use this only when you explicitly need a `Future`, for example, when
+* `dispatchAsync` can also be used to dispatch both sync and async actions. But it always
+  returns a
+  `Future` (not a `FutureOr`). Use this only when you explicitly need a `Future`, for
+  example, when
   working with the `RefreshIndicator` widget. Note: `dispatchAsync` was later renamed
   to `dispatchAndWait`.
 
-* `dispatchSync` allows you to dispatch SYNC actions only. In that case, `dispatchSync(action)` is
-  exactly the same as `dispatch(action)`. However, if your action is ASYNC, `dispatchSync` will
-  throw an error. Use this only when you need to make sure an action is sync (meaning it impacts the
-  store state immediately when it returns). This is not very common. Important: An action is sync if
-  and only if both its `before` and `reduce` methods are sync. If any or both these methods return a
+* `dispatchSync` allows you to dispatch SYNC actions only. In that case,
+  `dispatchSync(action)` is
+  exactly the same as `dispatch(action)`. However, if your action is ASYNC, `dispatchSync`
+  will
+  throw an error. Use this only when you need to make sure an action is sync (meaning it
+  impacts the
+  store state immediately when it returns). This is not very common. Important: An action
+  is sync if
+  and only if both its `before` and `reduce` methods are sync. If any or both these
+  methods return a
   Future, then the action is async and will throw an error when used with `dispatchSync`.
 
 * `StoreTester.getConnectorTester` helps test `StoreConnector`s methods, such as `onInit`,
@@ -776,10 +847,12 @@ and best practices._
   ```
   For more information, see section **Testing the StoreConnector** in the README.md file.
 
-* Fix: `UserExceptionDialog` now shows all `UserException`s. It was discarding some of them under
+* Fix: `UserExceptionDialog` now shows all `UserException`s. It was discarding some of
+  them under
   some circumstances, in a regression created in version 4.0.4.
 
-* In the `Store` constructor you can now set `maxErrorsQueued` to control the maximum number of
+* In the `Store` constructor you can now set `maxErrorsQueued` to control the maximum
+  number of
   errors the `UserExceptionDialog` error-queue can hold. Default is `10`.
 
 * `ConsoleActionObserver` is now provided to print action details to the console.
@@ -788,9 +861,11 @@ and best practices._
 
 ## 12.0.4
 
-* `NavigateAction.toString()` now returns a better description, like `Action NavigateAction.pop()`.
+* `NavigateAction.toString()` now returns a better description, like
+  `Action NavigateAction.pop()`.
 
-* Fixed `NavigateAction.popUntilRouteName` and `NavigateAction.pushNamedAndRemoveAll` to return the
+* Fixed `NavigateAction.popUntilRouteName` and `NavigateAction.pushNamedAndRemoveAll` to
+  return the
   correct `.type`.
 
 * Added section `Dependency Injection` in README.md.
@@ -801,40 +876,52 @@ and best practices._
 
 * New `StoreTester` methods: `waitUntilAll()` and `waitUntilAllGetLast()`.
 
-* Passing an environment to the store, to help with dependency injection: `Store(environment: ...)`
+* Passing an environment to the store, to help with dependency injection:
+  `Store(environment: ...)`
 
 ## 12.0.0
 
-* BREAKING CHANGE: Improved state typing for some `Store` parameters. You will now have to use
-  `Persistor<AppState>` instead of `Persistor`, and `WrapError<AppState>` instead of `WrapError`
+* BREAKING CHANGE: Improved state typing for some `Store` parameters. You will now have to
+  use
+  `Persistor<AppState>` instead of `Persistor`, and `WrapError<AppState>` instead of
+  `WrapError`
   etc.
 
-* Global `Store(wrapReduce: ...)`. You may now globally wrap the reducer to allow for some pre or
-  post-processing. Note: if the action also have a wrapReduce method, this global wrapper will be
+* Global `Store(wrapReduce: ...)`. You may now globally wrap the reducer to allow for some
+  pre or
+  post-processing. Note: if the action also have a wrapReduce method, this global wrapper
+  will be
   called AFTER (it will wrap the action's wrapper which wraps the action's reducer).
 
 * Downgraded dev_dependencies `test: ^1.16.0`
 
 ## 11.0.1
 
-* You can now provide callbacks `onOk` and `onCancel` to an `UserException`. This allows you to
+* You can now provide callbacks `onOk` and `onCancel` to an `UserException`. This allows
+  you to
   dispatch actions when the user dismisses the error dialog. When using the
-  default `UserExceptionDialog`: (i) if only `onOk` is provided, it will be called when the dialog
-  is dismissed, no matter how. (ii) If both `onOk` and `onCancel` are provided, then `onOk` will be
-  called only when the OK button is pressed, while `onCancel` will be called when the dialog is
+  default `UserExceptionDialog`: (i) if only `onOk` is provided, it will be called when
+  the dialog
+  is dismissed, no matter how. (ii) If both `onOk` and `onCancel` are provided, then
+  `onOk` will be
+  called only when the OK button is pressed, while `onCancel` will be called when the
+  dialog is
   dismissed by any other means.
 
 ## 11.0.0
 
 * BREAKING CHANGE: The `dispatchFuture` function is not necessary anymore. Just rename it
-  to `dispatch`, since now the `dispatch` function always returns a future, and you can await it or
+  to `dispatch`, since now the `dispatch` function always returns a future, and you can
+  await it or
   not, as desired.
 
 * BREAKING CHANGE: `ReduxAction.hasFinished()` has been deprecated. It should be renamed
   to `isFinished`.
 
-* The `dispatch` function now returns an `ActionStatus`. Usually you will discard this info, but you
-  may use it to know if the action completed with no errors. For example, suppose a `SaveAction`
+* The `dispatch` function now returns an `ActionStatus`. Usually you will discard this
+  info, but you
+  may use it to know if the action completed with no errors. For example, suppose a
+  `SaveAction`
   looks like this:
 
   ```                                      
@@ -847,7 +934,8 @@ and best practices._
   }
   ```
 
-  Then, when you save some info, you want to leave the current screen if and only if the save
+  Then, when you save some info, you want to leave the current screen if and only if the
+  save
   process succeeded:
 
   ```
@@ -858,13 +946,17 @@ and best practices._
 ## 10.0.1
 
 * BREAKING CHANGE: The new `UserExceptionDialog.useLocalContext` parameter now allows
-  the `UserExceptionDialog` to be put in the `builder` parameter of the `MaterialApp` widget. Even
-  if you use this dialog, it is unlikely this will be a breaking change for you. But if it is, and
-  your error dialog now has problems, simply make `useLocalContext: true` to return to the old
+  the `UserExceptionDialog` to be put in the `builder` parameter of the `MaterialApp`
+  widget. Even
+  if you use this dialog, it is unlikely this will be a breaking change for you. But if it
+  is, and
+  your error dialog now has problems, simply make `useLocalContext: true` to return to the
+  old
   behavior.
 
 * BREAKING CHANGE: `StoreConnector` parameters `onInitialBuild`, `onDidChange`
-  and `onWillChange` now also get the context and the store. For example, where you previously
+  and `onWillChange` now also get the context and the store. For example, where you
+  previously
   had `onInitialBuild(vm) {...}` now you have `onInitialBuild(context, store, vm) {...}`.
 
 ## 9.0.9
@@ -902,7 +994,8 @@ and best practices._
 
 * BREAKING CHANGE:
 
-  Now the `vm` parameter in the `StoreConnector` is a function that creates a `VmFactory` (instead
+  Now the `vm` parameter in the `StoreConnector` is a function that creates a
+  `VmFactory` (instead
   of being a `VmFactory` object itself).
 
   So, to upgrade, you just need to provide this:
@@ -918,17 +1011,22 @@ and best practices._
   vm: MyFactory(this), 
   ```
 
-  Now the `StoreConnector` will create a `VmFactory` every time it needs a view-model. The Factory
+  Now the `StoreConnector` will create a `VmFactory` every time it needs a view-model. The
+  Factory
   will have access to:
 
-    1) `state` getter: The state the store was holding when the factory and the view-model were
+    1) `state` getter: The state the store was holding when the factory and the view-model
+       were
        created. This state is final inside the factory.
 
-    2) `currentState()` method: The current (most recent) store state. This will return the current
+    2) `currentState()` method: The current (most recent) store state. This will return
+       the current
        state the store holds at the time the method is called.
 
-* New store parameter `immutableCollectionEquality` lets you override the equality used for
-  immutable collections from the <a href="https://pub.dev/packages/fast_immutable_collections">
+* New store parameter `immutableCollectionEquality` lets you override the equality used
+  for
+  immutable collections from
+  the <a href="https://pub.dev/packages/fast_immutable_collections">
   fast_immutable_collections</a> package.
 
 ## 6.0.3
@@ -942,8 +1040,10 @@ and best practices._
 ## 6.0.1
 
 * `NavigateAction` now closely follows the `Navigator` api:  `push()`,
-  `pop()`, `popAndPushNamed()`, `pushNamed()`, `pushReplacement()`, `pushAndRemoveUntil()`,
-  `replace()`, `replaceRouteBelow()`, `pushReplacementNamed()`, `pushNamedAndRemoveUntil()`,
+  `pop()`, `popAndPushNamed()`, `pushNamed()`, `pushReplacement()`,
+  `pushAndRemoveUntil()`,
+  `replace()`, `replaceRouteBelow()`, `pushReplacementNamed()`,
+  `pushNamedAndRemoveUntil()`,
   `pushNamedAndRemoveAll()`, `popUntil()`, `removeRoute()`, `removeRouteBelow()`,
   `popUntilRouteName()` and `popUntilRoute()`.
 
