@@ -1,7 +1,18 @@
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-[![pub package](https://img.shields.io/pub/v/async_redux.svg)](https://pub.dartlang.org/packages/async_redux)
+[![Pub popularity](https://badgen.net/pub/popularity/async_redux)](https://pub.dev/packages/async_redux)
+[![Pub Version](https://img.shields.io/pub/v/async_redux?style=flat-square&logo=dart)](https://pub.dev/packages/async_redux)
 [![pub package](https://img.shields.io/badge/Awesome-Flutter-blue.svg?longCache=true&style=flat-square)](https://github.com/Solido/awesome-flutter)
+[![GitHub stars](https://img.shields.io/github/stars/marcglasberg/async_redux?style=social)](https://github.com/woltapp/async_redux)
+![Code Climate issues](https://img.shields.io/github/issues/marcglasberg/async_redux?style=flat-square)
+![GitHub closed issues](https://img.shields.io/github/issues-closed/marcglasberg/async_redux?style=flat-square)
+![GitHub contributors](https://img.shields.io/github/contributors/marcglasberg/async_redux?style=flat-square)
+![GitHub repo size](https://img.shields.io/github/repo-size/marcglasberg/async_redux?style=flat-square)
+![GitHub forks](https://img.shields.io/github/forks/marcglasberg/async_redux?style=flat-square)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)
+[![Developed by Marcelo Glasberg](https://img.shields.io/badge/Developed%20by%20Marcelo%20Glasberg-blue.svg)](https://glasberg.dev/)
+[![Wolt on pub.dev](https://img.shields.io/pub/publisher/async_redux.svg)](https://pub.dev/packages/glasberg.dev/publisher)
+[![Platforms](https://badgen.net/pub/flutter-platform/async_redux)](https://pub.dev/packages/async_redux)
 
 <img src="https://asyncredux.com/img/platipus_FlutterReact.jpg">
 
@@ -161,7 +172,8 @@ class LoadText extends Action {
 &nbsp;
 
 > If you want to understand the above code in terms of traditional Redux patterns,
-> all code until the last `await` in the `reduce` method is the equivalent of a middleware,
+> all code until the last `await` in the `reduce` method is the equivalent of a
+> middleware,
 > and all code after that is the equivalent of a traditional reducer.
 > It's still Redux, just written in a way that is easy and boilerplate-free.
 > No need for Thunks or Sagas.
@@ -170,7 +182,8 @@ class LoadText extends Action {
 
 # Actions can throw errors
 
-If something bad happens, you can simply **throw an error**. In this case, the state will not
+If something bad happens, you can simply **throw an error**. In this case, the state will
+not
 change. Errors are caught globally and can be handled in a central place, later.
 
 In special, if you throw a `UserException`, which is a type provided by Async Redux,
@@ -312,7 +325,8 @@ class MyWidget extends StatelessWidget {
 
 &nbsp;
 
-`AbortWhenNoInternet` aborts the action silently (without showing any dialogs) if there is no
+`AbortWhenNoInternet` aborts the action silently (without showing any dialogs) if there is
+no
 internet connection.
 
 &nbsp;
@@ -345,8 +359,10 @@ class LoadText extends Action with Retry, UnlimitedRetries {
 
 ## UnlimitedRetryCheckInternet
 
-Add `UnlimitedRetryCheckInternet` to check if there is internet when you run some action that needs
-it. If there is no internet, the action will abort silently and then retried unlimited times,
+Add `UnlimitedRetryCheckInternet` to check if there is internet when you run some action
+that needs
+it. If there is no internet, the action will abort silently and then retried unlimited
+times,
 until there is internet. It will also retry if there is internet but the action failed.
 
 ```dart
@@ -357,9 +373,12 @@ class LoadText extends Action with UnlimitedRetryCheckInternet {
 
 ## Debounce (soon)
 
-To limit how often an action occurs in response to rapid inputs, you can add the `Debounce` mixin
-to your action class. For example, when a user types in a search bar, debouncing ensures that not
-every keystroke triggers a server request. Instead, it waits until the user pauses typing before
+To limit how often an action occurs in response to rapid inputs, you can add the
+`Debounce` mixin
+to your action class. For example, when a user types in a search bar, debouncing ensures
+that not
+every keystroke triggers a server request. Instead, it waits until the user pauses typing
+before
 acting.
 
 ```dart
@@ -385,7 +404,8 @@ class SearchText extends Action with Debounce {
 ## Throttle (soon)
 
 To prevent an action from running too frequently, you can add the `Throttle` mixin to your
-action class. This means that once the action runs it's considered _fresh_, and it won't run
+action class. This means that once the action runs it's considered _fresh_, and it won't
+run
 again for a set period of time, even if you try to dispatch it.
 After this period ends, the action is considered _stale_ and is ready to run again.
 
@@ -405,9 +425,12 @@ class LoadPrices extends Action with Throttle {
 
 ## OptimisticUpdate (soon)
 
-To provide instant feedback on actions that save information to the server, this feature immediately
-applies state changes as if they were already successful, before confirming with the server.
-If the server update fails, the change is rolled back and, optionally, a notification can inform
+To provide instant feedback on actions that save information to the server, this feature
+immediately
+applies state changes as if they were already successful, before confirming with the
+server.
+If the server update fails, the change is rolled back and, optionally, a notification can
+inform
 the user of the issue.
 
 ```tsx
@@ -521,7 +544,8 @@ Object? wrap(error, stackTrace, action) =>
 
 # Advanced action configuration
 
-The Team Lead may create a base action class that all actions will extend, and add some common
+The Team Lead may create a base action class that all actions will extend, and add some
+common
 functionality to it. For example, getter shortcuts to important parts of the state,
 and selectors to help find information.
 
@@ -563,7 +587,8 @@ class SelectItem extends Action {
 
 ***
 
-To learn more, the complete Async Redux documentation is published at https://asyncredux.com
+To learn more, the complete Async Redux documentation is published
+at https://asyncredux.com
 
 ***
 
