@@ -1,9 +1,9 @@
-[![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
+<img src="https://asyncredux.com/img/platipus_FlutterReact.jpg">
 
 [![Pub popularity](https://badgen.net/pub/popularity/async_redux)](https://pub.dev/packages/async_redux)
 [![Pub Version](https://img.shields.io/pub/v/async_redux?style=flat-square&logo=dart)](https://pub.dev/packages/async_redux)
 [![pub package](https://img.shields.io/badge/Awesome-Flutter-blue.svg?longCache=true&style=flat-square)](https://github.com/Solido/awesome-flutter)
-[![GitHub stars](https://img.shields.io/github/stars/marcglasberg/async_redux?style=social)](https://github.com/woltapp/async_redux)
+[![GitHub stars](https://img.shields.io/github/stars/marcglasberg/async_redux?style=social)](https://github.com/marcglasberg/async_redux)
 ![Code Climate issues](https://img.shields.io/github/issues/marcglasberg/async_redux?style=flat-square)
 ![GitHub closed issues](https://img.shields.io/github/issues-closed/marcglasberg/async_redux?style=flat-square)
 ![GitHub contributors](https://img.shields.io/github/contributors/marcglasberg/async_redux?style=flat-square)
@@ -11,10 +11,18 @@
 ![GitHub forks](https://img.shields.io/github/forks/marcglasberg/async_redux?style=flat-square)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)
 [![Developed by Marcelo Glasberg](https://img.shields.io/badge/Developed%20by%20Marcelo%20Glasberg-blue.svg)](https://glasberg.dev/)
-[![Wolt on pub.dev](https://img.shields.io/pub/publisher/async_redux.svg)](https://pub.dev/packages/glasberg.dev/publisher)
+[![Glasberg.dev on pub.dev](https://img.shields.io/pub/publisher/async_redux.svg)](https://pub.dev/publishers/glasberg.dev/packages)
 [![Platforms](https://badgen.net/pub/flutter-platform/async_redux)](https://pub.dev/packages/async_redux)
 
-<img src="https://asyncredux.com/img/platipus_FlutterReact.jpg">
+#### Contributors
+
+<a href="https://github.com/marcglasberg/async_redux/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=marcglasberg/async_redux&columns=9"/>
+</a>
+
+#### Sponsor
+
+[![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
 # Async Redux | *state management*
 

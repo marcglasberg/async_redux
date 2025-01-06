@@ -7,7 +7,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 24.0.4
+## 24.0.6
 
 * Fixed translation typo bug.
 
