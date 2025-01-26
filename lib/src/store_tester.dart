@@ -1,5 +1,5 @@
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
-// For more info, see: https://pub.dartlang.org/packages/async_redux
+// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
 import 'dart:async';
 import 'dart:collection';
@@ -16,7 +16,7 @@ typedef StateCondition<St> = bool Function(TestInfo<St> info);
 
 /// Helps testing the store, actions, and sync/async reducers.
 ///
-/// For more info, see: https://pub.dartlang.org/packages/async_redux
+/// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 ///
 class StoreTester<St> {
   //

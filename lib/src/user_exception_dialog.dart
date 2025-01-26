@@ -1,5 +1,5 @@
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
-// For more info, see: https://pub.dartlang.org/packages/async_redux
+// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
 import 'dart:collection';
 
@@ -26,7 +26,7 @@ import 'show_dialog_super.dart';
 ///
 /// ```
 ///
-/// For more info, see: https://pub.dartlang.org/packages/async_redux
+/// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 ///
 class UserExceptionDialog<St> extends StatelessWidget {
   final Widget child;

@@ -1,7 +1,7 @@
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
 // Uses code from package equatable by Felix Angelov.
-// For more info, see: https://pub.dartlang.org/packages/async_redux
+// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
 library async_redux_store;
 
@@ -90,7 +90,7 @@ typedef DispatchAndWait<St> = Future<ActionStatus> Function(
 ///
 /// • GlobalWrapError may be used to wrap action errors globally.
 ///
-/// For more info, see: https://pub.dartlang.org/packages/async_redux
+/// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 ///
 class Store<St> {
   Store({

@@ -1,5 +1,5 @@
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
-// For more info, see: https://pub.dartlang.org/packages/async_redux
+// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
 import 'package:flutter/material.dart' hide Action;
 
@@ -8,7 +8,7 @@ import '../async_redux.dart';
 /// Helps testing the `StoreConnector`s methods, such as `onInit`,
 /// `onDispose` and `onWillChange`.
 ///
-/// For more info, see: https://pub.dartlang.org/packages/async_redux
+/// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 ///
 /// Example: Suppose you have a `StoreConnector` which dispatches `SomeAction`
 /// on its `onInit`. How could you test that?

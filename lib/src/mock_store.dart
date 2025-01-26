@@ -1,7 +1,7 @@
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // Based upon packages redux by Brian Egan, and flutter_redux by Brian Egan and John Ryan.
 // Uses code from package equatable by Felix Angelov.
-// For more info, see: https://pub.dartlang.org/packages/async_redux
+// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
 import 'dart:async';
 
@@ -11,32 +11,46 @@ import 'package:async_redux/async_redux.dart';
 ///
 /// The MockStore lets you define mock actions/reducers for specific actions.
 ///
-/// For more info, see: https://pub.dartlang.org/packages/async_redux
+/// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 ///
 class MockStore<St> extends Store<St> {
   MockStore({
     required St initialState,
+    Object? environment,
+    Map<Object?, Object?> props = const {},
     bool syncStream = false,
     TestInfoPrinter? testInfoPrinter,
     List<ActionObserver<St>>? actionObservers,
     List<StateObserver<St>>? stateObservers,
     Persistor<St>? persistor,
+    Persistor<St>? cloudSync,
     ModelObserver? modelObserver,
     ErrorObserver<St>? errorObserver,
-    WrapError<St>? wrapError,
-    bool defaultDistinct = true,
+    WrapReduce<St>? wrapReduce,
+    @Deprecated("Use `globalWrapError` instead. This will be removed.") WrapError<St>? wrapError,
+    GlobalWrapError<St>? globalWrapError,
+    bool? defaultDistinct,
+    CompareBy? immutableCollectionEquality,
+    int? maxErrorsQueued,
     this.mocks,
   }) : super(
           initialState: initialState,
+          environment: environment,
+          props: props,
           syncStream: syncStream,
           testInfoPrinter: testInfoPrinter,
           actionObservers: actionObservers,
           stateObservers: stateObservers,
           persistor: persistor,
+          cloudSync: cloudSync,
           modelObserver: modelObserver,
           errorObserver: errorObserver,
+          wrapReduce: wrapReduce,
           wrapError: wrapError,
+          globalWrapError: globalWrapError,
           defaultDistinct: defaultDistinct,
+          immutableCollectionEquality: immutableCollectionEquality,
+          maxErrorsQueued: maxErrorsQueued,
         );
 
   /// 1) `null` to disable dispatching the action of a certain type.

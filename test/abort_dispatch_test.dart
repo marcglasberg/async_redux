@@ -3,7 +3,7 @@ import 'package:bdd_framework/bdd_framework.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
-// For more info, see: https://pub.dartlang.org/packages/async_redux
+// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
 List<String>? info;
 
