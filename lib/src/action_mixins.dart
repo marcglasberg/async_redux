@@ -574,7 +574,7 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 /// }
 /// ```
 ///
-mixin Throttle<St> implements ReduxAction<St> {
+mixin Throttle<St> on ReduxAction<St> {
   //
   int get throttle => 1000; // Milliseconds
 
@@ -620,7 +620,7 @@ mixin Throttle<St> implements ReduxAction<St> {
 /// Effect: It delays the function execution until the triggering activity ceases for a defined
 /// period, reducing the frequency of execution in scenarios where continuous input is possible.
 // TODO:
-//mixin Debounce<St> implements ReduxAction<St> {}
+//mixin Debounce<St> on ReduxAction<St> {}
 
 /// Caching is the process of storing data in a temporary storage area so that it can be retrieved
 /// quickly. It is used to speed up the process of accessing data from the database or file system.
@@ -628,7 +628,7 @@ mixin Throttle<St> implements ReduxAction<St> {
 /// again with the same parameters, during a certain period of time, it will return the cached
 /// result instead of running the action again.
 // TODO:
-//mixin Cache<St> implements ReduxAction<St> {}
+//mixin Cache<St> on ReduxAction<St> {}
 
 /// This mixin can be used to check if there is internet when you run some action that needs it.
 /// If there is no internet, the action will abort silently, and then retry the [reduce] method
