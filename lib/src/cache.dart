@@ -41,10 +41,11 @@ Result Function() Function(State1) cache1state<Result, State1>(
 ///    (String startString) =>
 ///    state.where((str) => str.startsWith(startString)).toList());
 /// ```
-Result Function(Param1) Function(State1) cache1state_1param<Result, State1, Param1>(
+Result Function(Param1) Function(State1)
+    cache1state_1param<Result, State1, Param1>(
   Result Function(Param1) Function(State1) f,
 ) =>
-    c.cache1state_1param(f);
+        c.cache1state_1param(f);
 
 /// Cache for 1 immutable state, and 2 parameters.
 ///
@@ -187,19 +188,21 @@ Result Function(Param1, Param2, Param3) Function(State1, State2)
 /// var selector = cache3states((List<String> names, int limit, String prefix) =>
 ///        () => names.where((str) => str.startsWith(prefix)).take(limit).toList());
 /// ```
-Result Function() Function(State1, State2, State3) cache3states<Result, State1, State2, State3>(
+Result Function() Function(State1, State2, State3)
+    cache3states<Result, State1, State2, State3>(
   Result Function() Function(State1, State2, State3) f,
 ) =>
-    c.cache3states(f);
+        c.cache3states(f);
 
 /// Cache for 1 immutable state, no parameters, and some extra information. This is the same
 /// as [cache1state] but with an extra information. Note: The extra information is not used in
 /// any way to decide whether the cache should be used/recalculated/evicted. It's just passed down
 /// to the [f] function to be used during the result calculation.
-Result Function() Function(State1, Extra) cache1state_0params_x<Result, State1, Extra>(
+Result Function() Function(State1, Extra)
+    cache1state_0params_x<Result, State1, Extra>(
   Result Function() Function(State1, Extra) f,
 ) =>
-    c.cache1state_0params_x(f);
+        c.cache1state_0params_x(f);
 
 /// Cache for 2 immutable states, no parameters, and some extra information. This is the same
 /// as [cache1state] but with an extra information. Note: The extra information is not used in

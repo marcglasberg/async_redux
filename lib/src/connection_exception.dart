@@ -15,7 +15,8 @@ class ConnectionException extends AdvancedUserException {
   /// A dialog will open. When the user presses OK or dismisses the dialog in any way,
   /// the [onRetry] callback will be called.
   ///
-  static ConnectionException noConnectivityWithRetry(void Function()? onRetry) =>
+  static ConnectionException noConnectivityWithRetry(
+          void Function()? onRetry) =>
       ConnectionException(onRetry: onRetry);
 
   /// Creates a [ConnectionException].
@@ -32,15 +33,17 @@ class ConnectionException extends AdvancedUserException {
     String? errorText,
     bool ifOpenDialog = true,
   }) : super(
-    (host != null) ? 'There is no Internet' : 'It was not possible to connect to $host.',
-    reason: 'Please, verify your connection.',
-    code: null,
-    onOk: onRetry,
-    onCancel: null,
-    hardCause: null,
-    errorText: errorText ?? 'No Internet connection',
-    ifOpenDialog: ifOpenDialog,
-  );
+          (host != null)
+              ? 'There is no Internet'
+              : 'It was not possible to connect to $host.',
+          reason: 'Please, verify your connection.',
+          code: null,
+          onOk: onRetry,
+          onCancel: null,
+          hardCause: null,
+          errorText: errorText ?? 'No Internet connection',
+          ifOpenDialog: ifOpenDialog,
+        );
 
   final String? host;
 
@@ -56,25 +59,25 @@ class ConnectionException extends AdvancedUserException {
 
   @override
   UserException withErrorText(String? newErrorText) => ConnectionException(
-    host: host,
-    onRetry: onOk,
-    errorText: newErrorText,
-    ifOpenDialog: ifOpenDialog,
-  );
+        host: host,
+        onRetry: onOk,
+        errorText: newErrorText,
+        ifOpenDialog: ifOpenDialog,
+      );
 
   @override
   UserException withDialog(bool ifOpenDialog) => ConnectionException(
-    host: host,
-    onRetry: onOk,
-    errorText: errorText,
-    ifOpenDialog: ifOpenDialog,
-  );
+        host: host,
+        onRetry: onOk,
+        errorText: errorText,
+        ifOpenDialog: ifOpenDialog,
+      );
 
   @override
   UserException get noDialog => ConnectionException(
-    host: host,
-    onRetry: onOk,
-    errorText: errorText,
-    ifOpenDialog: ifOpenDialog,
-  );
+        host: host,
+        onRetry: onOk,
+        errorText: errorText,
+        ifOpenDialog: ifOpenDialog,
+      );
 }

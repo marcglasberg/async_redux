@@ -12,7 +12,6 @@ import 'package:async_redux/async_redux.dart';
 ///
 abstract class ModelObserver<Model> {
   //
-
   /// The [ModelObserver] can be used to observe and troubleshoot the model changes.
   ///
   /// The [storeConnector] works by rebuilding the widget when the model changes.

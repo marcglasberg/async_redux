@@ -66,7 +66,8 @@ abstract class WrapReduce<St> {
           St? newState = reduce();
 
           // If the reducer returned null, or returned the same instance, don't do anything.
-          if (newState == null || identical(store.state, newState)) return newState;
+          if (newState == null || identical(store.state, newState))
+            return newState;
 
           return process(oldState: oldState, newState: newState);
         };
@@ -84,7 +85,8 @@ abstract class WrapReduce<St> {
           St oldState = store.state;
 
           // If the reducer returned null, or returned the same instance, don't do anything.
-          if (newState == null || identical(store.state, newState)) return newState;
+          if (newState == null || identical(store.state, newState))
+            return newState;
 
           return process(oldState: oldState, newState: newState);
         };

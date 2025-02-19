@@ -75,7 +75,8 @@ abstract class ReduxAction<St> {
   /// Returns true only if the action finished with no errors.
   /// In other words, if the methods before, reduce and after all finished executing
   /// without throwing any errors.
-  @Deprecated("Use `action.status.isCompletedOk` instead. This will be removed.")
+  @Deprecated(
+      "Use `action.status.isCompletedOk` instead. This will be removed.")
   bool get isFinished => _status.isFinished;
 
   DateTime get stateTimestamp => _store.stateTimestamp;
@@ -186,8 +187,8 @@ abstract class ReduxAction<St> {
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   /// - [dispatchAll] which dispatches all given actions in parallel.
   ///
-  Future<List<ReduxAction<St>>> Function(List<ReduxAction<St>> actions, {bool notify})
-      get dispatchAndWaitAll => _store.dispatchAndWaitAll;
+  Future<List<ReduxAction<St>>> Function(List<ReduxAction<St>> actions,
+      {bool notify}) get dispatchAndWaitAll => _store.dispatchAndWaitAll;
 
   /// Dispatches all given [actions] in parallel, applying their reducer, and possibly changing
   /// the store state. It returns the same list of [actions], so that you can instantiate them
@@ -206,8 +207,8 @@ abstract class ReduxAction<St> {
   /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   ///
-  List<ReduxAction<St>> Function(List<ReduxAction<St>> actions, {bool notify}) get dispatchAll =>
-      _store.dispatchAll;
+  List<ReduxAction<St>> Function(List<ReduxAction<St>> actions, {bool notify})
+      get dispatchAll => _store.dispatchAll;
 
   /// This is an optional method that may be overridden to run during action
   /// dispatching, before `reduce`. If this method throws an error, the
@@ -337,11 +338,13 @@ abstract class ReduxAction<St> {
   /// dispatch(BuyAction());
   /// if (store.isWaiting([BuyAction, SellAction])) { // Show a spinner }
   /// ```
-  bool isWaiting(Object actionOrTypeOrList) => _store.isWaiting(actionOrTypeOrList);
+  bool isWaiting(Object actionOrTypeOrList) =>
+      _store.isWaiting(actionOrTypeOrList);
 
   /// Returns true if an [actionOrActionTypeOrList] failed with an [UserException].
   /// Note: This method uses the EXACT type in [actionOrActionTypeOrList]. Subtypes are not considered.
-  bool isFailed(Object actionOrTypeOrList) => _store.isFailed(actionOrTypeOrList);
+  bool isFailed(Object actionOrTypeOrList) =>
+      _store.isFailed(actionOrTypeOrList);
 
   /// Returns the [UserException] of the [actionTypeOrList] that failed.
   ///
@@ -349,7 +352,8 @@ abstract class ReduxAction<St> {
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
-  UserException? exceptionFor(Object actionTypeOrList) => _store.exceptionFor(actionTypeOrList);
+  UserException? exceptionFor(Object actionTypeOrList) =>
+      _store.exceptionFor(actionTypeOrList);
 
   /// Removes the given [actionTypeOrList] from the list of action types that failed.
   ///
@@ -360,7 +364,8 @@ abstract class ReduxAction<St> {
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
-  void clearExceptionFor(Object actionTypeOrList) => _store.clearExceptionFor(actionTypeOrList);
+  void clearExceptionFor(Object actionTypeOrList) =>
+      _store.clearExceptionFor(actionTypeOrList);
 
   /// Returns a future which will complete when the given state [condition] is true.
   /// If the condition is already true when the method is called, the future completes immediately.
@@ -398,9 +403,12 @@ abstract class ReduxAction<St> {
   /// await dispatchAndWait(action1);
   /// await dispatchAndWait(action2);
   /// ```
-  Future<void> waitAllActions(List<ReduxAction<St>> actions, {bool completeImmediately = false}) {
-    if (actions.isEmpty) throw StoreException('You have to provide a non-empty list of actions.');
-    return _store.waitAllActions(actions, completeImmediately: completeImmediately);
+  Future<void> waitAllActions(List<ReduxAction<St>> actions,
+      {bool completeImmediately = false}) {
+    if (actions.isEmpty)
+      throw StoreException('You have to provide a non-empty list of actions.');
+    return _store.waitAllActions(actions,
+        completeImmediately: completeImmediately);
   }
 
   /// An async reducer (one that returns Future<AppState?>) must never complete without at least
@@ -441,7 +449,8 @@ abstract class ReduxAction<St> {
 
     bool reduceMethodIsSync = reduce is St? Function();
 
-    bool wrapReduceMethodIsSync = wrapReduce(() => null) is! Future<St?> Function();
+    bool wrapReduceMethodIsSync =
+        wrapReduce(() => null) is! Future<St?> Function();
 
     return (beforeMethodIsSync && reduceMethodIsSync && wrapReduceMethodIsSync);
   }
@@ -482,7 +491,8 @@ abstract class ReduxAction<St> {
 class AbortDispatchException implements Exception {
   @override
   bool operator ==(Object other) =>
-      identical(this, other) || other is AbortDispatchException && runtimeType == other.runtimeType;
+      identical(this, other) ||
+      other is AbortDispatchException && runtimeType == other.runtimeType;
 
   @override
   int get hashCode => 0;
@@ -502,7 +512,8 @@ class UpdateStateAction<St> extends ReduxAction<St> {
   /// var newState = AppState(...);
   /// store.dispatch(UpdateStateAction(newState));
   /// ```
-  factory UpdateStateAction(St state) => UpdateStateAction.withReducer((_) => state);
+  factory UpdateStateAction(St state) =>
+      UpdateStateAction.withReducer((_) => state);
 
   /// When you need to use the current state to create the new state, you
   /// can use `UpdateStateAction.withReducer`.

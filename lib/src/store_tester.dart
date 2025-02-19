@@ -128,17 +128,20 @@ class StoreTester<St> {
     return store as MockStore<St>;
   }
 
-  FutureOr<ActionStatus> dispatch(ReduxAction<St> action, {bool notify = true}) =>
+  FutureOr<ActionStatus> dispatch(ReduxAction<St> action,
+          {bool notify = true}) =>
       store.dispatch(action, notify: notify);
 
   ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) =>
       store.dispatchSync(action, notify: notify);
 
   @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
-  Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) =>
+  Future<ActionStatus> dispatchAsync(ReduxAction<St> action,
+          {bool notify = true}) =>
       store.dispatchAndWait(action, notify: notify);
 
-  Future<ActionStatus> dispatchAndWait(ReduxAction<St> action, {bool notify = true}) =>
+  Future<ActionStatus> dispatchAndWait(ReduxAction<St> action,
+          {bool notify = true}) =>
       store.dispatchAndWait(action, notify: notify);
 
   /// Dispatches [action], and then waits until it finishes.
@@ -177,7 +180,9 @@ class StoreTester<St> {
 
     TestInfo<St>? testInfo;
 
-    while (testInfo == null || !identical(testInfo.action, action) || testInfo.isINI) {
+    while (testInfo == null ||
+        !identical(testInfo.action, action) ||
+        testInfo.isINI) {
       testInfo = await _next();
     }
 
@@ -361,7 +366,8 @@ class StoreTester<St> {
 
     TestInfo<St>? testInfo;
 
-    while ((testInfo == null) || (testInfo.type != actionType) || testInfo.isINI) {
+    while (
+        (testInfo == null) || (testInfo.type != actionType) || testInfo.isINI) {
       testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
     }
 
@@ -381,7 +387,9 @@ class StoreTester<St> {
 
     TestInfo<St>? testInfo;
 
-    while ((testInfo == null) || (!actionTypes.contains(testInfo.type)) || testInfo.isINI) {
+    while ((testInfo == null) ||
+        (!actionTypes.contains(testInfo.type)) ||
+        testInfo.isINI) {
       testInfo = await _next(timeoutInSeconds: timeoutInSeconds);
     }
 
@@ -792,7 +800,8 @@ class StoreTester<St> {
   /// var info = await tester.waitUntil(SomeAction);
   /// ```
   ///
-  ConnectorTester<St, Model> getConnectorTester<Model>(StatelessWidget widgetConnector) =>
+  ConnectorTester<St, Model> getConnectorTester<Model>(
+          StatelessWidget widgetConnector) =>
       ConnectorTester<St, Model>(store, widgetConnector);
 }
 

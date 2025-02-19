@@ -37,7 +37,8 @@ class ConnectorTester<St, Model> {
 
   StoreConnector<St, Model> get storeConnector => _storeConnector ??=
       // ignore: invalid_use_of_protected_member
-      widgetConnector.build(StatelessElement(widgetConnector)) as StoreConnector<St, Model>;
+      widgetConnector.build(StatelessElement(widgetConnector))
+          as StoreConnector<St, Model>;
 
   ConnectorTester(this.store, this.widgetConnector);
 
@@ -55,7 +56,8 @@ class ConnectorTester<St, Model> {
     Model previousVm,
     Model newVm,
   ) {
-    final OnWillChangeCallback<St, Model>? onWillChange = storeConnector.onWillChange;
+    final OnWillChangeCallback<St, Model>? onWillChange =
+        storeConnector.onWillChange;
     if (onWillChange != null)
       onWillChange(StatelessElement(widgetConnector), store, previousVm, newVm);
   }

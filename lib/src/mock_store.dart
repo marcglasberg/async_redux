@@ -27,7 +27,8 @@ class MockStore<St> extends Store<St> {
     ModelObserver? modelObserver,
     ErrorObserver<St>? errorObserver,
     WrapReduce<St>? wrapReduce,
-    @Deprecated("Use `globalWrapError` instead. This will be removed.") WrapError<St>? wrapError,
+    @Deprecated("Use `globalWrapError` instead. This will be removed.")
+    WrapError<St>? wrapError,
     GlobalWrapError<St>? globalWrapError,
     bool? defaultDistinct,
     CompareBy? immutableCollectionEquality,
@@ -109,7 +110,8 @@ class MockStore<St> extends Store<St> {
 
   @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
   @override
-  Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) {
+  Future<ActionStatus> dispatchAsync(ReduxAction<St> action,
+      {bool notify = true}) {
     return dispatchAndWait(action, notify: notify);
   }
 
@@ -137,7 +139,8 @@ class MockStore<St> extends Store<St> {
   /// - [dispatch] which dispatches both sync and async actions.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   @override
-  Future<ActionStatus> dispatchAndWait(ReduxAction<St> action, {bool notify = true}) {
+  Future<ActionStatus> dispatchAndWait(ReduxAction<St> action,
+      {bool notify = true}) {
     ReduxAction<St>? _action = _getMockedAction(action);
 
     return (_action == null) //

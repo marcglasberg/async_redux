@@ -200,7 +200,8 @@ class StoreConnector<St, Model> extends StatelessWidget
     this.onWillChange,
     this.onDidChange,
     this.onInitialBuild,
-  })  : assert(converter == null || vm == null, "You can't provide both `converter` and `vm`."),
+  })  : assert(converter == null || vm == null,
+            "You can't provide both `converter` and `vm`."),
         assert(converter != null || vm != null,
             "You should provide the `converter` or the `vm` parameter."),
         super(key: key);
@@ -384,7 +385,8 @@ class _StoreStreamListenerState<St, Model> //
   void _computeLatestModel() {
     try {
       _latestError = null;
-      _latestModel = getLatestModel(_forceLastValidStreamState ?? widget.store.state);
+      _latestModel =
+          getLatestModel(_forceLastValidStreamState ?? widget.store.state);
     } catch (error, stacktrace) {
       _latestModel = null;
       _latestError = _ConverterError(error, stacktrace, widget.debug);
@@ -411,11 +413,13 @@ class _StoreStreamListenerState<St, Model> //
 
   // This prevents unnecessary calculations of the view-model.
   bool _stateChanged(St state) {
-    return !identical(_mostRecentValidState, widget.store.state) || _actionsInProgressHaveChanged();
+    return !identical(_mostRecentValidState, widget.store.state) ||
+        _actionsInProgressHaveChanged();
   }
 
   /// Used by [_actionsInProgressHaveChanged].
-  Set<ReduxAction<St>> _lastActionsInProgress = HashSet<ReduxAction<St>>.identity();
+  Set<ReduxAction<St>> _lastActionsInProgress =
+      HashSet<ReduxAction<St>>.identity();
 
   /// Returns true if the actions in progress have changed since the last time we checked.
   bool _actionsInProgressHaveChanged() {
@@ -487,9 +491,11 @@ class _StoreStreamListenerState<St, Model> //
         (_latestModel is ImmutableCollection) &&
         widget.store.immutableCollectionEquality != null) {
       if (widget.store.immutableCollectionEquality == CompareBy.byIdentity)
-        return areSameImmutableCollection(vm, _latestModel as ImmutableCollection?);
+        return areSameImmutableCollection(
+            vm, _latestModel as ImmutableCollection?);
       if (widget.store.immutableCollectionEquality == CompareBy.byDeepEquals) {
-        return areImmutableCollectionsWithEqualItems(vm, _latestModel as ImmutableCollection?);
+        return areImmutableCollectionsWithEqualItems(
+            vm, _latestModel as ImmutableCollection?);
       } else
         throw AssertionError(widget.store.immutableCollectionEquality);
     } else
@@ -560,7 +566,8 @@ class _StoreStreamListenerState<St, Model> //
       );
     } catch (error, stackTrace) {
       // The errorObserver should never throw. However, if it does, print the error.
-      _throws("Method 'ModelObserver.observe()' has thrown an error", error, stackTrace);
+      _throws("Method 'ModelObserver.observe()' has thrown an error", error,
+          stackTrace);
     }
   }
 
@@ -723,13 +730,16 @@ class StoreProvider<St> extends InheritedWidget {
   /// ```dart
   /// var state = context.state;
   /// ```
-  static St state<St>(BuildContext context, {bool notify = true, Object? debug}) {
+  static St state<St>(BuildContext context,
+      {bool notify = true, Object? debug}) {
     if (notify) {
-      final _InheritedUntypedRebuilds? provider =
-          context.dependOnInheritedWidgetOfExactType<_InheritedUntypedRebuilds>();
+      final _InheritedUntypedRebuilds? provider = context
+          .dependOnInheritedWidgetOfExactType<_InheritedUntypedRebuilds>();
 
       if (provider == null)
-        throw throw _exceptionForWrongStoreType(_typeOf<_InheritedUntypedRebuilds>(), debug: debug);
+        throw throw _exceptionForWrongStoreType(
+            _typeOf<_InheritedUntypedRebuilds>(),
+            debug: debug);
 
       St state;
       try {
@@ -753,13 +763,15 @@ class StoreProvider<St> extends InheritedWidget {
 
   /// This WILL create a dependency, and WILL potentially rebuild the state.
   /// You don't need `St` to call this method.
-  static Store _getStoreWithDependency_Untyped(BuildContext context, {Object? debug}) {
+  static Store _getStoreWithDependency_Untyped(BuildContext context,
+      {Object? debug}) {
     //
     final _InheritedUntypedRebuilds? provider =
         context.dependOnInheritedWidgetOfExactType<_InheritedUntypedRebuilds>();
 
     if (provider == null)
-      throw _exceptionForWrongStoreType(_typeOf<_InheritedUntypedRebuilds>(), debug: debug);
+      throw _exceptionForWrongStoreType(_typeOf<_InheritedUntypedRebuilds>(),
+          debug: debug);
 
     // We only turn on rebuilds when this `state` method is used for the first time.
     // This is to make it faster when this method is not used, which is the
@@ -771,12 +783,15 @@ class StoreProvider<St> extends InheritedWidget {
 
   /// This WILL NOT create a dependency, and may NOT rebuild the state.
   /// You don't need `St` to call this method.
-  static Store _getStoreNoDependency_Untyped(BuildContext context, {Object? debug}) {
-    final _InheritedUntypedDoesNotRebuild? provider =
-        context.dependOnInheritedWidgetOfExactType<_InheritedUntypedDoesNotRebuild>();
+  static Store _getStoreNoDependency_Untyped(BuildContext context,
+      {Object? debug}) {
+    final _InheritedUntypedDoesNotRebuild? provider = context
+        .dependOnInheritedWidgetOfExactType<_InheritedUntypedDoesNotRebuild>();
 
     if (provider == null)
-      throw _exceptionForWrongStoreType(_typeOf<_InheritedUntypedDoesNotRebuild>(), debug: debug);
+      throw _exceptionForWrongStoreType(
+          _typeOf<_InheritedUntypedDoesNotRebuild>(),
+          debug: debug);
 
     return provider._store;
   }
@@ -796,9 +811,11 @@ class StoreProvider<St> extends InheritedWidget {
   /// ```dart
   /// context.dispatch(action)`.
   /// ```
-  static FutureOr<ActionStatus> dispatch<St>(BuildContext context, ReduxAction<St> action,
+  static FutureOr<ActionStatus> dispatch<St>(
+          BuildContext context, ReduxAction<St> action,
           {Object? debug, bool notify = true}) =>
-      _getStoreNoDependency_Untyped(context, debug: debug).dispatch(action, notify: notify);
+      _getStoreNoDependency_Untyped(context, debug: debug)
+          .dispatch(action, notify: notify);
 
   /// Dispatch an action with [ReduxAction.dispatchSync]
   /// without needing a `StoreConnector`. Example:
@@ -812,9 +829,11 @@ class StoreProvider<St> extends InheritedWidget {
   /// ```dart
   /// context.dispatchSync(action)`.
   /// ```
-  static ActionStatus dispatchSync<St>(BuildContext context, ReduxAction<St> action,
+  static ActionStatus dispatchSync<St>(
+          BuildContext context, ReduxAction<St> action,
           {Object? debug, bool notify = true}) =>
-      _getStoreNoDependency_Untyped(context, debug: debug).dispatchSync(action, notify: notify);
+      _getStoreNoDependency_Untyped(context, debug: debug)
+          .dispatchSync(action, notify: notify);
 
   /// Dispatch an action with [ReduxAction.dispatchAndWait]
   /// without needing a `StoreConnector`. Example:
@@ -828,9 +847,11 @@ class StoreProvider<St> extends InheritedWidget {
   /// ```dart
   /// var status = await context.dispatchAndWait(action)`.
   /// ```
-  static Future<ActionStatus> dispatchAndWait<St>(BuildContext context, ReduxAction<St> action,
+  static Future<ActionStatus> dispatchAndWait<St>(
+          BuildContext context, ReduxAction<St> action,
           {Object? debug, bool notify = true}) =>
-      _getStoreNoDependency_Untyped(context, debug: debug).dispatchAndWait(action, notify: notify);
+      _getStoreNoDependency_Untyped(context, debug: debug)
+          .dispatchAndWait(action, notify: notify);
 
   /// Dispatch a list of actions with [ReduxAction.dispatchAll]
   /// without needing a `StoreConnector`. Example:
@@ -850,7 +871,8 @@ class StoreProvider<St> extends InheritedWidget {
     Object? debug,
     bool notify = true,
   }) =>
-      _getStoreNoDependency_Untyped(context, debug: debug).dispatchAll(actions, notify: notify);
+      _getStoreNoDependency_Untyped(context, debug: debug)
+          .dispatchAll(actions, notify: notify);
 
   /// Dispatch a list of actions with [ReduxAction.dispatchAndWaitAll]
   /// without needing a `StoreConnector`. Example:
@@ -889,7 +911,8 @@ class StoreProvider<St> extends InheritedWidget {
     bool Function(St) condition, {
     int? timeoutMillis,
   }) =>
-      backdoorInheritedWidget<St>(context).waitCondition(condition, timeoutMillis: timeoutMillis);
+      backdoorInheritedWidget<St>(context)
+          .waitCondition(condition, timeoutMillis: timeoutMillis);
 
   /// Returns a future that completes when ALL given [actions] finished dispatching.
   ///
@@ -905,8 +928,10 @@ class StoreProvider<St> extends InheritedWidget {
   /// await dispatchAndWait(action1);
   /// await dispatchAndWait(action2);
   /// ```
-  static Future<void> waitAllActions<St>(BuildContext context, List<ReduxAction<St>> actions) {
-    if (actions.isEmpty) throw StoreException('You have to provide a non-empty list of actions.');
+  static Future<void> waitAllActions<St>(
+      BuildContext context, List<ReduxAction<St>> actions) {
+    if (actions.isEmpty)
+      throw StoreException('You have to provide a non-empty list of actions.');
     return backdoorInheritedWidget<St>(context).waitAllActions(actions);
   }
 
@@ -935,7 +960,9 @@ class StoreProvider<St> extends InheritedWidget {
     Object actionOrTypeOrList, {
     bool notify = true,
   }) =>
-      (notify ? _getStoreWithDependency_Untyped : _getStoreNoDependency_Untyped)(context)
+      (notify
+              ? _getStoreWithDependency_Untyped
+              : _getStoreNoDependency_Untyped)(context)
           .isWaiting(actionOrTypeOrList);
 
   /// Returns true if an [actionOrTypeOrList] failed with an [UserException].
@@ -954,7 +981,9 @@ class StoreProvider<St> extends InheritedWidget {
     Object actionOrTypeOrList, {
     bool notify = true,
   }) =>
-      (notify ? _getStoreWithDependency_Untyped : _getStoreNoDependency_Untyped)(context)
+      (notify
+              ? _getStoreWithDependency_Untyped
+              : _getStoreNoDependency_Untyped)(context)
           .isFailed(actionOrTypeOrList);
 
   /// Returns the [UserException] of the [actionTypeOrList] that failed.
@@ -976,7 +1005,9 @@ class StoreProvider<St> extends InheritedWidget {
     Object actionOrTypeOrList, {
     bool notify = true,
   }) =>
-      (notify ? _getStoreWithDependency_Untyped : _getStoreNoDependency_Untyped)(context)
+      (notify
+              ? _getStoreWithDependency_Untyped
+              : _getStoreNoDependency_Untyped)(context)
           .exceptionFor(actionOrTypeOrList);
 
   /// Removes the given [actionTypeOrList] from the list of action types that failed.
@@ -995,7 +1026,9 @@ class StoreProvider<St> extends InheritedWidget {
     Object actionOrTypeOrList, {
     bool notify = true,
   }) =>
-      (notify ? _getStoreWithDependency_Untyped : _getStoreNoDependency_Untyped)(context)
+      (notify
+              ? _getStoreWithDependency_Untyped
+              : _getStoreNoDependency_Untyped)(context)
           .clearExceptionFor(actionOrTypeOrList);
 
   /// Avoid using if you don't have a good reason to do so.
@@ -1005,12 +1038,14 @@ class StoreProvider<St> extends InheritedWidget {
   /// and it does NOT rebuild the state when the state changes, when you access it like this:
   /// `var state = StoreProvider.backdoorInheritedWidget(context, this).state;`.
   ///
-  static Store<St> backdoorInheritedWidget<St>(BuildContext context, {Object? debug}) {
+  static Store<St> backdoorInheritedWidget<St>(BuildContext context,
+      {Object? debug}) {
     final StoreProvider<St>? provider =
         context.dependOnInheritedWidgetOfExactType<StoreProvider<St>>();
 
     if (provider == null)
-      throw _exceptionForWrongStoreType(_typeOf<StoreProvider<St>>(), debug: debug);
+      throw _exceptionForWrongStoreType(_typeOf<StoreProvider<St>>(),
+          debug: debug);
 
     return provider._store;
   }
@@ -1032,7 +1067,8 @@ class StoreProvider<St> extends InheritedWidget {
 
     if (_staticStoreBackdoor is! Store<St>) {
       var type = _typeOf<Store<St>>;
-      throw StoreException('Error: Store is of type ${_staticStoreBackdoor.runtimeType} '
+      throw StoreException(
+          'Error: Store is of type ${_staticStoreBackdoor.runtimeType} '
           'and not of type $type. Please provide the correct type.');
     }
 
@@ -1154,7 +1190,8 @@ class _InheritedUntypedRebuilds extends InheritedWidget {
 }
 
 StoreException _exceptionForWrongStoreType(Type type, {Object? debug}) {
-  return StoreException('''Error: No $type found. (debug info: ${debug.runtimeType})
+  return StoreException(
+      '''Error: No $type found. (debug info: ${debug.runtimeType})
 
     To fix, please try:
   
@@ -1233,7 +1270,8 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// - [dispatch] which dispatches both sync and async actions.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   ///
-  Future<ActionStatus> dispatchAndWait(ReduxAction action, {bool notify = true}) =>
+  Future<ActionStatus> dispatchAndWait(ReduxAction action,
+          {bool notify = true}) =>
       StoreProvider.dispatchAndWait(this, action, notify: notify);
 
   /// Dispatches all given [actions] in parallel, applying their reducer, and possibly changing
@@ -1335,7 +1373,8 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// dispatch(BuyAction());
   /// if (context.isWaiting([BuyAction, SellAction])) { // Show a spinner }
   /// ```
-  bool isWaiting(Object actionOrTypeOrList) => StoreProvider.isWaiting(this, actionOrTypeOrList);
+  bool isWaiting(Object actionOrTypeOrList) =>
+      StoreProvider.isWaiting(this, actionOrTypeOrList);
 
   /// Returns true if an [actionOrTypeOrList] failed with an [UserException].
   ///
@@ -1344,7 +1383,8 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// ```dart
   /// if (context.isFailed(MyAction)) { // Show an error message. }
   /// ```
-  bool isFailed(Object actionOrTypeOrList) => StoreProvider.isFailed(this, actionOrTypeOrList);
+  bool isFailed(Object actionOrTypeOrList) =>
+      StoreProvider.isFailed(this, actionOrTypeOrList);
 
   /// Returns the [UserException] of the [actionTypeOrList] that failed.
   ///

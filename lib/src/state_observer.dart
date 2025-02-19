@@ -63,7 +63,6 @@ import 'package:async_redux/async_redux.dart';
 /// ```
 ///
 abstract class StateObserver<St> {
-
   /// * [action] = The action itself.
   ///
   /// * [prevState] = The state right before the new state returned by the reducer is applied.

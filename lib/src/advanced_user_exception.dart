@@ -99,7 +99,11 @@ class AdvancedUserException extends UserException {
 
   @override
   int get hashCode =>
-      super.hashCode ^ onOk.hashCode ^ onCancel.hashCode ^ hardCause.hashCode ^ props.hashCode;
+      super.hashCode ^
+      onOk.hashCode ^
+      onCancel.hashCode ^
+      hardCause.hashCode ^
+      props.hashCode;
 
   /// Returns a new [UserException], copied from the current one, but adding the given [reason].
   /// Note the added [reason] won't replace the original reason, but will be added to it.

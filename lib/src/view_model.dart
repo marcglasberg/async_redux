@@ -96,7 +96,8 @@ abstract class Vm {
 
   /// The constructor takes an optional List of fields which will be used
   /// to determine whether two [Vm] are equal.
-  Vm({this.equals = const []}) : assert(_onlyContainFieldsOfAllowedTypes(equals));
+  Vm({this.equals = const []})
+      : assert(_onlyContainFieldsOfAllowedTypes(equals));
 
   /// Fields should not contain functions.
   static bool _onlyContainFieldsOfAllowedTypes(List equals) {
@@ -400,11 +401,13 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// dispatch(BuyAction());
   /// if (isWaiting([BuyAction, SellAction])) { // Show a spinner }
   /// ```
-  bool isWaiting(Object actionOrTypeOrList) => _store.isWaiting(actionOrTypeOrList);
+  bool isWaiting(Object actionOrTypeOrList) =>
+      _store.isWaiting(actionOrTypeOrList);
 
   /// Returns true if an [actionOrActionTypeOrList] failed with an [UserException].
   /// Note: This method uses the EXACT type in [actionOrActionTypeOrList]. Subtypes are not considered.
-  bool isFailed(Object actionOrTypeOrList) => _store.isFailed(actionOrTypeOrList);
+  bool isFailed(Object actionOrTypeOrList) =>
+      _store.isFailed(actionOrTypeOrList);
 
   /// Returns the [UserException] of the [actionTypeOrList] that failed.
   ///
@@ -412,7 +415,8 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
-  UserException? exceptionFor(Object actionTypeOrList) => _store.exceptionFor(actionTypeOrList);
+  UserException? exceptionFor(Object actionTypeOrList) =>
+      _store.exceptionFor(actionTypeOrList);
 
   /// Removes the given [actionTypeOrList] from the list of action types that failed.
   ///
@@ -423,7 +427,8 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
-  void clearExceptionFor(Object actionTypeOrList) => _store.clearExceptionFor(actionTypeOrList);
+  void clearExceptionFor(Object actionTypeOrList) =>
+      _store.clearExceptionFor(actionTypeOrList);
 
   /// Returns a future which will complete when the given state [condition] is true.
   /// If the condition is already true when the method is called, the future completes immediately.
@@ -461,9 +466,12 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// await dispatchAndWait(action1);
   /// await dispatchAndWait(action2);
   /// ```
-  Future<void> waitAllActions(List<ReduxAction<St>> actions, {bool completeImmediately = false}) {
-    if (actions.isEmpty) throw StoreException('You have to provide a non-empty list of actions.');
-    return _store.waitAllActions(actions, completeImmediately: completeImmediately);
+  Future<void> waitAllActions(List<ReduxAction<St>> actions,
+      {bool completeImmediately = false}) {
+    if (actions.isEmpty)
+      throw StoreException('You have to provide a non-empty list of actions.');
+    return _store.waitAllActions(actions,
+        completeImmediately: completeImmediately);
   }
 
   /// Gets the first error from the error queue, and removes it from the queue.
@@ -471,7 +479,8 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
 }
 
 /// For internal use only. Please don't use this.
-Vm? internalsVmFactoryFromStore(VmFactory<dynamic, dynamic, dynamic> vmFactory) {
+Vm? internalsVmFactoryFromStore(
+    VmFactory<dynamic, dynamic, dynamic> vmFactory) {
   vmFactory._vm = vmFactory.fromStore();
   vmFactory._vmCreated = true;
   return vmFactory._vm;

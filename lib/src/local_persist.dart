@@ -101,7 +101,8 @@ class LocalPersist {
   /// // Will use whatever Directory is given.
   /// LocalPersist.useBaseDirectory = () => LocalPersist.useCustomBaseDirectory(baseDirectory: myDir);
   /// ```
-  static Future<void> Function() useBaseDirectory = LocalPersist.useAppDocumentsDir;
+  static Future<void> Function() useBaseDirectory =
+      LocalPersist.useAppDocumentsDir;
 
   /// The default is adding a ".db" termination to the file name.
   /// This is not final, so you can change it.
@@ -251,7 +252,8 @@ class LocalPersist {
   Future<Map<String, dynamic>?> loadAsObj() async {
     List<Object?>? simpleObjs = await load();
     if (simpleObjs == null) return null;
-    if (simpleObjs.length != 1) throw PersistException("Not a single object: $simpleObjs");
+    if (simpleObjs.length != 1)
+      throw PersistException("Not a single object: $simpleObjs");
     var simpleObj = simpleObjs[0];
     if ((simpleObj != null) && (simpleObj is! Map<String, dynamic>))
       throw PersistException("Not an object: $simpleObj");
@@ -406,7 +408,8 @@ class LocalPersist {
         await getDownloadsDirectory();
         _baseDirectory = baseDirectory;
       } on MissingPluginException catch (_) {
-        _baseDirectory = testDirectory ?? const LocalFileSystem().systemTempDirectory;
+        _baseDirectory =
+            testDirectory ?? const LocalFileSystem().systemTempDirectory;
       }
     } else
       _baseDirectory = _fileSystem.systemTempDirectory;

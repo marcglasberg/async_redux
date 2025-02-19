@@ -1,6 +1,5 @@
 <img src="https://asyncredux.com/img/platipus_FlutterReact.jpg">
 
-[![Pub popularity](https://badgen.net/pub/popularity/async_redux)](https://pub.dev/packages/async_redux)
 [![Pub Version](https://img.shields.io/pub/v/async_redux?style=flat-square&logo=dart)](https://pub.dev/packages/async_redux)
 [![pub package](https://img.shields.io/badge/Awesome-Flutter-blue.svg?longCache=true&style=flat-square)](https://github.com/Solido/awesome-flutter)
 [![GitHub stars](https://img.shields.io/github/stars/marcglasberg/async_redux?style=social)](https://github.com/marcglasberg/async_redux)

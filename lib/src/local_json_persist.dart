@@ -142,7 +142,8 @@ class LocalJsonPersist {
     required Directory baseDirectory,
     Directory? testDirectory,
   }) =>
-      LocalPersist.useCustomBaseDirectory(baseDirectory: baseDirectory, testDirectory: testDirectory);
+      LocalPersist.useCustomBaseDirectory(
+          baseDirectory: baseDirectory, testDirectory: testDirectory);
 
   /// Saves the given simple object as JSON.
   /// If the file exists, it will be overwritten.
@@ -236,7 +237,8 @@ class LocalJsonPersist {
   Future<Object?> _readsFromJsonSequenceDbFile(bool isList) async {
     //
     /// Prepares to open the '.db' file with the same name and location.
-    var jsonSequenceFile = LocalPersist(dbName!, dbSubDir: dbSubDir, subDirs: subDirs);
+    var jsonSequenceFile =
+        LocalPersist(dbName!, dbSubDir: dbSubDir, subDirs: subDirs);
 
     // If the '.db' (Json-sequence) file exists,
     if (await jsonSequenceFile.exists()) {
@@ -259,7 +261,8 @@ class LocalJsonPersist {
       // Not a list.
       else {
         if (objs != null && objs.length > 1)
-          throw PersistException("Json sequence to Json: ${objs.length} objects: $objs.");
+          throw PersistException(
+              "Json sequence to Json: ${objs.length} objects: $objs.");
         //
         else {
           // Saves the '.json' (Json) file, so that it loads directly, next time.
@@ -281,7 +284,8 @@ class LocalJsonPersist {
   Future<Map<String, dynamic>?> loadAsObj() async {
     Object? simpleObj = await load();
     if (simpleObj == null) return null;
-    if (simpleObj is! Map<String, dynamic>) throw PersistException("Not an object: $simpleObj");
+    if (simpleObj is! Map<String, dynamic>)
+      throw PersistException("Not an object: $simpleObj");
     return simpleObj;
   }
 
@@ -290,7 +294,8 @@ class LocalJsonPersist {
   Future<Map<String, dynamic>?> loadAsObjConverting() async {
     Object? simpleObj = await loadConverting(isList: false);
     if (simpleObj == null) return null;
-    if (simpleObj is! Map<String, dynamic>) throw PersistException("Not an object: $simpleObj");
+    if (simpleObj is! Map<String, dynamic>)
+      throw PersistException("Not an object: $simpleObj");
     return simpleObj;
   }
 
@@ -414,5 +419,6 @@ class LocalJsonPersist {
     LocalPersist.setFileSystem(fileSystem);
   }
 
-  static void resetFileSystem() => LocalPersist.setFileSystem(const LocalFileSystem());
+  static void resetFileSystem() =>
+      LocalPersist.setFileSystem(const LocalFileSystem());
 }

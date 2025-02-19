@@ -31,7 +31,8 @@ class TestInfo<St> {
     // NavigateAction and PersistAction.
     // For example UserExceptionAction<AppState> becomes UserExceptionAction<dynamic>.
     if (action is UserExceptionAction) {
-      if (action.runtimeType.toString().split('<')[0] == 'UserExceptionAction') //
+      if (action.runtimeType.toString().split('<')[0] ==
+          'UserExceptionAction') //
         return UserExceptionAction;
     } else if (action is WaitAction) {
       if (action.runtimeType.toString().split('<')[0] == 'WaitAction') //

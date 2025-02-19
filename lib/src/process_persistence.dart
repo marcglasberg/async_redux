@@ -88,7 +88,8 @@ class ProcessPersistence<St> {
       else {
         if (timer == null) {
           //
-          Duration asSoonAsThrottleFinishes = throttle - now.difference(lastPersistTime);
+          Duration asSoonAsThrottleFinishes =
+              throttle - now.difference(lastPersistTime);
 
           timer = Timer(asSoonAsThrottleFinishes, () {
             timer = null;
@@ -163,7 +164,9 @@ class ProcessPersistence<St> {
 
     _cancelTimer();
 
-    if (isInit && !isPersisting && !identical(lastPersistedState, newestState)) {
+    if (isInit &&
+        !isPersisting &&
+        !identical(lastPersistedState, newestState)) {
       var now = DateTime.now().toUtc();
       _persist(now, newestState);
     }
