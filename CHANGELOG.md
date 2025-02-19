@@ -1,11 +1,110 @@
 _Visit
 the <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/MobileAppFlutterRedux/README.md">
-Async Redux App Example GitHub Repo</a> for a full-fledged example app showcasing the
+Async Redux App Example GitHub Repo</a> for a full-fledged example app
+showcasing the
 fundamentals and best practices._
 
 Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
+
+## 24.1.0
+
+* You can now use the `Throttle` action mixin.
+  Throttling ensures the action will be dispatched at most once in the
+  specified throttle period. In other words, it prevents the action from
+  running too frequently.
+
+  If an action is dispatched multiple times within a throttle period, it will
+  only execute the first time, and the others will be aborted. After the
+  throttle period has passed, the action will be allowed to execute again,
+  which will reset the throttle period.
+
+  If you use the action to load information, the throttle period may be
+  considered as the time the loaded information is "fresh". After the
+  throttle period, the information is considered "stale" and the action will
+  be allowed to load the information again.
+
+  For example, if you are using a `StatefulWidget` that needs to load some
+  information, you can dispatch the loading action when widget is created,
+  and specify a throttle period so that it doesn't load the information again
+  too often.
+
+  If you are using a `StoreConnector`, you can use the `onInit` parameter:
+
+  ```dart
+  class MyScreenConnector extends StatelessWidget {
+    Widget build(BuildContext context) => StoreConnector<AppState, _Vm>(
+      vm: () => _Factory(),
+      onInit: _onInit, // Here!
+      builder: (context, vm) {
+        return MyScreenConnector(
+          information: vm.information,
+          ...
+        ),
+      );
+  
+    void _onInit(Store<AppState> store) {
+      store.dispatch(LoadAction());
+    }
+  }
+  ```
+
+  and then:
+
+  ```dart
+  class LoadAction extends ReduxAction<AppState> with Throttle {
+  
+    final int throttle = 5000;
+  
+    Future<AppState?> reduce() async {
+      var information = await loadInformation();
+      return state.copy(information: information);
+    }
+  }
+  ```
+
+  The `throttle` is given in milliseconds, and the default is 1000
+  milliseconds (1 second). You can override this default:
+
+  ```dart
+  class MyAction extends ReduxAction<AppState> with Throttle {
+     final int throttle = 500; // Here!
+     ...
+  }
+  ```
+
+  ### Advanced throttle usage
+
+  The throttle is, by default, based on the action `runtimeType`. This means
+  it will throttle an action if another action of the same runtimeType was
+  previously dispatched within the throttle period. In other words, the
+  runtimeType is the "lock". If you want to throttle based on a different
+  lock, you can override the `lockBuilder` method. For example, here
+  we throttle two different actions based on the same lock:
+
+  ```dart
+  class MyAction1 extends ReduxAction<AppState> with Throttle {
+     Object? lockBuilder() => 'myLock';
+     ...
+  }
+  
+  class MyAction2 extends ReduxAction<AppState> with Throttle {
+     Object? lockBuilder() => 'myLock';
+     ...
+  }
+  ```
+
+  Another example is to throttle based on some field of the action:
+
+  ```dart
+  class MyAction extends ReduxAction<AppState> with Throttle {
+     final String lock;
+     MyAction(this.lock);
+     Object? lockBuilder() => lock;
+     ...
+  }
+  ```
 
 ## 24.0.7
 
@@ -17,7 +116,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 24.0.2
 
-* `LocalPersist` and `LocalJsonPersist` now allow you to define the base directory by
+* `LocalPersist` and `LocalJsonPersist` now allow you to define the base
+  directory by
   setting the `useBaseDirectory` static field. The default is, as before, the
   application's documents directory. Other options are the cache directory
   (`LocalPersist.useAppCacheDir`), the downloads directory
@@ -26,16 +126,22 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 23.2.0
 
-* You can now use the `UnlimitedRetryCheckInternet` to check if there is internet when you
-  run some action that needs it. If there is no internet, the action will abort silently
-  and then retried unlimited times, until there is internet. It will also retry if there
+* You can now use the `UnlimitedRetryCheckInternet` to check if there is
+  internet when you
+  run some action that needs it. If there is no internet, the action will abort
+  silently
+  and then retried unlimited times, until there is internet. It will also retry
+  if there
   is internet but the action failed.
 
-* You can provide a `CloudSync` object to the store constructor. It's similar to the
-  `Persistor`, but can be used to synchronize the state of the application with the
+* You can provide a `CloudSync` object to the store constructor. It's similar to
+  the
+  `Persistor`, but can be used to synchronize the state of the application with
+  the
   server. This is experimental.
 
-* Fixed `isWaiting()` for checking multiple actions and when state doesn't change.
+* Fixed `isWaiting()` for checking multiple actions and when state doesn't
+  change.
 
 ## 23.1.1
 
@@ -57,7 +163,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 22.5.0
 
-* You can now use `dispatchAll()` and `dispatchAndWaitAll()` to dispatch multiple actions
+* You can now use `dispatchAll()` and `dispatchAndWaitAll()` to dispatch
+  multiple actions
   in parallel. For example:
 
   ```dart   
@@ -82,10 +189,14 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 22.3.0
 
-* In the `reduce` method of your actions you can now access the _initial state_ of the
-  action, by using the `initialState` getter. In other words, you have access to a copy of
-  the state as it was when the action was first dispatched. This is useful when you need
-  to calculate some value asynchronously, and then you only want to apply the result to
+* In the `reduce` method of your actions you can now access the _initial state_
+  of the
+  action, by using the `initialState` getter. In other words, you have access to
+  a copy of
+  the state as it was when the action was first dispatched. This is useful when
+  you need
+  to calculate some value asynchronously, and then you only want to apply the
+  result to
   the state if that value hasn't changed in the meantime. For example:
 
   ```dart
@@ -100,29 +211,37 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 22.1.0
 
-* You can now use `var isWaiting = context.isWaiting(MyAction)` to check if an async
-  action of the given type is currently being processed. You can then use this boolean to
+* You can now use `var isWaiting = context.isWaiting(MyAction)` to check if an
+  async
+  action of the given type is currently being processed. You can then use this
+  boolean to
   show a
   loading spinner in your widget.
-  Note: Inside your `VmFactory` you can also use `isWaiting: isWaiting(MyAction)`. See
+  Note: Inside your `VmFactory` you can also use
+  `isWaiting: isWaiting(MyAction)`. See
   the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_spinner.dart">
   Show Spinner Example</a>.
 
 
-* You can now use `var isFailed = context.isFailed(MyAction)` to check if an action of the
-  given type has thrown an `UserException`. You can then use this boolean to show an error
+* You can now use `var isFailed = context.isFailed(MyAction)` to check if an
+  action of the
+  given type has thrown an `UserException`. You can then use this boolean to
+  show an error
   message.
-  You can also get the exception with `var exception = context.exceptionFor(MyAction)` to
+  You can also get the exception with
+  `var exception = context.exceptionFor(MyAction)` to
   use its error message, and clear the exception with
   `context.clearExceptionFor(MyAction)`.
-  Note: Inside your `VmFactory` you can also use `isFailed: isFailed(MyAction)` etc. See
+  Note: Inside your `VmFactory` you can also use `isFailed: isFailed(MyAction)`
+  etc. See
   the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_error_dialog.dart">
   Show Error Dialog Example</a>.
 
 
 * You can add **mixins** to your actions, to accomplish common tasks:
 
-    - `CheckInternet` ensures actions only run with internet, otherwise an error dialog
+    - `CheckInternet` ensures actions only run with internet, otherwise an error
+      dialog
       prompts users to check their connection:
 
       ```dart
@@ -143,28 +262,38 @@ Sponsored by [MyText.ai](https://mytext.ai)
       if (context.isFailed(LoadText)) Text('No Internet connection');
       ```
 
-    - `AbortWhenNoInternet` aborts the action silently (without showing any dialogs)
+    - `AbortWhenNoInternet` aborts the action silently (without showing any
+      dialogs)
       if there is no internet connection.
 
-    - `NonReentrant` prevents reentrant actions, so that when you dispatch an action
+    - `NonReentrant` prevents reentrant actions, so that when you dispatch an
+      action
       that's already running it gets aborted (no errors are shown).
 
-    - `Retry` retries the action a few times with exponential backoff, if it fails.
+    - `Retry` retries the action a few times with exponential backoff, if it
+      fails.
       Add `UnlimitedRetries` to retry the action indefinitely:
 
       ```dart
       class LoadText extends ReduxAction<AppState> with Retry, UnlimitedRetries, NonReentrant { 
       ```
 
-  Other mixins will be provided in the future, for Throttling, Debouncing and Caching.
+  Other mixins will be provided in the future, for Throttling, Debouncing and
+  Caching.
 
-* Some features of the `async_redux` package are now available in a standalone Dart-only
-  core package: https://pub.dev/packages/async_redux_core. You may use that core package
-  when you are developing a Dart server (backend) with [Celest](https://celest.dev/), or
-  when developing your own Dart-only package that does not depend on Flutter. Note: For
-  the moment, the corepackage simply contains the `UserException`, and nothing more.
+* Some features of the `async_redux` package are now available in a standalone
+  Dart-only
+  core package: https://pub.dev/packages/async_redux_core. You may use that core
+  package
+  when you are developing a Dart server (backend)
+  with [Celest](https://celest.dev/), or
+  when developing your own Dart-only package that does not depend on Flutter.
+  Note: For
+  the moment, the corepackage simply contains the `UserException`, and nothing
+  more.
   If you now import `async_redux_core` in your Celest server code and throw an
-  `UserException` there, the exception message will automatically be shown in a dialog to
+  `UserException` there, the exception message will automatically be shown in a
+  dialog to
   the user in your client app (if you use the `UserExceptionDialog` feature).
 
   > **For Flutter applications nothing changes.**
@@ -173,10 +302,14 @@ Sponsored by [MyText.ai](https://mytext.ai)
   > the code that's now in the core package.
 
 
-* You can now access the store inside of widgets, and have your widgets rebuild when the
-  state changes, by using `context.state` and `context.dispatch` etc. This is only useful
-  when you want to access the store state, and dispatch actions directly inside your
-  widgets, instead of using the `StoreConnector` (dumb widget / smart widget pattern). For
+* You can now access the store inside of widgets, and have your widgets rebuild
+  when the
+  state changes, by using `context.state` and `context.dispatch` etc. This is
+  only useful
+  when you want to access the store state, and dispatch actions directly inside
+  your
+  widgets, instead of using the `StoreConnector` (dumb widget / smart widget
+  pattern). For
   example:
 
   ```dart
@@ -199,7 +332,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
   context.clearExceptionFor(MyAction);
   ```      
 
-  However, to use `context.state` like shown above you must define this extension method
+  However, to use `context.state` like shown above you must define this
+  extension method
   in your own code (supposing your state class is called `AppState`):
 
   ```dart  
@@ -213,7 +347,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
   Connector vs Provider Example</a>.
 
 
-* You can now get and set properties in the `Store` using the `prop` and `setProp`
+* You can now get and set properties in the `Store` using the `prop` and
+  `setProp`
   methods.
   These methods are available in `Store`, in `ReduxAction`, and in `VmFactory`.
   They can be used to save global values, but scoped to the store.
@@ -225,29 +360,38 @@ Sponsored by [MyText.ai](https://mytext.ai)
   timer.cancel();
   ```   
 
-  You can later use `store.disposeProps` to stop, close or ignore, all stream related
-  objects, timers and futures, saved as props in the store. It will also remove them from
+  You can later use `store.disposeProps` to stop, close or ignore, all stream
+  related
+  objects, timers and futures, saved as props in the store. It will also remove
+  them from
   there.
 
 ## 22.0.0
 
-* BREAKING CHANGE: `StoreConnector.model` was removed, after being deprecated for a long
-  time. Please, use the `vm` parameter instead. See classes `VmFactory` and `Vm`.
+* BREAKING CHANGE: `StoreConnector.model` was removed, after being deprecated
+  for a long
+  time. Please, use the `vm` parameter instead. See classes `VmFactory` and
+  `Vm`.
 
-* BREAKING CHANGE: `ReduxAction.reduceWithState()` was removed, after being deprecated for
+* BREAKING CHANGE: `ReduxAction.reduceWithState()` was removed, after being
+  deprecated for
   a long time.
 
 * BREAKING CHANGE: `StoreProvider.of` was removed. See `context.state` and
   `context.dispatch` etc, in version 22.1.0 above.
 
-* BREAKING CHANGE: The `UserException` class was modified so that it was possible to move
-  it to the `async_redux_core`. If your use of `UserException` was limited to specifying
+* BREAKING CHANGE: The `UserException` class was modified so that it was
+  possible to move
+  it to the `async_redux_core`. If your use of `UserException` was limited to
+  specifying
   the error message, then you don't need to change anything:
   `throw UserException('Error message')` will continue to work as before.
-  However, for other more advanced features you will have to read the `UserException`
+  However, for other more advanced features you will have to read the
+  `UserException`
   documentation and adapt. In the new public API of `UserException` you can now
   specify a `message`, `reason`, `code`, `errorText` and `ifOpenDialog` in the
-  constructor, and then you can use methods `addCallbacks`, `addCause`, `addProps`,
+  constructor, and then you can use methods `addCallbacks`, `addCause`,
+  `addProps`,
   `withErrorText` and `noDialog` to add more information:
 
   ```dart
@@ -259,19 +403,25 @@ Sponsored by [MyText.ai](https://mytext.ai)
      .noDialog;
   ```                  
 
-  Note the `code` parameter can only be a number now. If you were using a different type,
+  Note the `code` parameter can only be a number now. If you were using a
+  different type,
   for example enums, you can now include it in the props, like
-  so: `throw UserException('').addProps({'code': myError.invalidInput}).` or you can even
+  so: `throw UserException('').addProps({'code': myError.invalidInput}).` or you
+  can even
   create an extension method which allows you to
   write `throw UserException('').withCode(myError.invalidInput).`
   However, please read the new `UserException` documentation to learn about the
-  recommended way to use `code` to define the text of the error messages, and even easily
+  recommended way to use `code` to define the text of the error messages, and
+  even easily
   translate them to the user language by using
-  the [i18n_extension](https://pub.dev/packages/i18n_extension) translations package.
+  the [i18n_extension](https://pub.dev/packages/i18n_extension) translations
+  package.
 
 * To test the view-model generated by a `VmFactory`, you can now use the static
-  method `Vm.createFrom(store, factory)`. The method will return the view-model, which you
-  can use to inspect the view-model properties directly, or call any of the view-model
+  method `Vm.createFrom(store, factory)`. The method will return the view-model,
+  which you
+  can use to inspect the view-model properties directly, or call any of the
+  view-model
   callbacks. Example:
 
   ```dart
@@ -292,12 +442,18 @@ Sponsored by [MyText.ai](https://mytext.ai)
   expect(store.state.name, "Bill");
   ```
 
-* DEPRECATION WARNING: While the `StoreTester` is a powerful tool with advanced features
-  that are beneficial for the most complex testing scenarios, for **almost all tests**
-  it's now recommended to use the `Store` directly. This approach involves waiting for an
-  action to complete its dispatch process or for the store state to meet a certain
-  condition. After this, you can verify the current state or action using the new
-  methods `store.dispatchAndWait`, `store.waitCondition`, `store.waitActionCondition`,
+* DEPRECATION WARNING: While the `StoreTester` is a powerful tool with advanced
+  features
+  that are beneficial for the most complex testing scenarios, for **almost all
+  tests**
+  it's now recommended to use the `Store` directly. This approach involves
+  waiting for an
+  action to complete its dispatch process or for the store state to meet a
+  certain
+  condition. After this, you can verify the current state or action using the
+  new
+  methods `store.dispatchAndWait`, `store.waitCondition`,
+  `store.waitActionCondition`,
   `store.waitAllActions`, `store.waitActionType`, `store.waitAllActionTypes`,
   and `store.waitAnyActionTypeFinishes`. For example:
 
@@ -355,7 +511,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
   expect(store.state.name, 'Bill');  
   ```                          
 
-  Note the `StoreTester` will NOT be removed, now or in the future. It's just not the
+  Note the `StoreTester` will NOT be removed, now or in the future. It's just
+  not the
   recommended
   way to test the store anymore.
 
@@ -363,30 +520,41 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 * DEPRECATION WARNING:
     - Replace `action.isFinished` with `action.status.isCompletedOk`
-    - Replace `action.status.isBeforeDone` with `action.status.hasFinishedMethodBefore`
-    - Replace `action.status.isReduceDone` with `action.status.hasFinishedMethodReduce`
-    - Replace `action.status.isAfterDone` with `action.status.hasFinishedMethodAfter`
+    - Replace `action.status.isBeforeDone` with
+      `action.status.hasFinishedMethodBefore`
+    - Replace `action.status.isReduceDone` with
+      `action.status.hasFinishedMethodReduce`
+    - Replace `action.status.isAfterDone` with
+      `action.status.hasFinishedMethodAfter`
     - Replace `action.status.isFinished` with `action.status.isCompletedOk`
 
 
 * The `action.status` now has a few more values:
-    - `isCompleted` if the action has completed executing, either with or without errors.
+    - `isCompleted` if the action has completed executing, either with or
+      without errors.
     - `isCompletedOk` if the action has completed with no errors.
     - `isCompletedFailed` if the action has completed with errors.
-    - `originalError` Holds the error thrown by the action's before/reduce methods, if
+    - `originalError` Holds the error thrown by the action's before/reduce
+      methods, if
       any.
-    - `wrappedError` Holds the error thrown by the action, after it was processed by the
+    - `wrappedError` Holds the error thrown by the action, after it was
+      processed by the
       action's `wrapError` and the `globalWrapError`.
 
 ## 21.6.0
 
-* DEPRECATION WARNING: The `wrapError` parameter of the `Store` constructor is now
+* DEPRECATION WARNING: The `wrapError` parameter of the `Store` constructor is
+  now
   deprecated in
-  favor of the `globalWrapError` parameter. The reason for this deprecation is that the
-  new `GlobalWrapError` works in the same way as the action's `ReduxAction.wrapError`,
-  while `WrapError` does not. The difference is that when `WrapError` returns `null`, the
+  favor of the `globalWrapError` parameter. The reason for this deprecation is
+  that the
+  new `GlobalWrapError` works in the same way as the action's
+  `ReduxAction.wrapError`,
+  while `WrapError` does not. The difference is that when `WrapError` returns
+  `null`, the
   original
-  error is not modified, while with `GlobalWrapError` returning `null` will instead
+  error is not modified, while with `GlobalWrapError` returning `null` will
+  instead
   disable the
   error. In other words, where your old `WrapError` returned `null`, your new
   `GlobalWrapError`
@@ -405,26 +573,35 @@ Sponsored by [MyText.ai](https://mytext.ai)
      else return processError(error);
   }
   ```
-  Also note, `GlobalWrapError` is more powerful because it can disable the error,
+  Also note, `GlobalWrapError` is more powerful because it can disable the
+  error,
   whereas `WrapError` cannot.
 
-* Throwing an error in the action's `wrapError` or in the `GlobalWrapError` was disallowed
-  (you needed to make sure it never happened). Now, it's allowed. If instead of RETURNING
+* Throwing an error in the action's `wrapError` or in the `GlobalWrapError` was
+  disallowed
+  (you needed to make sure it never happened). Now, it's allowed. If instead of
+  RETURNING
   an error
-  you THROW an error inside these wrappers, AsyncRedux will catch it and use it instead
+  you THROW an error inside these wrappers, AsyncRedux will catch it and use it
+  instead
   the original
-  error. In other words, returning an error or throwing an error from inside the wrappers
+  error. In other words, returning an error or throwing an error from inside the
+  wrappers
   now has
-  the same effect. However, it is still recommended to return the error rather than
+  the same effect. However, it is still recommended to return the error rather
+  than
   throwing it.
 
 ## 21.5.0
 
-* DEPRECATION WARNING: Method `dispatchAsync` was renamed to `dispatchAndWait`. The old
+* DEPRECATION WARNING: Method `dispatchAsync` was renamed to `dispatchAndWait`.
+  The old
   name is
-  still available, but deprecated and will be removed. The new name is more descriptive of
+  still available, but deprecated and will be removed. The new name is more
+  descriptive of
   what the
-  method does, and the fact that `dispatchAndWait` can be used to dispatch both sync and
+  method does, and the fact that `dispatchAndWait` can be used to dispatch both
+  sync and
   async
   actions. The only difference between `dispatchAndWait` and `dispatch` is that
   `dispatchAndWait`
@@ -432,7 +609,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 21.1.1
 
-* `await StoreTester.dispatchAndWait(action)` dispatches an action, and then waits until
+* `await StoreTester.dispatchAndWait(action)` dispatches an action, and then
+  waits until
   it
   finishes. This is the same as
   doing: `storeTester.dispatch(action); await storeTester.wait(action);`.
@@ -443,7 +621,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 20.0.2
 
-* Fixed `WrapReduce` (which may be used to wrap the reducer to allow for some pre- or
+* Fixed `WrapReduce` (which may be used to wrap the reducer to allow for some
+  pre- or
   post-processing) to avoid async reducers to be called twice.
 
 ## 20.0.0
@@ -458,40 +637,52 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 * Flutter 3.7.5, Dart 2.19.2, fast_immutable_collections: 9.0.0.
 
-* BREAKING CHANGE: The `Action.wrapError(error, stackTrace)` method now also gets the
+* BREAKING CHANGE: The `Action.wrapError(error, stackTrace)` method now also
+  gets the
   stacktrace
-  instead of just the error. If your code breaks, just add the extra parameter, like so:
-  `Object wrapError(error) => ...` turns into `Object wrapError(error, _) => ...`
+  instead of just the error. If your code breaks, just add the extra parameter,
+  like so:
+  `Object wrapError(error) => ...` turns into
+  `Object wrapError(error, _) => ...`
 
 <br>
 
-* BREAKING CHANGE: When a `Persistor` is provided to the Store, it now considers the
-  `initialState` is already persisted. Before this change, it considered nothing was
-  persisted. Note: Before you create the store, you are allowed to call the `Persistor`
+* BREAKING CHANGE: When a `Persistor` is provided to the Store, it now considers
+  the
+  `initialState` is already persisted. Before this change, it considered nothing
+  was
+  persisted. Note: Before you create the store, you are allowed to call the
+  `Persistor`
   methods
   directly: `Persistor.saveInitialState()`, `readState()` and `deleteState()`.
-  However, after you create the store, please don't call those methods yourself anymore.
-  If you do it, AsyncRedux cannot keep track of which state was persisted. After store
+  However, after you create the store, please don't call those methods yourself
+  anymore.
+  If you do it, AsyncRedux cannot keep track of which state was persisted. After
+  store
   creation,
   if necessary, you should use the corresponding methods
   `Store.saveInitialStateInPersistence()`,
-  `Store.readStateFromPersistence()` and `Store.deleteStateFromPersistence()`. These
+  `Store.readStateFromPersistence()` and `Store.deleteStateFromPersistence()`.
+  These
   methods let
   AsyncRedux keep track of the persisted state, so that it's able to call
   `Persistor.persistDifference()` with the appropriate parameters.
 
 <br>
 
-* Method `Store.getLastPersistedStateFromPersistor()` returns the state that was last
+* Method `Store.getLastPersistedStateFromPersistor()` returns the state that was
+  last
   persisted
   to the local persistence. It's unlikely you will use this method yourself.
 
 <br>
 
-* BREAKING CHANGE: The factory declaration used to have two type parameters, but now it
+* BREAKING CHANGE: The factory declaration used to have two type parameters, but
+  now it
   has three:
   `class Factory extends VmFactory<AppState, MyConnector, MyViewModel>`
-  With that change, you can now reference the view-model inside the Factory methods, by
+  With that change, you can now reference the view-model inside the Factory
+  methods, by
   using
   the `vm` getter. Example:
     ```
@@ -504,13 +695,17 @@ Sponsored by [MyText.ai](https://mytext.ai)
     void _onTap() => dispatch(SaveValueAction(vm.value)); // Use the value from the vm.
     ```
 
-  Note 1: You can only use the `vm` getter after the `fromStore()` method is called, which
+  Note 1: You can only use the `vm` getter after the `fromStore()` method is
+  called, which
   means
-  you cannot reference the `vm` inside of the `fromStore()` method itself. If you do that,
-  you'll get a `StoreException`. You also cannot use the `vm` getter if the view-model is
+  you cannot reference the `vm` inside of the `fromStore()` method itself. If
+  you do that,
+  you'll get a `StoreException`. You also cannot use the `vm` getter if the
+  view-model is
   null.
 
-  Note 2: To reduce boilerplate, and not having to pass the `AppState` type parameter
+  Note 2: To reduce boilerplate, and not having to pass the `AppState` type
+  parameter
   whenever you
   create a Factory, I recommend you define a base Factory, like so:
     ```
@@ -531,11 +726,13 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 17.0.1
 
-* Fixed issue with the StoreConnector.shouldUpdateModel method when the widget updates.
+* Fixed issue with the StoreConnector.shouldUpdateModel method when the widget
+  updates.
 
 ## 17.0.0
 
-* The `StateObserver.observe()` method signature changed to include an `error` parameter:
+* The `StateObserver.observe()` method signature changed to include an `error`
+  parameter:
   ```
   void observe(
      ReduxAction<St> action,
@@ -546,24 +743,31 @@ Sponsored by [MyText.ai](https://mytext.ai)
      );
   ```
 
-  The state-observers are now also called when the action reducer complete with a error.
+  The state-observers are now also called when the action reducer complete with
+  a error.
   In this case, the `error` object will not be null. This makes it easier to use
   state-observers
-  for metrics. Please, see the documentation for the recommended clean-code way to do
+  for metrics. Please, see the documentation for the recommended clean-code way
+  to do
   this.
 
 ## 16.1.0
 
-* Added another cache function, for 2 states and 3 parameters: `cache2states_3params`.
+* Added another cache function, for 2 states and 3 parameters:
+  `cache2states_3params`.
 
 ## 16.0.0
 
-* BREAKING CHANGE: Async `reduce()` methods (those that return Futures) are now called
-  synchronously (in the same microtask of their dispatch), just like a regular async
+* BREAKING CHANGE: Async `reduce()` methods (those that return Futures) are now
+  called
+  synchronously (in the same microtask of their dispatch), just like a regular
+  async
   function is.
-  In other words, now dispatching a sync action works just the same as calling a sync
+  In other words, now dispatching a sync action works just the same as calling a
+  sync
   function,
-  and dispatching an async action works just the same as calling an async function.
+  and dispatching an async action works just the same as calling an async
+  function.
 
   ```
   // Example: The below code will print: "BEFORE a1 f1 AFTER a2 f2"  
@@ -590,27 +794,34 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
   ```  
 
-  Before version `16.0.0`, the `reduce()` method was called in a later microtask. Please
+  Before version `16.0.0`, the `reduce()` method was called in a later
+  microtask. Please
   note, the
-  async `reduce()` methods continue to return and apply the state in a later microtask (
+  async `reduce()` methods continue to return and apply the state in a later
+  microtask (
   this did
   not change).
 
-  The above breaking change is unlikely to affect you in any way, but if you want the old
+  The above breaking change is unlikely to affect you in any way, but if you
+  want the old
   behavior,
   just add `await microtask;` to the first line of your `reduce()` method.
 
 <br>
 
-* BREAKING CHANGE: When your reducer is async (i.e., returns `Future<AppState>`) you must
+* BREAKING CHANGE: When your reducer is async (i.e., returns `Future<AppState>`)
+  you must
   make sure
-  you **do not return a completed future**, meaning all execution paths of the reducer
+  you **do not return a completed future**, meaning all execution paths of the
+  reducer
   must pass
-  through at least one `await` keyword. In other words, don't return a Future if you don't
+  through at least one `await` keyword. In other words, don't return a Future if
+  you don't
   need it.
   If your reducer has no `await`s, you must return `AppState?` instead of
   `Future<AppState?>`, or
-  add `await microtask;` to the start of your reducer, or return `null`. For example:
+  add `await microtask;` to the start of your reducer, or return `null`. For
+  example:
 
   ```dart 
   // These are right:
@@ -626,15 +837,19 @@ Sponsored by [MyText.ai](https://mytext.ai)
   Future<AppState?> reduce() async { if (state.someBool) return await calculation(); return state; }
   ```
 
-  If you don't follow this rule, AsyncRedux may seem to work ok, but will eventually
+  If you don't follow this rule, AsyncRedux may seem to work ok, but will
+  eventually
   misbehave.
 
   It's generally easy to make sure you are not returning a completed future.
-  In the rare case your reducer function is very complex, and you are unsure that all code
+  In the rare case your reducer function is very complex, and you are unsure
+  that all code
   paths
-  pass through an `await`, just add `assertUncompletedFuture();` at the very END of your
+  pass through an `await`, just add `assertUncompletedFuture();` at the very END
+  of your
   `reduce`
-  method, right before the `return`. If you do that, an error will be shown in the console
+  method, right before the `return`. If you do that, an error will be shown in
+  the console
   if
   the `reduce` method ever returns a completed future.
 
@@ -644,7 +859,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 <br>
 
-* When the `Event` class was created, Flutter did not have another class with that name.
+* When the `Event` class was created, Flutter did not have another class with
+  that name.
   Now there is. For this reason, a typedef now allows you to use `Evt` instead.
   If you need, you can hide one of them, by importing AsyncRedux like this:
 
@@ -673,9 +889,11 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 * The store persistor can now be paused and resumed, with methods
   `store.pausePersistor()`,
-  `store.persistAndPausePersistor()` and `store.resumePersistor()`. This may be used
+  `store.persistAndPausePersistor()` and `store.resumePersistor()`. This may be
+  used
   together with
-  the app lifecycle, to prevent a persistence process to start when the app is being shut
+  the app lifecycle, to prevent a persistence process to start when the app is
+  being shut
   down. For
   example:
 
@@ -728,13 +946,16 @@ Sponsored by [MyText.ai](https://mytext.ai)
    }
   ```  
 
-* When logging out of the app, you can call `store.deletePersistedState()` to ask the
+* When logging out of the app, you can call `store.deletePersistedState()` to
+  ask the
   persistor to
   delete the state from disk.
 
-* BREAKING CHANGE: This is a very minor change, unlikely to affect you. The signature for
+* BREAKING CHANGE: This is a very minor change, unlikely to affect you. The
+  signature for
   the `Action.wrapError` method has changed from `Object? wrapError(error)`
-  to `Object? wrapError(Object error)`. If you get an error when you upgrade, you can fix
+  to `Object? wrapError(Object error)`. If you get an error when you upgrade,
+  you can fix
   it by
   changing the method that broke into `Object? wrapError(dynamic error)`.
 
@@ -773,11 +994,14 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 13.0.5
 
-* Sometimes, the store state is such that it's not possible to create a view-model. In
+* Sometimes, the store state is such that it's not possible to create a
+  view-model. In
   those cases,
-  the `fromStore()` method in the `Factory` can now return a `null` view-model. In that
+  the `fromStore()` method in the `Factory` can now return a `null` view-model.
+  In that
   case,
-  the `builder()` method in the `StoreConnector` can detect that the view-model is `null`,
+  the `builder()` method in the `StoreConnector` can detect that the view-model
+  is `null`,
   and then
   return some widget that does not depend on the view-model. For example:
 
@@ -806,31 +1030,42 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 13.0.4
 
-* `dispatch` can be used to dispatch both sync and async actions. It returns a `FutureOr`.
+* `dispatch` can be used to dispatch both sync and async actions. It returns a
+  `FutureOr`.
   You can
   await the result or not, as desired.
 
-* `dispatchAsync` can also be used to dispatch both sync and async actions. But it always
+* `dispatchAsync` can also be used to dispatch both sync and async actions. But
+  it always
   returns a
-  `Future` (not a `FutureOr`). Use this only when you explicitly need a `Future`, for
+  `Future` (not a `FutureOr`). Use this only when you explicitly need a
+  `Future`, for
   example, when
-  working with the `RefreshIndicator` widget. Note: `dispatchAsync` was later renamed
+  working with the `RefreshIndicator` widget. Note: `dispatchAsync` was later
+  renamed
   to `dispatchAndWait`.
 
 * `dispatchSync` allows you to dispatch SYNC actions only. In that case,
   `dispatchSync(action)` is
-  exactly the same as `dispatch(action)`. However, if your action is ASYNC, `dispatchSync`
+  exactly the same as `dispatch(action)`. However, if your action is ASYNC,
+  `dispatchSync`
   will
-  throw an error. Use this only when you need to make sure an action is sync (meaning it
+  throw an error. Use this only when you need to make sure an action is sync (
+  meaning it
   impacts the
-  store state immediately when it returns). This is not very common. Important: An action
+  store state immediately when it returns). This is not very common. Important:
+  An action
   is sync if
-  and only if both its `before` and `reduce` methods are sync. If any or both these
+  and only if both its `before` and `reduce` methods are sync. If any or both
+  these
   methods return a
-  Future, then the action is async and will throw an error when used with `dispatchSync`.
+  Future, then the action is async and will throw an error when used with
+  `dispatchSync`.
 
-* `StoreTester.getConnectorTester` helps test `StoreConnector`s methods, such as `onInit`,
-  `onDispose` and `onWillChange`. For example, suppose you have a `StoreConnector` which
+* `StoreTester.getConnectorTester` helps test `StoreConnector`s methods, such as
+  `onInit`,
+  `onDispose` and `onWillChange`. For example, suppose you have a
+  `StoreConnector` which
   dispatches `SomeAction` on its `onInit`. You could test it like this:
 
   ``` 
@@ -849,17 +1084,21 @@ Sponsored by [MyText.ai](https://mytext.ai)
   connectorTester.runOnInit(); 
   var info = await tester.waitUntil(SomeAction);  
   ```
-  For more information, see section **Testing the StoreConnector** in the README.md file.
+  For more information, see section **Testing the StoreConnector** in the
+  README.md file.
 
-* Fix: `UserExceptionDialog` now shows all `UserException`s. It was discarding some of
+* Fix: `UserExceptionDialog` now shows all `UserException`s. It was discarding
+  some of
   them under
   some circumstances, in a regression created in version 4.0.4.
 
-* In the `Store` constructor you can now set `maxErrorsQueued` to control the maximum
+* In the `Store` constructor you can now set `maxErrorsQueued` to control the
+  maximum
   number of
   errors the `UserExceptionDialog` error-queue can hold. Default is `10`.
 
-* `ConsoleActionObserver` is now provided to print action details to the console.
+* `ConsoleActionObserver` is now provided to print action details to the
+  console.
 
 * `WaitAction.toString()` now returns a better description.
 
@@ -868,7 +1107,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
 * `NavigateAction.toString()` now returns a better description, like
   `Action NavigateAction.pop()`.
 
-* Fixed `NavigateAction.popUntilRouteName` and `NavigateAction.pushNamedAndRemoveAll` to
+* Fixed `NavigateAction.popUntilRouteName` and
+  `NavigateAction.pushNamedAndRemoveAll` to
   return the
   correct `.type`.
 
@@ -885,46 +1125,60 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 12.0.0
 
-* BREAKING CHANGE: Improved state typing for some `Store` parameters. You will now have to
+* BREAKING CHANGE: Improved state typing for some `Store` parameters. You will
+  now have to
   use
-  `Persistor<AppState>` instead of `Persistor`, and `WrapError<AppState>` instead of
+  `Persistor<AppState>` instead of `Persistor`, and `WrapError<AppState>`
+  instead of
   `WrapError`
   etc.
 
-* Global `Store(wrapReduce: ...)`. You may now globally wrap the reducer to allow for some
+* Global `Store(wrapReduce: ...)`. You may now globally wrap the reducer to
+  allow for some
   pre or
-  post-processing. Note: if the action also have a wrapReduce method, this global wrapper
+  post-processing. Note: if the action also have a wrapReduce method, this
+  global wrapper
   will be
-  called AFTER (it will wrap the action's wrapper which wraps the action's reducer).
+  called AFTER (it will wrap the action's wrapper which wraps the action's
+  reducer).
 
 * Downgraded dev_dependencies `test: ^1.16.0`
 
 ## 11.0.1
 
-* You can now provide callbacks `onOk` and `onCancel` to an `UserException`. This allows
+* You can now provide callbacks `onOk` and `onCancel` to an `UserException`.
+  This allows
   you to
   dispatch actions when the user dismisses the error dialog. When using the
-  default `UserExceptionDialog`: (i) if only `onOk` is provided, it will be called when
+  default `UserExceptionDialog`: (i) if only `onOk` is provided, it will be
+  called when
   the dialog
-  is dismissed, no matter how. (ii) If both `onOk` and `onCancel` are provided, then
+  is dismissed, no matter how. (ii) If both `onOk` and `onCancel` are provided,
+  then
   `onOk` will be
-  called only when the OK button is pressed, while `onCancel` will be called when the
+  called only when the OK button is pressed, while `onCancel` will be called
+  when the
   dialog is
   dismissed by any other means.
 
 ## 11.0.0
 
-* BREAKING CHANGE: The `dispatchFuture` function is not necessary anymore. Just rename it
-  to `dispatch`, since now the `dispatch` function always returns a future, and you can
+* BREAKING CHANGE: The `dispatchFuture` function is not necessary anymore. Just
+  rename it
+  to `dispatch`, since now the `dispatch` function always returns a future, and
+  you can
   await it or
   not, as desired.
 
-* BREAKING CHANGE: `ReduxAction.hasFinished()` has been deprecated. It should be renamed
+* BREAKING CHANGE: `ReduxAction.hasFinished()` has been deprecated. It should be
+  renamed
   to `isFinished`.
 
-* The `dispatch` function now returns an `ActionStatus`. Usually you will discard this
+* The `dispatch` function now returns an `ActionStatus`. Usually you will
+  discard this
   info, but you
-  may use it to know if the action completed with no errors. For example, suppose a
+  may use it to know if the action completed with no errors. For example,
+  suppose a
   `SaveAction`
   looks like this:
 
@@ -938,7 +1192,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
   }
   ```
 
-  Then, when you save some info, you want to leave the current screen if and only if the
+  Then, when you save some info, you want to leave the current screen if and
+  only if the
   save
   process succeeded:
 
@@ -949,19 +1204,25 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 10.0.1
 
-* BREAKING CHANGE: The new `UserExceptionDialog.useLocalContext` parameter now allows
-  the `UserExceptionDialog` to be put in the `builder` parameter of the `MaterialApp`
+* BREAKING CHANGE: The new `UserExceptionDialog.useLocalContext` parameter now
+  allows
+  the `UserExceptionDialog` to be put in the `builder` parameter of the
+  `MaterialApp`
   widget. Even
-  if you use this dialog, it is unlikely this will be a breaking change for you. But if it
+  if you use this dialog, it is unlikely this will be a breaking change for you.
+  But if it
   is, and
-  your error dialog now has problems, simply make `useLocalContext: true` to return to the
+  your error dialog now has problems, simply make `useLocalContext: true` to
+  return to the
   old
   behavior.
 
 * BREAKING CHANGE: `StoreConnector` parameters `onInitialBuild`, `onDidChange`
-  and `onWillChange` now also get the context and the store. For example, where you
+  and `onWillChange` now also get the context and the store. For example, where
+  you
   previously
-  had `onInitialBuild(vm) {...}` now you have `onInitialBuild(context, store, vm) {...}`.
+  had `onInitialBuild(vm) {...}` now you have
+  `onInitialBuild(context, store, vm) {...}`.
 
 ## 9.0.9
 
@@ -988,7 +1249,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 * Uses nullsafe dependencies (it's not yet itself nullsafe).
 
-* BREAKING CHANGE: Cache functions (for memoization) have been renamed and extended.
+* BREAKING CHANGE: Cache functions (for memoization) have been renamed and
+  extended.
 
 ## 7.0.2
 
@@ -1015,19 +1277,23 @@ Sponsored by [MyText.ai](https://mytext.ai)
   vm: MyFactory(this), 
   ```
 
-  Now the `StoreConnector` will create a `VmFactory` every time it needs a view-model. The
+  Now the `StoreConnector` will create a `VmFactory` every time it needs a
+  view-model. The
   Factory
   will have access to:
 
-    1) `state` getter: The state the store was holding when the factory and the view-model
+    1) `state` getter: The state the store was holding when the factory and the
+       view-model
        were
        created. This state is final inside the factory.
 
-    2) `currentState()` method: The current (most recent) store state. This will return
+    2) `currentState()` method: The current (most recent) store state. This will
+       return
        the current
        state the store holds at the time the method is called.
 
-* New store parameter `immutableCollectionEquality` lets you override the equality used
+* New store parameter `immutableCollectionEquality` lets you override the
+  equality used
   for
   immutable collections from
   the <a href="https://pub.dev/packages/fast_immutable_collections">
@@ -1048,7 +1314,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
   `pushAndRemoveUntil()`,
   `replace()`, `replaceRouteBelow()`, `pushReplacementNamed()`,
   `pushNamedAndRemoveUntil()`,
-  `pushNamedAndRemoveAll()`, `popUntil()`, `removeRoute()`, `removeRouteBelow()`,
+  `pushNamedAndRemoveAll()`, `popUntil()`, `removeRoute()`,
+  `removeRouteBelow()`,
   `popUntilRouteName()` and `popUntilRoute()`.
 
 ## 1.0.0

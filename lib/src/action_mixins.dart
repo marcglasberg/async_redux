@@ -69,7 +69,9 @@ mixin CheckInternet<St> on ReduxAction<St> {
 
   Future<List<ConnectivityResult>> checkConnectivity() async {
     if (internetOnOffSimulation != null)
-      return internetOnOffSimulation! ? [ConnectivityResult.wifi] : [ConnectivityResult.none];
+      return internetOnOffSimulation!
+          ? [ConnectivityResult.wifi]
+          : [ConnectivityResult.none];
 
     return await (Connectivity().checkConnectivity());
   }
@@ -143,11 +145,14 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
   /// as permanently on or off.
   /// Return `true` if there is internet, and `false` if there is no internet.
   /// Return `null` to use the real internet connection status.
-  bool? get internetOnOffSimulation => CheckInternet.forceInternetOnOffSimulation();
+  bool? get internetOnOffSimulation =>
+      CheckInternet.forceInternetOnOffSimulation();
 
   Future<List<ConnectivityResult>> checkConnectivity() async {
     if (internetOnOffSimulation != null)
-      return internetOnOffSimulation! ? [ConnectivityResult.wifi] : [ConnectivityResult.none];
+      return internetOnOffSimulation!
+          ? [ConnectivityResult.wifi]
+          : [ConnectivityResult.none];
 
     return await (Connectivity().checkConnectivity());
   }
@@ -157,7 +162,8 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
   Future<void> before() async {
     super.before();
     var result = await checkConnectivity();
-    if (result.contains(ConnectivityResult.none)) throw AbortDispatchException();
+    if (result.contains(ConnectivityResult.none))
+      throw AbortDispatchException();
   }
 }
 
@@ -444,7 +450,8 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
   Future<St?> reduce() async {
     // Updates the value optimistically.
     final _newValue = newValue();
-    final action = UpdateStateAction.withReducer((St state) => applyState(_newValue, state));
+    final action = UpdateStateAction.withReducer(
+        (St state) => applyState(_newValue, state));
     dispatch(action);
 
     try {
@@ -460,8 +467,8 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
     } finally {
       try {
         final Object? reloadedValue = await reloadValue();
-        final action =
-            UpdateStateAction.withReducer((St state) => applyState(reloadedValue, state));
+        final action = UpdateStateAction.withReducer(
+            (St state) => applyState(reloadedValue, state));
         dispatch(action);
       } on UnimplementedError catch (_) {
         // If the reload was not implemented, do nothing.
@@ -472,20 +479,134 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
   }
 }
 
-/// Throttling is a technique that ensures a function is called at most once in a specified period.
-/// If the function is triggered multiple times within this period, it will only execute once at
-/// the start or end (depending on the implementation) of that period, and all other calls will be
-/// ignored or deferred until the period expires.
+/// Throttling ensures the action will be dispatched at most once in the
+/// specified throttle period. In other words, it prevents the action from
+/// running too frequently.
 ///
-/// Use Case: Throttling is often used in scenarios where you want to limit how often a function
-/// can run. For example, it’s useful for handling events that can fire many times in a short
-/// period, such as resizing a window or scrolling a webpage, where you want to ensure the event
-/// handler doesn’t run so often that it causes performance issues.
+/// If an action is dispatched multiple times within a throttle period, it will
+/// only execute the first time, and the others will be aborted. After the
+/// throttle period has passed, the action will be allowed to execute again,
+/// which will reset the throttle period.
 ///
-/// Effect: It smoothens the execution rate of the function over time, preventing it from running
-/// too frequently.
-// TODO:
-//mixin Throttle<St> implements ReduxAction<St> {}
+/// If you use the action to load information, the throttle period may be
+/// considered as the time the loaded information is "fresh". After the
+/// throttle period, the information is considered "stale" and the action will
+/// be allowed to load the information again.
+///
+/// For example, if you are using a `StatefulWidget` that needs to load some
+/// information, you can dispatch the loading action when widget is created,
+/// and specify a throttle period so that it doesn't load the information again
+/// too often.
+///
+/// If you are using a `StoreConnector`, you can use the `onInit` parameter:
+///
+/// ```dart
+/// class MyScreenConnector extends StatelessWidget {
+///   Widget build(BuildContext context) => StoreConnector<AppState, _Vm>(
+///     vm: () => _Factory(),
+///     onInit: _onInit, // Here!
+///     builder: (context, vm) {
+///       return MyScreenConnector(
+///         information: vm.information,
+///         ...
+///       ),
+///     );
+///
+///   void _onInit(Store<AppState> store) {
+///     store.dispatch(LoadAction());
+///   }
+/// }
+/// ```
+///
+/// and then:
+///
+/// ```dart
+/// class LoadAction extends ReduxAction<AppState> with Throttle {
+///
+///   final int throttle = 5000;
+///
+///   Future<AppState?> reduce() async {
+///     var information = await loadInformation();
+///     return state.copy(information: information);
+///   }
+/// }
+/// ```
+///
+/// The [throttle] is given in milliseconds, and the default is 1000
+/// milliseconds (1 second). You can override this default:
+///
+/// ```dart
+/// class MyAction extends ReduxAction<AppState> with Throttle {
+///    final int throttle = 500; // Here!
+///    ...
+/// }
+/// ```
+///
+/// # Advanced usage
+///
+/// The throttle is, by default, based on the action [runtimeType]. This means
+/// it will throttle an action if another action of the same runtimeType was
+/// previously dispatched within the throttle period. In other words, the
+/// runtimeType is the "lock". If you want to throttle based on a different
+/// lock, you can override the [lockBuilder] method. For example, here
+/// we throttle two different actions based on the same lock:
+///
+/// ```dart
+/// class MyAction1 extends ReduxAction<AppState> with Throttle {
+///    Object? lockBuilder() => 'myLock';
+///    ...
+/// }
+///
+/// class MyAction2 extends ReduxAction<AppState> with Throttle {
+///    Object? lockBuilder() => 'myLock';
+///    ...
+/// }
+/// ```
+///
+/// Another example is to throttle based on some field of the action:
+///
+/// ```dart
+/// class MyAction extends ReduxAction<AppState> with Throttle {
+///    final String lock;
+///    MyAction(this.lock);
+///    Object? lockBuilder() => lock;
+///    ...
+/// }
+/// ```
+///
+mixin Throttle<St> implements ReduxAction<St> {
+  //
+  int get throttle => 1000; // Milliseconds
+
+  Object? lockBuilder() => runtimeType;
+
+  /// Map that stores the last time an action with a specific lock dispatched.
+  static final Map<Object?, DateTime> throttleLockMap = {};
+
+  @override
+  bool abortDispatch() {
+    var lock = lockBuilder();
+    var now = DateTime.now().toUtc();
+    var time = throttleLockMap[lock];
+
+    if (time == null) {
+      throttleLockMap[lock] = now;
+      return false;
+    }
+    //
+    else {
+      // If the throttle time has NOT elapsed since last dispatch, abort.
+      if (now.difference(time).inMilliseconds < throttle)
+        return true;
+      //
+      // Otherwise, update the time and allow the dispatch.
+      else {
+        throttleLockMap[lock] = now;
+        return false;
+      }
+    }
+  }
+}
 
 /// Debouncing delays the execution of a function until after a certain period of inactivity.
 /// Each time the debounced function is called, the period of inactivity (or wait time) is reset.
@@ -606,7 +727,8 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
           //
           if (!hasInternet) {
             if (attempts == 0)
-              printRetries('Trying $runtimeType; aborted because of no internet.');
+              printRetries(
+                  'Trying $runtimeType; aborted because of no internet.');
             else
               printRetries(
                   'Retrying $runtimeType; aborted because of no internet (attempt $attempts).');
@@ -638,7 +760,8 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
     if (hasInternet) {
       if (_currentDelay! > maxDelay) _currentDelay = maxDelay;
     } else {
-      if (_currentDelay! > maxDelayNoInternet) _currentDelay = maxDelayNoInternet;
+      if (_currentDelay! > maxDelayNoInternet)
+        _currentDelay = maxDelayNoInternet;
     }
 
     return _currentDelay!;
@@ -648,11 +771,14 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
   /// as permanently on or off.
   /// Return `true` if there is internet, and `false` if there is no internet.
   /// Return `null` to use the real internet connection status.
-  bool? get internetOnOffSimulation => CheckInternet.forceInternetOnOffSimulation();
+  bool? get internetOnOffSimulation =>
+      CheckInternet.forceInternetOnOffSimulation();
 
   Future<List<ConnectivityResult>> checkConnectivity() async {
     if (internetOnOffSimulation != null)
-      return internetOnOffSimulation! ? [ConnectivityResult.wifi] : [ConnectivityResult.none];
+      return internetOnOffSimulation!
+          ? [ConnectivityResult.wifi]
+          : [ConnectivityResult.none];
 
     return await (Connectivity().checkConnectivity());
   }

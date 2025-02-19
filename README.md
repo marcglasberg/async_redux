@@ -379,6 +379,108 @@ class LoadText extends Action with UnlimitedRetryCheckInternet {
    }
 ```
 
+&nbsp;
+
+## Throttle 
+
+Throttling ensures the action will be dispatched at most once in the
+specified throttle period. In other words, it prevents the action from
+running too frequently.
+
+If an action is dispatched multiple times within a throttle period, it will
+only execute the first time, and the others will be aborted. After the
+throttle period has passed, the action will be allowed to execute again,
+which will reset the throttle period.
+
+If you use the action to load information, the throttle period may be
+considered as the time the loaded information is "fresh". After the
+throttle period, the information is considered "stale" and the action will
+be allowed to load the information again.
+
+For example, if you are using a `StatefulWidget` that needs to load some
+information, you can dispatch the loading action when widget is created,
+and specify a throttle period so that it doesn't load the information again
+too often.
+
+If you are using a `StoreConnector`, you can use the `onInit` parameter:
+
+```dart
+class MyScreenConnector extends StatelessWidget {
+  Widget build(BuildContext context) => StoreConnector<AppState, _Vm>(
+    vm: () => _Factory(),
+    onInit: _onInit, // Here!
+    builder: (context, vm) {
+      return MyScreenConnector(
+        information: vm.information,
+        ...
+      ),
+    );
+
+  void _onInit(Store<AppState> store) {
+    store.dispatch(LoadAction());
+  }
+}
+```
+
+and then:
+
+```dart
+class LoadAction extends ReduxAction<AppState> with Throttle {
+
+  final int throttle = 5000;
+
+  Future<AppState?> reduce() async {
+    var information = await loadInformation();
+    return state.copy(information: information);
+  }
+}
+```
+
+The `throttle` is given in milliseconds, and the default is 1000
+milliseconds (1 second). You can override this default:
+
+```dart
+class MyAction extends ReduxAction<AppState> with Throttle {
+   final int throttle = 500; // Here!
+   ...
+}
+```
+
+### Advanced usage
+
+The throttle is, by default, based on the action `runtimeType`. This means
+it will throttle an action if another action of the same runtimeType was
+previously dispatched within the throttle period. In other words, the
+runtimeType is the "lock". If you want to throttle based on a different
+lock, you can override the `lockBuilder` method. For example, here
+we throttle two different actions based on the same lock:
+
+```dart
+class MyAction1 extends ReduxAction<AppState> with Throttle {
+   Object? lockBuilder() => 'myLock';
+   ...
+}
+
+class MyAction2 extends ReduxAction<AppState> with Throttle {
+   Object? lockBuilder() => 'myLock';
+   ...
+}
+```
+
+Another example is to throttle based on some field of the action:
+
+```dart
+class MyAction extends ReduxAction<AppState> with Throttle {
+   final String lock;   
+   MyAction(this.lock);
+   
+   Object? lockBuilder() => lock;
+   ...
+}
+```
+
+&nbsp;
+
 ## Debounce (soon)
 
 To limit how often an action occurs in response to rapid inputs, you can add the
@@ -403,28 +505,6 @@ class SearchText extends Action with Debounce {
     );
         
     return state.copy(searchResult: response.body);
-  }
-}
-```
-
-&nbsp;
-
-## Throttle (soon)
-
-To prevent an action from running too frequently, you can add the `Throttle` mixin to your
-action class. This means that once the action runs it's considered _fresh_, and it won't
-run
-again for a set period of time, even if you try to dispatch it.
-After this period ends, the action is considered _stale_ and is ready to run again.
-
-```tsx
-class LoadPrices extends Action with Throttle {  
-  
-  final int throttle = 5000; // Milliseconds
-
-  Future<AppState> reduce() async {      
-    var result = await loadJson('https://example.com/prices');              
-    return state.copy(prices: result);
   }
 }
 ```
