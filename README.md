@@ -123,7 +123,7 @@ The store state is **immutable**.
 The only way to change the store **state** is by dispatching an **action**.
 The action reducer returns a new state, that replaces the old one.
 
-```tsx
+```dart
 // Dispatch an action
 store.dispatch(Increment());
 
@@ -393,7 +393,7 @@ If the action loads information, the information is considered _fresh_.
 Only after the throttle period ends is the information considered _stale_,
 allowing the action to run again to reload the information.
 
-```tsx
+```dart
 class LoadPrices extends Action with Throttle {  
   
   final int throttle = 5000; // Milliseconds
@@ -452,7 +452,7 @@ notification can
 inform
 the user of the issue.
 
-```tsx
+```dart
 class SaveName extends Action with OptimisticUpdate { 
    
   async reduce() { ... } 

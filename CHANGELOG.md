@@ -8,7 +8,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 24.1.2
+## 24.1.3
 
 * You can now use the `Throttle` action mixin.
   Throttling ensures the action will be dispatched at most once in the
