@@ -36,10 +36,12 @@ and other people on your team will easily understand and modify your code.
 
 An optimized reimagined version of Redux.
 A mature solution, battle-tested in hundreds of real-world applications.
-Written from the ground up, created by [Marcelo Glasberg](https://github.com/marcglasberg)
+Written from the ground up, created
+by [Marcelo Glasberg](https://github.com/marcglasberg)
 (see [all my packages](https://pub.dev/publishers/glasberg.dev/packages)).
 
-> There is also a [version for React](https://www.npmjs.com/package/async-redux-react)
+> There is also
+> a [version for React](https://www.npmjs.com/package/async-redux-react)
 
 > Optionally use it with [Provider](https://pub.dev/packages/provider_for_redux)
 > or [Flutter Hooks](https://pub.dev/packages/flutter_hooks_async_redux)
@@ -178,7 +180,8 @@ class LoadText extends Action {
 
 &nbsp;
 
-> If you want to understand the above code in terms of traditional Redux patterns,
+> If you want to understand the above code in terms of traditional Redux
+> patterns,
 > all code until the last `await` in the `reduce` method is the equivalent of a
 > middleware,
 > and all code after that is the equivalent of a traditional reducer.
@@ -189,12 +192,15 @@ class LoadText extends Action {
 
 # Actions can throw errors
 
-If something bad happens, you can simply **throw an error**. In this case, the state will
+If something bad happens, you can simply **throw an error**. In this case, the
+state will
 not
 change. Errors are caught globally and can be handled in a central place, later.
 
-In special, if you throw a `UserException`, which is a type provided by Async Redux,
-a dialog (or other UI) will open automatically, showing the error message to the user.
+In special, if you throw a `UserException`, which is a type provided by Async
+Redux,
+a dialog (or other UI) will open automatically, showing the error message to the
+user.
 
 ```dart
 class LoadText extends Action {
@@ -210,7 +216,8 @@ class LoadText extends Action {
 
 &nbsp;
 
-To show a spinner while an asynchronous action is running, use `isWaiting(action)`.
+To show a spinner while an asynchronous action is running, use
+`isWaiting(action)`.
 
 To show an error message inside the widget, use `isFailed(action)`.
 
@@ -268,7 +275,8 @@ class BuyAndSell extends Action {
 
 &nbsp;
 
-You can also use `waitCondition` to wait until the `state` changes in a certain way:
+You can also use `waitCondition` to wait until the `state` changes in a certain
+way:
 
 ```dart
 class SellStockForPrice extends Action {
@@ -332,9 +340,8 @@ class MyWidget extends StatelessWidget {
 
 &nbsp;
 
-`AbortWhenNoInternet` aborts the action silently (without showing any dialogs) if there is
-no
-internet connection.
+`AbortWhenNoInternet` aborts the action silently (without showing any dialogs)
+if there is no internet connection.
 
 &nbsp;
 
@@ -353,8 +360,8 @@ class LoadText extends Action with NonReentrant {
 
 ## Retry
 
-Add `Retry` to retry the action a few times with exponential backoff, if it fails.
-Add `UnlimitedRetries` to retry indefinitely:
+Add the `Retry` mixin to retry the action a few times with exponential backoff, 
+if it fails. Add `UnlimitedRetries` to retry indefinitely:
 
 ```dart
 class LoadText extends Action with Retry, UnlimitedRetries {
@@ -366,11 +373,10 @@ class LoadText extends Action with Retry, UnlimitedRetries {
 
 ## UnlimitedRetryCheckInternet
 
-Add `UnlimitedRetryCheckInternet` to check if there is internet when you run some action
-that needs
-it. If there is no internet, the action will abort silently and then retried unlimited
-times,
-until there is internet. It will also retry if there is internet but the action failed.
+Add `UnlimitedRetryCheckInternet` to check if there is internet when you run
+some action that needs it. If there is no internet, the action will abort
+silently and then retried unlimited times, until there is internet. It will also
+retry if there is internet but the action failed.
 
 ```dart
 class LoadText extends Action with UnlimitedRetryCheckInternet {
@@ -380,101 +386,22 @@ class LoadText extends Action with UnlimitedRetryCheckInternet {
 
 &nbsp;
 
-## Throttle 
+## Throttle
 
-Throttling ensures the action will be dispatched at most once in the
-specified throttle period. In other words, it prevents the action from
-running too frequently.
+The `Throttle` mixin prevents a dispatched action from running too often.
+If the action loads information, the information is considered _fresh_.
+Only after the throttle period ends is the information considered _stale_,
+allowing the action to run again to reload the information.
 
-If an action is dispatched multiple times within a throttle period, it will
-only execute the first time, and the others will be aborted. After the
-throttle period has passed, the action will be allowed to execute again,
-which will reset the throttle period.
+```tsx
+class LoadPrices extends Action with Throttle {  
+  
+  final int throttle = 5000; // Milliseconds
 
-If you use the action to load information, the throttle period may be
-considered as the time the loaded information is "fresh". After the
-throttle period, the information is considered "stale" and the action will
-be allowed to load the information again.
-
-For example, if you are using a `StatefulWidget` that needs to load some
-information, you can dispatch the loading action when widget is created,
-and specify a throttle period so that it doesn't load the information again
-too often.
-
-If you are using a `StoreConnector`, you can use the `onInit` parameter:
-
-```dart
-class MyScreenConnector extends StatelessWidget {
-  Widget build(BuildContext context) => StoreConnector<AppState, _Vm>(
-    vm: () => _Factory(),
-    onInit: _onInit, // Here!
-    builder: (context, vm) {
-      return MyScreenConnector(
-        information: vm.information,
-        ...
-      ),
-    );
-
-  void _onInit(Store<AppState> store) {
-    store.dispatch(LoadAction());
+  Future<AppState> reduce() async {      
+    var result = await loadJson('https://example.com/prices');              
+    return state.copy(prices: result);
   }
-}
-```
-
-and then:
-
-```dart
-class LoadAction extends ReduxAction<AppState> with Throttle {
-
-  final int throttle = 5000;
-
-  Future<AppState?> reduce() async {
-    var information = await loadInformation();
-    return state.copy(information: information);
-  }
-}
-```
-
-The `throttle` is given in milliseconds, and the default is 1000
-milliseconds (1 second). You can override this default:
-
-```dart
-class MyAction extends ReduxAction<AppState> with Throttle {
-   final int throttle = 500; // Here!
-   ...
-}
-```
-
-### Advanced usage
-
-The throttle is, by default, based on the action `runtimeType`. This means
-it will throttle an action if another action of the same runtimeType was
-previously dispatched within the throttle period. In other words, the
-runtimeType is the "lock". If you want to throttle based on a different
-lock, you can override the `lockBuilder` method. For example, here
-we throttle two different actions based on the same lock:
-
-```dart
-class MyAction1 extends ReduxAction<AppState> with Throttle {
-   Object? lockBuilder() => 'myLock';
-   ...
-}
-
-class MyAction2 extends ReduxAction<AppState> with Throttle {
-   Object? lockBuilder() => 'myLock';
-   ...
-}
-```
-
-Another example is to throttle based on some field of the action:
-
-```dart
-class MyAction extends ReduxAction<AppState> with Throttle {
-   final String lock;   
-   MyAction(this.lock);
-   
-   Object? lockBuilder() => lock;
-   ...
 }
 ```
 
@@ -484,9 +411,11 @@ class MyAction extends ReduxAction<AppState> with Throttle {
 
 To limit how often an action occurs in response to rapid inputs, you can add the
 `Debounce` mixin
-to your action class. For example, when a user types in a search bar, debouncing ensures
+to your action class. For example, when a user types in a search bar, debouncing
+ensures
 that not
-every keystroke triggers a server request. Instead, it waits until the user pauses typing
+every keystroke triggers a server request. Instead, it waits until the user
+pauses typing
 before
 acting.
 
@@ -512,11 +441,14 @@ class SearchText extends Action with Debounce {
 
 ## OptimisticUpdate (soon)
 
-To provide instant feedback on actions that save information to the server, this feature
+To provide instant feedback on actions that save information to the server, this
+feature
 immediately
-applies state changes as if they were already successful, before confirming with the
+applies state changes as if they were already successful, before confirming with
+the
 server.
-If the server update fails, the change is rolled back and, optionally, a notification can
+If the server update fails, the change is rolled back and, optionally, a
+notification can
 inform
 the user of the issue.
 
@@ -598,10 +530,12 @@ test('Selecting an item', () async {
 
 # Advanced setup
 
-If you are the Team Lead, you set up the app's infrastructure in a central place,
+If you are the Team Lead, you set up the app's infrastructure in a central
+place,
 and allow your developers to concentrate solely on the business logic.
 
-You can add a `stateObserver` to collect app metrics, an `errorObserver` to log errors,
+You can add a `stateObserver` to collect app metrics, an `errorObserver` to log
+errors,
 an `actionObserver` to print information to the console during development,
 and a `globalWrapError` to catch all errors.
 
@@ -615,8 +549,10 @@ var store = Store<String>(
 
 &nbsp;
 
-For example, the following `globalWrapError` handles `PlatformException` errors thrown
-by Firebase. It converts them into `UserException` errors, which are built-in types that
+For example, the following `globalWrapError` handles `PlatformException` errors
+thrown
+by Firebase. It converts them into `UserException` errors, which are built-in
+types that
 automatically show a message to the user in an error dialog:
 
 ```dart
@@ -631,9 +567,11 @@ Object? wrap(error, stackTrace, action) =>
 
 # Advanced action configuration
 
-The Team Lead may create a base action class that all actions will extend, and add some
+The Team Lead may create a base action class that all actions will extend, and
+add some
 common
-functionality to it. For example, getter shortcuts to important parts of the state,
+functionality to it. For example, getter shortcuts to important parts of the
+state,
 and selectors to help find information.
 
 ```dart
@@ -685,7 +623,8 @@ at https://asyncredux.com
 <br>
 <a href="https://github.com/marcglasberg">_github.com/marcglasberg_</a>
 <br>
-<a href="https://www.linkedin.com/in/marcglasberg/">_linkedin.com/in/marcglasberg/_</a>
+<a href="https://www.linkedin.com/in/marcglasberg/">
+_linkedin.com/in/marcglasberg/_</a>
 <br>
 <a href="https://twitter.com/glasbergmarcelo">_twitter.com/glasbergmarcelo_</a>
 <br>
@@ -697,7 +636,8 @@ _stackoverflow.com/users/3411681/marcg_</a>
 
 *I wrote Google's official Flutter documentation on layout rules*:
 
-* <a href="https://flutter.dev/docs/development/ui/layout/constraints">Understanding
+* <a href="https://flutter.dev/docs/development/ui/layout/constraints">
+  Understanding
   constraints</a>
 
 *The Flutter packages I've authored:*
@@ -706,13 +646,17 @@ _stackoverflow.com/users/3411681/marcg_</a>
 * <a href="https://pub.dev/packages/provider_for_redux">provider_for_redux</a>
 * <a href="https://pub.dev/packages/i18n_extension">i18n_extension</a>
 * <a href="https://pub.dev/packages/align_positioned">align_positioned</a>
-* <a href="https://pub.dev/packages/network_to_file_image">network_to_file_image</a>
+* <a href="https://pub.dev/packages/network_to_file_image">
+  network_to_file_image</a>
 * <a href="https://pub.dev/packages/image_pixels">image_pixels</a>
 * <a href="https://pub.dev/packages/matrix4_transform">matrix4_transform</a>
-* <a href="https://pub.dev/packages/back_button_interceptor">back_button_interceptor</a>
+* <a href="https://pub.dev/packages/back_button_interceptor">
+  back_button_interceptor</a>
 * <a href="https://pub.dev/packages/indexed_list_view">indexed_list_view</a>
-* <a href="https://pub.dev/packages/animated_size_and_fade">animated_size_and_fade</a>
-* <a href="https://pub.dev/packages/assorted_layout_widgets">assorted_layout_widgets</a>
+* <a href="https://pub.dev/packages/animated_size_and_fade">
+  animated_size_and_fade</a>
+* <a href="https://pub.dev/packages/assorted_layout_widgets">
+  assorted_layout_widgets</a>
 * <a href="https://pub.dev/packages/weak_map">weak_map</a>
 * <a href="https://pub.dev/packages/themed">themed</a>
 * <a href="https://pub.dev/packages/bdd_framework">bdd_framework</a>
