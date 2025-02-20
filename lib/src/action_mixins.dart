@@ -40,7 +40,7 @@ import 'package:meta/meta.dart';
 /// this function returns true and the request still fails.
 ///
 /// Notes:
-/// - This mixin can safely be combined with [NonReentrant].
+/// - This mixin can safely be combined with [NonReentrant] or [Throttle] (not both).
 /// - It should not be combined with other mixins that override [before].
 /// - It should not be combined with other mixins that check the internet connection.
 ///
@@ -132,7 +132,7 @@ mixin NoDialog<St> on CheckInternet<St> {
 /// this function returns true and the request still fails.
 ///
 /// Notes:
-/// - This mixin can safely be combined with [NonReentrant].
+/// - This mixin can safely be combined with [NonReentrant] or [Throttle] (not both).
 /// - It should not be combined with other mixins that override [before].
 /// - It should not be combined with other mixins that check the internet connection.
 ///
@@ -179,7 +179,7 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
 ///
 /// Notes:
 /// - This mixin can safely be combined with [CheckInternet], [NoDialog], and [AbortWhenNoInternet].
-/// - It should not be combined with other mixins that override [abortDispatch].
+/// - It should not be combined with other mixins that override [abortDispatch], like [Throttle].
 mixin NonReentrant<St> on ReduxAction<St> {
   @override
   bool abortDispatch() => isWaiting(runtimeType);
@@ -654,7 +654,7 @@ mixin Throttle<St> on ReduxAction<St> {
 /// this function returns true and the request still fails.
 ///
 /// Notes:
-/// - It should not be combined with other mixins that override [wrapReduce].
+/// - It should not be combined with other mixins that override [wrapReduce] or [abortDispatch].
 /// - It should not be combined with other mixins that check the internet connection.
 /// - Make sure your `before` method does not throw an error, or the retry will NOT happen.
 /// - All retried will be printed to the console.
