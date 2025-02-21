@@ -4,8 +4,9 @@ import 'package:async_redux/async_redux.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:meta/meta.dart';
 
-/// This mixin can be used to check if there is internet when you run some action that needs
-/// internet connection. Just add `with CheckInternet` to your action. For example:
+/// This mixin can be used to check if there is internet when you run some
+/// action that needs internet connection. Just add `with CheckInternet` to
+/// your action. For example:
 ///
 /// ```dart
 /// class LoadText extends ReduxAction<AppState> with CheckInternet {
@@ -15,9 +16,10 @@ import 'package:meta/meta.dart';
 ///   }}
 /// ```
 ///
-/// I will automatically check if there is internet before running the action. If there is no
-/// internet, the action will fail, stop executing, and will show a dialog to the user
-/// with title: 'There is no Internet' and content: 'Please, verify your connection.'.
+/// It will automatically check if there is internet before running the action.
+/// If there is no internet, the action will fail, stop executing, and will
+/// show a dialog to the user with title:
+/// 'There is no Internet' and content: 'Please, verify your connection.'.
 ///
 /// Also, you can display some information in your widgets when the action fails:
 ///
@@ -33,11 +35,13 @@ import 'package:meta/meta.dart';
 /// If you don't want the dialog to open, you can add the [NoDialog] mixin.
 ///
 /// If you want to customize the dialog or the `errorText`, you can override the
-/// method [connectionException] and return an [UserException] with the desired message.
+/// method [connectionException] and return a [UserException] with the desired
+/// message.
 ///
-/// IMPORTANT: It only checks if the internet is on or off on the device, not if the internet
-/// provider is really providing the service or if the server is available. So, it is possible that
-/// this function returns true and the request still fails.
+/// IMPORTANT: It only checks if the internet is on or off on the device,
+/// not if the internet provider is really providing the service or if the
+/// server is available. So, it is possible that the check succeeds
+/// but internet requests still fail.
 ///
 /// Notes:
 /// - This mixin can safely be combined with [NonReentrant] or [Throttle] (not both).
@@ -97,8 +101,8 @@ mixin CheckInternet<St> on ReduxAction<St> {
 ///   }}
 /// ```
 ///
-/// It will turn off showing a dialog when there is no internet. But you can still display
-/// some information in your widgets:
+/// It will turn off showing a dialog when there is no internet.
+/// But you can still display some information in your widgets:
 ///
 /// ```dart
 /// if (context.isFailed(LoadText)) Text('No Internet connection');
@@ -114,13 +118,14 @@ mixin NoDialog<St> on CheckInternet<St> {
   bool get ifOpenDialog => false;
 }
 
-/// This mixin can be used to check if there is internet when you run some action that needs it.
-/// If there is no internet, the action will abort silently, as if it had never been dispatched.
+/// This mixin can be used to check if there is internet when you run some
+/// action that needs it. If there is no internet, the action will abort
+/// silently, as if it had never been dispatched.
 ///
-/// Just add `with AbortWhenNoInternet<AppState>` to your action. For example:
+/// Just add `with AbortWhenNoInternet` to your action. For example:
 ///
 /// ```dart
-/// class LoadText extends ReduxAction<AppState> with AbortWhenNoInternet<AppState> {
+/// class LoadText extends ReduxAction<AppState> with AbortWhenNoInternet {
 ///   Future<String> reduce() async {
 ///     var response = await http.get('http://numbersapi.com/42');
 ///     return response.body;
@@ -167,11 +172,12 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
   }
 }
 
-/// This mixin can be used to abort the action in case the action is still running from
-/// a previous dispatch. Just add `with NonReentrant<AppState>` to your action. For example:
+/// This mixin can be used to abort the action in case the action is still
+/// running from a previous dispatch. Just add `with NonReentrant`
+/// to your action. For example:
 ///
 /// ```dart
-/// class SaveAction extends ReduxAction<AppState> with NonReentrant<AppState> {
+/// class SaveAction extends ReduxAction<AppState> with NonReentrant {
 ///   Future<String> reduce() async {
 ///     await http.put('http://myapi.com/save', body: 'data');
 ///   }}
@@ -188,16 +194,20 @@ mixin NonReentrant<St> on ReduxAction<St> {
 /// This mixin will retry the [reduce] method if it throws an error.
 /// Note: If the `before` method throws an error, the retry will NOT happen.
 ///
-/// * Initial Delay: The delay before the first retry attempt.
-/// * Multiplier: The factor by which the delay increases for each subsequent retry.
-/// * Maximum Retries: The maximum number of retries before giving up.
-/// * Maximum Delay: The maximum delay between retries to avoid excessively long wait times.
+/// You can override the following parameters:
 ///
-/// Default Parameters:
-/// * [initialDelay] is `350` milliseconds.
-/// * [multiplier] is `2`, which means the default delays are: 350 millis, 700 millis, and 1.4 seg.
-/// * [maxRetries] is `3`, meaning it will try a total of 4 times.
-/// * [maxDelay] is `5` seconds.
+/// * [initialDelay]: The delay before the first retry attempt.
+///   Default is `350` milliseconds.
+///
+/// * [multiplier]: The factor by which the delay increases for each subsequent
+///   retry. Default is `2`, which means the default delays are: 350 millis,
+///   700 millis, and 1.4 seg.
+///
+/// * [maxRetries]: The maximum number of retries before giving up.
+///   Default is `3`, meaning it will try a total of 4 times.
+///
+/// * [maxDelay]: The maximum delay between retries to avoid excessively long
+///   wait times. Default is `5` seconds.
 ///
 /// If you want to retry unlimited times, you can add the [UnlimitedRetries] mixin.
 ///
@@ -205,8 +215,8 @@ mixin NonReentrant<St> on ReduxAction<St> {
 /// if the reducer takes 1 second to fail, and the retry delay is 350 millis, the first
 /// retry will happen 1.35 seconds after the first reducer started.
 ///
-/// When the action finally fails, the last error will be rethrown, and the previous ones will
-/// be ignored.
+/// When the action finally fails (`maxRetries` was reached),
+/// the last error will be rethrown, and the previous ones will be ignored.
 ///
 /// You should NOT combine this with [CheckInternet] or [AbortWhenNoInternet],
 /// because the retry will not work.
@@ -297,7 +307,8 @@ mixin UnlimitedRetries<St> on Retry<St> {
   int get maxRetries => -1;
 }
 
-/// The [OptimisticUpdate] mixin is still EXPERIMENTAL. You can use it, but test it well.
+/// The [OptimisticUpdate] mixin is still EXPERIMENTAL. You can use it,
+/// but test it well.
 /// ---
 ///
 /// Let's use a "Todo" app as an example. We want to save a new Todo to a TodoList.
@@ -324,10 +335,12 @@ mixin UnlimitedRetries<St> on Retry<St> {
 /// }
 /// ```
 ///
-/// The problem with the above code is that it make take a second to update the todoList in
-/// the screen, while we save then load, which is not a good user experience.
+/// The problem with the above code is that it make take a second to update the
+/// todoList in the screen, while we save then load, which is not a good user
+/// experience.
 ///
-/// The solution is optimistically updating the TodoList before saving the new Todo to the cloud:
+/// The solution is optimistically updating the TodoList before saving the new
+/// Todo to the cloud:
 ///
 /// ```dart
 /// class SaveTodo extends ReduxAction<AppState> {
@@ -352,8 +365,8 @@ mixin UnlimitedRetries<St> on Retry<St> {
 /// }
 /// ```
 ///
-/// That's better. But if the saving fails, the users still have to wait for the reload until
-/// they see the reverted state. We can further improve this:
+/// That's better. But if the saving fails, the users still have to wait for
+/// the reload until they see the reverted state. We can further improve this:
 ///
 /// ```dart
 /// class SaveTodo extends ReduxAction<AppState> {
@@ -396,10 +409,11 @@ mixin UnlimitedRetries<St> on Retry<St> {
 /// The [OptimisticUpdate] mixin helps you implement the above code for you, when you
 /// provide the following:
 ///
-/// * newValue: Is the new value, that you want to see saved and applied to the sate.
-/// * getValueFromState: Is a function that extract the value from the given state.
-/// * reloadValue: Is a function that reloads the value from the cloud.
-/// * applyState: Is a function that applies the given value to the given state.
+/// * [newValue]: Is the new value, that you want to see saved and applied to the state.
+/// * [getValueFromState]: Is a function that extract the value from the given state.
+/// * [applyState]: Is a function that applies the given value to the given state.
+/// * [saveValue]: Is a function that saves the value to the cloud.
+/// * [reloadValue]: Is a function that reloads the value from the cloud.
 ///
 mixin OptimisticUpdate<St> on ReduxAction<St> {
   //
@@ -408,28 +422,28 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
   ///
   /// You can access the fields of the action, and the state, and return the new value.
   ///
-  /// ```
+  /// ```dart
   /// Object? newValue() => state.todoList.add(newTodo);
   /// ```
   Object? newValue();
 
   /// Using the given `state`, you should return the `value` from that state.
   ///
-  /// ```
+  /// ```dart
   /// Object? getValueFromState(state) => state.todoList.add(newTodo);
   /// ```
   Object? getValueFromState(St state);
 
   /// Using the given `state`, you should apply the given `value` to it, and return the result.
   ///
-  /// ```
+  /// ```dart
   /// St applyState(state) => state.copy(todoList: newTodoList);
   /// ```
   St applyState(Object? value, St state);
 
   /// You should save the `value` or other related value in the cloud.
   ///
-  /// ```
+  /// ```dart
   /// void saveValue(newTodoList) => saveTodo(todo);
   /// ```
   Future<void> saveValue(Object? newValue) {
@@ -439,7 +453,7 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
   /// You should reload the `value` from the cloud.
   /// If you want to skip this step, simply don't provide this method.
   ///
-  /// ```
+  /// ```dart
   /// Object? reloadValue() => loadTodoList();
   /// ```
   Future<Object?> reloadValue() {
@@ -608,34 +622,13 @@ mixin Throttle<St> on ReduxAction<St> {
   }
 }
 
-/// Debouncing delays the execution of a function until after a certain period of inactivity.
-/// Each time the debounced function is called, the period of inactivity (or wait time) is reset.
-/// The function will only execute after it stops being called for the duration of the wait time.
-/// Use Case: Debouncing is useful in situations where you want to ensure that a function is not
-/// called too frequently and only runs after some “quiet time.” For example, it’s commonly used
-/// for handling input validation in text fields, where you might not want to validate the input
-/// every time the user presses a key, but rather after they've stopped typing for a certain amount
-/// of time.
+/// This mixin can be used to check if there is internet when you run some
+/// action that needs it. If there is no internet, the action will abort
+/// silently, and then retry the [reduce] method unlimited times, until there
+/// is internet. It will also retry if there is internet but the action failed.
 ///
-/// Effect: It delays the function execution until the triggering activity ceases for a defined
-/// period, reducing the frequency of execution in scenarios where continuous input is possible.
-// TODO:
-//mixin Debounce<St> on ReduxAction<St> {}
-
-/// Caching is the process of storing data in a temporary storage area so that it can be retrieved
-/// quickly. It is used to speed up the process of accessing data from the database or file system.
-/// By using this mixin, you can cache the result of an action, so that if the action is dispatched
-/// again with the same parameters, during a certain period of time, it will return the cached
-/// result instead of running the action again.
-// TODO:
-//mixin Cache<St> on ReduxAction<St> {}
-
-/// This mixin can be used to check if there is internet when you run some action that needs it.
-/// If there is no internet, the action will abort silently, and then retry the [reduce] method
-/// unlimited times, until there is internet. It will also retry if there is internet but the
-/// action failed.
-///
-/// Just add `with UnlimitedRetryCheckInternet<AppState>` to your action. For example:
+/// Just add `with UnlimitedRetryCheckInternet` to your action.
+/// For example:
 ///
 /// ```dart
 /// class LoadText extends AppAction UnlimitedRetryCheckInternet {
@@ -646,12 +639,13 @@ mixin Throttle<St> on ReduxAction<St> {
 /// ```
 ///
 /// IMPORTANT: This mixin combines [Retry], [UnlimitedRetries], [AbortWhenNoInternet]
-/// and [NonReentrant] mixins. You should NOT use it with those mixins, or any other mixin
-/// that checks the internet connection.
+/// and [NonReentrant] mixins. You should NOT use it with those mixins,
+/// or any other mixin that checks the internet connection.
 ///
-/// IMPORTANT: It only checks if the internet is on or off on the device, not if the internet
-/// provider is really providing the service or if the server is available. So, it is possible that
-/// this function returns true and the request still fails.
+/// IMPORTANT: It only checks if the internet is on or off on the device,
+/// not if the internet provider is really providing the service or if the
+/// server is available. So, it is possible that this function returns true
+/// and the request still fails.
 ///
 /// Notes:
 /// - It should not be combined with other mixins that override [wrapReduce] or [abortDispatch].
@@ -692,8 +686,9 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
   /// If the action failed and gave up, it will be equal to [maxRetries] plus 1.
   int get attempts => _attempts;
 
-  /// This prints the retries, including the action name, the attempt, and if the problem was
-  /// no Internet or not. To remove the print message, override with:
+  /// This prints the retries, including the action name, the attempt, and if
+  /// the problem was no Internet or not. To remove the print message,
+  /// override with:
   ///
   /// ```dart
   /// void printRetries(String message) {}
@@ -783,3 +778,33 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
     return await (Connectivity().checkConnectivity());
   }
 }
+
+// TODO:
+/// Debouncing delays the execution of a function until after a certain period
+/// of inactivity. Each time the debounced function is called, the period of
+/// inactivity (or wait time) is reset.
+///
+/// The function will only execute after it stops being called for the duration
+/// of the wait time. Use Case: Debouncing is useful in situations where you
+/// want to ensure that a function is not called too frequently and only runs
+/// after some “quiet time.”
+///
+/// For example, it’s commonly used for handling input validation in text fields,
+/// where you might not want to validate the input every time the user presses
+/// a key, but rather after they've stopped typing for a certain amount of time.
+///
+/// Effect: It delays the function execution until the triggering activity
+/// ceases for a defined period, reducing the frequency of execution in
+/// scenarios where continuous input is possible.
+//mixin Debounce<St> on ReduxAction<St> {}
+
+// TODO:
+/// Caching is the process of storing data in a temporary storage area so that
+/// it can be retrieved quickly. It is used to speed up the process of
+/// accessing data from the database or file system.
+///
+/// By using this mixin, you can cache the result of an action, so that if
+/// the action is dispatched again with the same parameters, during a certain
+/// period of time, it will return the cached result instead of running the
+/// action again.
+//mixin Cache<St> on ReduxAction<St> {}
