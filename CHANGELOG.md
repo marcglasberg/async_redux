@@ -8,6 +8,26 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 24.2.0
+
+* You can now use the `Debounce` action mixin.
+  Debouncing delays the execution of a function until after a certain period
+  of inactivity. Each time the debounced function is called, the period of
+  inactivity (or wait time) is reset.
+
+  The function will only execute after it stops being called for the duration
+  of the wait time. The default [debounce] is 350 milliseconds.
+
+  Debouncing is useful in situations where you want to ensure that a function
+  is not called too frequently and only runs after some “quiet time.”
+
+  For example, it’s commonly used for handling input validation in text fields,
+  where you might not want to validate the input every time the user presses
+  a key, but rather after they've stopped typing for a certain amount of time.
+
+  See
+  the [Documentation](https://asyncredux.com/flutter/advanced-actions/action-mixins).
+
 ## 24.1.3
 
 * You can now use the `Throttle` action mixin.
@@ -104,7 +124,10 @@ Sponsored by [MyText.ai](https://mytext.ai)
      Object? lockBuilder() => lock;
      ...
   }
-  ```
+  ```   
+
+  See
+  the [Documentation](https://asyncredux.com/flutter/advanced-actions/action-mixins).
 
 ## 24.0.7
 

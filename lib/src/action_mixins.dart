@@ -185,7 +185,9 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
 ///
 /// Notes:
 /// - This mixin can safely be combined with [CheckInternet], [NoDialog], and [AbortWhenNoInternet].
-/// - It should not be combined with other mixins that override [abortDispatch], like [Throttle].
+/// - It should not be combined with other mixins that override [abortDispatch].
+/// - It should not be combined with [Throttle] or [UnlimitedRetryCheckInternet].
+///
 mixin NonReentrant<St> on ReduxAction<St> {
   @override
   bool abortDispatch() => isWaiting(runtimeType);
@@ -588,6 +590,10 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 /// }
 /// ```
 ///
+/// Notes:
+/// - It should not be combined with other mixins that override [abortDispatch].
+/// - It should not be combined with [NonReentrant] or [UnlimitedRetryCheckInternet].
+///
 mixin Throttle<St> on ReduxAction<St> {
   //
   int get throttle => 1000; // Milliseconds
@@ -620,6 +626,53 @@ mixin Throttle<St> on ReduxAction<St> {
       }
     }
   }
+}
+
+/// Debouncing delays the execution of a function until after a certain period
+/// of inactivity. Each time the debounced function is called, the period of
+/// inactivity (or wait time) is reset.
+///
+/// The function will only execute after it stops being called for the duration
+/// of the wait time. The default [debounce] is 350 milliseconds.
+///
+/// Debouncing is useful in situations where you want to ensure that a function
+/// is not called too frequently and only runs after some “quiet time.”
+///
+/// For example, it’s commonly used for handling input validation in text fields,
+/// where you might not want to validate the input every time the user presses
+/// a key, but rather after they've stopped typing for a certain amount of time.
+///
+/// Notes:
+/// - It should not be combined with other mixins that override [wrapReduce].
+/// - It should not be combined with [Retry] or [UnlimitedRetryCheckInternet].
+///
+mixin Debounce<St> on ReduxAction<St> {
+  //
+  int get debounce => 350; // Milliseconds
+
+  static int _run = 0;
+
+  // A large number that JavaScript can still represent.
+  // In theory, it could be between -9007199254740991 and 9007199254740991.
+  static const _SAFE_INTEGER = 9000000000000000;
+
+  @override
+  Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
+    _run++;
+    if (_run > _SAFE_INTEGER) _run = 0;
+    int run = _run;
+
+    await Future.delayed(Duration(milliseconds: debounce));
+
+    // If the run has changed, it means the action was dispatched again
+    // within the debounce period. So, we abort the reducer.
+    if (run != _run)
+      return null;
+    //
+    // Otherwise, we run the reducer.
+    else
+      return reduce();
+  };
 }
 
 /// This mixin can be used to check if there is internet when you run some
@@ -778,25 +831,6 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
     return await (Connectivity().checkConnectivity());
   }
 }
-
-// TODO:
-/// Debouncing delays the execution of a function until after a certain period
-/// of inactivity. Each time the debounced function is called, the period of
-/// inactivity (or wait time) is reset.
-///
-/// The function will only execute after it stops being called for the duration
-/// of the wait time. Use Case: Debouncing is useful in situations where you
-/// want to ensure that a function is not called too frequently and only runs
-/// after some “quiet time.”
-///
-/// For example, it’s commonly used for handling input validation in text fields,
-/// where you might not want to validate the input every time the user presses
-/// a key, but rather after they've stopped typing for a certain amount of time.
-///
-/// Effect: It delays the function execution until the triggering activity
-/// ceases for a defined period, reducing the frequency of execution in
-/// scenarios where continuous input is possible.
-//mixin Debounce<St> on ReduxAction<St> {}
 
 // TODO:
 /// Caching is the process of storing data in a temporary storage area so that

@@ -238,8 +238,9 @@ abstract class ReduxAction<St> {
   FutureOr<St?> reduce();
 
   /// You may wrap the reducer to allow for some pre- or post-processing.
-  /// For example, if you want to prevent an async reducer to change the current state,
-  /// if the current state has already changed since when the reducer started:
+  /// For example, if you want to prevent an async reducer to change the
+  /// current state, if the current state has already changed since when the
+  /// reducer started:
   ///
   /// ```dart
   /// Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
