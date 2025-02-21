@@ -8,7 +8,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 24.2.1
+## 24.2.2
 
 * You can now use the `Debounce` action mixin.
   Debouncing delays the execution of a function until after a certain period
@@ -34,7 +34,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
   }
   ```
 
-  # Advanced usage
+  ### Advanced debounce usage
 
   The debounce is, by default, based on the action `runtimeType`. This means
   it will reset the debounce period when another action of the same
