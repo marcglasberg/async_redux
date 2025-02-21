@@ -8,7 +8,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 24.2.0
+## 24.2.1
 
 * You can now use the `Debounce` action mixin.
   Debouncing delays the execution of a function until after a certain period
@@ -16,17 +16,58 @@ Sponsored by [MyText.ai](https://mytext.ai)
   inactivity (or wait time) is reset.
 
   The function will only execute after it stops being called for the duration
-  of the wait time. The default [debounce] is 350 milliseconds.
-
-  Debouncing is useful in situations where you want to ensure that a function
-  is not called too frequently and only runs after some “quiet time.”
+  of the wait time. Debouncing is useful in situations where you want to
+  ensure that a function is not called too frequently and only runs after
+  some “quiet time.”
 
   For example, it’s commonly used for handling input validation in text fields,
   where you might not want to validate the input every time the user presses
   a key, but rather after they've stopped typing for a certain amount of time.
 
+  The `debounce` value is given in milliseconds, and the default is 333
+  milliseconds (1/3 of a second). You can override this default:
+
+  ```dart
+  class MyAction extends ReduxAction<AppState> with Debounce {
+     final int debounce = 1000; // Here!
+     ...
+  }
+  ```
+
+  # Advanced usage
+
+  The debounce is, by default, based on the action `runtimeType`. This means
+  it will reset the debounce period when another action of the same
+  runtimeType was is dispatched within the debounce period. In other words,
+  the runtimeType is the "lock". If you want to debounce based on a different
+  lock, you can override the `lockBuilder` method. For example, here
+  we debounce two different actions based on the same lock:
+
+  ```dart
+  class MyAction1 extends ReduxAction<AppState> with Debounce {
+     Object? lockBuilder() => 'myLock';
+     ...
+  }
+  
+  class MyAction2 extends ReduxAction<AppState> with Debounce {
+     Object? lockBuilder() => 'myLock';
+     ...
+  }
+  ```
+
+  Another example is to debounce based on some field of the action:
+
+  ```dart
+  class MyAction extends ReduxAction<AppState> with Debounce {
+     final String lock;
+     MyAction(this.lock);
+     Object? lockBuilder() => lock;
+     ...
+  }
+  ```
+
   See
-  the [Documentation](https://asyncredux.com/flutter/advanced-actions/action-mixins).
+  the [Documentation](https://asyncredux.com/flutter/advanced-actions/action-mixins#debounce).
 
 ## 24.1.3
 
@@ -127,7 +168,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
   ```   
 
   See
-  the [Documentation](https://asyncredux.com/flutter/advanced-actions/action-mixins).
+  the [Documentation](https://asyncredux.com/flutter/advanced-actions/action-mixins#throttle).
 
 ## 24.0.7
 

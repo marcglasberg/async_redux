@@ -11,8 +11,8 @@ void main() {
       .when('The action is dispatched twice within the throttle period')
       .then('It should only execute once')
       .run((_) async {
-    _resetThrottle();
-    var store = Store<TestState>(initialState: TestState(0));
+    Throttle.removeAllLocks();
+    var store = Store<AppState>(initialState: AppState(0));
     await store.dispatch(ThrottleAction());
     expect(store.state.count, 1);
 
@@ -28,8 +28,8 @@ void main() {
           'then after waiting for the throttle period, dispatched again')
       .then('It should execute both times')
       .run((_) async {
-    _resetThrottle();
-    var store = Store<TestState>(initialState: TestState(0));
+    Throttle.removeAllLocks();
+    var store = Store<AppState>(initialState: AppState(0));
     await store.dispatch(ThrottleAction());
     expect(store.state.count, 1);
 
@@ -46,8 +46,8 @@ void main() {
       .when('Both actions are dispatched in quick succession')
       .then('Only the first action should execute')
       .run((_) async {
-    _resetThrottle();
-    var store = Store<TestState>(initialState: TestState(0));
+    Throttle.removeAllLocks();
+    var store = Store<AppState>(initialState: AppState(0));
     await store.dispatch(ThrottleAction1());
     expect(store.state.count, 1);
 
@@ -64,8 +64,8 @@ void main() {
           'throttle period passes, then the second is dispatched')
       .then('Both actions should execute')
       .run((_) async {
-    _resetThrottle();
-    var store = Store<TestState>(initialState: TestState(0));
+    Throttle.removeAllLocks();
+    var store = Store<AppState>(initialState: AppState(0));
     await store.dispatch(ThrottleAction1());
     expect(store.state.count, 1);
 
@@ -81,8 +81,8 @@ void main() {
       .when('Both actions are dispatched in quick succession')
       .then('Both should execute independently')
       .run((_) async {
-    _resetThrottle();
-    var store = Store<TestState>(initialState: TestState(0));
+    Throttle.removeAllLocks();
+    var store = Store<AppState>(initialState: AppState(0));
     await store.dispatch(ThrottleActionA());
     expect(store.state.count, 1);
 
@@ -92,30 +92,30 @@ void main() {
 }
 
 // A simple state that holds a count.
-class TestState {
+class AppState {
   final int count;
 
-  TestState(this.count);
+  AppState(this.count);
 
-  TestState copy({int? count}) => TestState(count ?? this.count);
+  AppState copy({int? count}) => AppState(count ?? this.count);
 
   @override
   String toString() => 'TestState($count)';
 }
 
 // An action that uses the Throttle mixin to increment the state.
-class ThrottleAction extends ReduxAction<TestState> with Throttle<TestState> {
+class ThrottleAction extends ReduxAction<AppState> with Throttle {
   @override
   int throttle = 300;
 
   @override
-  TestState reduce() {
+  AppState reduce() {
     return state.copy(count: state.count + 1);
   }
 }
 
 // Two actions that override lockBuilder to return the same lock.
-class ThrottleAction1 extends ReduxAction<TestState> with Throttle<TestState> {
+class ThrottleAction1 extends ReduxAction<AppState> with Throttle {
   @override
   int throttle = 300;
 
@@ -123,12 +123,12 @@ class ThrottleAction1 extends ReduxAction<TestState> with Throttle<TestState> {
   Object? lockBuilder() => 'sharedLock';
 
   @override
-  TestState reduce() {
+  AppState reduce() {
     return state.copy(count: state.count + 1);
   }
 }
 
-class ThrottleAction2 extends ReduxAction<TestState> with Throttle<TestState> {
+class ThrottleAction2 extends ReduxAction<AppState> with Throttle {
   @override
   int throttle = 300;
 
@@ -136,33 +136,28 @@ class ThrottleAction2 extends ReduxAction<TestState> with Throttle<TestState> {
   Object? lockBuilder() => 'sharedLock';
 
   @override
-  TestState reduce() {
+  AppState reduce() {
     return state.copy(count: state.count + 1);
   }
 }
 
 // Two actions with default lock (their runtime types differ).
-class ThrottleActionA extends ReduxAction<TestState> with Throttle<TestState> {
+class ThrottleActionA extends ReduxAction<AppState> with Throttle {
   @override
   int throttle = 300;
 
   @override
-  TestState reduce() {
+  AppState reduce() {
     return state.copy(count: state.count + 1);
   }
 }
 
-class ThrottleActionB extends ReduxAction<TestState> with Throttle<TestState> {
+class ThrottleActionB extends ReduxAction<AppState> with Throttle {
   @override
   int throttle = 300;
 
   @override
-  TestState reduce() {
+  AppState reduce() {
     return state.copy(count: state.count + 1);
   }
-}
-
-// Helper to reset the throttle map between tests.
-void _resetThrottle() {
-  Throttle.throttleLockMap.clear();
 }

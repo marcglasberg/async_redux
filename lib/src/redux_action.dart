@@ -237,10 +237,10 @@ abstract class ReduxAction<St> {
   /// (comparing by `identical`, not `equals`).
   FutureOr<St?> reduce();
 
-  /// You may wrap the reducer to allow for some pre- or post-processing.
-  /// For example, if you want to prevent an async reducer to change the
-  /// current state, if the current state has already changed since when the
-  /// reducer started:
+  /// You may override [wrapReduce] to wrap the [reduce] method and allow for
+  /// some pre- or post-processing. For example, if you want to prevent an
+  /// async reducer to change the current state in cases where the current
+  /// state has already changed since when the reducer started:
   ///
   /// ```dart
   /// Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
@@ -250,9 +250,23 @@ abstract class ReduxAction<St> {
   /// };
   /// ```
   ///
-  /// Note: If you return a function that returns a `Future`, the action will be ASYNC.
-  /// If you return a function that returns `St`, the action will be SYNC only if the
-  /// `before` and `reduce` methods are also SYNC.
+  /// Note: If [wrapReduce] returns a function that returns a [Future], the
+  /// action will be ASYNC. If it returns a function that returns [St], the
+  /// action will be SYNC only if the [before] and [reduce] methods are also
+  /// SYNC.
+  ///
+  /// IMPORTANT:
+  ///
+  /// * If [wrapReduce] is SYNC (does NOT return a [Future]), it must
+  /// NOT have side effects (it must be a pure function).
+  ///
+  /// * If [wrapReduce] is ASYNC (returns a [Future]), it must NOT not have
+  /// side effects BEFORE its first await. If necessary, you can add
+  /// `await microtask;` at the start of the method, so that all side
+  /// effects come after the first await.
+  ///
+  /// See mixins [Retry], [Throttle], and [Debounce] for real [wrapReduce]
+  /// examples.
   ///
   Reducer<St> wrapReduce(Reducer<St> reduce) => reduce;
 
@@ -450,6 +464,10 @@ abstract class ReduxAction<St> {
 
     bool reduceMethodIsSync = reduce is St? Function();
 
+    // We run `wrapReduce` but we don't await for it. This is just to check
+    // if it returns a Future or not. Note: Because of this, wrapReduce cannot
+    // have side effects if it's sync, and cannot have side effects before the
+    // async gap if it's async.
     bool wrapReduceMethodIsSync =
         wrapReduce(() => null) is! Future<St?> Function();
 

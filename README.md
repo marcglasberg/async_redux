@@ -407,24 +407,19 @@ class LoadPrices extends Action with Throttle {
 
 &nbsp;
 
-## Debounce (soon)
+## Debounce
 
-To limit how often an action occurs in response to rapid inputs, you can add the
-`Debounce` mixin
-to your action class. For example, when a user types in a search bar, debouncing
-ensures
-that not
-every keystroke triggers a server request. Instead, it waits until the user
-pauses typing
-before
-acting.
+To limit how often an action occurs in response to rapid inputs, you can add 
+the `Debounce` mixin to your action class. For example, when a user types in 
+a search bar, debouncing ensures that not every keystroke triggers a server 
+request. Instead, it waits until the user pauses typing before acting.
 
 ```dart
 class SearchText extends Action with Debounce {
   final String searchTerm;
   SearchText(this.searchTerm);
   
-  final int debounce = 350; // Milliseconds
+  final int debounce = 300; // Milliseconds
 
   Future<AppState> reduce() async {
       

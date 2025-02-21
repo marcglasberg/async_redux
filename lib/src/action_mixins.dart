@@ -263,6 +263,8 @@ mixin Retry<St> on ReduxAction<St> {
         FutureOr<St?> newState;
         try {
           newState = reduce();
+
+          // Note we don't have side-effects before the first await.
           if (newState is Future) newState = await newState;
         } catch (error) {
           _attempts++;
@@ -548,7 +550,7 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 /// }
 /// ```
 ///
-/// The [throttle] is given in milliseconds, and the default is 1000
+/// The [throttle] value is given in milliseconds, and the default is 1000
 /// milliseconds (1 second). You can override this default:
 ///
 /// ```dart
@@ -590,6 +592,9 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 /// }
 /// ```
 ///
+/// If you override the [lockBuilder], ensure the number of different locks you
+/// create is limited, as the lock map is never cleared.
+///
 /// Notes:
 /// - It should not be combined with other mixins that override [abortDispatch].
 /// - It should not be combined with [NonReentrant] or [UnlimitedRetryCheckInternet].
@@ -598,19 +603,34 @@ mixin Throttle<St> on ReduxAction<St> {
   //
   int get throttle => 1000; // Milliseconds
 
+  /// The default lock for throttling is the action's [runtimeType],
+  /// meaning it will throttle the dispatch of actions of the same type.
+  /// Override this method to customize the lock to any value.
+  /// For example, you can return a string or an enum, and actions with the
+  /// same lock value will throttle each other.
+  /// Ensure the number of different locks you create is limited, as
+  /// the lock map is never cleared.
   Object? lockBuilder() => runtimeType;
 
   /// Map that stores the last time an action with a specific lock dispatched.
-  static final Map<Object?, DateTime> throttleLockMap = {};
+  static final Map<Object?, DateTime> _throttleLockMap = {};
+
+  /// Removes the lock, allowing an action of the same type to be dispatched
+  /// again right away. You generally don't need to call this method.
+  void removeLock() => _throttleLockMap.remove(lockBuilder());
+
+  /// Removes all locks, allowing all actions to be dispatched again right away.
+  /// You generally don't need to call this method.
+  static void removeAllLocks() => _throttleLockMap.clear();
 
   @override
   bool abortDispatch() {
     var lock = lockBuilder();
     var now = DateTime.now().toUtc();
-    var time = throttleLockMap[lock];
+    var time = _throttleLockMap[lock];
 
     if (time == null) {
-      throttleLockMap[lock] = now;
+      _throttleLockMap[lock] = now;
       return false;
     }
     //
@@ -621,7 +641,7 @@ mixin Throttle<St> on ReduxAction<St> {
       //
       // Otherwise, update the time and allow the dispatch.
       else {
-        throttleLockMap[lock] = now;
+        _throttleLockMap[lock] = now;
         return false;
       }
     }
@@ -633,14 +653,56 @@ mixin Throttle<St> on ReduxAction<St> {
 /// inactivity (or wait time) is reset.
 ///
 /// The function will only execute after it stops being called for the duration
-/// of the wait time. The default [debounce] is 350 milliseconds.
-///
-/// Debouncing is useful in situations where you want to ensure that a function
-/// is not called too frequently and only runs after some “quiet time.”
+/// of the wait time. Debouncing is useful in situations where you want to
+/// ensure that a function is not called too frequently and only runs after
+/// some “quiet time.”
 ///
 /// For example, it’s commonly used for handling input validation in text fields,
 /// where you might not want to validate the input every time the user presses
 /// a key, but rather after they've stopped typing for a certain amount of time.
+///
+///
+/// The [debounce] value is given in milliseconds, and the default is 333
+/// milliseconds (1/3 of a second). You can override this default:
+///
+/// ```dart
+/// class MyAction extends ReduxAction<AppState> with Debounce {
+///    final int debounce = 1000; // Here!
+///    ...
+/// }
+/// ```
+///
+/// # Advanced usage
+///
+/// The debounce is, by default, based on the action [runtimeType]. This means
+/// it will reset the debounce period when another action of the same
+/// runtimeType was is dispatched within the debounce period. In other words,
+/// the runtimeType is the "lock". If you want to debounce based on a different
+/// lock, you can override the [lockBuilder] method. For example, here
+/// we debounce two different actions based on the same lock:
+///
+/// ```dart
+/// class MyAction1 extends ReduxAction<AppState> with Debounce {
+///    Object? lockBuilder() => 'myLock';
+///    ...
+/// }
+///
+/// class MyAction2 extends ReduxAction<AppState> with Debounce {
+///    Object? lockBuilder() => 'myLock';
+///    ...
+/// }
+/// ```
+///
+/// Another example is to debounce based on some field of the action:
+///
+/// ```dart
+/// class MyAction extends ReduxAction<AppState> with Debounce {
+///    final String lock;
+///    MyAction(this.lock);
+///    Object? lockBuilder() => lock;
+///    ...
+/// }
+/// ```
 ///
 /// Notes:
 /// - It should not be combined with other mixins that override [wrapReduce].
@@ -648,31 +710,54 @@ mixin Throttle<St> on ReduxAction<St> {
 ///
 mixin Debounce<St> on ReduxAction<St> {
   //
-  int get debounce => 350; // Milliseconds
+  int get debounce => 333; // Milliseconds
 
-  static int _run = 0;
+  /// The default lock for debouncing is the action's [runtimeType],
+  /// meaning it will debounce the dispatch of actions of the same type.
+  /// Override this method to customize the lock to any value.
+  /// For example, you can return a string or an enum, and actions with the
+  /// same lock value will debounce each other.
+  Object? lockBuilder() => runtimeType;
+
+  /// Map that stores the run-number for actions with a specific lock.
+  static final Map<Object?, int> _debounceLockMap = {};
 
   // A large number that JavaScript can still represent.
   // In theory, it could be between -9007199254740991 and 9007199254740991.
   static const _SAFE_INTEGER = 9000000000000000;
 
+  /// Removes all locks, allowing all actions to be dispatched again right away.
+  /// You generally don't need to call this method.
+  static void removeAllLocks() => _debounceLockMap.clear();
+
   @override
   Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
-    _run++;
-    if (_run > _SAFE_INTEGER) _run = 0;
-    int run = _run;
+        //
+        // Avoid side-effects before the async gap.
+        await microtask;
 
-    await Future.delayed(Duration(milliseconds: debounce));
+        var lock = lockBuilder();
 
-    // If the run has changed, it means the action was dispatched again
-    // within the debounce period. So, we abort the reducer.
-    if (run != _run)
-      return null;
-    //
-    // Otherwise, we run the reducer.
-    else
-      return reduce();
-  };
+        // Increment and update the map with the new run count.
+        var before = (_debounceLockMap[lock] ?? 0) + 1;
+        if (before > _SAFE_INTEGER) before = 0;
+        _debounceLockMap[lock] = before;
+
+        await Future.delayed(Duration(milliseconds: debounce));
+
+        var after = _debounceLockMap[lock];
+
+        // If the run has changed, it means the action was dispatched again
+        // within the debounce period. So, we abort the reducer.
+        if (after != before)
+          return null;
+        //
+        // Otherwise, we remove the lock and run the reducer.
+        else {
+          _debounceLockMap.remove(lock);
+          return reduce();
+        }
+      };
 }
 
 /// This mixin can be used to check if there is internet when you run some
@@ -753,6 +838,7 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
         FutureOr<St?> newState;
         bool hasInternet = true;
         try {
+          // Note we don't have side-effects before the first await.
           var result = await checkConnectivity();
 
           // IMPORTANT: We throw this exception, but it will not ever be shown,
