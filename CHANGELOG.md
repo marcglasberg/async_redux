@@ -8,7 +8,14 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 24.2.2
+## 25.0.0-dev.0
+
+* BREAKING CHANGE: The action's `wrapReduce` method now returns `FutureOr<St?>`
+  instead of returning `FutureOr<St?> Function()`
+  This breaking change is unlikely to affect you in any way, because the
+  `wrapReduce` is an advanced feature mostly used to implement action mixins,
+  like `Retry` and `Debounce`.
+
 
 * You can now use the `Debounce` action mixin.
   Debouncing delays the execution of a function until after a certain period
@@ -68,8 +75,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
   See
   the [Documentation](https://asyncredux.com/flutter/advanced-actions/action-mixins#debounce).
-
-## 24.1.3
+      
 
 * You can now use the `Throttle` action mixin.
   Throttling ensures the action will be dispatched at most once in the
@@ -197,12 +203,12 @@ Sponsored by [MyText.ai](https://mytext.ai)
   and then retried unlimited times, until there is internet. It will also retry
   if there
   is internet but the action failed.
+       
 
 * You can provide a `CloudSync` object to the store constructor. It's similar to
-  the
-  `Persistor`, but can be used to synchronize the state of the application with
-  the
-  server. This is experimental.
+  the `Persistor`, but can be used to synchronize the state of the application
+  with the server. This is experimental.
+
 
 * Fixed `isWaiting()` for checking multiple actions and when state doesn't
   change.
@@ -254,14 +260,11 @@ Sponsored by [MyText.ai](https://mytext.ai)
 ## 22.3.0
 
 * In the `reduce` method of your actions you can now access the _initial state_
-  of the
-  action, by using the `initialState` getter. In other words, you have access to
-  a copy of
-  the state as it was when the action was first dispatched. This is useful when
-  you need
-  to calculate some value asynchronously, and then you only want to apply the
-  result to
-  the state if that value hasn't changed in the meantime. For example:
+  of the action, by using the `initialState` getter. In other words, you have
+  access to a copy of the state as it was when the action was first dispatched.
+  This is useful when you need to calculate some value asynchronously, and then
+  you only want to apply the result to the state if that value hasn't changed in
+  the meantime. For example:
 
   ```dart
   class MyAction extends ReduxAction<AppState> {
@@ -276,11 +279,9 @@ Sponsored by [MyText.ai](https://mytext.ai)
 ## 22.1.0
 
 * You can now use `var isWaiting = context.isWaiting(MyAction)` to check if an
-  async
-  action of the given type is currently being processed. You can then use this
-  boolean to
-  show a
-  loading spinner in your widget.
+  async action of the given type is currently being processed. You can then use
+  this
+  boolean to show a loading spinner in your widget.
   Note: Inside your `VmFactory` you can also use
   `isWaiting: isWaiting(MyAction)`. See
   the <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_spinner.dart">
@@ -288,10 +289,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 
 * You can now use `var isFailed = context.isFailed(MyAction)` to check if an
-  action of the
-  given type has thrown an `UserException`. You can then use this boolean to
-  show an error
-  message.
+  action of the given type has thrown an `UserException`. You can then use this
+  boolean to show an error message.
   You can also get the exception with
   `var exception = context.exceptionFor(MyAction)` to
   use its error message, and clear the exception with
@@ -344,6 +343,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
   Other mixins will be provided in the future, for Throttling, Debouncing and
   Caching.
+
 
 * Some features of the `async_redux` package are now available in a standalone
   Dart-only
@@ -412,8 +412,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 
 * You can now get and set properties in the `Store` using the `prop` and
-  `setProp`
-  methods.
+  `setProp` methods.
   These methods are available in `Store`, in `ReduxAction`, and in `VmFactory`.
   They can be used to save global values, but scoped to the store.
   For example, you could save timers, streams or futures used by actions:
@@ -425,30 +424,25 @@ Sponsored by [MyText.ai](https://mytext.ai)
   ```   
 
   You can later use `store.disposeProps` to stop, close or ignore, all stream
-  related
-  objects, timers and futures, saved as props in the store. It will also remove
-  them from
-  there.
+  related objects, timers and futures, saved as props in the store. It will also
+  remove them from there.
 
 ## 22.0.0
 
 * BREAKING CHANGE: `StoreConnector.model` was removed, after being deprecated
-  for a long
-  time. Please, use the `vm` parameter instead. See classes `VmFactory` and
-  `Vm`.
+  for a long time. Please, use the `vm` parameter instead. See classes
+  `VmFactory` and `Vm`.
 
 * BREAKING CHANGE: `ReduxAction.reduceWithState()` was removed, after being
-  deprecated for
-  a long time.
+  deprecated for a long time.
 
 * BREAKING CHANGE: `StoreProvider.of` was removed. See `context.state` and
   `context.dispatch` etc, in version 22.1.0 above.
 
 * BREAKING CHANGE: The `UserException` class was modified so that it was
-  possible to move
-  it to the `async_redux_core`. If your use of `UserException` was limited to
-  specifying
-  the error message, then you don't need to change anything:
+  possible to move it to the `async_redux_core`. If your use of `UserException`
+  was limited to specifying the error message, then you don't need to change
+  anything:
   `throw UserException('Error message')` will continue to work as before.
   However, for other more advanced features you will have to read the
   `UserException`
@@ -735,9 +729,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
 <br>
 
 * Method `Store.getLastPersistedStateFromPersistor()` returns the state that was
-  last
-  persisted
-  to the local persistence. It's unlikely you will use this method yourself.
+  last persisted to the local persistence. It's unlikely you will use this
+  method yourself.
 
 <br>
 
@@ -867,9 +860,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
   not change).
 
   The above breaking change is unlikely to affect you in any way, but if you
-  want the old
-  behavior,
-  just add `await microtask;` to the first line of your `reduce()` method.
+  want the old behavior, just add `await microtask;` to the first line of your
+  `reduce()` method.
 
 <br>
 

@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 late List<String> info;
 
 void main() {
+  //
   test('Method call sequence for sync reducer.', () async {
     //
     info = [];
@@ -38,7 +39,8 @@ void main() {
 
   test(
       'Method call sequence for async reducer. '
-      'The reducer is async because the REDUCE method returns Future.', () async {
+      'The reducer is async because the REDUCE method returns Future.',
+      () async {
     //
     info = [];
     Store<String> store = Store<String>(initialState: "");
@@ -62,7 +64,8 @@ void main() {
 
   test(
       'Method call sequence for async reducer. '
-      'The reducer is async because the BEFORE method returns Future.', () async {
+      'The reducer is async because the BEFORE method returns Future.',
+      () async {
     //
     info = [];
     Store<String> store = Store<String>(initialState: "");
@@ -110,7 +113,8 @@ void main() {
 
   test(
       'What happens when the after method of a sync reducer dispatches another action? '
-      'The state is changed by the reduce method before the after method is executed.', () async {
+      'The state is changed by the reduce method before the after method is executed.',
+      () async {
     //
     info = [];
     Store<String> store = Store<String>(initialState: "");
@@ -131,7 +135,8 @@ void main() {
 
   test(
       'What happens when the after method of a async reducer dispatches another action? '
-      'The state is changed by the reduce method before the after method is executed.', () async {
+      'The state is changed by the reduce method before the after method is executed.',
+      () async {
     //
     info = [];
     Store<String> store = Store<String>(initialState: "");

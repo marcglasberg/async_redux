@@ -105,9 +105,7 @@ void main() {
 
     // The debounce period is 200ms.
     // Wait for a bit more than that, but less than double that: 300ms.
-    print('\n---------- BEFORE ----------');
     await Future.delayed(const Duration(milliseconds: 300));
-    print('\n---------- AFTER ----------');
     expect(store.state.count, 2);
   });
 
@@ -127,9 +125,7 @@ void main() {
 
     // The debounce period is 200ms.
     // Wait for a bit more than that, but less than double that: 300ms.
-    print('\n---------- BEFORE ----------');
     await Future.delayed(const Duration(milliseconds: 300));
-    print('\n---------- AFTER ----------');
     expect(store.state.count, 2);
   });
 }

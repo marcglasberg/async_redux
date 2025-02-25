@@ -1486,12 +1486,12 @@ class Store<St> {
 
   void _calculateIsWaitingIsFailed(ReduxAction<St> action) {
     //
-    // If the action is failable (that is to say, we have once called `isFailed` for this action),
-    bool failable = _actionsWeCanCheckFailed.contains(action.runtimeType);
+    // If the action is fallible (that is to say, we have once called `isFailed` for this action),
+    bool fallible = _actionsWeCanCheckFailed.contains(action.runtimeType);
 
     bool theUIHasAlreadyUpdated = false;
 
-    if (failable) {
+    if (fallible) {
       // Dispatch is starting, so we remove the action from the list of failed actions.
       var removedAction = _failedActions.remove(action.runtimeType);
 
@@ -1858,10 +1858,7 @@ class Store<St> {
   static const _reducerTypeErrorMsg =
       "Reducer should return `St?` or `Future<St?>`. ";
 
-  static const _wrapReducerTypeErrorMsg =
-      "WrapReduce should return `St?` or `Future<St?>`. ";
-
-  void _checkReducerType(FutureOr<St?> Function() reduce, bool wrapped) {
+  void _checkReducerType(FutureOr<St?> Function() reduce) {
     //
     // Sync reducer is acceptable.
     if (reduce is St? Function()) {
@@ -1875,27 +1872,22 @@ class Store<St> {
     //
     else if (reduce is Future<St>? Function()) {
       throw StoreException(
-          (wrapped ? _wrapReducerTypeErrorMsg : _reducerTypeErrorMsg) +
-              "Do not return `Future<St>?`.");
+          _reducerTypeErrorMsg + "Do not return `Future<St>?`.");
     }
     //
     else if (reduce is Future<St?>? Function()) {
       throw StoreException(
-          (wrapped ? _wrapReducerTypeErrorMsg : _reducerTypeErrorMsg) +
-              "Do not return `Future<St?>?`.");
+          _reducerTypeErrorMsg + "Do not return `Future<St?>?`.");
     }
     //
     // ignore: unnecessary_type_check
     else if (reduce is FutureOr Function()) {
-      throw StoreException(
-          (wrapped ? _wrapReducerTypeErrorMsg : _reducerTypeErrorMsg) +
-              "Do not return `FutureOr`.");
+      throw StoreException(_reducerTypeErrorMsg + "Do not return `FutureOr`.");
     }
     //
     else {
       throw StoreException(
-          (wrapped ? _wrapReducerTypeErrorMsg : _reducerTypeErrorMsg) +
-              "Do not return `${reduce.runtimeType}`.");
+          _reducerTypeErrorMsg + "Do not return `${reduce.runtimeType}`.");
     }
   }
 
@@ -1903,14 +1895,48 @@ class Store<St> {
     _reduceCount++;
 
     // Make sure the action reducer returns an acceptable type.
-    _checkReducerType(action.reduce, false);
+    _checkReducerType(action.reduce);
 
-    Reducer<St> _reduce = action.wrapReduce(action.reduce);
+    if (action.ifWrapReduceOverridden()) {
+      return _applyReduceAndWrapReduce(action, notify: notify);
+    } else {
+      return _applyReduce(action, notify: notify);
+    }
+  }
 
-    // Make sure the wrapReduce also returns an acceptable type.
-    _checkReducerType(action.reduce, true);
+  FutureOr<void> _applyReduceAndWrapReduce(ReduxAction<St> action,
+      {bool notify = true}) {
+    //
+    assert(action.ifWrapReduceOverridden());
 
-    if (_wrapReduce != null) _reduce = _wrapReduce.wrapReduce(_reduce, this);
+    if (action.ifWrapReduceOverridden_Sync())
+      throw StoreException("The ${action.runtimeType}.wrapReduce method "
+          "should return `Future<St?>`, not `<St>` or `<St?>`.");
+
+    action._completedFuture = false;
+
+    Reducer<St> _reduce = (_wrapReduce != null)
+        ? _wrapReduce.wrapReduce(action.reduce, this)
+        : action.reduce;
+
+    return (action.wrapReduce(_reduce) as Future<St?>).then((state) {
+      _registerState(state, action, notify: notify);
+
+      if (action._completedFuture) {
+        Future.error(
+            "The reducer of action ${action.runtimeType} returned a completed Future. "
+            "This may result in state changes being lost. "
+            "Please make sure all code paths in the reducer pass through at least one `await`. "
+            "If necessary, add `await microtask;` to the start of the reducer.");
+      }
+    });
+  }
+
+  FutureOr<void> _applyReduce(ReduxAction<St> action, {bool notify = true}) {
+    //
+    Reducer<St> _reduce = (_wrapReduce != null)
+        ? _wrapReduce.wrapReduce(action.reduce, this)
+        : action.reduce;
 
     // Sync reducer.
     if (_reduce is St? Function()) {
@@ -1968,7 +1994,8 @@ class Store<St> {
         }
       });
     }
-    // Not accepted.
+    //
+    // Invalid reducer (FutureOr is not accepted).
     else {
       throw StoreException("Reducer should return `St?` or `Future<St?>`. "
           "Do not return `FutureOr<St?>`. "

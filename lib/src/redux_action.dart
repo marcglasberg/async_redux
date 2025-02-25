@@ -243,32 +243,31 @@ abstract class ReduxAction<St> {
   /// state has already changed since when the reducer started:
   ///
   /// ```dart
-  /// Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
+  /// Future<St?> wrapReduce(Reducer<St> reduce) async {
   ///    var oldState = state;
   ///    AppState? newState = await reduce();
   ///    return identical(oldState, state) ? newState : null;
   /// };
   /// ```
   ///
-  /// Note: If [wrapReduce] returns a function that returns a [Future], the
-  /// action will be ASYNC. If it returns a function that returns [St], the
-  /// action will be SYNC only if the [before] and [reduce] methods are also
-  /// SYNC.
-  ///
   /// IMPORTANT:
   ///
-  /// * If [wrapReduce] is SYNC (does NOT return a [Future]), it must
-  /// NOT have side effects (it must be a pure function).
+  /// * Your [wrapReduce] method MUST always return `Future<St?>`. If it
+  /// returns a `FutureOr`, it will NOT be called, and no error will be shown.
+  /// This is because AsyncRedux uses the return type to determine if
+  /// [wrapReduce] was overridden or not.
   ///
-  /// * If [wrapReduce] is ASYNC (returns a [Future]), it must NOT not have
-  /// side effects BEFORE its first await. If necessary, you can add
-  /// `await microtask;` at the start of the method, so that all side
-  /// effects come after the first await.
+  /// * If [wrapReduce] returns `St` or `St?`, an error will be thrown.
+  ///
+  /// * Once you override [wrapReduce] the action will always be ASYNC,
+  /// regardless of the [before] and [reduce] methods.
   ///
   /// See mixins [Retry], [Throttle], and [Debounce] for real [wrapReduce]
   /// examples.
   ///
-  Reducer<St> wrapReduce(Reducer<St> reduce) => reduce;
+  FutureOr<St?> wrapReduce(Reducer<St> reduce) {
+    return null;
+  }
 
   /// If any error is thrown by `reduce` or `before`, you have the chance
   /// to further process it by using `wrapError`. Usually this is used to wrap
@@ -454,6 +453,14 @@ abstract class ReduxAction<St> {
     });
   }
 
+  bool ifWrapReduceOverridden_Sync() => wrapReduce is St? Function(Reducer<St>);
+
+  bool ifWrapReduceOverridden_Async() =>
+      wrapReduce is Future<St?> Function(Reducer<St>);
+
+  bool ifWrapReduceOverridden() =>
+      ifWrapReduceOverridden_Async() || ifWrapReduceOverridden_Sync();
+
   /// Returns true if the action is SYNC, and false if the action is ASYNC.
   /// The action is considered SYNC if the `before` method, the `reduce` method,
   /// and the `wrapReduce` methods are all synchronous.
@@ -461,17 +468,15 @@ abstract class ReduxAction<St> {
     //
     /// Must check that it's NOT `Future<void> Function()`, as `void Function()` doesn't work.
     bool beforeMethodIsSync = before is! Future<void> Function();
+    if (!beforeMethodIsSync) return false;
 
     bool reduceMethodIsSync = reduce is St? Function();
+    if (!reduceMethodIsSync) return false;
 
-    // We run `wrapReduce` but we don't await for it. This is just to check
-    // if it returns a Future or not. Note: Because of this, wrapReduce cannot
-    // have side effects if it's sync, and cannot have side effects before the
-    // async gap if it's async.
-    bool wrapReduceMethodIsSync =
-        wrapReduce(() => null) is! Future<St?> Function();
-
-    return (beforeMethodIsSync && reduceMethodIsSync && wrapReduceMethodIsSync);
+    // `wrapReduce` is sync if it's not overridden.
+    // `wrapReduce` is sync if it's overridden and SYNC.
+    // `wrapReduce` is NOT sync if it's overridden and ASYNC.
+    return (!ifWrapReduceOverridden_Async());
   }
 
   /// Returns the runtimeType, without the generic part.

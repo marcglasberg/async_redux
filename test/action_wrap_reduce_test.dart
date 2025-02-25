@@ -60,9 +60,9 @@ class IncrementReduceSyncNoBeforeWrapSync extends ReduxAction<State> {
   State reduce() => State(state.count + 1);
 
   @override
-  State? Function() wrapReduce(Reducer<State> reduce) => () {
-        return reduce() as State?;
-      };
+  State? wrapReduce(Reducer<State> reduce) {
+    return reduce() as State?;
+  }
 }
 
 class IncrementReduceSyncNoBeforeWrapSync2 extends ReduxAction<State> {
@@ -70,9 +70,9 @@ class IncrementReduceSyncNoBeforeWrapSync2 extends ReduxAction<State> {
   State reduce() => State(state.count + 1);
 
   @override
-  State Function() wrapReduce(Reducer<State> reduce) => () {
-        return reduce() as State;
-      };
+  State wrapReduce(Reducer<State> reduce) {
+    return reduce() as State;
+  }
 }
 
 class IncrementReduceSyncNoBeforeWrapSync3 extends ReduxAction<State> {
@@ -80,9 +80,9 @@ class IncrementReduceSyncNoBeforeWrapSync3 extends ReduxAction<State> {
   State reduce() => State(state.count + 1);
 
   @override
-  Reducer<State> wrapReduce(Reducer<State> reduce) => () {
-        return reduce();
-      };
+  State wrapReduce(Reducer<State> reduce) {
+    return reduce() as State;
+  }
 }
 
 class IncrementReduceSyncNoBeforeWrapAsync extends ReduxAction<State> {
@@ -90,9 +90,10 @@ class IncrementReduceSyncNoBeforeWrapAsync extends ReduxAction<State> {
   State reduce() => State(state.count + 1);
 
   @override
-  Future<State?> Function() wrapReduce(Reducer<State> reduce) => () async {
-        return reduce();
-      };
+  Future<State?> wrapReduce(Reducer<State> reduce) async {
+    await microtask;
+    return reduce();
+  }
 }
 
 class IncrementReduceSyncNoBeforeWrapAsync2 extends ReduxAction<State> {
@@ -100,9 +101,9 @@ class IncrementReduceSyncNoBeforeWrapAsync2 extends ReduxAction<State> {
   State reduce() => State(state.count + 1);
 
   @override
-  Future<State> Function() wrapReduce(Reducer<State> reduce) => () async {
-        return reduce() as Future<State>;
-      };
+  Future<State> wrapReduce(Reducer<State> reduce) async {
+    return reduce() as Future<State>;
+  }
 }
 
 class IncrementReduceSyncNoBeforeWrapAsync3 extends ReduxAction<State> {
@@ -110,7 +111,7 @@ class IncrementReduceSyncNoBeforeWrapAsync3 extends ReduxAction<State> {
   State reduce() => State(state.count + 1);
 
   @override
-  Reducer<State> wrapReduce(Reducer<State> reduce) => () async {
-        return reduce();
-      };
+  Future<State> wrapReduce(Reducer<State> reduce) async {
+    return reduce() as Future<State>;
+  }
 }

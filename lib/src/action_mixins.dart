@@ -259,23 +259,27 @@ mixin Retry<St> on ReduxAction<St> {
   int get attempts => _attempts;
 
   @override
-  Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
-        FutureOr<St?> newState;
-        try {
-          newState = reduce();
+  Future<St?> wrapReduce(Reducer<St> reduce) async {
+    FutureOr<St?> newState;
 
-          // Note we don't have side-effects before the first await.
-          if (newState is Future) newState = await newState;
-        } catch (error) {
-          _attempts++;
-          if ((maxRetries >= 0) && (_attempts > maxRetries)) rethrow;
+    try {
+      await microtask;
+      newState = reduce();
+      if (newState is Future) newState = await newState;
+    }
+    //
+    catch (error) {
+      _attempts++;
+      if ((maxRetries >= 0) && (_attempts > maxRetries)) rethrow;
 
-          var currentDelay = nextDelay();
-          await Future.delayed(currentDelay);
-          return wrapReduce(reduce)();
-        }
-        return newState;
-      };
+      var currentDelay = nextDelay();
+      await Future.delayed(currentDelay);
+
+      // Retry the action.
+      return wrapReduce(reduce);
+    }
+    return newState;
+  }
 
   Duration? _currentDelay;
 
@@ -731,33 +735,30 @@ mixin Debounce<St> on ReduxAction<St> {
   static void removeAllLocks() => _debounceLockMap.clear();
 
   @override
-  Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
-        //
-        // Avoid side-effects before the async gap.
-        await microtask;
+  Future<St?> wrapReduce(Reducer<St> reduce) async {
+    //
+    var lock = lockBuilder();
 
-        var lock = lockBuilder();
+    // Increment and update the map with the new run count.
+    var before = (_debounceLockMap[lock] ?? 0) + 1;
+    if (before > _SAFE_INTEGER) before = 0;
+    _debounceLockMap[lock] = before;
 
-        // Increment and update the map with the new run count.
-        var before = (_debounceLockMap[lock] ?? 0) + 1;
-        if (before > _SAFE_INTEGER) before = 0;
-        _debounceLockMap[lock] = before;
+    await Future.delayed(Duration(milliseconds: debounce));
 
-        await Future.delayed(Duration(milliseconds: debounce));
+    var after = _debounceLockMap[lock];
 
-        var after = _debounceLockMap[lock];
-
-        // If the run has changed, it means the action was dispatched again
-        // within the debounce period. So, we abort the reducer.
-        if (after != before)
-          return null;
-        //
-        // Otherwise, we remove the lock and run the reducer.
-        else {
-          _debounceLockMap.remove(lock);
-          return reduce();
-        }
-      };
+    // If the run has changed, it means the action was dispatched again
+    // within the debounce period. So, we abort the reducer.
+    if (after != before)
+      return null;
+    //
+    // Otherwise, we remove the lock and run the reducer.
+    else {
+      _debounceLockMap.remove(lock);
+      return reduce();
+    }
+  }
 }
 
 /// This mixin can be used to check if there is internet when you run some
@@ -834,50 +835,49 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
   void printRetries(String message) => print(message);
 
   @override
-  Reducer<St> wrapReduce(Reducer<St> reduce) => () async {
-        FutureOr<St?> newState;
-        bool hasInternet = true;
-        try {
-          // Note we don't have side-effects before the first await.
-          var result = await checkConnectivity();
+  Future<St?> wrapReduce(Reducer<St> reduce) async {
+    FutureOr<St?> newState;
+    bool hasInternet = true;
+    try {
+      // Note we don't have side-effects before the first await.
+      var result = await checkConnectivity();
 
-          // IMPORTANT: We throw this exception, but it will not ever be shown,
-          // because we are retrying unlimited times. This simply triggers the next retry.
-          if (result.contains(ConnectivityResult.none)) {
-            hasInternet = false;
-            throw const UserException('');
-          }
+      // IMPORTANT: We throw this exception, but it will not ever be shown,
+      // because we are retrying unlimited times. This simply triggers the next retry.
+      if (result.contains(ConnectivityResult.none)) {
+        hasInternet = false;
+        throw const UserException('');
+      }
 
-          if (attempts == 0)
-            printRetries('Trying $runtimeType.');
-          else
-            printRetries('Retrying $runtimeType (attempt $attempts).');
+      if (attempts == 0)
+        printRetries('Trying $runtimeType.');
+      else
+        printRetries('Retrying $runtimeType (attempt $attempts).');
 
-          newState = reduce();
-          if (newState is Future) newState = await newState;
-        }
-        //
-        catch (error) {
-          //
-          if (!hasInternet) {
-            if (attempts == 0)
-              printRetries(
-                  'Trying $runtimeType; aborted because of no internet.');
-            else
-              printRetries(
-                  'Retrying $runtimeType; aborted because of no internet (attempt $attempts).');
-          }
+      newState = reduce();
+      if (newState is Future) newState = await newState;
+    }
+    //
+    catch (error) {
+      //
+      if (!hasInternet) {
+        if (attempts == 0)
+          printRetries('Trying $runtimeType; aborted because of no internet.');
+        else
+          printRetries(
+              'Retrying $runtimeType; aborted because of no internet (attempt $attempts).');
+      }
 
-          _attempts++;
+      _attempts++;
 
-          if ((maxRetries >= 0) && (_attempts > maxRetries)) rethrow;
+      if ((maxRetries >= 0) && (_attempts > maxRetries)) rethrow;
 
-          var currentDelay = nextDelay(hasInternet: hasInternet);
-          await Future.delayed(currentDelay);
-          return wrapReduce(reduce)();
-        }
-        return newState;
-      };
+      var currentDelay = nextDelay(hasInternet: hasInternet);
+      await Future.delayed(currentDelay);
+      return wrapReduce(reduce);
+    }
+    return newState;
+  }
 
   Duration? _currentDelay;
 
