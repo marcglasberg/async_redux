@@ -1,6 +1,6 @@
 name: async_redux
 description: The modern version of Redux. State management that's simple to learn and easy to use; Powerful enough to handle complex applications with millions of users; Testable.
-version: 25.0.0-dev.0
+version: 25.0.0
 # author: Marcelo Glasberg <marcglasberg@gmail.com>
 homepage: https://github.com/marcglasberg/async_redux
 topics:
@@ -19,8 +19,8 @@ dependencies:
   meta: ^1.11.0
   path_provider: ^2.1.3
   file: ^7.0.0
-  weak_map: ^4.0.0
-  fast_immutable_collections: ^11.0.0
+  weak_map: ^4.0.1
+  fast_immutable_collections: ^11.0.3
   connectivity_plus: ^6.0.3
   collection: ^1.18.0
   logging: ^1.2.0
@@ -31,6 +31,6 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  bdd_framework: ^4.0.0
+  bdd_framework: ^4.0.5
 
 flutter:

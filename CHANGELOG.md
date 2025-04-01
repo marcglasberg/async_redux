@@ -8,7 +8,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 25.0.0-dev.0
+## 25.0.0
 
 * BREAKING CHANGE: The action's `wrapReduce` method now returns `FutureOr<St?>`
   instead of returning `FutureOr<St?> Function()`
