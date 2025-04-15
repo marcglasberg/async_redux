@@ -25,19 +25,18 @@
 
 # Async Redux | *state management*
 
-* Simple to learn and easy to use
-* Powerful enough to handle complex applications with millions of users
+* Simple to learn, easy to use
+* Handles complex applications with millions of users
 * Testable
 
-This means you'll be able to create apps much faster,
+You'll be able to create apps much faster,
 and other people on your team will easily understand and modify your code.
 
 ## What is it?
 
 An optimized reimagined version of Redux.
 A mature solution, battle-tested in hundreds of real-world applications.
-Written from the ground up, created
-by [Marcelo Glasberg](https://github.com/marcglasberg)
+Created by [Marcelo Glasberg](https://github.com/marcglasberg)
 (see [all my packages](https://pub.dev/publishers/glasberg.dev/packages)).
 
 > There is also

@@ -8,6 +8,38 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 25.1.0-dev.1
+
+* If your app uses Async Redux and your server
+  uses [Serverpod](https://serverpod.dev/), you can add the Dart-only core
+  package: https://pub.dev/packages/async_redux_core to your server side.
+  Now, if you throw a `UserException` in your backend code, that exception will
+  automatically be thrown in the frontend. As long as the Serverpod cloud
+  function is called inside an action, Async Redux will display the
+  exception message to the user in a dialog (or other UI element that you can
+  customize). Note: This can also be used
+  with [package i18n_extension_core](https://pub.dartlang.org/packages/i18n_extension_core)
+  to make sure the error message gets translated to the user's language.
+  For example: `UserException('The password you typed is invalid'.i18n);` in the
+  backend, will reach the frontend already translated as
+  `UserException('La contraseña que ingresaste no es válida')` if the user
+  device is in Spanish.
+
+  Setup: For all this to work in Serverpod, after you import `async_redux_core`
+  in the `pubspec.yaml` file of the server project, you must add the
+  `UserException` class to your `generator.yaml` file, in its `extraClasses`
+  section:
+
+  ```yaml  
+  type: server
+  ...
+  
+    extraClasses:
+      - package:async_redux_core/async_redux_core.dart:UserException
+  ```  
+
+  Note: Async Redux also works with [Celest](https://celest.dev/) since 22.1.0.
+
 ## 25.0.0
 
 * BREAKING CHANGE: The action's `wrapReduce` method now returns `FutureOr<St?>`
@@ -75,7 +107,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
   See
   the [Documentation](https://asyncredux.com/flutter/advanced-actions/action-mixins#debounce).
-      
+
 
 * You can now use the `Throttle` action mixin.
   Throttling ensures the action will be dispatched at most once in the
@@ -203,7 +235,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
   and then retried unlimited times, until there is internet. It will also retry
   if there
   is internet but the action failed.
-       
+
 
 * You can provide a `CloudSync` object to the store constructor. It's similar to
   the `Persistor`, but can be used to synchronize the state of the application
@@ -346,35 +378,27 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 
 * Some features of the `async_redux` package are now available in a standalone
-  Dart-only
-  core package: https://pub.dev/packages/async_redux_core. You may use that core
-  package
-  when you are developing a Dart server (backend)
-  with [Celest](https://celest.dev/), or
-  when developing your own Dart-only package that does not depend on Flutter.
-  Note: For
-  the moment, the corepackage simply contains the `UserException`, and nothing
-  more.
+  Dart-only core package: https://pub.dev/packages/async_redux_core. You may use
+  that core package when you are developing a Dart server (backend)
+  with [Celest](https://celest.dev/), or when developing your own Dart-only
+  package that does not depend on Flutter.
+  Note: For the moment, the corepackage simply contains the `UserException`, and
+  nothing else.
   If you now import `async_redux_core` in your Celest server code and throw an
   `UserException` there, the exception message will automatically be shown in a
-  dialog to
-  the user in your client app (if you use the `UserExceptionDialog` feature).
+  dialog to the user in your client app (if you use the `UserExceptionDialog`
+  feature).
 
   > **For Flutter applications nothing changes.**
   > You don't need to import the core package directly.
   > You should continue to use this async_redux package, which already exports
   > the code that's now in the core package.
 
-
 * You can now access the store inside of widgets, and have your widgets rebuild
-  when the
-  state changes, by using `context.state` and `context.dispatch` etc. This is
-  only useful
-  when you want to access the store state, and dispatch actions directly inside
-  your
-  widgets, instead of using the `StoreConnector` (dumb widget / smart widget
-  pattern). For
-  example:
+  when the state changes, by using `context.state` and `context.dispatch` etc.
+  This is only useful when you want to access the store state, and dispatch
+  actions directly inside your widgets, instead of using the `StoreConnector` (
+  dumb widget / smart widget pattern). For example:
 
   ```dart
   // Read state (will rebuild when the state changes) 
@@ -397,8 +421,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
   ```      
 
   However, to use `context.state` like shown above you must define this
-  extension method
-  in your own code (supposing your state class is called `AppState`):
+  extension method in your own code (supposing your state class is called
+  `AppState`):
 
   ```dart  
   extension BuildContextExtension on BuildContext {
