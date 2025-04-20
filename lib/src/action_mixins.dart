@@ -647,14 +647,16 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 /// create is limited, as the lock map is never cleared.
 ///
 /// Notes:
-/// - It should not be combined with other mixins that override [abortDispatch].
+/// - It should not be combined with other mixins that override [abortDispatch] or [after].
 /// - It should not be combined with [NonReentrant] or [UnlimitedRetryCheckInternet].
 ///
 mixin Throttle<St> on ReduxAction<St> {
   //
   int get throttle => 1000; // Milliseconds
 
-  bool removeLockOnError = false;
+  bool get removeLockOnError => false;
+
+  bool get ignoreThrottle => false;
 
   /// The default lock for throttling is the action's [runtimeType],
   /// meaning it will throttle the dispatch of actions of the same type.
@@ -676,7 +678,6 @@ mixin Throttle<St> on ReduxAction<St> {
   /// You generally don't need to call this method.
   static void removeAllLocks() => _throttleLockMap.clear();
 
-  bool ignoreThrottle = false;
 
   @override
   bool abortDispatch() {

@@ -8,7 +8,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 25.1.0
+## 25.1.1
        
 * The `Throttle` action mixin now has an `ignoreThrottle` parameter, which 
   allows you to ignore the throttle period for a specific action. This is useful 
