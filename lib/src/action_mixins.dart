@@ -545,7 +545,7 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 /// ```dart
 /// class LoadAction extends ReduxAction<AppState> with Throttle {
 ///
-///   final int throttle = 5000;
+///   int throttle = 5000;
 ///
 ///   Future<AppState?> reduce() async {
 ///     var information = await loadInformation();
@@ -559,10 +559,57 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 ///
 /// ```dart
 /// class MyAction extends ReduxAction<AppState> with Throttle {
-///    final int throttle = 500; // Here!
+///    int throttle = 500; // Here!
 ///    ...
 /// }
 /// ```
+///
+/// You can also override [ignoreThrottle] if you want the action to ignore the
+/// throttle period under some conditions. For example, suppose you want the
+/// action to provide a flag called `force` that will ignore the throttle
+/// period:
+///
+/// ```dart
+/// class MyAction extends ReduxAction<AppState> with Throttle {
+///    final bool force;
+///    MyAction({this.force = false});
+///
+///    bool ignoreThrottle => force; // Here!
+///
+///    int throttle = 500;
+///    ...
+/// }
+/// ```
+///
+/// # If the action fails
+///
+/// The throttle period is NOT reset if the action fails. This means that if
+/// the action fails, it will not run a second time if you dispatch it again
+/// within the throttle period.
+///
+/// If you want, you can specify a different behavior by making
+/// [removeLockOnError] true, like this:
+///
+/// ```dart
+/// class MyAction extends ReduxAction<AppState> with Throttle {
+///    bool removeLockOnError = true; // Here!
+///    ...
+/// }
+/// ```
+///
+/// Now, if the action fails, it will remove the lock and allow the action to
+/// be dispatched again right away. Note this currently implemented in the
+/// [after] method, like this:
+///
+/// ```dart
+/// @override
+/// void after() {
+///   if (removeLockOnError && (status.originalError != null)) removeLock();
+/// }
+/// ```
+///
+/// You can override the [after] method to customize this behavior of removing
+/// the lock under some conditions.
 ///
 /// # Advanced usage
 ///
@@ -607,6 +654,8 @@ mixin Throttle<St> on ReduxAction<St> {
   //
   int get throttle => 1000; // Milliseconds
 
+  bool removeLockOnError = false;
+
   /// The default lock for throttling is the action's [runtimeType],
   /// meaning it will throttle the dispatch of actions of the same type.
   /// Override this method to customize the lock to any value.
@@ -627,28 +676,44 @@ mixin Throttle<St> on ReduxAction<St> {
   /// You generally don't need to call this method.
   static void removeAllLocks() => _throttleLockMap.clear();
 
+  bool ignoreThrottle = false;
+
   @override
   bool abortDispatch() {
     var lock = lockBuilder();
     var now = DateTime.now().toUtc();
-    var time = _throttleLockMap[lock];
 
-    if (time == null) {
+    // If should ignore the throttle, then update time and allow the dispatch.
+    if (ignoreThrottle) {
       _throttleLockMap[lock] = now;
       return false;
     }
     //
     else {
-      // If the throttle time has NOT elapsed since last dispatch, abort.
-      if (now.difference(time).inMilliseconds < throttle)
-        return true;
-      //
-      // Otherwise, update the time and allow the dispatch.
-      else {
+      var time = _throttleLockMap[lock];
+
+      if (time == null) {
         _throttleLockMap[lock] = now;
         return false;
       }
+      //
+      else {
+        // If the throttle time has NOT elapsed since last dispatch, abort.
+        if (now.difference(time).inMilliseconds < throttle)
+          return true;
+        //
+        // Otherwise, update the time and allow the dispatch.
+        else {
+          _throttleLockMap[lock] = now;
+          return false;
+        }
+      }
     }
+  }
+
+  @override
+  void after() {
+    if (removeLockOnError && (status.originalError != null)) removeLock();
   }
 }
 

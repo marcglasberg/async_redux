@@ -8,11 +8,36 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 25.1.0-dev.1
-
+## 25.1.0
+       
+* The `Throttle` action mixin now has an `ignoreThrottle` parameter, which 
+  allows you to ignore the throttle period for a specific action. This is useful 
+  when you want to bypass the throttle for certain actions, while still applying 
+  it to others. For example:
+    
+  ```dart
+  class MyAction extends ReduxAction<AppState> with Throttle {
+     final bool force;
+     MyAction({this.force = false});  
+     bool ignoreThrottle => force; // Here!   
+     ...
+  }
+  ```
+  
+* The `Throttle` action mixin now has a `removeLockOnError` parameter, which
+  removes the lock when an error occurs. This is useful when you want to allow 
+  a failed action to run again within the throttle period. For example:
+        
+  ```dart
+  class MyAction extends ReduxAction<AppState> with Throttle {
+     bool removeLockOnError = true; // Here!
+     ...
+  }
+  ```
+  
 * If your app uses Async Redux and your server
   uses [Serverpod](https://serverpod.dev/), you can add the Dart-only core
-  package: https://pub.dev/packages/async_redux_core to your server side.
+  package https://pub.dev/packages/async_redux_core to your server side.
   Now, if you throw a `UserException` in your backend code, that exception will
   automatically be thrown in the frontend. As long as the Serverpod cloud
   function is called inside an action, Async Redux will display the
