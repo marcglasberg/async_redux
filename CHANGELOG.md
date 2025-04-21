@@ -407,8 +407,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
   that core package when you are developing a Dart server (backend)
   with [Celest](https://celest.dev/), or when developing your own Dart-only
   package that does not depend on Flutter.
-  Note: For the moment, the corepackage simply contains the `UserException`, and
-  nothing else.
+  Note: For the moment, the core package simply contains the `UserException`, 
+  and nothing else.
   If you now import `async_redux_core` in your Celest server code and throw an
   `UserException` there, the exception message will automatically be shown in a
   dialog to the user in your client app (if you use the `UserExceptionDialog`
