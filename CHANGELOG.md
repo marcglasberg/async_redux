@@ -19,7 +19,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
   class MyAction extends ReduxAction<AppState> with Throttle {
      final bool force;
      MyAction({this.force = false});  
-     bool ignoreThrottle => force; // Here!   
+     bool get ignoreThrottle => force; // Here!   
      ...
   }
   ```
