@@ -58,18 +58,27 @@ mixin CheckInternet<St> on ReduxAction<St> {
   UserException connectionException(List<ConnectivityResult> result) =>
       ConnectionException.noConnectivity;
 
-  /// If you are running tests, you can override this method to simulate the internet connection
-  /// as permanently on or off.
-  /// Return `true` if there is internet, and `false` if there is no internet.
-  /// Return `null` to use the real internet connection status.
-  bool? get internetOnOffSimulation => forceInternetOnOffSimulation();
-
-  /// If you have a configuration object that specifies if the internet connection should be
-  /// simulated as on or off, you can replace this method to return that configuration value.
-  /// For example: `CheckInternet.forceInternetOnOffSimulation = () => Config.isInternetOn;`
-  /// Return `true` if there is internet, and `false` if there is no internet.
-  /// Return `null` to use the real internet connection status.
-  static bool? Function() forceInternetOnOffSimulation = () => null;
+  /// If you are running tests, you can override this getter to simulate the
+  /// internet connection as on or off:
+  ///
+  /// - Return `true` if there IS internet.
+  /// - Return `false` if there is NO internet.
+  /// - Return `null` to use the real internet connection status (default).
+  ///
+  /// If you want to change this for all actions using mixins [CheckInternet],
+  /// [AbortWhenNoInternet], and [UnlimitedRetryCheckInternet], you can
+  /// do that at the store level:
+  ///
+  /// ```dart
+  /// store.forceInternetOnOffSimulation = () => false;
+  /// ```
+  ///
+  /// Using [Store.forceInternetOnOffSimulation] is also useful during tests,
+  /// for testing what happens when you have no internet connection. And since
+  /// it's tied to the store, it automatically resets when the store is
+  /// recreated.
+  ///
+  bool? get internetOnOffSimulation => store.forceInternetOnOffSimulation();
 
   Future<List<ConnectivityResult>> checkConnectivity() async {
     if (internetOnOffSimulation != null)
@@ -146,12 +155,28 @@ mixin NoDialog<St> on CheckInternet<St> {
 /// * [NoDialog] - To just show a message in your widget, and not open a dialog.
 ///
 mixin AbortWhenNoInternet<St> on ReduxAction<St> {
-  /// If you are running tests, you can override this method to simulate the internet connection
-  /// as permanently on or off.
-  /// Return `true` if there is internet, and `false` if there is no internet.
-  /// Return `null` to use the real internet connection status.
-  bool? get internetOnOffSimulation =>
-      CheckInternet.forceInternetOnOffSimulation();
+  //
+  /// If you are running tests, you can override this getter to simulate the
+  /// internet connection as on or off:
+  ///
+  /// - Return `true` if there IS internet.
+  /// - Return `false` if there is NO internet.
+  /// - Return `null` to use the real internet connection status (default).
+  ///
+  /// If you want to change this for all actions using mixins [CheckInternet],
+  /// [AbortWhenNoInternet], and [UnlimitedRetryCheckInternet], you can
+  /// do that at the store level:
+  ///
+  /// ```dart
+  /// store.forceInternetOnOffSimulation = () => false;
+  /// ```
+  ///
+  /// Using [Store.forceInternetOnOffSimulation] is also useful during tests,
+  /// for testing what happens when you have no internet connection. And since
+  /// it's tied to the store, it automatically resets when the store is
+  /// recreated.
+  ///
+  bool? get internetOnOffSimulation => store.forceInternetOnOffSimulation();
 
   Future<List<ConnectivityResult>> checkConnectivity() async {
     if (internetOnOffSimulation != null)
@@ -668,7 +693,8 @@ mixin Throttle<St> on ReduxAction<St> {
   Object? lockBuilder() => runtimeType;
 
   /// Map that stores the last time an action with a specific lock dispatched.
-  static final Map<Object?, DateTime> _throttleLockMap = {};
+  Map<Object?, DateTime> get _throttleLockMap =>
+      store.internalMixinProps.throttleLockMap;
 
   /// Removes the lock, allowing an action of the same type to be dispatched
   /// again right away. You generally don't need to call this method.
@@ -676,8 +702,7 @@ mixin Throttle<St> on ReduxAction<St> {
 
   /// Removes all locks, allowing all actions to be dispatched again right away.
   /// You generally don't need to call this method.
-  static void removeAllLocks() => _throttleLockMap.clear();
-
+  void removeAllLocks() => _throttleLockMap.clear();
 
   @override
   bool abortDispatch() {
@@ -790,7 +815,8 @@ mixin Debounce<St> on ReduxAction<St> {
   Object? lockBuilder() => runtimeType;
 
   /// Map that stores the run-number for actions with a specific lock.
-  static final Map<Object?, int> _debounceLockMap = {};
+  Map<Object?, int> get _debounceLockMap =>
+      store.internalMixinProps.debounceLockMap;
 
   // A large number that JavaScript can still represent.
   // In theory, it could be between -9007199254740991 and 9007199254740991.
@@ -798,7 +824,7 @@ mixin Debounce<St> on ReduxAction<St> {
 
   /// Removes all locks, allowing all actions to be dispatched again right away.
   /// You generally don't need to call this method.
-  static void removeAllLocks() => _debounceLockMap.clear();
+  void removeAllLocks() => _debounceLockMap.clear();
 
   @override
   Future<St?> wrapReduce(Reducer<St> reduce) async {
@@ -967,12 +993,27 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
     return _currentDelay!;
   }
 
-  /// If you are running tests, you can override this method to simulate the internet connection
-  /// as permanently on or off.
-  /// Return `true` if there is internet, and `false` if there is no internet.
-  /// Return `null` to use the real internet connection status.
-  bool? get internetOnOffSimulation =>
-      CheckInternet.forceInternetOnOffSimulation();
+  /// If you are running tests, you can override this getter to simulate the
+  /// internet connection as on or off:
+  ///
+  /// - Return `true` if there IS internet.
+  /// - Return `false` if there is NO internet.
+  /// - Return `null` to use the real internet connection status (default).
+  ///
+  /// If you want to change this for all actions using mixins [CheckInternet],
+  /// [AbortWhenNoInternet], and [UnlimitedRetryCheckInternet], you can
+  /// do that at the store level:
+  ///
+  /// ```dart
+  /// store.forceInternetOnOffSimulation = () => false;
+  /// ```
+  ///
+  /// Using [Store.forceInternetOnOffSimulation] is also useful during tests,
+  /// for testing what happens when you have no internet connection. And since
+  /// it's tied to the store, it automatically resets when the store is
+  /// recreated.
+  ///
+  bool? get internetOnOffSimulation => store.forceInternetOnOffSimulation();
 
   Future<List<ConnectivityResult>> checkConnectivity() async {
     if (internetOnOffSimulation != null)

@@ -8,13 +8,38 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 25.2.0
+
+* Some internal properties used by the provided mixins are now tied to the
+  `Store` so that they reset when the store is recreated. This is useful to make
+  sure tests are not affected by previous tests. For example, if you dispatch an
+  action that has some throttle, then recreate the store for another test, you
+  can dispatch the same action again without waiting for the throttle to expire.
+  You can also manually delete all those properties by calling
+  `store.internalMixinProps.clear()`.
+
+* If you are running tests, you can change `store.forceInternetOnOffSimulation`
+  to simulate the internet connection as ON or OFF for the provided mixins
+  `CheckInternet`, `AbortWhenNoInternet`, and `UnlimitedRetryCheckInternet`:
+
+  ```dart           
+  // There is internet
+  store.forceInternetOnOffSimulation = () => false;
+  
+  // There is no internet
+  store.forceInternetOnOffSimulation = () => false;
+  
+  // Uses the real internet connection status (default).
+  store.forceInternetOnOffSimulation = () => null;
+  ```
+
 ## 25.1.1
-       
-* The `Throttle` action mixin now has an `ignoreThrottle` parameter, which 
-  allows you to ignore the throttle period for a specific action. This is useful 
-  when you want to bypass the throttle for certain actions, while still applying 
+
+* The `Throttle` action mixin now has an `ignoreThrottle` parameter, which
+  allows you to ignore the throttle period for a specific action. This is useful
+  when you want to bypass the throttle for certain actions, while still applying
   it to others. For example:
-    
+
   ```dart
   class MyAction extends ReduxAction<AppState> with Throttle {
      final bool force;
@@ -23,18 +48,18 @@ Sponsored by [MyText.ai](https://mytext.ai)
      ...
   }
   ```
-  
+
 * The `Throttle` action mixin now has a `removeLockOnError` parameter, which
-  removes the lock when an error occurs. This is useful when you want to allow 
+  removes the lock when an error occurs. This is useful when you want to allow
   a failed action to run again within the throttle period. For example:
-        
+
   ```dart
   class MyAction extends ReduxAction<AppState> with Throttle {
      bool removeLockOnError = true; // Here!
      ...
   }
   ```
-  
+
 * If your app uses Async Redux and your server
   uses [Serverpod](https://serverpod.dev/), you can add the Dart-only core
   package https://pub.dev/packages/async_redux_core to your server side.
@@ -407,7 +432,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
   that core package when you are developing a Dart server (backend)
   with [Celest](https://celest.dev/), or when developing your own Dart-only
   package that does not depend on Flutter.
-  Note: For the moment, the core package simply contains the `UserException`, 
+  Note: For the moment, the core package simply contains the `UserException`,
   and nothing else.
   If you now import `async_redux_core` in your Celest server code and throw an
   `UserException` there, the exception message will automatically be shown in a

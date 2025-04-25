@@ -192,26 +192,29 @@ class Store<St> {
   /// See also: [prop] and [env].
   void setProp(Object? key, Object? value) => _props[key] = value;
 
-  /// The [disposeProps] method is used to clean up resources associated with the store's
-  /// properties, by stopping, closing, ignoring and removing timers, streams, sinks, and futures
-  /// that are saved as properties in the store.
+  /// The [disposeProps] method is used to clean up resources associated with
+  /// the store's properties, by stopping, closing, ignoring and removing timers,
+  /// streams, sinks, and futures that are saved as properties in the store.
   ///
-  /// In more detail: This method accepts an optional predicate function that takes a prop `key`
-  /// and a `value` as an argument and returns a boolean.
+  /// In more detail: This method accepts an optional predicate function that
+  /// takes a prop `key` and a `value` as an argument and returns a boolean.
   ///
-  /// * If you don't provide a predicate function, all properties which are `Timer`, `Future`, or
-  /// `Stream` related will be closed/cancelled/ignored as appropriate, and then removed from the
-  /// props. Other properties will not be removed.
+  /// * If you don't provide a predicate function, all properties which are
+  /// `Timer`, `Future`, or `Stream` related will be closed/cancelled/ignored as
+  /// appropriate, and then removed from the props. Other properties will not be
+  /// removed.
   ///
-  /// * If the predicate function is provided and returns `true` for a given property, that
-  /// property will be removed from the props and, if the property is also a `Timer`, `Future`,
-  /// or `Stream` related, it will be closed/cancelled/ignored as appropriate.
+  /// * If the predicate function is provided and returns `true` for a given
+  /// property, that property will be removed from the props and, if the property
+  /// is also a `Timer`, `Future`, or `Stream` related, it will be
+  /// closed/cancelled/ignored as appropriate.
   ///
-  /// * If the predicate function is provided and returns `false` for a given property,
-  /// that property will not be removed from the props, and it will not be closed/cancelled/ignored.
+  /// * If the predicate function is provided and returns `false` for a given
+  /// property, that property will not be removed from the props, and it will
+  /// not be closed/cancelled/ignored.
   ///
-  /// This method is particularly useful when the store is being shut down, right before or after
-  /// you called the [shutdown] method.
+  /// This method is particularly useful when the store is being shut down,
+  /// right before or after you called the [shutdown] method.
   ///
   /// Example usage:
   ///
@@ -222,6 +225,10 @@ class Store<St> {
   /// // Dispose only Timers.
   /// store.disposeProps(({Object? key, Object? value}) => value is Timer);
   /// ```
+  ///
+  /// Note: The provided mixins, like [Throttle] and [Debounce] also use some
+  /// props that you can dispose by doing `store.internalMixinProps.clear()`;
+  ///
   ///
   void disposeProps([bool Function({Object? key, Object? value})? predicate]) {
     var keysToRemove = [];
@@ -1254,7 +1261,32 @@ class Store<St> {
   /// See also: [isShutdown] and [disposeProps].
   void shutdown() {
     _shutdown = true;
+    internalMixinProps.clear();
   }
+
+  /// Properties used internally by the provided mixins.
+  /// You should not use this directly.
+  final internalMixinProps = _InternalMixinProps();
+
+  /// If you are running tests, you can change [forceInternetOnOffSimulation] to
+  /// simulate the internet connection as ON or OFF for the provided mixins
+  /// [CheckInternet], [AbortWhenNoInternet], and [UnlimitedRetryCheckInternet].
+  ///
+  /// - Return `true` if there IS internet.
+  /// - Return `false` if there is NO internet.
+  /// - Return `null` to use the real internet connection status (default).
+  ///
+  /// Example:
+  ///
+  /// ```dart
+  /// store.forceInternetOnOffSimulation = () => false;
+  /// ```
+  ///
+  /// This is specially useful during tests, for testing what happens when you
+  /// have no internet connection. And since it's tied to the store, it
+  /// automatically resets when the store is recreated.
+  ///
+  bool? Function() forceInternetOnOffSimulation = () => null;
 
   bool get isShutdown => _shutdown;
 
@@ -2437,4 +2469,17 @@ class _Flag<T> {
 
   @override
   int get hashCode => 0;
+}
+
+/// Some properties used by the Mixins. These are scoped to the store, so they
+/// reset when the store is recreated, for example during tests.
+class _InternalMixinProps {
+  final Map<Object?, DateTime> throttleLockMap = {};
+  final Map<Object?, int> debounceLockMap = {};
+
+  /// Removes the locks for Throttle and Debounce.
+  void clear() {
+    throttleLockMap.clear();
+    debounceLockMap.clear();
+  }
 }

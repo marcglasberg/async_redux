@@ -11,7 +11,7 @@ void main() {
       .when('The action is dispatched twice within the throttle period')
       .then('It should only execute once')
       .run((_) async {
-    Throttle.removeAllLocks();
+    //
     var store = Store<AppState>(initialState: AppState(0));
     await store.dispatch(ThrottleAction());
     expect(store.state.count, 1);
@@ -28,7 +28,7 @@ void main() {
           'then after waiting for the throttle period, dispatched again')
       .then('It should execute both times')
       .run((_) async {
-    Throttle.removeAllLocks();
+    //
     var store = Store<AppState>(initialState: AppState(0));
     await store.dispatch(ThrottleAction());
     expect(store.state.count, 1);
@@ -46,7 +46,7 @@ void main() {
       .when('Both actions are dispatched in quick succession')
       .then('Only the first action should execute')
       .run((_) async {
-    Throttle.removeAllLocks();
+    //
     var store = Store<AppState>(initialState: AppState(0));
     await store.dispatch(ThrottleAction1());
     expect(store.state.count, 1);
@@ -64,7 +64,7 @@ void main() {
           'throttle period passes, then the second is dispatched')
       .then('Both actions should execute')
       .run((_) async {
-    Throttle.removeAllLocks();
+    //
     var store = Store<AppState>(initialState: AppState(0));
     await store.dispatch(ThrottleAction1());
     expect(store.state.count, 1);
@@ -81,7 +81,7 @@ void main() {
       .when('Both actions are dispatched in quick succession')
       .then('Both should execute independently')
       .run((_) async {
-    Throttle.removeAllLocks();
+    //
     var store = Store<AppState>(initialState: AppState(0));
     await store.dispatch(ThrottleActionA());
     expect(store.state.count, 1);
