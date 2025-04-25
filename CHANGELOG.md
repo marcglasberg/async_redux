@@ -8,7 +8,16 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 25.2.0
+## 25.3.0
+
+* In tests, you can now use `store.dispatchAndWaitAllActions`. It first
+  dispatches an `action`, and then it waits until ALL current actions in
+  progress finish dispatching. In other words, it helps make sure that the
+  app state "settled" before you check the state. 
+
+  ```dart
+  await store.dispatchAndWaitAllActions(MyAction());
+  ```
 
 * Some internal properties used by the provided mixins are now tied to the
   `Store` so that they reset when the store is recreated. This is useful to make

@@ -1304,7 +1304,9 @@ class Store<St> {
   /// See also:
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchAll] which dispatches all given actions in parallel.
+  /// - [dispatchAndWaitAllActions] which dispatches an action then waits for all actions to finish.
   ///
   FutureOr<ActionStatus> dispatch(ReduxAction<St> action,
           {bool notify = true}) =>
@@ -1328,6 +1330,7 @@ class Store<St> {
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchAll] which dispatches all given actions in parallel.
+  /// - [dispatchAndWaitAllActions] which dispatches an action then waits for all actions to finish.
   ///
   ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) {
     if (!action.isSync()) {
@@ -1366,10 +1369,40 @@ class Store<St> {
   /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   /// - [dispatchAll] which dispatches all given actions in parallel.
+  /// - [dispatchAndWaitAllActions] which dispatches an action then waits for all actions to finish.
   ///
   Future<ActionStatus> dispatchAndWait(ReduxAction<St> action,
           {bool notify = true}) =>
       Future.value(_dispatch(action, notify: notify));
+
+  /// The [dispatchAndWaitAllActions] should be used in tests only.
+  ///
+  /// It first dispatches the given [action], applying its reducer, and
+  /// possibly changing the store state. The action may be sync or async.
+  /// In both cases, it returns a [Future] that resolves when the action
+  /// finishes.
+  ///
+  /// Then, it waits until ALL current actions in progress finish dispatching.
+  /// In other words, when no other actions are currently in progress.
+  ///
+  /// This dispatch method is meant to be used in tests, not in production,
+  /// as it's very easy to create a deadlock. However, if you do use it in
+  /// production, you may provide a [timeoutMillis], which by default is 10
+  /// minutes. To disable the timeout, make it -1. This timeout only starts
+  /// counting after the given [action] finished dispatching. Note: If you want,
+  /// you can modify [defaultTimeoutMillis] to change the default timeout.
+  ///
+  /// ```dart
+  /// await store.dispatchAndWaitAllActions(MyAction());
+  /// ```
+  ///
+  Future<ActionStatus> dispatchAndWaitAllActions(ReduxAction<St> action,
+      {bool notify = true, int? timeoutMillis}) async {
+    var actionStatus = await dispatchAndWait(action, notify: notify);
+    await waitAllActions([],
+        completeImmediately: true, timeoutMillis: timeoutMillis);
+    return actionStatus;
+  }
 
   /// Dispatches all given [actions] in parallel, applying their reducer, and possibly changing
   /// the store state. It returns the same list of [actions], so that you can instantiate them
@@ -1387,6 +1420,7 @@ class Store<St> {
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchAndWaitAllActions] which dispatches an action then waits for all actions to finish.
   ///
   List<ReduxAction<St>> dispatchAll(List<ReduxAction<St>> actions,
       {bool notify = true}) {
@@ -1427,6 +1461,7 @@ class Store<St> {
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   /// - [dispatchAll] which dispatches all given actions in parallel.
+  /// - [dispatchAndWaitAllActions] which dispatches an action then waits for all actions to finish.
   ///
   Future<List<ReduxAction<St>>> dispatchAndWaitAll(
     List<ReduxAction<St>> actions, {
