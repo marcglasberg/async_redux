@@ -8,7 +8,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 25.3.0
+## 25.3.1
 
 * In tests, you can now use `store.dispatchAndWaitAllActions`. It first
   dispatches an `action`, and then it waits until ALL current actions in

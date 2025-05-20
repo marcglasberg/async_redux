@@ -39,8 +39,8 @@ A mature solution, battle-tested in hundreds of real-world applications.
 Created by [Marcelo Glasberg](https://github.com/marcglasberg)
 (see [all my packages](https://pub.dev/publishers/glasberg.dev/packages)).
 
-> There is also
-> a [version for React](https://www.npmjs.com/package/async-redux-react)
+> There is also a version for React
+> [called Kiss State](https://kissforreact.org/)
 
 > Optionally use it with [Provider](https://pub.dev/packages/provider_for_redux)
 > or [Flutter Hooks](https://pub.dev/packages/flutter_hooks_async_redux)
@@ -656,6 +656,12 @@ _stackoverflow.com/users/3411681/marcg_</a>
 * <a href="https://pub.dev/packages/bdd_framework">bdd_framework</a>
 * <a href="https://pub.dev/packages/tiktoken_tokenizer_gpt4o_o1">
   tiktoken_tokenizer_gpt4o_o1</a>
+
+*The JavaScript/TypeScript packages I've authored:*
+
+* [Kiss State, for React](https://kissforreact.org/) (similar to Async Redux, but for React)
+* [Easy BDD Tool, for Jest](https://www.npmjs.com/package/easy-bdd-tool-jest)
+
 
 *My Medium Articles:*
 
