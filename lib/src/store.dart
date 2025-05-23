@@ -229,6 +229,7 @@ class Store<St> {
   /// Note: The provided mixins, like [Throttle] and [Debounce] also use some
   /// props that you can dispose by doing `store.internalMixinProps.clear()`;
   ///
+  /// See also: [disposeProp], to dispose a single property by its key.
   ///
   void disposeProps([bool Function({Object? key, Object? value})? predicate]) {
     var keysToRemove = [];
@@ -247,6 +248,22 @@ class Store<St> {
 
     // After the iteration, remove all keys at the same time.
     keysToRemove.forEach((key) => _props.remove(key));
+  }
+
+  /// Uses [disposeProps] to dispose and a single property identified by
+  /// its key [keyToDispose], and remove it from the props.
+  ///
+  /// This method will close/cancel/ignore the property if it's a Timer,
+  /// Future, or Stream related object, and then remove it from the props.
+  ///
+  /// Example usage:
+  ///
+  /// ```dart
+  /// // Dispose a specific timer property
+  /// store.disposeProp("myTimer");
+  /// ```
+  void disposeProp(Object? keyToDispose) {
+    disposeProps(({Object? key, Object? value}) => key == keyToDispose);
   }
 
   /// If [obj] is a timer, future or stream related, it will be closed/cancelled/ignored,

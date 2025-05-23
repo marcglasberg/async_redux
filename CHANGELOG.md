@@ -8,12 +8,19 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 25.4.0
+
+* Added `Store.disposeProp(key)` and `Action.disposeProp(key)` methods to 
+  dispose and remove Futures/Timers/Streams that were previously set 
+  using `setProp()`.
+  See [Streams and Timers](https://asyncredux.com/flutter/miscellaneous/streams-and-timers/).
+
 ## 25.3.1
 
 * In tests, you can now use `store.dispatchAndWaitAllActions`. It first
   dispatches an `action`, and then it waits until ALL current actions in
   progress finish dispatching. In other words, it helps make sure that the
-  app state "settled" before you check the state. 
+  app state "settled" before you check the state.
 
   ```dart
   await store.dispatchAndWaitAllActions(MyAction());

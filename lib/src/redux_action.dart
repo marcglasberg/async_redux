@@ -67,6 +67,62 @@ abstract class ReduxAction<St> {
   /// See also: [prop] and [env].
   void setProp(Object? key, Object? value) => store.setProp(key, value);
 
+  /// The [disposeProps] method is used to clean up resources associated with
+  /// the store's properties, by stopping, closing, ignoring and removing timers,
+  /// streams, sinks, and futures that are saved as properties in the store.
+  ///
+  /// In more detail: This method accepts an optional predicate function that
+  /// takes a prop `key` and a `value` as an argument and returns a boolean.
+  ///
+  /// * If you don't provide a predicate function, all properties which are
+  /// `Timer`, `Future`, or `Stream` related will be closed/cancelled/ignored as
+  /// appropriate, and then removed from the props. Other properties will not be
+  /// removed.
+  ///
+  /// * If the predicate function is provided and returns `true` for a given
+  /// property, that property will be removed from the props and, if the property
+  /// is also a `Timer`, `Future`, or `Stream` related, it will be
+  /// closed/cancelled/ignored as appropriate.
+  ///
+  /// * If the predicate function is provided and returns `false` for a given
+  /// property, that property will not be removed from the props, and it will
+  /// not be closed/cancelled/ignored.
+  ///
+  /// This method is particularly useful when the store is being shut down,
+  /// right before or after you called the [Store.shutdown] method.
+  ///
+  /// Example usage:
+  ///
+  /// ```dart
+  /// // Dispose of all Timers, Futures, Stream related etc.
+  /// disposeProps();
+  ///
+  /// // Dispose only Timers.
+  /// disposeProps(({Object? key, Object? value}) => value is Timer);
+  /// ```
+  ///
+  /// Note: The provided mixins, like [Throttle] and [Debounce] also use some
+  /// props that you can dispose by doing `store.internalMixinProps.clear()`;
+  ///
+  /// See also: [disposeProp], to dispose a single property by its key.
+  ///
+  void disposeProps([bool Function({Object? key, Object? value})? predicate]) =>
+      store.disposeProps(predicate);
+
+  /// Uses [disposeProps] to dispose and a single property identified by
+  /// its key [keyToDispose], and remove it from the props.
+  ///
+  /// This method will close/cancel/ignore the property if it's a Timer, Future,
+  /// or Stream related object, and then remove it from the props.
+  ///
+  /// Example usage:
+  ///
+  /// ```dart
+  /// // Dispose a specific timer property
+  /// store.disposeProp("myTimer");
+  /// ```
+  void disposeProp(Object? keyToDispose) => store.disposeProp(keyToDispose);
+
   /// To wait for the next microtask: `await microtask;`
   Future get microtask => Future.microtask(() {});
 
