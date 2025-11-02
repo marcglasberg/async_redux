@@ -713,19 +713,21 @@ class StoreProvider<St> extends InheritedWidget {
           child: _InheritedUntypedDoesNotRebuild(store: store, child: child),
         );
 
-  /// Get the state, without a `StoreConnector`.
+  /// Provides easy access to the AsyncRedux store state from a BuildContext.
   ///
-  /// Widgets that use this method WILL rebuild whenever the state changes
-  /// (unless you pass the [notify] parameter as `false`).
+  /// Use this in your widget's build method to read the current store state.
+  /// Any widget that calls this WILL rebuild automatically when the state
+  /// changes (unless you pass the [notify] parameter as `false`).
   ///
-  /// It's recommended that you define this extension in your own code:
+  /// For convenience, it's recommended that you define this extension in your
+  /// own code:
   /// ```dart
   /// extension BuildContextExtension on BuildContext {
   ///   AppState get state => getState<AppState>();
   /// }
   /// ```
   ///
-  /// This will allow you to write:
+  /// And then use it like this:
   ///
   /// ```dart
   /// var state = context.state;
@@ -1208,17 +1210,21 @@ StoreException _exceptionForWrongStateType(Object? state, Type wrongType) {
 
 extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   //
-  /// Get the state, without a StoreConnector.
-  /// Note: Widgets that use this method will rebuild whenever the state changes.
+  /// Provides easy access to the AsyncRedux store state from a BuildContext.
   ///
-  /// It's recommended that you define this extension in your own code:
+  /// Use this in your widget's build method to read the current store state.
+  /// Any widget that calls this will rebuild automatically when the state changes.
+  ///
+  ///
+  /// For convenience, it's recommended that you define this extension in your
+  /// own code:
   /// ```dart
   /// extension BuildContextExtension on BuildContext {
   ///   AppState get state => getState<AppState>();
   /// }
   /// ```
   ///
-  /// This will allow you to write:
+  /// And then use it like this:
   ///
   /// ```dart
   /// var state = context.state;
