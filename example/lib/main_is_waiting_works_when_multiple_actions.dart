@@ -1,6 +1,24 @@
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 
+/// This example shows how to show a spinner while any of two actions
+/// ([IncrementAction] and [MultiplyAction]) is running.
+///
+/// Writing this:
+///
+/// ```dart
+/// context.isWaiting([IncrementAction, MultiplyAction])
+/// ```
+///
+/// Is the same as writing this:
+///
+/// ```dart
+/// context.isWaiting(IncrementAction) || context.isWaiting(MultiplyAction)
+/// ```
+///
+/// See how the `isCalculating` variable is defined in the `build` method
+/// of widget [MyHomePage].
+///
 void main() {
   runApp(const MyApp());
 }
@@ -31,18 +49,15 @@ class MyHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AppState, CounterVm>(
-      vm: () => CounterVmFactory(),
-      shouldUpdateModel: (s) => s.counter >= 0,
-      builder: (context, vm) {
-        return MyHomePageContent(
-          title: 'IsWaiting works when multiple actions',
-          counter: vm.counter,
-          isCalculating: vm.isCalculating,
-          increment: vm.increment,
-          multiply: vm.multiply,
-        );
-      },
+    int counter = context.select((state) => state.counter);
+    bool isCalculating = context.isWaiting([IncrementAction, MultiplyAction]);
+
+    return MyHomePageContent(
+      title: 'IsWaiting multiple actions',
+      counter: counter,
+      isCalculating: isCalculating,
+      increment: () => context.dispatch(IncrementAction()),
+      multiply: () => context.dispatch(MultiplyAction()),
     );
   }
 }
@@ -126,32 +141,6 @@ class AppState {
   }
 }
 
-class CounterVm extends Vm {
-  final int counter;
-  final bool isCalculating;
-  final VoidCallback increment, multiply;
-
-  CounterVm({
-    required this.counter,
-    required this.isCalculating,
-    required this.increment,
-    required this.multiply,
-  }) : super(equals: [
-          counter,
-          isCalculating,
-        ]);
-}
-
-class CounterVmFactory extends VmFactory<AppState, MyHomePage, CounterVm> {
-  @override
-  CounterVm fromStore() => CounterVm(
-        counter: state.counter,
-        isCalculating: isWaiting([IncrementAction, MultiplyAction]),
-        increment: () => dispatch(IncrementAction()),
-        multiply: () => dispatch(MultiplyAction()),
-      );
-}
-
 class IncrementAction extends ReduxAction<AppState> {
   @override
   Future<AppState?> reduce() async {
@@ -166,4 +155,14 @@ class MultiplyAction extends ReduxAction<AppState> {
     await Future.delayed(const Duration(seconds: 1));
     return AppState(counter: state.counter * 2);
   }
+}
+
+/// Recommended to create this extension.
+extension BuildContextExtension on BuildContext {
+  AppState get state => getState<AppState>();
+
+  AppState read() => getRead<AppState>();
+
+  R select<R>(R Function(AppState state) selector) =>
+      getSelect<AppState, R>(selector);
 }

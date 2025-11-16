@@ -10,9 +10,15 @@ late Store<int> store;
 
 /// This example shows how to provide an environment to the Store, to help
 /// with dependency injection. The environment is a container for the
-/// injected services. We can have many environment implementations, one
-/// for production, others for tests etc. In this case, we're using the [EnvironmentImpl].
-/// We extend [VmFactory] and [ReduxAction] to provide typed access to the [Environment].
+/// injected services. You can have many environment implementations, one
+/// for production, others for tests etc. In this case, we're using the
+/// [EnvironmentImpl].
+///
+/// You should extend [ReduxAction] to provide typed access to the [Environment]
+/// inside your actions.
+///
+/// In case you use [StoreConnector], you should also extend [VmFactory] to
+/// provide typed access to the [Environment] inside your factories.
 ///
 void main() {
   store = Store<int>(
@@ -29,8 +35,8 @@ abstract class Environment {
   int limit(int value);
 }
 
-/// We can have many environment implementations, one for production,
-/// others for tests etc. In this case, we're using the [EnvironmentImpl].
+/// We can have many environment implementations, one for production, others for
+/// staging, tests etc. In this case, we're using the [EnvironmentImpl].
 class EnvironmentImpl implements Environment {
   @override
   int incrementer(int value, int amount) => value + amount;
@@ -40,16 +46,18 @@ class EnvironmentImpl implements Environment {
   int limit(int value) => min(value, 5);
 }
 
-/// We extend [VmFactory] to provide typed access to the [Environment].
-abstract class AppFactory<T extends Widget?, Model extends Vm> extends VmFactory<int, T, Model> {
-  AppFactory([T? connector]) : super(connector);
-
+/// Extend [ReduxAction] to provide typed access to the [Environment].
+abstract class Action extends ReduxAction<int> {
   @override
   Environment get env => super.env as Environment;
 }
 
-/// We extend [ReduxAction] to provide typed access to the [Environment].
-abstract class Action extends ReduxAction<int> {
+/// Extend [VmFactory] to provide typed access to the [Environment] when
+/// using [StoreConnector].
+abstract class AppFactory<T extends Widget?, Model extends Vm>
+    extends VmFactory<int, T, Model> {
+  AppFactory([T? connector]) : super(connector);
+
   @override
   Environment get env => super.env as Environment;
 }
@@ -63,7 +71,7 @@ class MyApp extends StatelessWidget {
       ));
 }
 
-/// This action increments the counter by [amount]].
+/// This action increments the counter by [amount], using [env].
 class IncrementAction extends Action {
   final int amount;
 
@@ -73,11 +81,12 @@ class IncrementAction extends Action {
   int reduce() => env.incrementer(state, amount);
 }
 
-/// This widget is a connector.
-/// It connects the store to [MyHomePage] (the dumb-widget).
-/// Each time the state changes, it creates a view-model, and compares it
-/// with the view-model created with the previous state.
-/// Only if the view-model changed, the connector rebuilds.
+/// This widget is a connector. It uses a [StoreConnector] to connect the store
+/// to [MyHomePage] (the dumb-widget). Each time the state changes, it creates
+/// a view-model, and compares it with the view-model created with the previous
+/// state. If the view-model changed, the connector rebuilds. If you don't need
+/// to use connectors, you can just use `context.state`, `context.select`,
+/// `context.dispatch` etc, directly in your widgets.
 class MyHomePageConnector extends StatelessWidget {
   MyHomePageConnector({Key? key}) : super(key: key);
 
@@ -93,7 +102,8 @@ class MyHomePageConnector extends StatelessWidget {
   }
 }
 
-/// Factory that creates a view-model for the StoreConnector.
+/// Factory that creates a view-model ([ViewModel]) for the [StoreConnector].
+/// It uses [env].
 class Factory extends AppFactory<MyHomePageConnector, ViewModel> {
   Factory(connector) : super(connector);
 
@@ -105,20 +115,7 @@ class Factory extends AppFactory<MyHomePageConnector, ViewModel> {
 }
 
 /// A view-model is a helper object to a [StoreConnector] widget. It holds the
-/// part of the Store state the corresponding dumb-widget needs, and may also
-/// convert this state part into a more convenient format for the dumb-widget
-/// to work with.
-///
-/// You must implement equals/hashcode for the view-model class to work.
-/// Otherwise, the [StoreConnector] will think the view-model changed everytime,
-/// and thus will rebuild everytime. This won't create any visible problems
-/// to your app, but is inefficient and may be slow.
-///
-/// By extending the [Vm] class you can implement equals/hashcode without
-/// having to override these methods. Instead, simply list all fields
-/// (which are not immutable, like functions) to the [equals] parameter
-/// in the constructor.
-///
+/// part of the Store state the corresponding dumb-widget needs.
 class ViewModel extends Vm {
   final int counter;
   final VoidCallback onIncrement;
@@ -129,9 +126,6 @@ class ViewModel extends Vm {
   }) : super(equals: [counter]);
 }
 
-/// This is the "dumb-widget". It has no notion of the store, the state, the
-/// connector or the view-model. It just gets the parameters it needs to display
-/// itself, and callbacks it should call when reacting to the user interface.
 class MyHomePage extends StatelessWidget {
   final int? counter;
   final VoidCallback? onIncrement;

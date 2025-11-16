@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'dart:convert';
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
@@ -9,14 +9,19 @@ import 'package:http/http.dart';
 
 late Store<AppState> store;
 
-/// This example shows a counter, a text description, and a button.
+/// This example demonstrates:
+/// - The use of [StoreConnector], [VmFactory], and [ViewModel].
+/// - Doing async work inside an action.
+/// - How to create a [BaseFactory] to reduce code duplication. Once you add
+///   this class to your code, it knows your state is [AppState], and you can
+///   avoid repeating that in all your factories. For example, instead of writing
+///   `VmFactory<AppState, T, Model>`, you can simply write
+///   `BaseVmFactory<T, Model>`.
+///
+/// It shows a counter, a text description, and a button.
 /// When the button is tapped, the counter will increment synchronously,
 /// while an async process downloads some text description that relates
-/// to the counter number (using the NumberAPI: http://numbersapi.com).
-///
-/// Note: This example uses http. It was configured to work in Android, debug mode only.
-/// If you use iOS, please see:
-/// https://flutter.dev/docs/release/breaking-changes/network-policy-ios-android
+/// to the counter number (using the Star Wars API: https://swapi.dev).
 ///
 void main() {
   var state = AppState.initialState();
@@ -75,7 +80,11 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
     dispatch(IncrementAction(amount: 1));
 
     // Then, we start and wait for some asynchronous process.
-    String description = await read(Uri.http("numbersapi.com", "${state.counter}"));
+    Response response = await get(
+      Uri.parse("https://swapi.dev/api/people/${state.counter}/"),
+    );
+    Map<String, dynamic> json = jsonDecode(response.body);
+    String description = json['name'] ?? 'Unknown character';
 
     // After we get the response, we can modify the state with it,
     // without having to dispatch another action.
@@ -111,6 +120,11 @@ class MyHomePageConnector extends StatelessWidget {
   }
 }
 
+abstract class BaseFactory<T extends Widget?, Model extends Vm>
+    extends VmFactory<AppState, T, Model> {
+  BaseFactory([T? connector]) : super(connector);
+}
+
 /// Factory that creates a view-model for the StoreConnector.
 class Factory extends BaseFactory<MyHomePageConnector, ViewModel> {
   Factory(connector) : super(connector);
@@ -126,7 +140,8 @@ class Factory extends BaseFactory<MyHomePageConnector, ViewModel> {
     dispatch(IncrementAndGetDescriptionAction());
 
     print('Counter in the the view-model = ${vm.counter}');
-    print('Counter in the state when the view-model was created = ${state.counter}');
+    print(
+        'Counter in the state when the view-model was created = ${state.counter}');
     print('Counter in the current state = ${currentState().counter}');
   }
 }
@@ -159,14 +174,16 @@ class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Increment Example')),
+      appBar: AppBar(title: const Text('Increment Example (StoreConnector)')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text('You have pushed the button this many times:'),
             Text('$counter', style: const TextStyle(fontSize: 30)),
-            Text(description!, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
+            Text(description!,
+                style: const TextStyle(fontSize: 15),
+                textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -176,9 +193,4 @@ class MyHomePage extends StatelessWidget {
       ),
     );
   }
-}
-
-abstract class BaseFactory<T extends Widget?, Model extends Vm>
-    extends VmFactory<AppState, T, Model> {
-  BaseFactory([T? connector]) : super(connector);
 }

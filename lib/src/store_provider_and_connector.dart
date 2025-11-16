@@ -7,6 +7,7 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:async_redux/async_redux.dart';
+import 'package:collection/collection.dart' show DeepCollectionEquality;
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 
@@ -70,6 +71,29 @@ typedef ViewModelBuilder<Model> = Widget Function(
   BuildContext context,
   Model vm,
 );
+
+/// The aspect function type for selectors.
+/// Takes the new state value and returns true if the widget should rebuild.
+typedef SelectorAspect<St> = bool Function(St? value);
+
+/// Storage class for selector dependencies.
+/// Stores all selector aspects for a single dependent widget.
+class SelectorDependency<St> {
+  /// Flag indicating selectors should be cleared on next registration
+  bool shouldClearSelectors = false;
+
+  /// Flag tracking if a microtask to clear is scheduled
+  bool shouldClearMutationScheduled = false;
+
+  /// List of all aspect functions registered by this widget
+  final selectors = <SelectorAspect<St>>[];
+}
+
+/// Debug flag to prevent nested select calls.
+bool _debugIsSelecting = false;
+
+// Debug flag to enable logging for `select` mechanism (development only).
+const bool _debugSelectLogging = false;
 
 abstract class StoreConnectorInterface<St, Model> {
   VmFactory<St, dynamic, dynamic> Function()? get vm;
@@ -261,7 +285,7 @@ class _StoreStreamListener<St, Model> extends StatefulWidget {
   final VmFactory<St, dynamic, dynamic> Function()? vm;
   final Store<St> store;
   final Object? debug;
-  final StoreConnector storeConnector;
+  final StoreConnectorInterface storeConnector;
   final bool rebuildOnChange;
   final bool? distinct;
   final OnInitCallback<St>? onInit;
@@ -1174,6 +1198,7 @@ class _WidgetListensOnChangeState extends State<_WidgetListensOnChange> {
 /// it REBUILDS. Note: `_InheritedUntypedRebuilds._isOn` is true only after `state`, `isWaiting`,
 /// `isFailed` and `exceptionFor` are used for the first time. This is to make it faster by
 /// avoiding `updateShouldNotify` before this inner provider is necessary.
+/// This class now also supports selector-based rebuilds for fine-grained state subscriptions.
 class _InheritedUntypedRebuilds extends InheritedWidget {
   static var _isOn = false;
   final Store _store;
@@ -1186,8 +1211,184 @@ class _InheritedUntypedRebuilds extends InheritedWidget {
         super(key: key, child: child);
 
   @override
+  _InheritedUntypedRebuildsElement createElement() {
+    return _InheritedUntypedRebuildsElement(this);
+  }
+
+  @override
   bool updateShouldNotify(_InheritedUntypedRebuilds oldWidget) {
     return _isOn;
+  }
+}
+
+/// Custom InheritedElement that supports selector-based rebuilds.
+class _InheritedUntypedRebuildsElement extends InheritedElement {
+  _InheritedUntypedRebuildsElement(_InheritedUntypedRebuilds widget)
+      : super(widget);
+
+  @override
+  _InheritedUntypedRebuilds get widget =>
+      super.widget as _InheritedUntypedRebuilds;
+
+  @override
+  void updateDependencies(Element dependent, Object? aspect) {
+    // We need the state type, but this is untyped. We'll handle dynamic selectors.
+    final dependencies = getDependencies(dependent);
+
+    // DEBUG: Log dependency registration
+    if (_debugSelectLogging) {
+      print('[UPDATE_DEPS] Widget: ${dependent.widget.runtimeType}, '
+          'Has existing deps: ${dependencies != null}, '
+          'Deps type: ${dependencies?.runtimeType}, '
+          'Aspect type: ${aspect?.runtimeType}');
+    }
+
+    // Already listening to everything - don't override with selector.
+    if (dependencies != null && dependencies is! SelectorDependency) {
+      if (_debugSelectLogging) {
+        print('[UPDATE_DEPS] Already listening to everything, returning');
+      }
+      return;
+    }
+
+    if (aspect is SelectorAspect) {
+      // Get or create the dependency object.
+      final selectorDependency =
+          (dependencies ?? SelectorDependency()) as SelectorDependency;
+
+      if (_debugSelectLogging) {
+        print('[UPDATE_DEPS] Selector aspect detected. '
+            'Creating new dependency: ${dependencies == null}, '
+            'Current selector count: ${selectorDependency.selectors.length}');
+      }
+
+      // Clear selectors if flagged (from previous build).
+      if (selectorDependency.shouldClearSelectors) {
+        if (_debugSelectLogging) {
+          print(
+              '[UPDATE_DEPS] Clearing ${selectorDependency.selectors.length} old selectors');
+        }
+        selectorDependency.shouldClearSelectors = false;
+        selectorDependency.selectors.clear();
+      }
+
+      // Schedule selector clearing for next tick.
+      if (selectorDependency.shouldClearMutationScheduled == false) {
+        selectorDependency.shouldClearMutationScheduled = true;
+        if (_debugSelectLogging) {
+          print('[UPDATE_DEPS] Scheduling selector clear for next microtask');
+        }
+        Future.microtask(() {
+          if (_debugSelectLogging) {
+            print(
+                '[UPDATE_DEPS] Microtask executed - marking selectors for clearing');
+          }
+          selectorDependency
+            ..shouldClearMutationScheduled = false
+            ..shouldClearSelectors = true;
+        });
+      }
+
+      // Add the new selector.
+      selectorDependency.selectors.add(aspect);
+      setDependencies(dependent, selectorDependency);
+
+      if (_debugSelectLogging) {
+        print(
+            '[UPDATE_DEPS] Added selector. New count: ${selectorDependency.selectors.length}');
+      }
+    } else {
+      // No aspect = listen to everything (context.state behavior).
+      setDependencies(dependent, const Object());
+      if (_debugSelectLogging) {
+        print('[UPDATE_DEPS] No aspect - listening to everything');
+      }
+    }
+  }
+
+  @override
+  void notifyDependent(InheritedWidget oldWidget, Element dependent) {
+    final dependencies = getDependencies(dependent);
+
+    if (_debugSelectLogging) {
+      print('[NOTIFY] Widget: ${dependent.widget.runtimeType}, '
+          'Has deps: ${dependencies != null}, '
+          'Deps type: ${dependencies?.runtimeType}, '
+          'Is dirty: ${dependent.dirty}');
+    }
+
+    var shouldNotify = false;
+    if (dependencies != null) {
+      if (dependencies is SelectorDependency) {
+        // OPTIMIZATION: Skip if widget is already being rebuilt.
+        if (dependent.dirty) {
+          if (_debugSelectLogging) {
+            print('[NOTIFY] Widget already dirty, skipping');
+          }
+          return;
+        }
+
+        if (_debugSelectLogging) {
+          print('[NOTIFY] Checking ${dependencies.selectors.length} selectors');
+        }
+
+        // Check each selector.
+        int selectorIndex = 0;
+        for (final updateShouldNotify in dependencies.selectors) {
+          try {
+            assert(() {
+              _debugIsSelecting = true;
+              return true;
+            }());
+
+            // Call the aspect function with new value.
+            shouldNotify = updateShouldNotify(widget._store.state);
+
+            if (_debugSelectLogging) {
+              print('[NOTIFY] Selector $selectorIndex returned: $shouldNotify');
+            }
+          } finally {
+            assert(() {
+              _debugIsSelecting = false;
+              return true;
+            }());
+          }
+
+          // OPTIMIZATION: Short-circuit on first true.
+          if (shouldNotify) {
+            if (_debugSelectLogging) {
+              print('[NOTIFY] Selector triggered rebuild, stopping check');
+            }
+            break;
+          }
+          selectorIndex++;
+        }
+      } else {
+        // No selectors = watch everything.
+        shouldNotify = true;
+        if (_debugSelectLogging) {
+          print('[NOTIFY] No selectors - watching everything');
+        }
+      }
+    } else {
+      // If no dependencies registered yet, notify by default.
+      shouldNotify = true;
+      if (_debugSelectLogging) {
+        print(
+            '[NOTIFY] WARNING: No dependencies registered! Notifying by default');
+      }
+    }
+
+    if (shouldNotify) {
+      if (_debugSelectLogging) {
+        print('[NOTIFY] >>> REBUILDING ${dependent.widget.runtimeType}');
+      }
+      dependent.didChangeDependencies();
+    } else {
+      if (_debugSelectLogging) {
+        print('[NOTIFY] Not rebuilding ${dependent.widget.runtimeType}');
+      }
+    }
   }
 }
 
@@ -1212,24 +1413,236 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   //
   /// Provides easy access to the AsyncRedux store state from a BuildContext.
   ///
-  /// Use this in your widget's build method to read the current store state.
+  /// Use this in your widget's build method to watch the current store state.
   /// Any widget that calls this will rebuild automatically when the state changes.
-  ///
   ///
   /// For convenience, it's recommended that you define this extension in your
   /// own code:
+  ///
   /// ```dart
   /// extension BuildContextExtension on BuildContext {
   ///   AppState get state => getState<AppState>();
+  ///   AppState read() => getRead<AppState>();
+  ///   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
   /// }
   /// ```
   ///
-  /// And then use it like this:
+  /// Then use it like this:
   ///
   /// ```dart
   /// var state = context.state;
   /// ```
+  ///
+  /// See also:
+  ///
+  /// - [getRead] if you don't want the widget to rebuild automatically when
+  ///   the state changes (use it with `context.read()`).
+  ///
+  /// - [getSelect] to select a specific part of the state and only rebuild
+  ///   when that part changes (use it with `context.select()`).
+  ///
   St getState<St>() => StoreProvider.state<St>(this);
+
+  /// Provides easy access to the AsyncRedux store state from a BuildContext.
+  ///
+  /// Use this in your widget's build method to read the current store state.
+  /// Widgets using this will NOT rebuild automatically when the state changes.
+  ///
+  /// For convenience, it's recommended that you define this extension in your
+  /// own code:
+  ///
+  /// ```dart
+  /// extension BuildContextExtension on BuildContext {
+  ///   AppState get state => getState<AppState>();
+  ///   AppState read() => getRead<AppState>();
+  ///   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
+  /// }
+  /// ```
+  ///
+  /// Then use it like this:
+  ///
+  /// ```dart
+  /// var state = context.read();
+  /// ```
+  ///
+  /// See also:
+  ///
+  /// - [getState] if you want the widget to rebuild automatically on any state
+  ///   change (use it with `context.state`).
+  ///
+  /// - [getSelect] to select a specific part of the state and only rebuild
+  ///   when that part changes (use it with `context.select()`).
+  ///
+  St getRead<St>() => StoreProvider.state<St>(this, notify: false);
+
+  /// Select a specific part of the state and only rebuild when that part changes.
+  ///
+  /// This method allows fine-grained subscriptions to the state, rebuilding the widget
+  /// only when the selected value actually changes, not on every state update.
+  ///
+  /// For convenience, it's recommended that you define this extension in your
+  /// own code:
+  ///
+  /// ```dart
+  /// extension BuildContextExtension on BuildContext {
+  ///   AppState get state => getState<AppState>();
+  ///   AppState read() => getRead<AppState>();
+  ///   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
+  /// }
+  /// ```
+  ///
+  /// Then use it like this:
+  /// ```dart
+  /// final userName = context.select((state) => state.user.name);
+  /// ```
+  ///
+  /// The widget will only rebuild when `state.user.name` changes, not when other
+  /// parts of the state change.
+  ///
+  /// The comparison uses deep equality checking, so it works correctly with:
+  /// - Primitive values (int, String, bool, etc.)
+  /// - Lists (element-by-element comparison)
+  /// - Maps (key-value pair comparison)
+  /// - Sets (membership comparison)
+  /// - Custom classes with proper `==` operator
+  /// - IList, ISet, IMap from fast_immutable_collections
+  ///
+  /// IMPORTANT: The selector function must be pure and not cause side effects.
+  /// Do not call other provider methods or dispatch actions inside the selector.
+  ///
+  /// See also:
+  ///
+  /// - [getState] if you want the widget to rebuild automatically on any state
+  ///   change (use it with `context.state`).
+  ///
+  /// - [getRead] if you don't want the widget to rebuild automatically when
+  ///   the state changes (use it with `context.read()`).
+  /// 
+  R getSelect<St, R>(R Function(St state) selector) {
+    assert(() {
+      final widget = this.widget;
+
+      // Check for unsupported contexts
+      if (widget is SliverWithKeepAliveWidget ||
+          widget is AutomaticKeepAliveClientMixin) {
+        throw FlutterError('''
+Tried to use context.select (or context.getSelect) inside a SliverList/SliderGridView.
+
+This is likely a mistake, as instead of rebuilding only the item that cares
+about the selected value, this would rebuild the entire list/grid.
+
+To fix, add a `Builder` or extract the content of `itemBuilder` in a separate widget:
+
+ListView.builder(
+  itemBuilder: (context, index) {
+    return Builder(builder: (context) {
+      final todo = context.select((list) => list[index]);
+      return Text(todo.name);
+    });
+  },
+);
+''');
+      }
+
+      // Check we're in a build method
+      if (!debugDoingBuild &&
+          widget is! LayoutBuilder &&
+          widget is! SliverLayoutBuilder) {
+        throw FlutterError('''
+Tried to use `context.select` outside of the `build` method of a widget.
+
+Any usage other than inside the `build` method of a widget is not supported.
+''');
+      }
+
+      // Check for nested select calls
+      if (_debugIsSelecting) {
+        throw FlutterError('''
+Cannot call context.select inside the selector of another context.select.
+
+The selector function must return a value immediately, without calling other providers.
+''');
+      }
+
+      return true;
+    }());
+
+    // Get the InheritedElement WITHOUT creating a dependency yet
+    final inheritedElement =
+        getElementForInheritedWidgetOfExactType<_InheritedUntypedRebuilds>();
+
+    if (inheritedElement == null) {
+      throw _exceptionForWrongStoreType(_typeOf<_InheritedUntypedRebuilds>());
+    }
+
+    final provider = inheritedElement.widget as _InheritedUntypedRebuilds;
+
+    St state;
+    try {
+      state = provider._store.state as St;
+    } catch (error) {
+      throw _exceptionForWrongStateType(provider._store.state, St);
+    }
+
+    // We only turn on rebuilds when select is used for the first time
+    // (similar to how state() method works).
+    _InheritedUntypedRebuilds._isOn = true;
+
+    // Execute selector with debug tracking
+    assert(() {
+      _debugIsSelecting = true;
+      return true;
+    }());
+
+    final selected = selector(state);
+
+    assert(() {
+      _debugIsSelecting = false;
+      return true;
+    }());
+
+    if (_debugSelectLogging) {
+      print('[SELECT] ${widget.runtimeType} selected value: $selected');
+    }
+
+    // Register the dependency with an aspect function.
+    dependOnInheritedElement(
+      inheritedElement as _InheritedUntypedRebuildsElement,
+      aspect: (dynamic newValue) {
+        if (newValue == null) {
+          return false;
+        }
+
+        // Re-run selector with new value and compare.
+        assert(() {
+          _debugIsSelecting = true;
+          return true;
+        }());
+
+        St newState;
+        try {
+          newState = newValue as St;
+        } catch (_) {
+          return false;
+        }
+
+        final newSelected = selector(newState);
+
+        assert(() {
+          _debugIsSelecting = false;
+          return true;
+        }());
+
+        // Use deep equality to compare selected values.
+        return !const DeepCollectionEquality().equals(newSelected, selected);
+      },
+    );
+
+    return selected;
+  }
+
+  /// Workaround to capture generics (used internally).
+  static Type _typeOf<T>() => T;
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
   /// The action may be sync or async.

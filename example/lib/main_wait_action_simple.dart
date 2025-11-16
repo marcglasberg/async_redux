@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
@@ -32,10 +33,6 @@ late Store<AppState> store;
 /// ```
 /// void after() => dispatch(WaitAction.remove(this));
 /// ```
-///
-/// Note: This example uses http. It was configured to work in Android, debug mode only.
-/// If you use iOS, please see:
-/// https://flutter.dev/docs/release/breaking-changes/network-policy-ios-android
 ///
 void main() {
   var state = AppState.initialState();
@@ -87,7 +84,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => StoreProvider<AppState>(
         store: store,
-        child: MaterialApp(home: MyHomePageConnector()),
+        child: MaterialApp(home: MyHomePage()),
       );
 }
 
@@ -103,11 +100,19 @@ mixin WithWaitState implements ReduxAction<AppState> {
   void after() => dispatch(WaitAction.remove(this));
 }
 
-class IncrementAndGetDescriptionAction extends ReduxAction<AppState> with WithWaitState {
+class IncrementAndGetDescriptionAction extends ReduxAction<AppState>
+    with WithWaitState {
   @override
   Future<AppState> reduce() async {
     dispatch(IncrementAction(amount: 1));
-    String description = await read(Uri.http("numbersapi.com", "${state.counter}"));
+
+    // Then, we start and wait for some asynchronous process.
+    Response response = await get(
+      Uri.parse("https://swapi.dev/api/people/${state.counter}/"),
+    );
+    Map<String, dynamic> json = jsonDecode(response.body);
+    String description = json['name'] ?? 'Unknown character';
+
     return state.copy(description: description);
   }
 }
@@ -121,72 +126,20 @@ class IncrementAction extends ReduxAction<AppState> {
   AppState reduce() => state.copy(counter: state.counter + amount);
 }
 
-/// This widget is a connector. It connects the store to "dumb-widget".
-class MyHomePageConnector extends StatelessWidget {
-  MyHomePageConnector({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return StoreConnector<AppState, ViewModel>(
-      vm: () => Factory(this),
-      builder: (BuildContext context, ViewModel vm) => MyHomePage(
-        counter: vm.counter,
-        description: vm.description,
-        onIncrement: vm.onIncrement,
-        isWaiting: vm.isWaiting,
-      ),
-    );
-  }
-}
-
-/// Factory that creates a view-model for the StoreConnector.
-class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
-  Factory(connector) : super(connector);
-
-  @override
-  ViewModel fromStore() => ViewModel(
-        counter: state.counter,
-        description: state.description,
-
-        /// While action `IncrementAndGetDescriptionAction` is running,
-        /// [isWaiting] will be true.
-        isWaiting: state.wait.isWaitingForType<IncrementAndGetDescriptionAction>(),
-
-        onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
-      );
-}
-
-/// The view-model holds the part of the Store state the dumb-widget needs.
-class ViewModel extends Vm {
-  final int counter;
-  final String description;
-  final bool isWaiting;
-  final VoidCallback onIncrement;
-
-  ViewModel({
-    required this.counter,
-    required this.description,
-    required this.isWaiting,
-    required this.onIncrement,
-  }) : super(equals: [counter, description, isWaiting]);
-}
-
 class MyHomePage extends StatelessWidget {
-  final int counter;
-  final String description;
-  final bool isWaiting;
-  final VoidCallback onIncrement;
-
-  MyHomePage({
-    Key? key,
-    required this.counter,
-    required this.description,
-    required this.isWaiting,
-    required this.onIncrement,
-  }) : super(key: key);
+  MyHomePage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // Use context.select to get state values
+    var counter = context.select((AppState state) => state.counter);
+    var description = context.select((AppState state) => state.description);
+
+    /// While action `IncrementAndGetDescriptionAction` is running,
+    /// [isWaiting] will be true.
+    var isWaiting = context.select((AppState state) =>
+        state.wait.isWaitingForType<IncrementAndGetDescriptionAction>());
+
     return Stack(
       children: [
         Scaffold(
@@ -198,12 +151,14 @@ class MyHomePage extends StatelessWidget {
                 const Text('You have pushed the button this many times:'),
                 Text('$counter', style: const TextStyle(fontSize: 30)),
                 Text(description,
-                    style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
+                    style: const TextStyle(fontSize: 15),
+                    textAlign: TextAlign.center),
               ],
             ),
           ),
           floatingActionButton: FloatingActionButton(
-            onPressed: onIncrement,
+            onPressed: () =>
+                context.dispatch(IncrementAndGetDescriptionAction()),
             child: const Icon(Icons.add),
           ),
         ),
@@ -211,4 +166,13 @@ class MyHomePage extends StatelessWidget {
       ],
     );
   }
+}
+
+extension BuildContextExtension on BuildContext {
+  AppState get state => getState<AppState>();
+
+  AppState read() => getRead<AppState>();
+
+  R select<R>(R Function(AppState state) selector) =>
+      getSelect<AppState, R>(selector);
 }

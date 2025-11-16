@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
@@ -19,10 +20,6 @@ late Store<AppState> store;
 ///
 /// It also demonstrates the use of an abstract class [BarrierAction]
 /// to override the action's before() and after() methods.
-///
-/// Note: This example uses http. It was configured to work in Android, debug mode only.
-/// If you use iOS, please see:
-/// https://flutter.dev/docs/release/breaking-changes/network-policy-ios-android
 ///
 void main() {
   var state = AppState.initialState();
@@ -116,7 +113,14 @@ class _WaitAction extends ReduxAction<AppState> {
 class ChangeTextAction extends BarrierAction {
   @override
   Future<AppState> reduce() async {
-    String newText = await read(Uri.http("numbersapi.com", "${state.counter}"));
+    //
+    // Then, we start and wait for some asynchronous process.
+    Response response = await get(
+      Uri.parse("https://swapi.dev/api/people/${state.counter}/"),
+    );
+    Map<String, dynamic> json = jsonDecode(response.body);
+    String newText = json['name'] ?? 'Unknown character';
+
     return state.copy(
       counter: state.counter + 1,
       changeTextEvt: Event<String>(newText),

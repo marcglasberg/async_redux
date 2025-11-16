@@ -1,6 +1,11 @@
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 
+// Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
+// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
+
+/// This example demonstrates that `isWaiting` works even for actions that
+/// return `null` (i.e., actions that don't change the state).
 void main() {
   runApp(const MyApp());
 }

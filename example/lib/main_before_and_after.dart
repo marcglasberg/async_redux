@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
@@ -12,16 +13,12 @@ late Store<AppState> store;
 /// This example shows a counter, a text description, and a button.
 /// When the button is tapped, the counter will increment synchronously,
 /// while an async process downloads some text description that relates
-/// to the counter number (using the NumberAPI: http://numbersapi.com).
+/// to the counter number (using the Star Wars API: https://swapi.dev).
 ///
 /// While the async process is running, a reddish modal barrier will prevent
 /// the user from tapping the button. The model barrier is removed even if
 /// the async process ends with an error, which can be simulated by turning
 /// off the internet connection (putting the phone in airplane mode).
-///
-/// Note: This example uses http. It was configured to work in Android, debug mode only.
-/// If you use iOS, please see:
-/// https://flutter.dev/docs/release/breaking-changes/network-policy-ios-android
 ///
 void main() {
   var state = AppState.initialState();
@@ -48,7 +45,8 @@ class AppState {
         waiting: waiting ?? this.waiting,
       );
 
-  static AppState initialState() => AppState(counter: 0, description: "", waiting: false);
+  static AppState initialState() =>
+      AppState(counter: 0, description: "", waiting: false);
 
   @override
   bool operator ==(Object other) =>
@@ -60,7 +58,8 @@ class AppState {
           waiting == other.waiting;
 
   @override
-  int get hashCode => counter.hashCode ^ description.hashCode ^ waiting.hashCode;
+  int get hashCode =>
+      counter.hashCode ^ description.hashCode ^ waiting.hashCode;
 }
 
 class MyApp extends StatelessWidget {
@@ -68,7 +67,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) => StoreProvider<AppState>(
       store: store,
       child: MaterialApp(
-        home: MyHomePageConnector(),
+        home: MyHomePage(),
       ));
 }
 
@@ -84,7 +83,11 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
     dispatch(IncrementAction(amount: 1));
 
     // Then, we start and wait for some asynchronous process.
-    String description = await read(Uri.http("numbersapi.com", "${state.counter}"));
+    Response response = await get(
+      Uri.parse("https://swapi.dev/api/people/${state.counter}/"),
+    );
+    Map<String, dynamic> json = jsonDecode(response.body);
+    String description = json['name'] ?? 'Unknown character';
 
     // After we get the response, we can modify the state with it,
     // without having to dispatch another action.
@@ -124,68 +127,15 @@ class IncrementAction extends ReduxAction<AppState> {
   AppState reduce() => state.copy(counter: state.counter + amount);
 }
 
-/// This widget is a connector. It connects the store to "dumb-widget".
-class MyHomePageConnector extends StatelessWidget {
-  MyHomePageConnector({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return StoreConnector<AppState, ViewModel>(
-      vm: () => Factory(this),
-      builder: (BuildContext context, ViewModel vm) => MyHomePage(
-        counter: vm.counter,
-        description: vm.description,
-        onIncrement: vm.onIncrement,
-        waiting: vm.waiting,
-      ),
-    );
-  }
-}
-
-/// Factory that creates a view-model for the StoreConnector.
-class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
-  Factory(connector) : super(connector);
-
-  @override
-  ViewModel fromStore() => ViewModel(
-        counter: state.counter,
-        description: state.description,
-        waiting: state.waiting,
-        onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
-      );
-}
-
-/// The view-model holds the part of the Store state the dumb-widget needs.
-class ViewModel extends Vm {
-  final int counter;
-  final String description;
-  final bool waiting;
-  final VoidCallback onIncrement;
-
-  ViewModel({
-    required this.counter,
-    required this.description,
-    required this.waiting,
-    required this.onIncrement,
-  }) : super(equals: [counter, description, waiting]);
-}
-
 class MyHomePage extends StatelessWidget {
-  final int? counter;
-  final String? description;
-  final bool? waiting;
-  final VoidCallback? onIncrement;
-
-  MyHomePage({
-    Key? key,
-    this.counter,
-    this.description,
-    this.waiting,
-    this.onIncrement,
-  }) : super(key: key);
+  MyHomePage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final counter = context.select((st) => st.counter);
+    final description = context.select((st) => st.description);
+    final waiting = context.select((st) => st.waiting);
+
     return Stack(
       children: [
         Scaffold(
@@ -197,7 +147,7 @@ class MyHomePage extends StatelessWidget {
                 const Text('You have pushed the button this many times:'),
                 Text('$counter', style: const TextStyle(fontSize: 30)),
                 Text(
-                  description!,
+                  description,
                   style: const TextStyle(fontSize: 15),
                   textAlign: TextAlign.center,
                 ),
@@ -205,12 +155,22 @@ class MyHomePage extends StatelessWidget {
             ),
           ),
           floatingActionButton: FloatingActionButton(
-            onPressed: onIncrement,
+            onPressed: () =>
+                context.dispatch(IncrementAndGetDescriptionAction()),
             child: const Icon(Icons.add),
           ),
         ),
-        if (waiting!) ModalBarrier(color: Colors.red.withOpacity(0.4)),
+        if (waiting) ModalBarrier(color: Colors.red.withOpacity(0.4)),
       ],
     );
   }
+}
+
+extension BuildContextExtension on BuildContext {
+  AppState get state => getState<AppState>();
+
+  AppState read() => getRead<AppState>();
+
+  R select<R>(R Function(AppState state) selector) =>
+      getSelect<AppState, R>(selector);
 }

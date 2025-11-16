@@ -906,13 +906,13 @@ class Store<St> {
     int? timeoutMillis,
   }) {
     if (actions == null || actions.isEmpty) {
-      return this.waitActionCondition(
+      return waitActionCondition(
           completeImmediately: completeImmediately,
           completedErrorMessage: "No actions were in progress",
           timeoutMillis: timeoutMillis,
           (actions, triggerAction) => actions.isEmpty);
     } else {
-      return this.waitActionCondition(
+      return waitActionCondition(
         completeImmediately: completeImmediately,
         completedErrorMessage: "None of the given actions were in progress",
         timeoutMillis: timeoutMillis,
@@ -1020,7 +1020,7 @@ class Store<St> {
     bool completeImmediately = false,
     int? timeoutMillis,
   }) async {
-    var (_, triggerAction) = await this.waitActionCondition(
+    var (_, triggerAction) = await waitActionCondition(
       completeImmediately: completeImmediately,
       completedErrorMessage: "No action of the given type was in progress",
       timeoutMillis: timeoutMillis,
@@ -1122,14 +1122,14 @@ class Store<St> {
     int? timeoutMillis,
   }) async {
     if (actionTypes.isEmpty) {
-      await this.waitActionCondition(
+      await waitActionCondition(
         completeImmediately: completeImmediately,
         completedErrorMessage: "No actions are in progress",
         timeoutMillis: timeoutMillis,
         (actions, triggerAction) => actions.isEmpty,
       );
     } else {
-      await this.waitActionCondition(
+      await waitActionCondition(
         completeImmediately: completeImmediately,
         completedErrorMessage: "No action of the given types was in progress",
         timeoutMillis: timeoutMillis,
@@ -1238,7 +1238,7 @@ class Store<St> {
     List<Type> actionTypes, {
     int? timeoutMillis,
   }) async {
-    var (_, triggerAction) = await this.waitActionCondition(
+    var (_, triggerAction) = await waitActionCondition(
       completedErrorMessage: "Assertion error",
       timeoutMillis: timeoutMillis,
       //
@@ -2136,7 +2136,7 @@ class Store<St> {
 
   /// Returns an unmodifiable set of the actions on progress.
   Set<ReduxAction<St>> actionsInProgress() {
-    return new UnmodifiableSetView(this._actionsInProgress);
+    return new UnmodifiableSetView(_actionsInProgress);
   }
 
   /// Returns a copy of the set of actions on progress.

@@ -63,7 +63,7 @@
     
    It also demonstrates the use of an abstract class to override the action's `before()` and `after()` methods.
     
-9. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_dispatch_future.dart">main_dispatch_future</a>
+9. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_infinite_scroll.dart">main_infinite_scroll.dart</a>
 
    This example demonstrates how to get a `Future` that completes when an action is done.
    It shows a list of number descriptions. 
@@ -86,7 +86,3 @@
 
    This example is the same as the one in `main_wait_action_advanced_1.dart`.
    However, instead of only using flags in the `WaitAction`, it uses both flags and references.
-
-   
- 
-    

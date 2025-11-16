@@ -11,9 +11,12 @@ import 'package:meta/meta.dart';
 /// ```dart
 /// class LoadText extends ReduxAction<AppState> with CheckInternet {
 ///   Future<String> reduce() async {
-///     var response = await http.get('http://numbersapi.com/42');
-///     return response.body;
-///   }}
+///
+///   Response response = await get(Uri.parse("https://swapi.dev/api/people/42/"));
+///   Map<String, dynamic> json = jsonDecode(response.body);
+///   return json['name'] ?? 'Unknown';
+///   }
+/// }
 /// ```
 ///
 /// It will automatically check if there is internet before running the action.
@@ -105,9 +108,11 @@ mixin CheckInternet<St> on ReduxAction<St> {
 /// ```dart
 /// class LoadText extends ReduxAction<AppState> with CheckInternet, NoDialog {
 ///   Future<String> reduce() async {
-///     var response = await http.get('http://numbersapi.com/42');
-///     return response.body;
-///   }}
+///     Response response = await get(Uri.parse("https://swapi.dev/api/people/42/"));
+///     Map<String, dynamic> json = jsonDecode(response.body);
+///     return json['name'] ?? 'Unknown';
+///   }
+/// }
 /// ```
 ///
 /// It will turn off showing a dialog when there is no internet.
@@ -136,9 +141,11 @@ mixin NoDialog<St> on CheckInternet<St> {
 /// ```dart
 /// class LoadText extends ReduxAction<AppState> with AbortWhenNoInternet {
 ///   Future<String> reduce() async {
-///     var response = await http.get('http://numbersapi.com/42');
-///     return response.body;
-///   }}
+///     Response response = await get(Uri.parse("https://swapi.dev/api/people/42/"));
+///     Map<String, dynamic> json = jsonDecode(response.body);
+///     return json['name'] ?? 'Unknown';
+///   }
+/// }
 /// ```
 ///
 /// IMPORTANT: It only checks if the internet is on or off on the device, not if the internet
@@ -864,9 +871,11 @@ mixin Debounce<St> on ReduxAction<St> {
 /// ```dart
 /// class LoadText extends AppAction UnlimitedRetryCheckInternet {
 ///   Future<String> reduce() async {
-///     var response = await http.get('http://numbersapi.com/42');
-///     return response.body;
-///   }}
+///     Response response = await get(Uri.parse("https://swapi.dev/api/people/42/"));
+///     Map<String, dynamic> json = jsonDecode(response.body);
+///     return json['name'] ?? 'Unknown';
+///   }
+/// }
 /// ```
 ///
 /// IMPORTANT: This mixin combines [Retry], [UnlimitedRetries], [AbortWhenNoInternet]

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
@@ -12,10 +13,6 @@ late Store<AppState> store;
 /// This example is the same as the one in `main_wait_action_advanced_1.dart`.
 /// However, instead of only using flags in the [WaitAction], it uses both
 /// flags and references.
-///
-/// Note: This example uses http. It was configured to work in Android, debug mode only.
-/// If you use iOS, please see:
-/// https://flutter.dev/docs/release/breaking-changes/network-policy-ios-android
 ///
 void main() {
   var state = AppState.initialState();
@@ -35,7 +32,8 @@ class AppState {
   });
 
   /// The copy method has a named [wait] parameter of type [Wait].
-  AppState copy({int? counter, Map<int, String>? descriptions, Wait? wait}) => AppState(
+  AppState copy({int? counter, Map<int, String>? descriptions, Wait? wait}) =>
+      AppState(
         descriptions: descriptions ?? this.descriptions,
         wait: wait ?? this.wait,
       );
@@ -63,7 +61,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) => StoreProvider<AppState>(
       store: store,
       child: MaterialApp(
-        home: MyHomePageConnector(),
+        home: MyHomePage(),
       ));
 }
 
@@ -74,7 +72,13 @@ class GetDescriptionAction extends ReduxAction<AppState> {
 
   @override
   Future<AppState> reduce() async {
-    String description = await read(Uri.http("numbersapi.com", "$index"));
+    // Then, we start and wait for some asynchronous process.
+    Response response = await get(
+      Uri.parse("https://swapi.dev/api/people/$index/"),
+    );
+    Map<String, dynamic> json = jsonDecode(response.body);
+    String description = json['name'] ?? 'Unknown character';
+
     await Future.delayed(const Duration(seconds: 2)); // Adds some more delay.
 
     Map<int, String> newDescriptions = Map.of(state.descriptions);
@@ -92,161 +96,82 @@ class GetDescriptionAction extends ReduxAction<AppState> {
   void after() => dispatch(WaitAction.remove("button-download", ref: index));
 }
 
-/// This widget is a connector. It connects the store to "dumb-widget".
-class MyHomePageConnector extends StatelessWidget {
-  MyHomePageConnector({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return StoreConnector<AppState, PageViewModel>(
-      vm: () => PageVmFactory(this),
-      builder: (BuildContext context, PageViewModel vm) => MyHomePage(
-        onGetDescription: vm.onGetDescription,
-        waiting: vm.waiting,
-      ),
-    );
-  }
-}
-
-/// Factory that creates a view-model for the StoreConnector.
-class PageVmFactory extends VmFactory<AppState, MyHomePageConnector, PageViewModel> {
-  PageVmFactory(connector) : super(connector);
-
-  @override
-  PageViewModel fromStore() => PageViewModel(
-        /// If there is any waiting, `state.wait.isWaitingAny` will return true.
-        waiting: state.wait.isWaitingAny,
-
-        onGetDescription: (int index) => dispatch(GetDescriptionAction(index)),
-      );
-}
-
-class PageViewModel extends Vm {
-  final bool waiting;
-  final void Function(int) onGetDescription;
-
-  PageViewModel({
-    required this.waiting,
-    required this.onGetDescription,
-  }) : super(equals: [waiting]);
-}
-
-/// This widget is a connector. It connects the store to "dumb-widget".
-class MyItemConnector extends StatelessWidget {
+class MyItem extends StatelessWidget {
   final int index;
-  final void Function(int) onGetDescription;
 
-  MyItemConnector({
+  MyItem({
     required this.index,
-    required this.onGetDescription,
     Key? key,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AppState, ItemViewModel>(
-      vm: () => ItemVmFactory(this),
-      builder: (BuildContext context, ItemViewModel vm) => MyItem(
-        description: vm.description,
-        waiting: vm.waiting,
-        index: index,
-        onGetDescription: onGetDescription,
-      ),
-    );
-  }
-}
+    // Use context.select to get the description and waiting state for this specific index
+    var description =
+        context.select((AppState state) => state.descriptions[index] ?? "");
 
-/// Factory that creates a view-model for the StoreConnector.
-class ItemVmFactory extends VmFactory<AppState, MyItemConnector, ItemViewModel> {
-  ItemVmFactory(connector) : super(connector);
+    /// If index is waiting, `state.wait.isWaiting("button-download", ref: index)` returns true.
+    var waiting = context.select((AppState state) =>
+        state.wait.isWaiting("button-download", ref: index));
 
-  @override
-  ItemViewModel fromStore() => ItemViewModel(
-        description: state.descriptions[connector.index] ?? "",
-
-        /// If index is waiting, `state.wait.isWaiting(index)` returns true.
-        waiting: state.wait.isWaiting("button-download", ref: connector.index),
-      );
-}
-
-/// The view-model holds the part of the Store state the dumb-widget needs.
-class ItemViewModel extends Vm {
-  final String description;
-  final bool waiting;
-
-  ItemViewModel({
-    required this.description,
-    required this.waiting,
-  }) : super(equals: [description, waiting]);
-}
-
-class MyItem extends StatelessWidget {
-  final String description;
-  final bool waiting;
-  final int index;
-  final void Function(int) onGetDescription;
-
-  MyItem({
-    required this.description,
-    required this.waiting,
-    required this.index,
-    required this.onGetDescription,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     Widget contents;
 
     if (waiting)
       contents = _progressIndicator();
     else if (description.isNotEmpty)
-      contents = _indexDescription();
+      contents = _indexDescription(description);
     else
-      contents = _button();
+      contents = _button(context);
 
     return Container(height: 70, child: Center(child: contents));
   }
 
-  MaterialButton _button() => MaterialButton(
+  MaterialButton _button(BuildContext context) => MaterialButton(
         color: Colors.blue,
-        child:
-            Text("CLICK $index", style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
-        onPressed: () => onGetDescription(index),
+        child: Text("CLICK $index",
+            style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
+        onPressed: () => context.dispatch(GetDescriptionAction(index)),
       );
 
-  Text _indexDescription() =>
-      Text(description, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center);
+  Text _indexDescription(String description) => Text(description,
+      style: const TextStyle(fontSize: 15), textAlign: TextAlign.center);
 
-  CircularProgressIndicator _progressIndicator() => const CircularProgressIndicator(
+  CircularProgressIndicator _progressIndicator() =>
+      const CircularProgressIndicator(
         valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
       );
 }
 
 class MyHomePage extends StatelessWidget {
-  final bool waiting;
-  final void Function(int) onGetDescription;
-
-  MyHomePage({
-    Key? key,
-    required this.waiting,
-    required this.onGetDescription,
-  }) : super(key: key);
+  MyHomePage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    /// If there is any waiting, `state.wait.isWaitingAny` will return true.
+    var waiting = context.select((AppState state) => state.wait.isWaitingAny);
+
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(title: Text(waiting ? "Downloading..." : "Advanced WaitAction Example 2")),
+          appBar: AppBar(
+              title: Text(waiting
+                  ? "Downloading..."
+                  : "Advanced WaitAction Example 2")),
           body: ListView.builder(
             itemCount: 10,
-            itemBuilder: (context, index) => MyItemConnector(
-              index: index,
-              onGetDescription: onGetDescription,
-            ),
+            itemBuilder: (context, index) => MyItem(index: index),
           ),
         ),
       ],
     );
   }
+}
+
+extension BuildContextExtension on BuildContext {
+  AppState get state => getState<AppState>();
+
+  AppState read() => getRead<AppState>();
+
+  R select<R>(R Function(AppState state) selector) =>
+      getSelect<AppState, R>(selector);
 }

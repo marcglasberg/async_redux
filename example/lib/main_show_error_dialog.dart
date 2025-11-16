@@ -28,7 +28,9 @@ class AppState {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is AppState && runtimeType == other.runtimeType && name == other.name;
+      other is AppState &&
+          runtimeType == other.runtimeType &&
+          name == other.name;
 
   @override
   int get hashCode => name.hashCode;
@@ -41,7 +43,7 @@ class MyApp extends StatelessWidget {
         store: store,
         child: MaterialApp(
           home: UserExceptionDialog<AppState>(
-            child: MyHomePageConnector(),
+            child: MyHomePage(),
           ),
         ),
       );
@@ -57,7 +59,8 @@ class SaveUserAction extends ReduxAction<AppState> {
     print("Saving '$name'.");
 
     if (name.length < 4)
-      throw const UserException("Name needs 4 letters or more.", errorText: 'At least 4 letters.');
+      throw const UserException("Name needs 4 letters or more.",
+          errorText: 'At least 4 letters.');
 
     return state.copy(name: name);
   }
@@ -71,53 +74,8 @@ class SaveUserAction extends ReduxAction<AppState> {
 // .addCallbacks(onOk: ..., onCancel: () => print("CANCEL pressed, or dialog dismissed."));
 }
 
-/// This widget is a connector. It connects the store to "dumb-widget".
-class MyHomePageConnector extends StatelessWidget {
-  MyHomePageConnector({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return StoreConnector<AppState, ViewModel>(
-      vm: () => Factory(this),
-      builder: (BuildContext context, ViewModel vm) => MyHomePage(
-        name: vm.name,
-        onSaveName: vm.onSaveName,
-      ),
-    );
-  }
-}
-
-/// Factory that creates a view-model for the StoreConnector.
-class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
-  Factory(connector) : super(connector);
-
-  @override
-  ViewModel fromStore() => ViewModel(
-        name: state.name,
-        onSaveName: (String name) => dispatch(SaveUserAction(name)),
-      );
-}
-
-/// The view-model holds the part of the Store state the dumb-widget needs.
-class ViewModel extends Vm {
-  final String? name;
-  final ValueChanged<String> onSaveName;
-
-  ViewModel({
-    required this.name,
-    required this.onSaveName,
-  }) : super(equals: [name!]);
-}
-
 class MyHomePage extends StatefulWidget {
-  final String? name;
-  final ValueChanged<String>? onSaveName;
-
-  MyHomePage({
-    Key? key,
-    this.name,
-    this.onSaveName,
-  }) : super(key: key);
+  MyHomePage({Key? key}) : super(key: key);
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
@@ -134,6 +92,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Use context.select to get the name from the state
+    var name = context.select((AppState state) => state.name);
+
     return Stack(
       children: [
         Scaffold(
@@ -144,7 +105,8 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Type a name and save:\n(See error if less than 4 chars)',
+                  const Text(
+                      'Type a name and save:\n(See error if less than 4 chars)',
                       textAlign: TextAlign.center),
                   //
                   TextField(
@@ -152,9 +114,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     onChanged: (text) {
                       // This is optional, as the exception is already cleared when the
                       // action dispatches again. Comment it out to see the difference.
-                      if (text.length >= 4) context.clearExceptionFor(SaveUserAction);
+                      if (text.length >= 4)
+                        context.clearExceptionFor(SaveUserAction);
                     },
-                    onSubmitted: widget.onSaveName,
+                    onSubmitted: (String text) =>
+                        context.dispatch(SaveUserAction(text)),
                   ),
                   const SizedBox(height: 30),
                   //
@@ -165,17 +129,26 @@ class _MyHomePageState extends State<MyHomePage> {
                       style: const TextStyle(color: Colors.red),
                     ),
                   //
-                  Text('Current Name: ${widget.name}'),
+                  Text('Current Name: $name'),
                 ],
               ),
             ),
           ),
           floatingActionButton: FloatingActionButton(
-            onPressed: () => widget.onSaveName!(controller!.text),
+            onPressed: () => context.dispatch(SaveUserAction(controller!.text)),
             child: const Text("Save"),
           ),
         ),
       ],
     );
   }
+}
+
+extension BuildContextExtension on BuildContext {
+  AppState get state => getState<AppState>();
+
+  AppState read() => getRead<AppState>();
+
+  R select<R>(R Function(AppState state) selector) =>
+      getSelect<AppState, R>(selector);
 }

@@ -12,8 +12,8 @@ void main() async {
 }
 
 final routes = {
-  '/': (BuildContext context) => Page1Connector(),
-  "/myRoute": (BuildContext context) => Page2Connector(),
+  '/': (BuildContext context) => Page1(),
+  "/myRoute": (BuildContext context) => Page2(),
 };
 
 class AppState {}
@@ -46,59 +46,24 @@ class Page extends StatelessWidget {
       );
 }
 
-class Page1Connector extends StatelessWidget {
+class Page1 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AppState, ViewModel1>(
-      vm: () => Factory1(),
-      builder: (BuildContext context, ViewModel1 vm) => Page(
-        color: Colors.red,
-        text: "Tap me to push a new route!",
-        onChangePage: vm.onChangePage,
-      ),
+    return Page(
+      color: Colors.red,
+      text: "Tap me to push a new route!",
+      onChangePage: () => context.dispatch(NavigateAction.pushNamed("/myRoute")),
     );
   }
 }
 
-/// Factory that creates a view-model for the StoreConnector.
-class Factory1 extends VmFactory<AppState, Page1Connector, ViewModel1> {
-  @override
-  ViewModel1 fromStore() =>
-      ViewModel1(onChangePage: () => dispatch(NavigateAction.pushNamed("/myRoute")));
-}
-
-/// The view-model holds the part of the Store state the dumb-widget needs.
-class ViewModel1 extends Vm {
-  final VoidCallback onChangePage;
-
-  ViewModel1({required this.onChangePage});
-}
-
-class Page2Connector extends StatelessWidget {
+class Page2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AppState, ViewModel2>(
-      vm: () => Factory2(),
-      builder: (BuildContext context, ViewModel2 vm) => Page(
-        color: Colors.blue,
-        text: "Tap me to pop this route!",
-        onChangePage: vm.onChangePage,
-      ),
+    return Page(
+      color: Colors.blue,
+      text: "Tap me to pop this route!",
+      onChangePage: () => context.dispatch(NavigateAction.pop()),
     );
   }
-}
-
-/// Factory that creates a view-model for the StoreConnector.
-class Factory2 extends VmFactory<AppState, Page1Connector, ViewModel2> {
-  @override
-  ViewModel2 fromStore() => ViewModel2(
-        onChangePage: () => dispatch(NavigateAction.pop()),
-      );
-}
-
-/// The view-model holds the part of the Store state the dumb-widget needs.
-class ViewModel2 extends Vm {
-  final VoidCallback onChangePage;
-
-  ViewModel2({required this.onChangePage});
 }

@@ -8,6 +8,52 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 25.5.0
+
+* You can now use `context.select((state) => ...)` to select only the part 
+  of the state you need in your widget, so that your widget only rebuilds 
+  when that particular part of the state changes. For example:
+    
+  ```dart
+  var myInfo = context.select((state) => state.myInfo);
+  ```                          
+  
+  Note you can also access your state directly with `context.state.myInfo`, 
+  but that will rebuild your widget whenever **any** part of the state changes.
+  Using `context.select()` is more efficient because it only rebuilds
+  your widget when the selected part of the state changes.
+
+  Suggestion: When creating the first draft of your widget, you may 
+  use `context.state` just to get started quickly, and then later change it 
+  to use `context.select()` to optimize the rebuilds.
+      
+  If you want to read your state and NOT rebuild your widget when the state
+  changes, you can use `context.read()`. For example:
+    
+  ```dart
+  var myInfo = context.read().myInfo;
+  ```
+  
+  However, to use `context.select()`, `context.read()`, and `context.state` 
+  as shown above, you need to define the following extension method in your
+  own code (assuming your state class is called `AppState`):
+
+  ```dart  
+  extension BuildContextExtension on BuildContext {
+    AppState get state => getState<AppState>();    
+    AppState read() => getRead<AppState>();    
+    R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
+  }
+  ```
+
+  Note, you can also use the other context extension methods like
+  `context.dispatch`, `context.isWaiting`, `context.isFailed`,
+  `context.exceptionFor`, and `context.clearExceptionFor`.     
+
+  See
+  the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_select.dart">
+  Select Example</a>.
+
 ## 25.4.0
 
 * Added `Store.disposeProp(key)` and `Action.disposeProp(key)` methods to 
@@ -486,9 +532,9 @@ Sponsored by [MyText.ai](https://mytext.ai)
   context.clearExceptionFor(MyAction);
   ```      
 
-  However, to use `context.state` like shown above you must define this
-  extension method in your own code (supposing your state class is called
-  `AppState`):
+  However, to use `context.state` as shown above, you need to define the 
+  following extension method in your own code (assuming your state class is 
+  called `AppState`):
 
   ```dart  
   extension BuildContextExtension on BuildContext {
@@ -497,7 +543,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
   ```     
 
   See
-  the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_conector_vs_provider.dart.dart">
+  the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_conector_vs_provider.dart">
   Connector vs Provider Example</a>.
 
 

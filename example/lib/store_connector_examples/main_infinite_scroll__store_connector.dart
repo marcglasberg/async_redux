@@ -10,17 +10,14 @@ import 'package:http/http.dart';
 
 late Store<AppState> store;
 
-/// This example shows a List of number descriptions.
-/// Scrolling to the bottom of the list will async load the next 20 elements.
-/// Scrolling past the top of the list (pull to refresh) will use `dispatch`
-/// to dispatch an action, and get a future that tells a `RefreshIndicator`
-/// when the action completes.
+/// This example shows a List of Star Wars characters.
+/// Scrolling to the bottom of the list will async load the next 20 characters.
+/// Scrolling past the top of the list (pull to refresh) will use
+/// `dispatchAndWait` to dispatch an action and get a future that tells the
+/// `RefreshIndicator` when the action completes.
 ///
-/// `IsLoadingAction` prevents the user to load more while the async loading action is running.
-///
-/// Note: This example uses http. It was configured to work in Android, debug mode only.
-/// If you use iOS, please see:
-/// https://flutter.dev/docs/release/breaking-changes/network-policy-ios-android
+/// `isWaiting(LoadMoreAction)` prevents the user from loading more while the
+/// async action is running.
 ///
 void main() {
   var state = AppState.initialState();
@@ -35,33 +32,23 @@ void main() {
 @immutable
 class AppState {
   final List<String> numTrivia;
-  final bool isLoading;
 
-  AppState({
-    required this.numTrivia,
-    required this.isLoading,
-  });
+  AppState({required this.numTrivia});
 
-  AppState copy({List<String>? numTrivia, bool? isLoading}) => AppState(
-        numTrivia: numTrivia ?? this.numTrivia,
-        isLoading: isLoading ?? this.isLoading,
-      );
+  AppState copy({List<String>? numTrivia}) =>
+      AppState(numTrivia: numTrivia ?? this.numTrivia);
 
-  static AppState initialState() => AppState(
-        numTrivia: <String>[],
-        isLoading: false,
-      );
+  static AppState initialState() => AppState(numTrivia: <String>[]);
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is AppState &&
           runtimeType == other.runtimeType &&
-          numTrivia == other.numTrivia &&
-          isLoading == other.isLoading;
+          numTrivia == other.numTrivia;
 
   @override
-  int get hashCode => numTrivia.hashCode ^ isLoading.hashCode;
+  int get hashCode => numTrivia.hashCode;
 }
 
 class MyApp extends StatelessWidget {
@@ -69,6 +56,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) => StoreProvider<AppState>(
         store: store,
         child: MaterialApp(
+          debugShowCheckedModeBanner: false,
           home: MyHomePageConnector(),
         ),
       );
@@ -77,49 +65,46 @@ class MyApp extends StatelessWidget {
 class LoadMoreAction extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    Response response = await get(Uri.http(
-        'http://numbersapi.com/',
-        '${state.numTrivia.length}'
-            '..'
-            '${state.numTrivia.length + 19}'));
+    List<String> list = List.from(state.numTrivia);
+    int start = state.numTrivia.length + 1;
 
-    List<String>? list = state.numTrivia;
-    Map<String, dynamic> map = jsonDecode(response.body);
-    map.forEach((String v, e) => list.add(e.toString()));
+    // Fetch 20 people concurrently.
+    final responses = await Future.wait(
+      List.generate(20,
+          (i) => get(Uri.parse('https://swapi.dev/api/people/${start + i}/'))),
+    );
+
+    for (final response in responses) {
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        list.add(data['name'] ?? 'Unknown character');
+      }
+    }
+
     return state.copy(numTrivia: list);
   }
-
-  @override
-  void before() => dispatch(IsLoadingAction(true));
-
-  @override
-  void after() => dispatch(IsLoadingAction(false));
 }
 
 class RefreshAction extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    Response response = await get(Uri.http('http://numbersapi.com/', '0..19'));
     List<String> list = [];
-    Map<String, dynamic> map = jsonDecode(response.body);
-    map.forEach((String v, e) => list.add(e.toString()));
+
+    // Fetch the first 20 people concurrently.
+    final responses = await Future.wait(
+      List.generate(
+          20, (i) => get(Uri.parse('https://swapi.dev/api/people/${i + 1}/'))),
+    );
+
+    for (final response in responses) {
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        list.add(data['name'] ?? 'Unknown character');
+      }
+    }
+
     return state.copy(numTrivia: list);
   }
-
-  @override
-  void before() => dispatch(IsLoadingAction(true));
-
-  @override
-  void after() => dispatch(IsLoadingAction(false));
-}
-
-class IsLoadingAction extends ReduxAction<AppState> {
-  IsLoadingAction(this.val);
-
-  final bool val;
-
-  @override
-  AppState reduce() => state.copy(isLoading: val);
 }
 
 class MyHomePageConnector extends StatelessWidget {
@@ -149,7 +134,7 @@ class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
   ViewModel fromStore() {
     return ViewModel(
       numTrivia: state.numTrivia,
-      isLoading: state.isLoading,
+      isLoading: isWaiting(LoadMoreAction),
       loadMore: () => dispatch(LoadMoreAction()),
       onRefresh: () => dispatchAndWait(RefreshAction()),
     );
@@ -200,7 +185,8 @@ class _MyHomePageState extends State<MyHomePage> {
     _controller = ScrollController()
       ..addListener(() {
         if (!widget.isLoading &&
-            _controller.position.maxScrollExtent == _controller.position.pixels) {
+            _controller.position.maxScrollExtent ==
+                _controller.position.pixels) {
           widget.loadMore();
         }
       });
@@ -216,18 +202,27 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Dispatch Future Example')),
+      appBar: AppBar(title: const Text('Infinite Scroll Example (StoreConnector)')),
       body: (widget.numTrivia.isEmpty)
           ? Container()
           : RefreshIndicator(
               onRefresh: widget.onRefresh,
               child: ListView.builder(
                 controller: _controller,
-                itemCount: widget.numTrivia.length,
-                itemBuilder: (context, index) => ListTile(
-                  leading: CircleAvatar(child: Text(index.toString())),
-                  title: Text(widget.numTrivia[index]),
-                ),
+                itemCount: widget.numTrivia.length + (widget.isLoading ? 1 : 0),
+                itemBuilder: (context, index) {
+                  // Show loading spinner at the end
+                  if (index == widget.numTrivia.length) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  } else
+                    return ListTile(
+                      leading: CircleAvatar(child: Text(index.toString())),
+                      title: Text(widget.numTrivia[index]),
+                    );
+                },
               ),
             ),
     );
