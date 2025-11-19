@@ -8,7 +8,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 25.5.2
+## 25.6.0
 
 * You can now use the selector extension `context.select((state) => ...)` to 
   select only the part of the state you need in your widget, so that your widget 
@@ -121,7 +121,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
     event was dispatched, or **null** if it was already spent.
 
   See
-  the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_event_redux.dart">
+  the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_event.dart">
   Event Example</a>.
 
 * You can now use the environment extension `context.env` to access the store

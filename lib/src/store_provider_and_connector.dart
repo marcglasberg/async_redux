@@ -1437,11 +1437,9 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
 
   /// Provides easy access to the AsyncRedux store state from a BuildContext.
   ///
-  /// Use this in your widget's build method to read the current store state.
-  /// Widgets using this will NOT rebuild automatically when the state changes.
-  ///
   /// This is useful when you want to read the state once, for example
   /// inside an event handler, or in your `initState` method.
+  /// Widgets using this will NOT rebuild automatically when the state changes.
   ///
   /// For convenience, it's recommended that you define this extension in your
   /// own code:
@@ -1579,8 +1577,10 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// - [getSelect] to select specific parts of the state and rebuild only when those parts change.
   /// - [Event] class documentation for more details on event behavior and lifecycle.
   ///
-  R? getEvent<St, R>(Evt<R> Function(St state) selector) {
-    var evt = getSelect<St, Evt<R>>(selector);
+  R? getEvent<St, R>(Evt<R> Function(St state) selector, {bool debug = true}) {
+    _assertEvent(debug);
+
+    var evt = getSelect<St, Evt<R>>(selector, debug: debug);
     return evt.consume();
   }
 
@@ -1628,56 +1628,16 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// - [getRead] if you don't want the widget to rebuild automatically when
   ///   the state changes (use it with `context.read()`).
   ///
-  R getSelect<St, R>(R Function(St state) selector) {
-    assert(() {
-      final widget = this.widget;
+  /// The [debug] parameter, when true (the default), will throw an error if you
+  /// try to use `context.select` outside the widget's `build` method. Set it to
+  /// false to also allow usage in `didChangeDependencies`. Use this with care:
+  /// once the debug check is off, invalid usage in methods like `initState` will
+  /// no longer be detected.
+  ///
+  R getSelect<St, R>(R Function(St state) selector, {bool debug = true}) {
+    _assertSelect(debug);
 
-      // Check for unsupported contexts
-      if (widget is SliverWithKeepAliveWidget ||
-          widget is AutomaticKeepAliveClientMixin) {
-        throw FlutterError('''
-Tried to use context.select (or context.getSelect) inside a SliverList/SliderGridView.
-
-This is likely a mistake, as instead of rebuilding only the item that cares
-about the selected value, this would rebuild the entire list/grid.
-
-To fix, add a `Builder` or extract the content of `itemBuilder` in a separate widget:
-
-ListView.builder(
-  itemBuilder: (context, index) {
-    return Builder(builder: (context) {
-      final todo = context.select((list) => list[index]);
-      return Text(todo.name);
-    });
-  },
-);
-''');
-      }
-
-      // Check we're in a build method
-      if (!debugDoingBuild &&
-          widget is! LayoutBuilder &&
-          widget is! SliverLayoutBuilder) {
-        throw FlutterError('''
-Tried to use `context.select` outside of the `build` method of a widget.
-
-Any usage other than inside the `build` method of a widget is not supported.
-''');
-      }
-
-      // Check for nested select calls
-      if (_debugIsSelecting) {
-        throw FlutterError('''
-Cannot call context.select inside the selector of another context.select.
-
-The selector function must return a value immediately, without calling other providers.
-''');
-      }
-
-      return true;
-    }());
-
-    // Get the InheritedElement WITHOUT creating a dependency yet
+    // Get the InheritedElement WITHOUT creating a dependency yet.
     final inheritedElement =
         getElementForInheritedWidgetOfExactType<_InheritedUntypedRebuilds>();
 
@@ -1749,6 +1709,111 @@ The selector function must return a value immediately, without calling other pro
     );
 
     return selected;
+  }
+
+  void _assertSelect(bool debug) {
+    assert(() {
+      final widget = this.widget;
+
+      // Check for unsupported contexts.
+      if (widget is SliverWithKeepAliveWidget ||
+          widget is AutomaticKeepAliveClientMixin) {
+        throw FlutterError(
+            'Tried to use `context.select` (or `context.getSelect`) '
+            'inside a SliverList/SliderGridView.'
+            '\n\n'
+            'This is likely a mistake, as instead of rebuilding only the item that cares '
+            'about the selected value, this would rebuild the entire list/grid.'
+            '\n\n'
+            'To fix, add a `Builder` or extract the content of `itemBuilder` in a separate widget:'
+            '\n\n'
+            'ListView.builder(\n'
+            '  itemBuilder: (context, index) {\n'
+            '    return Builder(builder: (context) {\n'
+            '      final todo = context.select((st) => st.list[index]);\n'
+            '      return Text(todo.name);\n'
+            '    });\n'
+            '  },\n'
+            ');\n');
+      }
+
+      // Check we're in a build method.
+      if (debug &&
+          !debugDoingBuild &&
+          widget is! LayoutBuilder &&
+          widget is! SliverLayoutBuilder) {
+        throw FlutterError(
+            'Tried to use `context.select` (or `context.getSelect`) '
+            'outside the widget `build` method.'
+            '\n\n'
+            'See also: `context.read()` which you can use in `initState` and events handlers, '
+            'because it will not rebuild widgets automatically when the state changes.\n');
+      }
+
+      // Check for nested select calls.
+      if (_debugIsSelecting) {
+        throw FlutterError(
+            'Cannot call `context.select` inside the selector of another `context.select`.'
+            '\n\n'
+            'The selector function must return a value immediately, without calling other selectors.\n');
+      }
+
+      return true;
+    }());
+  }
+
+  void _assertEvent(bool debug) {
+    assert(() {
+      final widget = this.widget;
+
+      // Check for unsupported contexts.
+      if (widget is SliverWithKeepAliveWidget ||
+          widget is AutomaticKeepAliveClientMixin) {
+        throw FlutterError(
+            'Tried to use `context.event` (or `context.getEvent`) '
+            'inside a SliverList/SliderGridView.'
+            '\n\n'
+            'This is likely a mistake, as instead of rebuilding only the item that cares '
+            'about the selected value, this would rebuild the entire list/grid.'
+            '\n\n'
+            'To fix, add a `Builder` or extract the content of `itemBuilder` in a separate widget:'
+            '\n\n'
+            'ListView.builder(\n'
+            '  itemBuilder: (context, index) {\n'
+            '    return Builder(builder: (context) {\n'
+            '      var clearText = context.event((state) => state.clearTextEvt);\n'
+            '      if (clearText) controller.clear();\n'
+            '      return TextField(controller: controller);\n'
+            '    });\n'
+            '  },\n'
+            ');\n');
+      }
+
+      // Check we're in a build method.
+      if (debug &&
+          !debugDoingBuild &&
+          widget is! LayoutBuilder &&
+          widget is! SliverLayoutBuilder) {
+        throw FlutterError(
+            'Tried to use `context.event` (or `context.getEvent`) '
+            'outside the widget `build` method.'
+            '\n\n'
+            'Note: If you also want to allow the usage in '
+            '`didChangeDependencies`, set `debug` to false in `context.getEvent`. '
+            'Use with care, as invalid usage in methods like `initState` will '
+            'no longer be detected once the debug check is off.\n');
+      }
+
+      // Check for nested select calls.
+      if (_debugIsSelecting) {
+        throw FlutterError(
+            'Cannot call `context.event` inside the selector of another `context.event`.'
+            '\n\n'
+            'The selector function must return a value immediately, without calling other selectors.\n');
+      }
+
+      return true;
+    }());
   }
 
   /// Workaround to capture generics (used internally).

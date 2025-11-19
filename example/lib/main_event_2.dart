@@ -10,16 +10,25 @@ import 'package:http/http.dart';
 
 late Store<AppState> store;
 
-/// This example shows a text-field, and two buttons.
-/// When the first button is tapped, an async process downloads
-/// some text from the internet and puts it in the text-field.
-/// When the second button is tapped, the text-field is cleared.
+/// This example is similar to example `main_event.dart`, meant to demonstrate
+/// the use of "events" (of type [Event] or [Evt]) to change a controller state,
+/// or perform any other one-time operation.
 ///
-/// This is meant to demonstrate the use of "events" (of type [Event] or
-/// [Evt]) to change a controller state, or perform any other one-time operation.
+/// However, here we consume the events in the `didChangeDependencies()` method
+/// of the stateful widget, instead of in the `build()` method.
 ///
-/// It also demonstrates the use of an abstract class [BarrierAction]
-/// to override the action's before() and after() methods.
+/// To allow that, we need to turn off the debug mode of the `getEvent()` method,
+/// as shown in the extension method below:
+///
+/// ```dart
+/// extension BuildContextExtension on BuildContext {
+///   R? event<R>(Evt<R> Function(AppState state) selector) =>
+///       getEvent<AppState, R>(selector, debug: false);
+/// }
+/// ```
+///
+/// Use with care, as invalid usage in methods like `initState` will
+/// no longer be detected once the debug check is off.
 ///
 void main() {
   var state = AppState.initialState();
@@ -145,9 +154,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    //
-    var waiting = context.select((state) => state.waiting);
+  void didChangeDependencies() {
+    super.didChangeDependencies();
 
     // Event that tells the controller to clear its text.
     var clearText = context.event((state) => state.clearTextEvt);
@@ -156,11 +164,17 @@ class _MyHomePageState extends State<MyHomePage> {
     // Event that tells the controller to change its text.
     var newText = context.event((state) => state.changeTextEvt);
     if (newText != null) controller.text = newText;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    //
+    var waiting = context.select((state) => state.waiting);
 
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(title: const Text('Event Example')),
+          appBar: AppBar(title: const Text('Event in didChangeDependencies Example')),
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -196,5 +210,5 @@ extension BuildContextExtension on BuildContext {
       getSelect<AppState, R>(selector);
 
   R? event<R>(Evt<R> Function(AppState state) selector) =>
-      getEvent<AppState, R>(selector);
+      getEvent<AppState, R>(selector, debug: false);
 }
