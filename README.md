@@ -53,9 +53,9 @@ Below is a quick overview.
 
 ***
 
-# Store, state, actions and reducers
+# Store and state
 
-The store holds all the application **state**.
+The **store** holds all the application **state**.
 
 ```dart
 class AppState {
@@ -86,23 +86,21 @@ Widget build(context) {
 
 # Widgets use the state
 
-Use `context.state` in your widgets. They will rebuild when the state changes.
+Using `context.state`, your widgets rebuild when the state changes.
 
 ```dart
 class MyWidget extends StatelessWidget {
 
-  Widget build(context) {
-    return Text(
-       '${context.state.name} has ${context.state.age} years old'
-    );
-  }
+  Widget build(context)
+    => Text('${context.state.name} has ${context.state.age} years old');
 }
 ```
 
-Or use `context.select()` to select only the parts of the state you need.
+Or use `context.select()` to get only the parts of the state you need.
 
 ```dart
 Widget build(context) {
+
   var state = context.select((st) => (
      name: st.user.name, 
      age: st.user.age),
@@ -125,42 +123,45 @@ Widget build(context) {
 
 &nbsp;
 
-# Actions and reducers
+# Actions change the state
 
 The application state is **immutable**.
 
-The only way to change the **state** is by dispatching an **action**.
+The only way to change the state is by dispatching an **action**.
 
 ```dart
 // Dispatch an action
-store.dispatch(Increment());
+dispatch(Increment());
 
 // Dispatch multiple actions
-store.dispatchAll([Increment(), LoadText()]);
+dispatchAll([Increment(), LoadText()]);
 
 // Dispatch an action and wait for it to finish
-await store.dispatchAndWait(Increment());
+await dispatchAndWait(Increment());
 
 // Dispatch multiple actions and wait for them to finish
-await store.dispatchAndWaitAll([Increment(), LoadText()]);
+await dispatchAndWaitAll([Increment(), LoadText()]);
 ```
 
 &nbsp;
 
 An **action** is a class that contain its own **reducer**.
-The action reducer returns a new state, that replaces the old one.
+Its `reduce` method returns a new state to replace the old one.
 
 ```dart
 class Increment extends Action {
 
   // The reducer has access to the current state
-  int reduce() => state + 1; // It returns a new state
+  AppState reduce() 
+    => AppState(state.name, state.age + 1); // Returns new state
 }
 ```
 
+&nbsp;
+
 # Widgets can dispatch actions
 
-In your widgets, use `context.dispatch` , `context.dispatchAll` etc.
+In your widgets, use `context.dispatch` to dispatch actions.
 
 ```dart
 class MyWidget extends StatelessWidget {
@@ -311,7 +312,7 @@ class SellStockForPrice extends Action {
 
 # Add features to your actions
 
-You can add **mixins** to your actions, to accomplish common tasks.
+You can use **mixins** in your actions, to accomplish common tasks.
 
 ## Check for Internet connectivity
 
@@ -348,15 +349,14 @@ class MyWidget extends StatelessWidget {
 &nbsp;
 
 Mixin `AbortWhenNoInternet` aborts the action silently (without showing any
-dialogs)
-if there is no internet connection.
+dialogs) if there is no internet connection.
 
 &nbsp;
 
 ## NonReentrant
 
-To prevent an action from being dispatched while it's already running,
-add the `NonReentrant` mixin to your action class.
+Mixin `NonReentrant` prevents an action from being dispatched while it's 
+already running.
 
 ```dart
 class LoadText extends Action with NonReentrant {
