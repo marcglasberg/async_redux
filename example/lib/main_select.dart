@@ -26,6 +26,33 @@ late Store<AppState> store;
 /// 4. LoadingStatusWidget (grey): rebuilds when [IncrementAndGetDescriptionAction]
 ///    is dispatched, and when it finishes (either successfully or with error).
 ///
+/// It should start like this:
+///
+/// ```
+/// Restarted application in 271ms.
+/// 🔴 MyHomePage rebuilt
+/// 🔵 CounterWidget rebuilt
+/// 💛 DescriptionWidget rebuilt
+/// 🍏 LoadingStatusWidget rebuilt
+/// 🔴 MyHomePage rebuilt
+/// 🔵 CounterWidget rebuilt
+/// 💛 DescriptionWidget rebuilt
+/// 🍏 LoadingStatusWidget rebuilt
+/// ```
+///
+/// When you press the `+` button, you should immediately see these extra lines:
+/// ```
+/// 🍏 LoadingStatusWidget rebuilt
+/// 🔵 CounterWidget rebuilt
+/// ```
+///
+/// And then, a moment later, when the character loads:
+///
+/// ```
+/// 🍏 LoadingStatusWidget rebuilt
+/// 💛 DescriptionWidget rebuilt
+/// ```
+///
 void main() {
   var state = AppState.initialState();
   store = Store<AppState>(initialState: state);
@@ -213,4 +240,7 @@ extension BuildContextExtension on BuildContext {
 
   R select<R>(R Function(AppState state) selector) =>
       getSelect<AppState, R>(selector);
+
+  R? event<R>(Evt<R> Function(AppState state) selector) =>
+      getEvent<AppState, R>(selector);
 }

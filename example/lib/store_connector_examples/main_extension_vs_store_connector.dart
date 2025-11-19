@@ -35,7 +35,7 @@ class HomePage extends StatelessWidget {
           children: [
             GetsStateFromStoreConnector(),
             const SizedBox(height: 40),
-            GetsStateFromStoreProvider(),
+            GetsStateFromBuildContextExtension(),
           ],
         ),
       ),
@@ -65,7 +65,8 @@ class GetsStateFromStoreConnector extends StatelessWidget {
       converter: (Store<AppState> store) => store.state.counter,
       builder: (context, value) => Column(
         children: [
-          Text('$value', style: const TextStyle(fontSize: 30, color: Colors.black)),
+          Text('$value',
+              style: const TextStyle(fontSize: 30, color: Colors.black)),
           const Text(
             'Value read with the StoreConnector:\n`StoreConnector(builder: (context, value) => ...)`',
             style: const TextStyle(fontSize: 13),
@@ -77,12 +78,13 @@ class GetsStateFromStoreConnector extends StatelessWidget {
   }
 }
 
-class GetsStateFromStoreProvider extends StatelessWidget {
+class GetsStateFromBuildContextExtension extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text('${context.state.counter}', style: const TextStyle(fontSize: 30, color: Colors.black)),
+        Text('${context.state.counter}',
+            style: const TextStyle(fontSize: 30, color: Colors.black)),
         const Text(
           'Value read with the StoreProvider:\n`context.state.counter`',
           style: TextStyle(fontSize: 13),
@@ -112,7 +114,9 @@ class AppState {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is AppState && runtimeType == other.runtimeType && counter == other.counter;
+      other is AppState &&
+          runtimeType == other.runtimeType &&
+          counter == other.counter;
 
   @override
   int get hashCode => counter.hashCode;

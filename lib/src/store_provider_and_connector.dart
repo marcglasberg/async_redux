@@ -1066,8 +1066,9 @@ class StoreProvider<St> extends InheritedWidget {
   ///
   static Store<St> backdoorInheritedWidget<St>(BuildContext context,
       {Object? debug}) {
-    final StoreProvider<St>? provider =
-        context.dependOnInheritedWidgetOfExactType<StoreProvider<St>>();
+    final element =
+        context.getElementForInheritedWidgetOfExactType<StoreProvider<St>>();
+    final StoreProvider<St>? provider = element?.widget as StoreProvider<St>?;
 
     if (provider == null)
       throw _exceptionForWrongStoreType(_typeOf<StoreProvider<St>>(),
@@ -1154,33 +1155,15 @@ class _WidgetListensOnChange extends StatefulWidget {
 }
 
 class _WidgetListensOnChangeState extends State<_WidgetListensOnChange> {
-  // TODO: DONT REMOVE
-  // Object? _recentState;
-
   @override
   void initState() {
     super.initState();
-    widget.store.onChange.where(_stateChanged).listen((state) {
+    widget.store.onChange.listen((state) {
       if (mounted) {
-        // TODO: DONT REMOVE
-        // _recentState = state;
         setState(() {});
       }
     });
   }
-
-  // Make sure we're not rebuilding if the state didn't change.
-  // Note: This is not necessary because the store only sends the new state if it changed:
-  // `if (((state != null) && !identical(_state, state)) ...`
-  // I'm leaving it here because in the future I want to improve this by only rebuilding
-  // when the part of the state that the widgets depend on changes.
-  // To implement that in the future I have to create some special InheritedWidget that
-  // only notifies dependents when the part of the state they depend on changes.
-  // For the moment, if you use the [StoreProvider.state] method, it will rebuild the widget
-  // whenever the state changes, even if the part of the state that the widget depends on
-  // didn't change. Currently, the only way to avoid this is to use the [StoreConnector].
-  // TODO: DONT REMOVE:  bool _stateChanged(state) => !identical(_recentState, widget.store.state);
-  bool _stateChanged(state) => true;
 
   @override
   Widget build(BuildContext context) {
@@ -1414,7 +1397,13 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// Provides easy access to the AsyncRedux store state from a BuildContext.
   ///
   /// Use this in your widget's build method to watch the current store state.
-  /// Any widget that calls this will rebuild automatically when the state changes.
+  /// Any widget that calls this will rebuild automatically when the state
+  /// changes in any way (even if the part of the state we are actually using
+  /// did not change).
+  ///
+  /// You cannot use [getState] in your `initState` method. If you do, it will
+  /// throw an exception. See [getRead] for an alternative that can be used in
+  /// `initState`.
   ///
   /// For convenience, it's recommended that you define this extension in your
   /// own code:
@@ -1424,6 +1413,7 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   ///   AppState get state => getState<AppState>();
   ///   AppState read() => getRead<AppState>();
   ///   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
+  ///   R? event<R>(Evt<R> Function(AppState state) selector) => getEvent<AppState, R>(selector);
   /// }
   /// ```
   ///
@@ -1436,7 +1426,9 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// See also:
   ///
   /// - [getRead] if you don't want the widget to rebuild automatically when
-  ///   the state changes (use it with `context.read()`).
+  ///   the state changes (use it with `context.read()`). This is useful when
+  ///   you want to read the state once, for example inside an event handler,
+  ///   or in your `initState` method.
   ///
   /// - [getSelect] to select a specific part of the state and only rebuild
   ///   when that part changes (use it with `context.select()`).
@@ -1448,6 +1440,9 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// Use this in your widget's build method to read the current store state.
   /// Widgets using this will NOT rebuild automatically when the state changes.
   ///
+  /// This is useful when you want to read the state once, for example
+  /// inside an event handler, or in your `initState` method.
+  ///
   /// For convenience, it's recommended that you define this extension in your
   /// own code:
   ///
@@ -1456,6 +1451,7 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   ///   AppState get state => getState<AppState>();
   ///   AppState read() => getRead<AppState>();
   ///   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
+  ///   R? event<R>(Evt<R> Function(AppState state) selector) => getEvent<AppState, R>(selector);
   /// }
   /// ```
   ///
@@ -1475,6 +1471,119 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   ///
   St getRead<St>() => StoreProvider.state<St>(this, notify: false);
 
+  /// Consume an event from the state and rebuild the widget when the event is
+  /// dispatched.
+  ///
+  /// Events are one-time notifications that can be used to trigger side effects
+  /// in widgets, such as showing a dialog, clearing a text field, or navigating
+  /// to a new screen. Unlike regular state values, events are automatically
+  /// "consumed" (marked as spent) after being read, ensuring they only trigger
+  /// once.
+  ///
+  /// This method selects an event from the state using the provided [selector]
+  /// function, consumes it, and returns its value. The widget will rebuild
+  /// whenever a new (unspent) event is dispatched to the store.
+  ///
+  /// **Return value:**
+  /// - For events with no generic type (`Event`): Returns `true` if the event
+  ///   was dispatched, or `false` if it was already spent.
+  /// - For events with a value type (`Event<R>`): Returns the event's value if
+  ///   it was dispatched, or `null` if it was already spent.
+  ///
+  /// For convenience, it's recommended that you define this extension in your
+  /// own code:
+  ///
+  /// ```dart
+  /// extension BuildContextExtension on BuildContext {
+  ///   AppState get state => getState<AppState>();
+  ///   AppState read() => getRead<AppState>();
+  ///   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
+  ///   R? event<R>(Evt<R> Function(AppState state) selector) => getEvent<AppState, R>(selector);
+  /// }
+  /// ```
+  ///
+  /// **Example with a boolean (value-less) event (clear text field):**
+  ///
+  /// In your state:
+  /// ```dart
+  /// class AppState {
+  ///   final Event clearTextEvt;
+  ///   AppState({required this.clearTextEvt});
+  /// }
+  /// ```
+  ///
+  /// In your action:
+  /// ```dart
+  /// class ClearTextAction extends ReduxAction<AppState> {
+  ///   @override
+  ///   AppState reduce() => state.copy(clearTextEvt: Event());
+  /// }
+  /// ```
+  ///
+  /// In your widget:
+  /// ```dart
+  /// Widget build(BuildContext context) {
+  ///   var clearText = context.event((state) => state.clearTextEvt);
+  ///   if (clearText) controller.clear();
+  ///   ...
+  /// }
+  /// ```
+  ///
+  /// **Example with a typed event (display text in text field):**
+  ///
+  /// In your state:
+  /// ```dart
+  /// class AppState {
+  ///   final Event<String> changeTextEvt;
+  ///   AppState({required this.changeTextEvt});
+  /// }
+  /// ```
+  ///
+  /// In your action:
+  /// ```dart
+  /// class ChangeTextAction extends ReduxAction<AppState> {
+  ///   @override
+  ///   Future<AppState> reduce() async {
+  ///     String newText = await fetchTextFromApi();
+  ///     return state.copy(changeTextEvt: Event<String>(newText));
+  ///   }
+  /// }
+  /// ```
+  ///
+  /// In your widget:
+  /// ```dart
+  /// Widget build(BuildContext context) {
+  ///   var newText = context.event((state) => state.changeTextEvt);
+  ///   if (newText != null) controller.text = newText;
+  ///   ...
+  /// }
+  /// ```
+  ///
+  /// **Important notes:**
+  /// - Events are consumed only once. After consumption, they are marked as
+  ///   "spent" and won't trigger again until a new event is dispatched.
+  /// - Each event can be consumed by **only one widget**. If you need multiple
+  ///   widgets to react to the same trigger, use separate events in the state
+  ///   or consider using [EvtState] instead (which is not consumed).
+  /// - Initialize events in the state as spent: `Event.spent()` or
+  ///   `Event<T>.spent()`.
+  /// - The widget will rebuild when a new event is dispatched, even if it has
+  ///   the same internal value as a previous event, because each event instance
+  ///   is unique.
+  /// - The [selector] function must be pure and not cause side effects.
+  ///
+  /// See also:
+  ///
+  /// - [getState] to access the state and rebuild on any state change.
+  /// - [getRead] to read the state without triggering rebuilds.
+  /// - [getSelect] to select specific parts of the state and rebuild only when those parts change.
+  /// - [Event] class documentation for more details on event behavior and lifecycle.
+  ///
+  R? getEvent<St, R>(Evt<R> Function(St state) selector) {
+    var evt = getSelect<St, Evt<R>>(selector);
+    return evt.consume();
+  }
+
   /// Select a specific part of the state and only rebuild when that part changes.
   ///
   /// This method allows fine-grained subscriptions to the state, rebuilding the widget
@@ -1488,6 +1597,7 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   ///   AppState get state => getState<AppState>();
   ///   AppState read() => getRead<AppState>();
   ///   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
+  ///   R? event<R>(Evt<R> Function(AppState state) selector) => getEvent<AppState, R>(selector);
   /// }
   /// ```
   ///
@@ -1517,7 +1627,7 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   ///
   /// - [getRead] if you don't want the widget to rebuild automatically when
   ///   the state changes (use it with `context.read()`).
-  /// 
+  ///
   R getSelect<St, R>(R Function(St state) selector) {
     assert(() {
       final widget = this.widget;
@@ -1828,4 +1938,28 @@ The selector function must return a value immediately, without calling other pro
   ///
   void clearExceptionFor(Object actionOrTypeOrList) =>
       StoreProvider.clearExceptionFor(this, actionOrTypeOrList);
+
+  /// Given the BuildContext, provides easy access to the optional AsyncRedux
+  /// store "environment" that you may have defined.
+  ///
+  /// Note that accessing the environment does not trigger any widget rebuilds.
+  ///
+  /// For convenience, given that you will have your own `Environment` class,
+  /// it's recommended that you define this extension in your own code:
+  ///
+  /// ```dart
+  /// extension BuildContextExtension on BuildContext {
+  ///   Environment get env => getEnvironment<AppState>() as Environment;
+  /// }
+  /// ```
+  ///
+  /// Then use it like this:
+  ///
+  /// ```dart
+  /// var state = context.env;
+  /// ```
+  Object? getEnvironment<St>() {
+    Store<St> store = StoreProvider.backdoorInheritedWidget<St>(this);
+    return store.env;
+  }
 }

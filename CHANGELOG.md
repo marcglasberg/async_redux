@@ -10,9 +10,9 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 25.5.0
 
-* You can now use `context.select((state) => ...)` to select only the part 
-  of the state you need in your widget, so that your widget only rebuilds 
-  when that particular part of the state changes. For example:
+* You can now use the selector extension `context.select((state) => ...)` to 
+  select only the part of the state you need in your widget, so that your widget 
+  only rebuilds when that particular part of the state changes. For example:
     
   ```dart
   var myInfo = context.select((state) => state.myInfo);
@@ -39,20 +39,161 @@ Sponsored by [MyText.ai](https://mytext.ai)
   own code (assuming your state class is called `AppState`):
 
   ```dart  
-  extension BuildContextExtension on BuildContext {
-    AppState get state => getState<AppState>();    
-    AppState read() => getRead<AppState>();    
-    R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
+  extension BuildContextExtension on BuildContext {        
+    R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);    
   }
   ```
 
   Note, you can also use the other context extension methods like
   `context.dispatch`, `context.isWaiting`, `context.isFailed`,
-  `context.exceptionFor`, and `context.clearExceptionFor`.     
+  `context.exceptionFor`, `context.event`, `context.clearExceptionFor`,
+  `context.env`, and much more.
 
   See
   the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_select.dart">
   Select Example</a>.
+
+* You can now use the event extension `context.event((state) => ...)` to consume
+  events from the state. These are one-time notifications used to trigger side
+  effects in widgets, such as showing dialogs, clearing text fields, or
+  navigating to new screens. Unlike regular state values, events are automatically
+  "consumed" (marked as spent) after being read, ensuring they only trigger once.
+
+  First, define events in your state class and initialize them as spent:
+
+  ```dart
+  class AppState {
+    final Event clearTextEvt;
+    final Event<String> changeTextEvt;
+
+    AppState({required this.clearTextEvt, required this.changeTextEvt});
+
+    static AppState initialState() => AppState(
+      clearTextEvt: Event.spent(),
+      changeTextEvt: Event<String>.spent(),
+    );
+  }
+  ```
+
+  Then, dispatch events from your actions:
+
+  ```dart
+  class ClearTextAction extends ReduxAction<AppState> {    
+    AppState reduce() => state.copy(clearTextEvt: Event());
+  }
+
+  class ChangeTextAction extends ReduxAction<AppState> {    
+    Future<AppState> reduce() async {
+      String newText = await fetchTextFromApi();
+      return state.copy(changeTextEvt: Event<String>(newText));
+    }
+  }
+  ```
+
+  Finally, consume events in the build method of your widgets:
+
+  ```dart
+  var clearText = context.event((state) => state.clearTextEvt);
+  if (clearText) controller.clear();
+
+  var newText = context.event((state) => state.changeTextEvt);
+  if (newText != null) controller.text = newText;
+  ```
+
+  To use `context.event()` as shown above, you need to define the following
+  extension method in your own code (assuming your state class is called `AppState`):
+
+  ```dart
+  extension BuildContextExtension on BuildContext {    
+    R? event<R>(Evt<R> Function(AppState state) selector) => getEvent<AppState, R>(selector);
+  }
+  ```
+
+  Important notes:
+  - Events are consumed only once. After consumption, they are marked as "spent"
+    and won't trigger again until a new event is dispatched.
+  - Each event can be consumed by **only one widget**. If you need multiple
+    widgets to react to the same trigger, use separate events in the state.
+  - Initialize events in the state as spent: `Event.spent()` or `Event<T>.spent()`.
+  - For events with **no generic type** (`Event`): Returns **true** if the event
+    was dispatched, or **false** if it was already spent.
+  - For events with **a value type** (`Event<T>`): Returns the **value** if the
+    event was dispatched, or **null** if it was already spent.
+
+  See
+  the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_event_redux.dart">
+  Event Example</a>.
+
+* You can now use the environment extension `context.env` to access the store
+  "environment" for dependency injection. This environment is a container for
+  injected services that can be accessed from both widgets and actions.
+
+  First, define your environment interface and implementation:
+
+  ```dart
+  abstract class Environment {
+    ApiService get api;
+    AuthService get auth;
+  }
+
+  class EnvironmentImpl implements Environment {    
+    final ApiService api = ApiServiceImpl();
+    final AuthService auth = AuthServiceImpl();
+  }
+  ```
+
+  Then, provide the environment when creating the store:
+
+  ```dart
+  var store = Store<AppState>(
+    initialState: AppState.initialState(),
+    environment: EnvironmentImpl(),
+  );
+  ```
+
+  To access the environment in your actions, extend `ReduxAction` to provide
+  typed access:
+
+  ```dart
+  abstract class Action extends ReduxAction<AppState> {    
+    Environment get env => super.env as Environment;
+  }
+                                       
+  // Usage
+  class LoadUserAction extends Action {    
+    Future<AppState> reduce() async {
+      var user = await env.api.getUser();
+      return state.copy(user: user);
+    }
+  }
+  ```
+
+  To access the environment in your widgets, define an extension method:
+
+  ```dart
+  extension BuildContextExtension on BuildContext {    
+    Environment get env => getEnvironment<AppState>() as Environment;
+  }
+  ```
+
+  Then use it in your widgets:
+
+  ```dart
+  Widget build(BuildContext context) {
+    final env = context.env;
+    // Use env.api, env.auth, etc.
+    ...
+  }
+  ```
+
+  Benefits of using the environment:
+  - **Dependency Injection**: Inject services, repositories, and other dependencies.
+  - **Testability**: Easily swap implementations for testing (mock services, test APIs, etc.).
+  - **Clean Architecture**: Keep your actions and widgets decoupled from concrete implementations.
+
+  See
+  the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_environment.dart">
+  Environment Example</a>.
 
 ## 25.4.0
 
@@ -543,7 +684,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
   ```     
 
   See
-  the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_conector_vs_provider.dart">
+  the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/store_connector_examples/main_extension_vs_store_connector.dart">
   Connector vs Provider Example</a>.
 
 
@@ -1030,20 +1171,14 @@ Sponsored by [MyText.ai](https://mytext.ai)
   ```
 
   If you don't follow this rule, AsyncRedux may seem to work ok, but will
-  eventually
-  misbehave.
+  eventually misbehave.
 
   It's generally easy to make sure you are not returning a completed future.
   In the rare case your reducer function is very complex, and you are unsure
-  that all code
-  paths
-  pass through an `await`, just add `assertUncompletedFuture();` at the very END
-  of your
-  `reduce`
+  that all code paths pass through an `await`, just 
+  add `assertUncompletedFuture();` at the very END of your `reduce`
   method, right before the `return`. If you do that, an error will be shown in
-  the console
-  if
-  the `reduce` method ever returns a completed future.
+  the console if the `reduce` method ever returns a completed future.
 
   If you're an advanced user interested in the details, check the
   <a href="https://github.com/marcglasberg/async_redux/blob/master/test/sync_async_test.dart">

@@ -176,4 +176,7 @@ extension BuildContextExtension on BuildContext {
 
   R select<R>(R Function(AppState state) selector) =>
       getSelect<AppState, R>(selector);
+
+  R? event<R>(Evt<R> Function(AppState state) selector) =>
+      getEvent<AppState, R>(selector);
 }

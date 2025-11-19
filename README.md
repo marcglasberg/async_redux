@@ -55,22 +55,18 @@ Below is a quick overview.
 
 # Store, state, actions and reducers
 
-The store holds all the application **state**. A few examples:
+The store holds all the application **state**.
 
 ```dart
-// Here, the state is a number
-var store = Store<int>(initialState: 1);
-```
-
-```dart
-// Here, the state is an object
 class AppState {
   final String name;
   final int age;
-  State(this.name, this.age);
+  AppState(this.name, this.age);
 }
 
-var store = Store<AppState>(initialState: AppState('Mary', 25));
+var store = Store<AppState>(
+   initialState: AppState('Mary', 25)
+);
 ```
 
 &nbsp;
@@ -79,7 +75,7 @@ To use the store, add it in a `StoreProvider` at the top of your widget tree.
 
 ```dart
 Widget build(context) {
-  return StoreProvider<int>(
+  return StoreProvider<AppState>(
     store: store,
     child: MaterialApp( ... ), 
     );                      
@@ -90,11 +86,44 @@ Widget build(context) {
 
 # Widgets use the state
 
+Use the state directly:
+
 ```dart
 class MyWidget extends StatelessWidget {
 
   Widget build(context) {
-    return Text('${context.state.name} has ${context.state.age} years old');
+    return Text(
+       '${context.state.name} has ${context.state.age} years old'
+    );
+  }
+}
+```
+
+Or you can select only the parts of the state you need.
+
+```dart
+class MyWidget extends StatelessWidget {
+
+  Widget build(context) {
+    var name = context.select((state) => state.name);
+    var age = context.select((state) => state.age);
+    
+    return Text('$name has $age years old');
+  }
+}
+```
+
+Or select many parts of the state at once.
+
+```dart
+class MyWidget extends StatelessWidget {
+
+  Widget build(context) {
+    var state = context.select(
+      (state) => (name: state.user.name, age: state.user.age),
+    );
+
+    return Text('${state.name} has ${state.age} years old');
   }
 }
 ```
@@ -140,7 +169,7 @@ await store.dispatchAndWaitAll([Increment(), LoadText()]);
 
 # Widgets can dispatch actions
 
-The context extensions to dispatch actions are `dispatch` , `dispatchAll` etc.
+In your widgets, use `context.dispatch` , `context.dispatchAll` etc.
 
 ```dart
 class MyWidget extends StatelessWidget {
@@ -156,7 +185,7 @@ class MyWidget extends StatelessWidget {
 
 # Actions can do asynchronous work
 
-They download information from the internet, or do any other async work.
+Actions may download information from the internet, or do any other async work.
 
 ```dart
 var store = Store<String>(initialState: '');
@@ -180,26 +209,22 @@ class LoadText extends Action {
 &nbsp;
 
 > If you want to understand the above code in terms of traditional Redux
-> patterns,
-> all code until the last `await` in the `reduce` method is the equivalent of a
-> middleware,
-> and all code after that is the equivalent of a traditional reducer.
-> It's still Redux, just written in a way that is easy and boilerplate-free.
-> No need for Thunks or Sagas.
+> patterns, all code until the last `await` in the `reduce` method is the
+> equivalent of a middleware, and all code after that is the equivalent of a
+> traditional reducer. It's still Redux, just written in a way that is easy and
+> boilerplate-free. No need for Thunks or Sagas.
 
 &nbsp;
 
 # Actions can throw errors
 
 If something bad happens, you can simply **throw an error**. In this case, the
-state will
-not
-change. Errors are caught globally and can be handled in a central place, later.
+state will not change. Errors are caught globally and can be handled in a
+central place, later.
 
 In special, if you throw a `UserException`, which is a type provided by Async
-Redux,
-a dialog (or other UI) will open automatically, showing the error message to the
-user.
+Redux, a dialog (or other UI) will open automatically, showing the error message
+to the user.
 
 ```dart
 class LoadText extends Action {
@@ -352,20 +377,20 @@ add the `NonReentrant` mixin to your action class.
 ```dart
 class LoadText extends Action with NonReentrant {
    ...
-   }
+}
 ```
 
 &nbsp;
 
 ## Retry
 
-Add the `Retry` mixin to retry the action a few times with exponential backoff, 
+Add the `Retry` mixin to retry the action a few times with exponential backoff,
 if it fails. Add `UnlimitedRetries` to retry indefinitely:
 
 ```dart
 class LoadText extends Action with Retry, UnlimitedRetries {
    ...
-   }
+}
 ```
 
 &nbsp;
@@ -380,7 +405,7 @@ retry if there is internet but the action failed.
 ```dart
 class LoadText extends Action with UnlimitedRetryCheckInternet {
    ...
-   }
+}
 ```
 
 &nbsp;
@@ -408,9 +433,9 @@ class LoadPrices extends Action with Throttle {
 
 ## Debounce
 
-To limit how often an action occurs in response to rapid inputs, you can add 
-the `Debounce` mixin to your action class. For example, when a user types in 
-a search bar, debouncing ensures that not every keystroke triggers a server 
+To limit how often an action occurs in response to rapid inputs, you can add
+the `Debounce` mixin to your action class. For example, when a user types in
+a search bar, debouncing ensures that not every keystroke triggers a server
 request. Instead, it waits until the user pauses typing before acting.
 
 ```dart
@@ -436,19 +461,12 @@ class SearchText extends Action with Debounce {
 ## OptimisticUpdate (soon)
 
 To provide instant feedback on actions that save information to the server, this
-feature
-immediately
-applies state changes as if they were already successful, before confirming with
-the
-server.
-If the server update fails, the change is rolled back and, optionally, a
-notification can
-inform
-the user of the issue.
+feature immediately applies state changes as if they were already successful,
+before confirming with the server. If the server update fails, the change is
+rolled back and, optionally, a notification can inform the user of the issue.
 
 ```dart
-class SaveName extends Action with OptimisticUpdate { 
-   
+class SaveName extends Action with OptimisticUpdate {   
   async reduce() { ... } 
 }
 ```
@@ -457,24 +475,34 @@ class SaveName extends Action with OptimisticUpdate {
 
 # Events
 
-Flutter widgets like `TextField` and `ListView` hold their own internal state.
-You can use `Events` to interact with them.
+You can use `Evt()` to create events that perform one-time operations,
+which work with widgets like **TextField** or **ListView** that manage their
+own internal state.
 
 ```dart
 // Action that changes the text of a TextField
 class ChangeText extends Action {
   final String newText;
   ChangeText(this.newText);    
- 
-  AppState reduce() => state.copy(changeText: Event(newText));
+  AppState reduce() => state.copy(changeText: Evt(newText));
   }
 }
 
 // Action that scrolls a ListView to the top
 class ScrollToTop extends Action {
-  AppState reduce() => state.copy(scroll: Event(0));
+  AppState reduce() => state.copy(scroll: Evt(0));
   }
 }
+```
+
+Then, consume the events in the build method of your widgets:
+
+```dart
+var clearText = context.event((state) => state.clearTextEvt);
+if (clearText) controller.clear();
+
+var newText = context.event((state) => state.changeTextEvt);
+if (newText != null) controller.text = newText;
 ```
 
 &nbsp;
@@ -525,13 +553,11 @@ test('Selecting an item', () async {
 # Advanced setup
 
 If you are the Team Lead, you set up the app's infrastructure in a central
-place,
-and allow your developers to concentrate solely on the business logic.
+place, and allow your developers to concentrate solely on the business logic.
 
 You can add a `stateObserver` to collect app metrics, an `errorObserver` to log
-errors,
-an `actionObserver` to print information to the console during development,
-and a `globalWrapError` to catch all errors.
+errors, an `actionObserver` to print information to the console during
+development, and a `globalWrapError` to catch all errors.
 
 ```dart
 var store = Store<String>(    
@@ -544,10 +570,8 @@ var store = Store<String>(
 &nbsp;
 
 For example, the following `globalWrapError` handles `PlatformException` errors
-thrown
-by Firebase. It converts them into `UserException` errors, which are built-in
-types that
-automatically show a message to the user in an error dialog:
+thrown by Firebase. It converts them into `UserException` errors, which are
+built-in types that automatically show a message to the user in an error dialog:
 
 ```dart
 Object? wrap(error, stackTrace, action) =>
@@ -562,11 +586,8 @@ Object? wrap(error, stackTrace, action) =>
 # Advanced action configuration
 
 The Team Lead may create a base action class that all actions will extend, and
-add some
-common
-functionality to it. For example, getter shortcuts to important parts of the
-state,
-and selectors to help find information.
+add some common functionality to it. For example, getter shortcuts to important
+parts of the state, and selectors to help find information.
 
 ```dart
 class AppState {  
@@ -659,9 +680,9 @@ _stackoverflow.com/users/3411681/marcg_</a>
 
 *The JavaScript/TypeScript packages I've authored:*
 
-* [Kiss State, for React](https://kissforreact.org/) (similar to Async Redux, but for React)
+* [Kiss State, for React](https://kissforreact.org/) (similar to Async Redux,
+  but for React)
 * [Easy BDD Tool, for Jest](https://www.npmjs.com/package/easy-bdd-tool-jest)
-
 
 *My Medium Articles:*
 

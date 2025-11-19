@@ -17,16 +17,14 @@ late Store<int> store;
 /// You should extend [ReduxAction] to provide typed access to the [Environment]
 /// inside your actions.
 ///
-/// You should also define a context extension (See [BuildContextExtension.env]
-/// below) to provide typed access to the [Environment] inside your widgets. 
+/// In case you use [StoreConnector], you should also extend [VmFactory] to
+/// provide typed access to the [Environment] inside your factories.
 ///
 void main() {
-  //
   store = Store<int>(
     initialState: 0,
     environment: EnvironmentImpl(),
   );
-
   runApp(MyApp());
 }
 
@@ -54,16 +52,23 @@ abstract class Action extends ReduxAction<int> {
   Environment get env => super.env as Environment;
 }
 
+/// Extend [VmFactory] to provide typed access to the [Environment] when
+/// using [StoreConnector].
+abstract class AppFactory<T extends Widget?, Model extends Vm>
+    extends VmFactory<int, T, Model> {
+  AppFactory([T? connector]) : super(connector);
+
+  @override
+  Environment get env => super.env as Environment;
+}
+
 class MyApp extends StatelessWidget {
   @override
-  Widget build(BuildContext context) {
-    return StoreProvider<int>(
+  Widget build(BuildContext context) => StoreProvider<int>(
       store: store,
       child: MaterialApp(
-        home: MyHomePage(),
-      ),
-    );
-  }
+        home: MyHomePageConnector(),
+      ));
 }
 
 /// This action increments the counter by [amount], using [env].
@@ -76,15 +81,63 @@ class IncrementAction extends Action {
   int reduce() => env.incrementer(state, amount);
 }
 
-class MyHomePage extends StatelessWidget {
+/// This widget is a connector. It uses a [StoreConnector] to connect the store
+/// to [MyHomePage] (the dumb-widget). Each time the state changes, it creates
+/// a view-model, and compares it with the view-model created with the previous
+/// state. If the view-model changed, the connector rebuilds. If you don't need
+/// to use connectors, you can just use `context.state`, `context.select`,
+/// `context.dispatch` etc, directly in your widgets.
+class MyHomePageConnector extends StatelessWidget {
+  MyHomePageConnector({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    // Access the store environment.
-    final env = context.env;
+    return StoreConnector<int, ViewModel>(
+      vm: () => Factory(this),
+      builder: (BuildContext context, ViewModel vm) => MyHomePage(
+        counter: vm.counter,
+        onIncrement: vm.onIncrement,
+      ),
+    );
+  }
+}
 
-    // Use context.select to get the limited counter value
-    final counter = context.select((state) => env.limit(state));
+/// Factory that creates a view-model ([ViewModel]) for the [StoreConnector].
+/// It uses [env].
+class Factory extends AppFactory<MyHomePageConnector, ViewModel> {
+  Factory(connector) : super(connector);
 
+  @override
+  ViewModel fromStore() => ViewModel(
+        counter: env.limit(state),
+        onIncrement: () => dispatch(IncrementAction(amount: 1)),
+      );
+}
+
+/// A view-model is a helper object to a [StoreConnector] widget. It holds the
+/// part of the Store state the corresponding dumb-widget needs.
+class ViewModel extends Vm {
+  final int counter;
+  final VoidCallback onIncrement;
+
+  ViewModel({
+    required this.counter,
+    required this.onIncrement,
+  }) : super(equals: [counter]);
+}
+
+class MyHomePage extends StatelessWidget {
+  final int? counter;
+  final VoidCallback? onIncrement;
+
+  MyHomePage({
+    Key? key,
+    this.counter,
+    this.onIncrement,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Dependency Injection Example')),
       body: Center(
@@ -101,22 +154,9 @@ class MyHomePage extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.dispatch(IncrementAction(amount: 1)),
+        onPressed: onIncrement,
         child: const Icon(Icons.add),
       ),
     );
   }
-}
-
-extension BuildContextExtension on BuildContext {
-  int get state => getState<int>();
-
-  int read() => getRead<int>();
-
-  R select<R>(R Function(int state) selector) => getSelect<int, R>(selector);
-
-  R? event<R>(Evt<R> Function(int state) selector) =>
-      getEvent<int, R>(selector);
-
-  Environment get env => getEnvironment<int>() as Environment;
 }

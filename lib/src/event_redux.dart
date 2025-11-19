@@ -7,49 +7,105 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
-/// When the [Event] class was created, Flutter did not have any class named `Event`.
-/// Now there is. For this reason, this typedef allows you to use Evt instead.
-/// You can hide one of them, by importing AsyncRedux like this:
+/// When the [Event] class was created, Flutter did not have any class named
+/// `Event`. Now there is. For this reason, this typedef allows you to use Evt
+/// instead. You can hide one of them, by importing AsyncRedux like this:
 /// import 'package:async_redux/async_redux.dart' hide Event;
 /// or
 /// import 'package:async_redux/async_redux.dart' hide Evt;
 typedef Evt<T> = Event<T>;
 
-/// The `Event` class can be used as a Redux state with *flutter_redux* , usually to change the
-/// internal state of a stateful widget. When creating the `ViewModel` with the `StoreConnector`,
-/// the event is "consumed" only once, and is then automatically considered "spent".
+/// Events are one-time notifications stored in the Redux state, used to trigger
+/// side effects in widgets such as showing dialogs, clearing text fields, or
+/// navigating to new screens.
 ///
-/// Note that since the event is spent when consumed, it can be consumed by **one single** widget.
+/// Unlike regular state values, events are automatically "consumed" (marked as
+/// spent) after being read, ensuring they only trigger once.
 ///
-/// If the event **HAS NO VALUE AND NO GENERIC TYPE**,
-/// then `Event.consume()` returns **true** if the event was dispatched,
-/// or **false** otherwise.
+/// ## Main Usage: The `event` Extension
 ///
-/// ```
-/// class AppState { final Event buttonEvt; }
+/// The recommended way to use events is with the `context.event()` extension
+/// method. First, define an extension in your code:
 ///
-/// AppState({Event buttonEvt}) : buttonEvt = buttonEvt ?? Event.spent();
-///
-/// Event buttonEvt_Reducer(Event buttonEvt, dynamic action) {
-///    if (action is Increment_Action) {
-///    buttonEvt = Event();
-///    return buttonEvt; }
+/// ```dart
+/// extension BuildContextExtension on BuildContext {
+///   R? event<R>(Evt<R> Function(AppState state) selector) => getEvent<AppState, R>(selector);
+/// }
 /// ```
 ///
-/// If the event **HAS VALUE OR SOME GENERIC TYPE**,
-/// then `Event.consume()` returns the **value** if the event was dispatched,
-/// or **null** otherwise.
+/// **Example with a boolean (value-less) event:**
 ///
+/// ```dart
+/// // In your state
+/// class AppState {
+///   final Event clearTextEvt;
+///   AppState({required this.clearTextEvt});
+/// }
+///
+/// // In your action
+/// class ClearTextAction extends ReduxAction<AppState> {
+///   @override
+///   AppState reduce() => state.copy(clearTextEvt: Event());
+/// }
+///
+/// // In your widget
+/// Widget build(BuildContext context) {
+///   var clearText = context.event((state) => state.clearTextEvt);
+///   if (clearText) controller.clear();
+///   ...
+/// }
 /// ```
-/// class AppState { final Event<int> buttonEvt; }
 ///
-/// AppState({Event<int> buttonEvt}) : buttonEvt = buttonEvt ?? Event.spent();
+/// **Example with a typed event:**
 ///
-/// Event buttonEvt_Reducer(Event<int> buttonEvt, dynamic action) {
-///    if (action is Increment_Action) {
-///    buttonEvt = Event(action.howMuch);
-///    return buttonEvt; }
+/// ```dart
+/// // In your state
+/// class AppState {
+///   final Event<String> changeTextEvt;
+///   AppState({required this.changeTextEvt});
+/// }
+///
+/// // In your action
+/// class ChangeTextAction extends ReduxAction<AppState> {
+///   @override
+///   Future<AppState> reduce() async {
+///     String newText = await fetchTextFromApi();
+///     return state.copy(changeTextEvt: Event<String>(newText));
+///   }
+/// }
+///
+/// // In your widget
+/// Widget build(BuildContext context) {
+///   var newText = context.event((state) => state.changeTextEvt);
+///   if (newText != null) controller.text = newText;
+///   ...
+/// }
 /// ```
+///
+/// ## Return Values
+///
+/// - For events with **no generic type** (`Event`): `Event.consume()`
+///   returns **true** if the event was dispatched, or **false** if it was
+///   already spent.
+///
+/// - For events with **a value type** (`Event<T>`): `Event.consume()` returns
+///   the **value** if the event was dispatched, or **null** if it was already
+///   spent.
+///
+/// ## Alternative Usage: StoreConnector
+///
+/// Events can also be consumed when creating a `ViewModel` with the `StoreConnector`.
+/// The event is "consumed" only once in the converter function, and is then
+/// automatically considered "spent".
+///
+/// ## Important Notes
+///
+/// - Events are consumed only once. After consumption, they are marked as "spent".
+/// - Each event can be consumed by **one single widget**.
+/// - Always initialize events as spent: `Event.spent()` or `Event<T>.spent()`.
+/// - The widget will rebuild when a new event is dispatched, even if it has the
+///   same internal value as a previous event, because each event instance is
+///   unique.
 ///
 /// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 ///
@@ -70,13 +126,34 @@ class Event<T> {
   bool get isNotSpent => !isSpent;
 
   /// Returns the event state and consumes the event.
+  ///
+  /// After consumption, the event is marked as spent and will not trigger again.
+  ///
+  /// - For events with no generic type (`Event`): Returns **true** if the event
+  ///   was dispatched, or **false** if it was already spent.
+  ///
+  /// - For events with a value type (`Event<T>`): Returns the **value** if the
+  ///   event was dispatched, or **null** if it was already spent.
+  ///
+  /// This method is called internally by `context.getEvent()`
+  /// (or `context.event()`) so you usually will not use it directly.
+  /// However, when using the dumb/smart widget pattern, you may use it inside
+  /// a dumb widget (for example, when using a `StoreConnector`) when the event
+  /// was passed as a constructor parameter by a smart widget.
   T? consume() {
     T? saveState = state;
     _spent = true;
     return saveState;
   }
 
-  /// Returns the event state.
+  /// Returns the event state without consuming it.
+  ///
+  /// Unlike [consume], this method does not mark the event as spent, so the
+  /// event can be read multiple times.
+  ///
+  /// This is useful in rare cases where you need to check the event value
+  /// without consuming it, but most use cases should use [consume] via
+  /// `context.getEvent()` (or `context.event()`).
   T? get state {
     if (T == dynamic && _evtInfo == null) {
       if (_spent)
@@ -99,46 +176,56 @@ class Event<T> {
       '${_spent == true ? ', spent' : ''}'
       ')';
 
-  /// This is a convenience factory to create an event which is transformed by
-  /// some function that, usually, needs the store state. You must provide the
-  /// event and a map-function. The map-function must be able to deal with
-  /// the spent state (null or false, accordingly).
+  /// Creates an event which is transformed by a function that usually needs
+  /// the store state.
   ///
-  /// For example, if `state.indexEvt = Event<int>(5)` and you must get
-  /// a user from it:
+  /// You must provide the event and a map-function. The map-function must be
+  /// able to deal with the spent state (null or false, accordingly).
   ///
-  /// ```
-  /// var mapFunction = (int index) => index == null ? null : state.users[index];
+  /// This is useful when you need to derive a new event value from an existing
+  /// event, typically by looking up additional data from the state.
+  ///
+  /// **Example:** If `state.indexEvt = Event<int>(5)` and you need to get a
+  /// user from it:
+  ///
+  /// ```dart
+  /// var mapFunction = (int? index) => index == null ? null : state.users[index];
   /// Event<User> userEvt = Event.map(state.indexEvt, mapFunction);
   /// ```
   static Event<T> map<T, V>(Event<V> evt, T? Function(V?) mapFunction) =>
       MappedEvent<V, T>(evt, mapFunction);
 
-  /// This is a convenience method to create an event which consumes from more than one event.
-  /// If the first event is not spent, it will be consumed, and the second will not.
-  /// If the first event is spent, the second one will be consumed.
-  /// So, if both events are NOT spent, the method will have to be called twice to consume both.
-  /// If both are spent, returns null.
+  /// Creates an event which consumes from more than one event.
   ///
-  /// For example:
-  /// ```
-  /// String getTypedMessageEvt() {
-  ///    return Event.consumeFrom(setTypedMessageEvt, widget.setTypedMessageEvt);
-  ///  }
+  /// If the first event is not spent, it will be consumed, and the second
+  /// will not. If the first event is spent, the second one will be consumed.
+  ///
+  /// This is useful when you have multiple sources for the same event and want
+  /// to consume from whichever one is available.
+  ///
+  /// **Note:** If both events are NOT spent, the method will have to be called
+  /// twice to consume both. If both are spent, returns `null`.
+  ///
+  /// **Example:**
+  /// ```dart
+  /// Event<String> combinedEvt = Event.from(localMessageEvt, remoteMessageEvt);
   /// ```
   factory Event.from(Event<T> evt1, Event<T> evt2) => EventMultiple(evt1, evt2);
 
-  /// This is a convenience method to consume from more than one event.
-  /// If the first event is not spent, it will be consumed, and the second will not.
-  /// If the first event is spent, the second one will be consumed.
-  /// So, if both events are NOT spent, the method will have to be called twice to consume both.
-  /// If both are spent, returns null.
+  /// Consumes from more than one event, prioritizing the first event.
   ///
-  /// ```
-  /// For example:
-  /// String getTypedMessageEvt() {
-  ///    return Event.consumeFrom(setTypedMessageEvt, widget.setTypedMessageEvt);
-  ///  }
+  /// If the first event is not spent, it will be consumed, and the second will
+  /// not. If the first event is spent, the second one will be consumed.
+  ///
+  /// This is useful when you have multiple sources for the same event and want
+  /// to consume from whichever one is available.
+  ///
+  /// **Note:** If both events are NOT spent, the method will have to be called
+  /// twice to consume both. If both are spent, returns null.
+  ///
+  /// **Example:**
+  /// ```dart
+  /// String? message = Event.consumeFrom(localMessageEvt, remoteMessageEvt);
   /// ```
   static T? consumeFrom<T>(Event<T> evt1, Event<T> evt2) {
     T? evt = evt1.consume();
@@ -146,42 +233,44 @@ class Event<T> {
     return evt;
   }
 
-  /// The [StoreConnector] has a `distinct` parameter which may be set to `true`.
-  /// As a performance optimization, `distinct:true` allows the widget to be rebuilt only when the
-  /// ViewModel changes. If this is not done, then every time any state in the store changes the
-  /// widget will be rebuilt.
+  /// Special equality implementation for events to ensure correct rebuild
+  /// behavior.
   ///
-  /// And then, of course, you must implement equals and hashcode for the `ViewModel`.
-  /// This can be done by typing **`ALT`+`INSERT`** in IntelliJ IDEA or Android Studio and
-  /// choosing **`==() and hashcode`**, but you can't forget to update this whenever new
-  /// parameters are added to the model.
-  /// The present events must also be part of that equals/hashcode, like so:
+  /// Events use a custom equality check where:
+  /// - **Unspent events** are never considered equal to any other event,
+  ///   ensuring widgets always rebuild when a new event is dispatched.
+  /// - **Spent events** are all considered equal to each other, since they are
+  ///   "empty" and should not trigger rebuilds.
   ///
-  /// 1) If the **new** ViewModel has an event which is **not spent**, then the ViewModel
-  /// **MUST** be considered distinct, no matter the state of the **old** ViewModel, since the
-  /// new event should fire.
+  /// This behavior is essential for both the `context.event()` extension and
+  /// `StoreConnector` usage patterns.
   ///
-  /// 2) If both the old and new ViewModels have events which **are spent**, then these events
-  /// **MUST NOT** be considered distinct, since spent events are considered "empty" and
-  /// should never fire.
+  /// ## For StoreConnector Users
   ///
-  /// 3) If the **new** ViewModel has an event which is **not spent**,
-  /// and the **old** ViewModel has an event which **is spent**,
-  /// then the new event should fire, and for that reason they **MUST** be considered distinct.
+  /// When using a [StoreConnector], you must implement equals and hashcode for
+  /// your `ViewModel`. Events included in the ViewModel must follow these rules:
   ///
-  /// 4) If the **new** ViewModel has an event which is **is spent**,
-  /// and the **old** ViewModel has an event which **not spent**, then the new event
-  /// should NOT fire, and for that reason they **SHOULD NOT** be considered distinct.
+  /// 1) If the **new** ViewModel has an event which is **not spent**, then the
+  /// ViewModel **MUST** be considered distinct, no matter the state of the
+  /// **old** ViewModel, since the new event should fire.
   ///
-  /// Note: To differentiate 3 and 4 we would actually be breaking the equals contract (which says
-  /// A==B should be the same as B==A). Besides, we would need to know if AsyncRedux is
-  /// comparing newVm==oldViewModel or oldViewModel==newVm (and stays like this).
-  /// A safer alternative is discard 4, and always consider events different if any of them is not
+  /// 2) If both the old and new ViewModels have events which **are spent**,
+  /// then these events **MUST NOT** be considered distinct, since spent events
+  /// are considered "empty" and should never fire.
+  ///
+  /// 3) If the **new** ViewModel has an event which is **not spent**, and
+  /// the **old** ViewModel has an event which **is spent**, then the new event
+  /// should fire, and for that reason they **MUST** be considered distinct.
+  ///
+  /// 4) If the **new** ViewModel has an event which is **is spent**, and
+  /// the **old** ViewModel has an event which **not spent**, then the new event
+  /// should NOT fire, and for that reason they **SHOULD NOT** be considered
+  /// distinct.
+  ///
+  /// **Note:** To differentiate cases 3 and 4 we would actually be breaking
+  /// the equals contract (which says A==B should be the same as B==A). A safer
+  /// alternative is to always consider events different if any of them is not
   /// spent. That will, however, fire some unnecessary rebuilds.
-  ///
-  /// In the near future, we may decide to break the equals contract (which is probably fine since
-  /// the usage of [Event] is so specialized), and create unit tests to check it continues to work
-  /// and detect breaks if new versions of AsyncRedux change the order of the comparison.
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
@@ -195,30 +284,34 @@ class Event<T> {
             (isSpent && other.isSpent);
   }
 
-  /// 1) If two objects are equal according to the equals method, then hashcode of both must
-  /// be the same. Since spent events are all equal, they should produce the same hashcode.
-  /// 2) If two objects are NOT equal, hashcode may be the same or not, but it's better
-  /// when they are not the same. However, events are mutable, and this could mean the hashcode
-  /// of the state could be changed when an event is consumed. To avoid this, we make events
-  /// always return the same hashCode.
+  /// 1) If two objects are equal according to the equals method, then hashcode
+  /// of both must be the same. Since spent events are all equal, they should
+  /// produce the same hashcode.
+  /// 2) If two objects are NOT equal, hashcode may be the same or not, but it's
+  /// better when they are not the same. However, events are mutable, and this
+  /// could mean the hashcode of the state could be changed when an event is
+  /// consumed. To avoid this, we make events always return the same hashCode.
   @override
   int get hashCode => 0;
 }
 
-/// An Event from multiple sub-events.
-/// When consuming this event, if the first sub-event is not spent, it will be consumed,
-/// and the second will not. If the first sub-event is spent, the second one will be consumed.
+/// An event that combines multiple sub-events, consuming them in priority order.
 ///
-/// So, if both sub-events are NOT spent, the multiple-event will have to be consumed twice to
-/// consume both sub-events.
+/// When consuming this event:
+/// - If the first sub-event is not spent, it will be consumed, and the second
+///   will not.
+/// - If the first sub-event is spent, the second one will be consumed.
 ///
-/// If both sub-events are spent, the multiple-event returns null when consumed.
+/// This is useful when you have multiple sources for the same event and want
+/// to consume from whichever one is available.
 ///
-/// ```
-/// For example:
-/// Event getTypedMessageEvt() {
-///    return EventMultiple(setTypedMessageEvt, widget.setTypedMessageEvt);
-///  }
+/// **Note:** If both sub-events are NOT spent, the multiple-event will have to
+/// be consumed twice to consume both sub-events. If both sub-events are spent,
+/// returns null when consumed.
+///
+/// **Example:**
+/// ```dart
+/// Event<String> combinedEvt = EventMultiple(localMessageEvt, remoteMessageEvt);
 /// ```
 class EventMultiple<T> extends Event<T> {
   Event<T> evt1;
@@ -233,12 +326,18 @@ class EventMultiple<T> extends Event<T> {
   bool get isSpent => evt1.isSpent && evt2.isSpent;
 
   /// Returns the event state and consumes the event.
+  ///
+  /// Consumes the first non-spent event. If the first event is not spent, it
+  /// will be consumed and returned. Otherwise, the second event will be
+  /// consumed and returned.
   @override
   T? consume() {
     return Event.consumeFrom(evt1, evt2);
   }
 
-  /// Returns the event state.
+  /// Returns the event state without consuming it.
+  ///
+  /// Returns the state of the first non-spent event without consuming either event.
   @override
   T? get state {
     T? st = evt1.state;
@@ -247,16 +346,21 @@ class EventMultiple<T> extends Event<T> {
   }
 }
 
-/// A MappedEvent is useful when your event value must be transformed by
-/// some function that, usually, needs the store state. You must provide the
-/// event and a map-function. The map-function must be able to deal with
-/// the spent state (null or false, accordingly).
+/// An event whose value is transformed by a mapping function.
 ///
-/// For example, if `state.indexEvt = Event<int>(5)` and you must get
-/// a user from it:
+/// This is useful when your event value must be transformed by a function that
+/// usually needs the store state. You must provide the event and a map-function.
+/// The map-function must be able to deal with the spent state (null or false,
+/// accordingly).
 ///
-/// ```
-/// var mapFunction = (index) => index == null ? null : state.users[index];
+/// This is commonly used when you need to derive a new event value from an
+/// existing event, typically by looking up additional data from the state.
+///
+/// **Example:** If `state.indexEvt = Event<int>(5)` and you need to get a user
+/// from it:
+///
+/// ```dart
+/// var mapFunction = (int? index) => index == null ? null : state.users[index];
 /// Event<User> userEvt = MappedEvent<int, User>(state.indexEvt, mapFunction);
 /// ```
 class MappedEvent<V, T> extends Event<T> {
@@ -268,31 +372,36 @@ class MappedEvent<V, T> extends Event<T> {
   @override
   bool get isSpent => evt.isSpent;
 
-  /// Returns the event state and consumes the event.
+  /// Returns the transformed event state and consumes the underlying event.
   @override
   T? consume() => mapFunction(evt.consume());
 
-  /// Returns the event state.
+  /// Returns the transformed event state without consuming it.
   @override
   T? get state => mapFunction(evt.state);
 }
 
-/// The [EventState] can be used with stateful widgets to generate a "pulse" that
-/// you can use to change something.
+/// An event-like class that generates a "pulse" to trigger widget updates,
+/// but is NEVER CONSUMED.
 ///
-/// Whenever you create a new event, you give it a [value]. Two different events are always
-/// different, even if they are created with the same value:
+/// Unlike [Event] which is consumed after being read, [EvtState] can be used
+/// with multiple widgets and will trigger rebuilds each time a new instance is
+/// created.
 ///
+/// Each [EvtState] instance is unique, even if created with the same value:
+///
+/// ```dart
+/// print(EvtState() == EvtState()); // false
+/// print(EvtState<String>('abc') == EvtState<String>('abc')); // false
 /// ```
-/// print(Event() == Event()) // false
-/// print(Event<String>('abc') == Event<String>('abc')) // false
-/// ```
 ///
-/// This will trigger a widget rebuild in the connector (don't forget to include the event in the
-/// view-model). Then, the `didUpdateWidget` method will be called. Since `evt` is now different
-/// from `oldWidget.evt`, it will run the `doSomething` method:
+/// **Usage with stateful widgets:**
 ///
-/// ```
+/// When a new [EvtState] is created in the state, it will trigger a widget
+/// rebuild. Then, the `didUpdateWidget` method will be called. Since `evt`
+/// is now different from `oldWidget.evt`, it will run your side effect:
+///
+/// ```dart
 /// @override
 /// void didUpdateWidget(MyWidget oldWidget) {
 ///   super.didUpdateWidget(oldWidget);
@@ -301,8 +410,12 @@ class MappedEvent<V, T> extends Event<T> {
 /// }
 /// ```
 ///
-/// The [EvtState] class is never "consumed" (like the [Event] class is), which means you can use
-/// it with more than one widget.
+/// **Key difference from Event:**
+///
+/// The [EvtState] class is never "consumed" (like the [Event] class is), which
+/// means you can use it with more than one widget. Use [EvtState] when you need
+/// multiple widgets to react to the same trigger. Use [Event] when you need
+/// one-time consumption by a single widget.
 ///
 @immutable
 class EvtState<T> {

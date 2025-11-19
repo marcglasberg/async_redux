@@ -15,8 +15,8 @@ late Store<AppState> store;
 /// some text from the internet and puts it in the text-field.
 /// When the second button is tapped, the text-field is cleared.
 ///
-/// This is meant to demonstrate the use of "events" (of type [Event] or
-/// [Evt]) to change a controller state, or perform any other one-time operation.
+/// This is meant to demonstrate the use of "events" to change
+/// a controller state.
 ///
 /// It also demonstrates the use of an abstract class [BarrierAction]
 /// to override the action's before() and after() methods.
@@ -79,7 +79,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) => StoreProvider<AppState>(
         store: store,
         child: MaterialApp(
-          home: MyHomePage(),
+          home: MyHomePageConnector(),
         ),
       );
 }
@@ -119,7 +119,7 @@ class ChangeTextAction extends BarrierAction {
       Uri.parse("https://swapi.dev/api/people/${state.counter}/"),
     );
     Map<String, dynamic> json = jsonDecode(response.body);
-    String newText = json['name'] ?? 'Unknown Star Wars character';
+    String newText = json['name'] ?? 'Unknown character';
 
     return state.copy(
       counter: state.counter + 1,
@@ -128,8 +128,71 @@ class ChangeTextAction extends BarrierAction {
   }
 }
 
+/// This widget is a connector. It connects the store to "dumb-widget".
+class MyHomePageConnector extends StatelessWidget {
+  MyHomePageConnector({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return StoreConnector<AppState, ViewModel>(
+      vm: () => Factory(this),
+      builder: (BuildContext context, ViewModel vm) => MyHomePage(
+        waiting: vm.waiting,
+        clearTextEvt: vm.clearTextEvt,
+        changeTextEvt: vm.changeTextEvt,
+        onClear: vm.onClear,
+        onChange: vm.onChange,
+      ),
+    );
+  }
+}
+
+/// Factory that creates a view-model for the StoreConnector.
+class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
+  Factory(connector) : super(connector);
+
+  @override
+  ViewModel fromStore() => ViewModel(
+        waiting: state.waiting,
+        clearTextEvt: state.clearTextEvt,
+        changeTextEvt: state.changeTextEvt,
+        onClear: () => dispatch(ClearTextAction()),
+        onChange: () => dispatch(ChangeTextAction()),
+      );
+}
+
+/// The view-model holds the part of the Store state the dumb-widget needs.
+class ViewModel extends Vm {
+  final bool? waiting;
+  final Event? clearTextEvt;
+  final Event<String>? changeTextEvt;
+  final VoidCallback onClear;
+  final VoidCallback onChange;
+
+  ViewModel({
+    required this.waiting,
+    required this.clearTextEvt,
+    required this.changeTextEvt,
+    required this.onClear,
+    required this.onChange,
+  }) : super(equals: [waiting!, clearTextEvt!, changeTextEvt!]);
+}
+
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key? key}) : super(key: key);
+  final bool? waiting;
+  final Event? clearTextEvt;
+  final Event<String>? changeTextEvt;
+  final VoidCallback? onClear;
+  final VoidCallback? onChange;
+
+  MyHomePage({
+    Key? key,
+    this.waiting,
+    this.clearTextEvt,
+    this.changeTextEvt,
+    this.onClear,
+    this.onChange,
+  }) : super(key: key);
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
@@ -145,18 +208,26 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
+  void didUpdateWidget(MyHomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    consumeEvents();
+  }
+
+  void consumeEvents() {
+    if (widget.clearTextEvt!.consume())
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) controller.clear();
+      });
+
+    String? newText = widget.changeTextEvt!.consume();
+    if (newText != null)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) controller.text = newText;
+      });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    //
-    var waiting = context.select((state) => state.waiting);
-
-    // Event that tells the controller to clear its text.
-    var clearText = context.event((state) => state.clearTextEvt);
-    if (clearText) controller.clear();
-
-    // Event that tells the controller to change its text.
-    var newText = context.event((state) => state.changeTextEvt);
-    if (newText != null) controller.text = newText;
-
     return Stack(
       children: [
         Scaffold(
@@ -168,33 +239,15 @@ class _MyHomePageState extends State<MyHomePage> {
                 const Text('This is a TextField. Click to edit it:'),
                 TextField(controller: controller),
                 const SizedBox(height: 20),
-                FloatingActionButton(
-                  onPressed: () => context.dispatch(ChangeTextAction()),
-                  child: const Text("Change"),
-                ),
+                FloatingActionButton(onPressed: widget.onChange, child: const Text("Change")),
                 const SizedBox(height: 20),
-                FloatingActionButton(
-                  onPressed: () => context.dispatch(ClearTextAction()),
-                  child: const Text("Clear"),
-                ),
+                FloatingActionButton(onPressed: widget.onClear, child: const Text("Clear")),
               ],
             ),
           ),
         ),
-        if (waiting) ModalBarrier(color: Colors.red.withOpacity(0.4)),
+        if (widget.waiting!) ModalBarrier(color: Colors.red.withOpacity(0.4)),
       ],
     );
   }
-}
-
-extension BuildContextExtension on BuildContext {
-  AppState get state => getState<AppState>();
-
-  AppState read() => getRead<AppState>();
-
-  R select<R>(R Function(AppState state) selector) =>
-      getSelect<AppState, R>(selector);
-
-  R? event<R>(Evt<R> Function(AppState state) selector) =>
-      getEvent<AppState, R>(selector);
 }

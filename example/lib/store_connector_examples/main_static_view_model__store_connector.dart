@@ -12,8 +12,9 @@ late Store<int> store;
 ///
 /// Here, you use the `StoreConnector`'s `converter` parameter,
 /// instead of the `vm` parameter.
-/// Your `ViewModel` class may or may not extend `Vm`,
-/// but it must have a static factory method, usually named `fromStore`:
+///
+/// Your `ViewModel` class may or may not extend `Vm`, but it
+/// must have a static factory method, usually named `fromStore`:
 ///
 /// `converter: (store) => ViewModel.fromStore(store)`.
 ///
