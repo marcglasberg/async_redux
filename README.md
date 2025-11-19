@@ -86,7 +86,7 @@ Widget build(context) {
 
 # Widgets use the state
 
-Use the state directly:
+Use `context.state` in your widgets. They will rebuild when the state changes.
 
 ```dart
 class MyWidget extends StatelessWidget {
@@ -99,31 +99,31 @@ class MyWidget extends StatelessWidget {
 }
 ```
 
-Or you can select only the parts of the state you need.
+Or use `context.select()` to select only the parts of the state you need.
 
 ```dart
 class MyWidget extends StatelessWidget {
 
   Widget build(context) {
-    var name = context.select((state) => state.name);
-    var age = context.select((state) => state.age);
-    
-    return Text('$name has $age years old');
+    var state = context.select((st) => 
+       (name: st.user.name, age: st.user.age),
+    );
+
+    return Text('${state.name} has ${state.age} years old');
   }
 }
 ```
 
-Or select many parts of the state at once.
+This also works:
 
 ```dart
 class MyWidget extends StatelessWidget {
 
   Widget build(context) {
-    var state = context.select(
-      (state) => (name: state.user.name, age: state.user.age),
-    );
-
-    return Text('${state.name} has ${state.age} years old');
+    var name = context.select((st) => st.name);
+    var age = context.select((st) => st.age);
+    
+    return Text('$name has $age years old');
   }
 }
 ```
@@ -312,7 +312,7 @@ class SellStockForPrice extends Action {
   
     // Wait until the stock price is higher than the limit price
     await waitCondition(
-      (state) => state.stocks[stock].price >= limitPrice
+      (st) => st.stocks[stock].price >= limitPrice
     );
       
     // Only then, post the sell order to the backend
@@ -498,10 +498,10 @@ class ScrollToTop extends Action {
 Then, consume the events in the build method of your widgets:
 
 ```dart
-var clearText = context.event((state) => state.clearTextEvt);
+var clearText = context.event((st) => st.clearTextEvt);
 if (clearText) controller.clear();
 
-var newText = context.event((state) => state.changeTextEvt);
+var newText = context.event((st) => st.changeTextEvt);
 if (newText != null) controller.text = newText;
 ```
 
