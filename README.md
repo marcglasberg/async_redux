@@ -102,29 +102,23 @@ class MyWidget extends StatelessWidget {
 Or use `context.select()` to select only the parts of the state you need.
 
 ```dart
-class MyWidget extends StatelessWidget {
-
-  Widget build(context) {
-    var state = context.select((st) => 
-       (name: st.user.name, age: st.user.age),
-    );
-
-    return Text('${state.name} has ${state.age} years old');
-  }
+Widget build(context) {
+  var state = context.select((st) => 
+     (name: st.user.name, age: st.user.age),
+  );
+  
+  return Text('${state.name} has ${state.age} years old');
 }
 ```
 
 This also works:
 
 ```dart
-class MyWidget extends StatelessWidget {
-
-  Widget build(context) {
-    var name = context.select((st) => st.name);
-    var age = context.select((st) => st.age);
-    
-    return Text('$name has $age years old');
-  }
+Widget build(context) {
+  var name = context.select((st) => st.name);
+  var age = context.select((st) => st.age);
+  
+  return Text('$name has $age years old');
 }
 ```
 
@@ -205,14 +199,6 @@ class LoadText extends Action {
   }
 }
 ```
-
-&nbsp;
-
-> If you want to understand the above code in terms of traditional Redux
-> patterns, all code until the last `await` in the `reduce` method is the
-> equivalent of a middleware, and all code after that is the equivalent of a
-> traditional reducer. It's still Redux, just written in a way that is easy and
-> boilerplate-free. No need for Thunks or Sagas.
 
 &nbsp;
 
@@ -332,7 +318,7 @@ You can add **mixins** to your actions, to accomplish common tasks.
 
 ## Check for Internet connectivity
 
-`CheckInternet` ensures actions only run with internet,
+Mixin `CheckInternet` ensures actions only run with internet,
 otherwise an **error dialog** prompts users to check their connection:
 
 ```dart
@@ -347,7 +333,7 @@ class LoadText extends Action with CheckInternet {
 
 &nbsp;
 
-`NoDialog` can be added to `CheckInternet` so that no dialog is opened.
+Mixin `NoDialog` can be added to `CheckInternet` so that no dialog is opened.
 Instead, you can display some information in your widgets:
 
 ```dart
@@ -364,7 +350,8 @@ class MyWidget extends StatelessWidget {
 
 &nbsp;
 
-`AbortWhenNoInternet` aborts the action silently (without showing any dialogs)
+Mixin `AbortWhenNoInternet` aborts the action silently (without showing any
+dialogs)
 if there is no internet connection.
 
 &nbsp;
@@ -384,7 +371,7 @@ class LoadText extends Action with NonReentrant {
 
 ## Retry
 
-Add the `Retry` mixin to retry the action a few times with exponential backoff,
+Mixin `Retry` retries the action a few times with exponential backoff,
 if it fails. Add `UnlimitedRetries` to retry indefinitely:
 
 ```dart
@@ -397,7 +384,7 @@ class LoadText extends Action with Retry, UnlimitedRetries {
 
 ## UnlimitedRetryCheckInternet
 
-Add `UnlimitedRetryCheckInternet` to check if there is internet when you run
+Mixin `UnlimitedRetryCheckInternet` checks if there is internet when you run
 some action that needs it. If there is no internet, the action will abort
 silently and then retried unlimited times, until there is internet. It will also
 retry if there is internet but the action failed.
@@ -412,7 +399,7 @@ class LoadText extends Action with UnlimitedRetryCheckInternet {
 
 ## Throttle
 
-The `Throttle` mixin prevents a dispatched action from running too often.
+Mixin `Throttle` prevents a dispatched action from running too often.
 If the action loads information, the information is considered _fresh_.
 Only after the throttle period ends is the information considered _stale_,
 allowing the action to run again to reload the information.
@@ -433,10 +420,10 @@ class LoadPrices extends Action with Throttle {
 
 ## Debounce
 
-To limit how often an action occurs in response to rapid inputs, you can add
-the `Debounce` mixin to your action class. For example, when a user types in
-a search bar, debouncing ensures that not every keystroke triggers a server
-request. Instead, it waits until the user pauses typing before acting.
+Mixin `Debounce` limits how often an action occurs in response to rapid inputs.
+For example, when a user types in a search bar, debouncing ensures that not
+every keystroke triggers a server request. Instead, it waits until the user
+pauses typing before acting.
 
 ```dart
 class SearchText extends Action with Debounce {
@@ -460,10 +447,11 @@ class SearchText extends Action with Debounce {
 
 ## OptimisticUpdate (soon)
 
-To provide instant feedback on actions that save information to the server, this
-feature immediately applies state changes as if they were already successful,
-before confirming with the server. If the server update fails, the change is
-rolled back and, optionally, a notification can inform the user of the issue.
+Mixin `OptimisticUpdate` helps you provide instant feedback on actions that save
+information to the server. You immediately apply state changes as if they were
+already successful, before confirming with the server. If the server update
+fails, the change is rolled back and, optionally, a notification can inform the
+user of the issue.
 
 ```dart
 class SaveName extends Action with OptimisticUpdate {   
@@ -476,7 +464,7 @@ class SaveName extends Action with OptimisticUpdate {
 # Events
 
 You can use `Evt()` to create events that perform one-time operations,
-which work with widgets like **TextField** or **ListView** that manage their
+to work with widgets like **TextField** or **ListView** that manage their
 own internal state.
 
 ```dart

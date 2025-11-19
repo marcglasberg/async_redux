@@ -8,7 +8,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 25.5.1
+## 25.5.2
 
 * You can now use the selector extension `context.select((state) => ...)` to 
   select only the part of the state you need in your widget, so that your widget 
