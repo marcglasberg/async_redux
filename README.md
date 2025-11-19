@@ -103,8 +103,9 @@ Or use `context.select()` to select only the parts of the state you need.
 
 ```dart
 Widget build(context) {
-  var state = context.select((st) => 
-     (name: st.user.name, age: st.user.age),
+  var state = context.select((st) => (
+     name: st.user.name, 
+     age: st.user.age),
   );
   
   return Text('${state.name} has ${state.age} years old');
@@ -126,24 +127,9 @@ Widget build(context) {
 
 # Actions and reducers
 
-An **action** is a class that contain its own **reducer**.
+The application state is **immutable**.
 
-```dart
-class Increment extends Action {
-
-  // The reducer has access to the current state
-  int reduce() => state + 1; // It returns a new state
-}
-```
-
-&nbsp;
-
-# Dispatch an action
-
-The store state is **immutable**.
-
-The only way to change the store **state** is by dispatching an **action**.
-The action reducer returns a new state, that replaces the old one.
+The only way to change the **state** is by dispatching an **action**.
 
 ```dart
 // Dispatch an action
@@ -160,6 +146,17 @@ await store.dispatchAndWaitAll([Increment(), LoadText()]);
 ```
 
 &nbsp;
+
+An **action** is a class that contain its own **reducer**.
+The action reducer returns a new state, that replaces the old one.
+
+```dart
+class Increment extends Action {
+
+  // The reducer has access to the current state
+  int reduce() => state + 1; // It returns a new state
+}
+```
 
 # Widgets can dispatch actions
 
