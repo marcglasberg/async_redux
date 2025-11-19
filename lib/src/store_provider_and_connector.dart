@@ -1469,7 +1469,7 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   ///
   St getRead<St>() => StoreProvider.state<St>(this, notify: false);
 
-  /// Consume an event from the state and rebuild the widget when the event is
+  /// Consume an event from the state, and rebuild the widget when the event is
   /// dispatched.
   ///
   /// Events are one-time notifications that can be used to trigger side effects
@@ -1483,9 +1483,9 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// whenever a new (unspent) event is dispatched to the store.
   ///
   /// **Return value:**
-  /// - For events with no generic type (`Event`): Returns `true` if the event
+  /// - For events with no generic type (`Evt`): Returns `true` if the event
   ///   was dispatched, or `false` if it was already spent.
-  /// - For events with a value type (`Event<R>`): Returns the event's value if
+  /// - For events with a value type (`Evt<R>`): Returns the event's value if
   ///   it was dispatched, or `null` if it was already spent.
   ///
   /// For convenience, it's recommended that you define this extension in your
@@ -1513,7 +1513,6 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// In your action:
   /// ```dart
   /// class ClearTextAction extends ReduxAction<AppState> {
-  ///   @override
   ///   AppState reduce() => state.copy(clearTextEvt: Event());
   /// }
   /// ```
@@ -1540,7 +1539,6 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// In your action:
   /// ```dart
   /// class ChangeTextAction extends ReduxAction<AppState> {
-  ///   @override
   ///   Future<AppState> reduce() async {
   ///     String newText = await fetchTextFromApi();
   ///     return state.copy(changeTextEvt: Event<String>(newText));

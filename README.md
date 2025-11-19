@@ -480,14 +480,19 @@ class ScrollToTop extends Action {
 }
 ```
 
-Then, consume the events in the build method of your widgets:
+Then, consume the events in your widgets:
 
 ```dart
-var clearText = context.event((st) => st.clearTextEvt);
-if (clearText) controller.clear();
+Widget build(context) {
 
-var newText = context.event((st) => st.changeTextEvt);
-if (newText != null) controller.text = newText;
+  var clearText = context.event((st) => st.clearTextEvt);
+  if (clearText) controller.clear();
+
+  var newText = context.event((st) => st.changeTextEvt);
+  if (newText != null) controller.text = newText;
+  
+  return ...
+}    
 ```
 
 &nbsp;
