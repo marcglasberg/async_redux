@@ -58,12 +58,14 @@ Below is a quick overview.
 The **store** holds all the application **state**.
 
 ```dart
+// The application state
 class AppState {
   final String name;
   final int age;
   AppState(this.name, this.age);
 }
 
+// Create the store with the initial state
 var store = Store<AppState>(
    initialState: AppState('Mary', 25)
 );
@@ -125,9 +127,8 @@ Widget build(context) {
 
 # Actions change the state
 
-The application state is **immutable**.
-
-The only way to change the state is by dispatching an **action**.
+The application state is **immutable**,
+so the only way to change it is by **dispatching** an **action**.
 
 ```dart
 // Dispatch an action
@@ -145,8 +146,11 @@ await dispatchAndWaitAll([Increment(), LoadText()]);
 
 &nbsp;
 
-An **action** is a class that contain its own **reducer**.
-Its `reduce` method returns a new state to replace the old one.
+An **action** is a class with a name that describes what it does, like
+`Increment`, `LoadText`, or `BuyStock`.
+
+It must include a method called `reduce`. This "reducer" has access to the
+current state, and must return a new one to replace it.
 
 ```dart
 class Increment extends Action {
@@ -180,20 +184,17 @@ class MyWidget extends StatelessWidget {
 Actions may download information from the internet, or do any other async work.
 
 ```dart
-var store = Store<String>(initialState: '');
-```
-
-```dart
 class LoadText extends Action {
 
-  // This reducer returns a Future  
-  Future<String> reduce() async {
-  
+  // This reducer returns a Future
+  Future<AppState> reduce() async {
+
     // Download something from the internet
     var response = await http.get('https://dummyjson.com/todos/1');
-    
+    var newName = state.response.body;
+
     // Change the state with the downloaded information
-    return response.body;      
+    return AppState(newName, state.age);
   }
 }
 ```
@@ -355,7 +356,7 @@ dialogs) if there is no internet connection.
 
 ## NonReentrant
 
-Mixin `NonReentrant` prevents an action from being dispatched while it's 
+Mixin `NonReentrant` prevents an action from being dispatched while it's
 already running.
 
 ```dart
