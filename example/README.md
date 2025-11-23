@@ -52,7 +52,7 @@
     When you tap the screen it will push a new route, all blue.
     When you tap the screen again it will pop the blue route.
 
-8. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_event.dart">main_event_redux</a>
+8. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_event.dart">main_event</a>
 
    This example shows a text-field, and two buttons.
    When the first button is tapped, an async process downloads some text from the internet

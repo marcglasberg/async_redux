@@ -63,40 +63,43 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
   ```dart
   class AppState {
-    final Event clearTextEvt;
-    final Event<String> changeTextEvt;
+    final Evt clearTextEvt;
+    final Evt<String> changeTextEvt;
 
     AppState({required this.clearTextEvt, required this.changeTextEvt});
 
     static AppState initialState() => AppState(
-      clearTextEvt: Event.spent(),
-      changeTextEvt: Event<String>.spent(),
+      clearTextEvt: Evt.spent(),
+      changeTextEvt: Evt<String>.spent(),
     );
   }
   ```
 
-  Then, dispatch events from your actions:
+  Then, your actions create new events by adding them in the state:
 
-  ```dart
-  class ClearTextAction extends ReduxAction<AppState> {    
-    AppState reduce() => state.copy(clearTextEvt: Event());
+  ```dart          
+  // Boolean event.
+  class ClearText extends AppAction {    
+    AppState reduce() => state.copy(clearTextEvt: Evt());
   }
-
-  class ChangeTextAction extends ReduxAction<AppState> {    
+                
+  // Event with a String payload.
+  class ChangeText extends AppAction {    
     Future<AppState> reduce() async {
       String newText = await fetchTextFromApi();
-      return state.copy(changeTextEvt: Event<String>(newText));
+      return state.copy(changeTextEvt: Evt<String>(newText));
     }
   }
   ```
 
-  Finally, consume events in the build method of your widgets:
+  Finally, use `context.event((state) => ...)` to consume events 
+  in the build method of your widgets:
 
   ```dart
-  var clearText = context.event((state) => state.clearTextEvt);
+  bool clearText = context.event((state) => state.clearTextEvt);
   if (clearText) controller.clear();
 
-  var newText = context.event((state) => state.changeTextEvt);
+  String? newText = context.event((state) => state.changeTextEvt);
   if (newText != null) controller.text = newText;
   ```
 
@@ -114,10 +117,10 @@ Sponsored by [MyText.ai](https://mytext.ai)
     and won't trigger again until a new event is dispatched.
   - Each event can be consumed by **only one widget**. If you need multiple
     widgets to react to the same trigger, use separate events in the state.
-  - Initialize events in the state as spent: `Event.spent()` or `Event<T>.spent()`.
-  - For events with **no generic type** (`Event`): Returns **true** if the event
+  - Initialize events in the state as spent: `Evt.spent()` or `Evt<T>.spent()`.
+  - For events with **no generic type** (`Evt`): Returns **true** if the event
     was dispatched, or **false** if it was already spent.
-  - For events with **a value type** (`Event<T>`): Returns the **value** if the
+  - For events with **a value type** (`Evt<T>`): Returns the **value** if the
     event was dispatched, or **null** if it was already spent.
 
   See
