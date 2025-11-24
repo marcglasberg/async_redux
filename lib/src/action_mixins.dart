@@ -390,7 +390,8 @@ mixin UnlimitedRetries<St> on Retry<St> {
 ///    Future<AppState> reduce() async {
 ///
 ///       // Updates the TodoList optimistically.
-///       dispatch(UpdateStateAction((state) => state.copy(todoList: state.todoList.add(newTodo))));
+///       dispatch(UpdateStateAction((state)
+///         => state.copy(todoList: state.todoList.add(newTodo))));
 ///
 ///       try {
 ///          // Saves the new Todo to the cloud.
@@ -441,13 +442,14 @@ mixin UnlimitedRetries<St> on Retry<St> {
 ///
 /// Now the user sees the rollback immediately after the saving fails.
 ///
-/// Note: If you are using a realtime database or Websockets to receive real-time updates from the
-/// server, you may not need the finally block above, as long as the `newTodoList` above can be
-/// told apart from the current `state.todoList`. This can be a problem if the state in question
-/// is a primitive (boolean, number etc) or string.
+/// Note: If you are using a realtime database or Websockets to receive
+/// real-time updates from the server, you may not need the finally block above,
+/// as long as the `newTodoList` above can be told apart from the current
+/// `state.todoList`. This can be a problem if the state in question is a
+/// primitive (boolean, number etc) or string.
 ///
-/// The [OptimisticUpdate] mixin helps you implement the above code for you, when you
-/// provide the following:
+/// The [OptimisticUpdate] mixin helps you implement the above code for you,
+/// when you provide the following:
 ///
 /// * [newValue]: Is the new value, that you want to see saved and applied to the state.
 /// * [getValueFromState]: Is a function that extract the value from the given state.
@@ -455,12 +457,43 @@ mixin UnlimitedRetries<St> on Retry<St> {
 /// * [saveValue]: Is a function that saves the value to the cloud.
 /// * [reloadValue]: Is a function that reloads the value from the cloud.
 ///
+/// Here is the complete example using the mixin:
+///
+/// ```dart
+/// class SaveTodo extends AppAction with OptimisticUpdate {
+///   final Todo newTodo;
+///   SaveTodo(this.newTodo);
+///
+///   // The optimistic value to be applied right away.
+///   @override
+///   Object? newValue() => state.todoList.add(newTodo);
+///
+///   // Read the current value from the state.
+///   @override
+///   Object? getValueFromState(AppState state) => state.todoList;
+///
+///   // Apply the value to the state.
+///   @override
+///   AppState applyState(AppState state, Object? value) => state.copy(todoList: value);
+///
+///   // Save the value to the cloud.
+///   @override
+///   Future<void> saveValue(Object? value) async => await saveTodo(newTodo);
+///
+///   // Reload the value from the cloud. Omit to not reload.
+///   @override
+///   Future<Object?> reloadValue() async => await loadTodoList();
+/// }
+///
+/// ```
 mixin OptimisticUpdate<St> on ReduxAction<St> {
   //
-  /// You should return here the value that you want to update. For example, if you want to add
-  /// a new Todo to the todoList, you should return the new todoList with the new Todo added.
+  /// You should return here the value that you want to update.
+  /// For example, if you want to add a new Todo to the todoList,
+  /// you should return the new todoList with the new Todo added.
   ///
-  /// You can access the fields of the action, and the state, and return the new value.
+  /// You can access the fields of the action, and the state,
+  /// and return the new value.
   ///
   /// ```dart
   /// Object? newValue() => state.todoList.add(newTodo);
@@ -470,21 +503,22 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
   /// Using the given `state`, you should return the `value` from that state.
   ///
   /// ```dart
-  /// Object? getValueFromState(state) => state.todoList.add(newTodo);
+  /// Object? getValueFromState(AppState state) => state.todoList;
   /// ```
   Object? getValueFromState(St state);
 
-  /// Using the given `state`, you should apply the given `value` to it, and return the result.
+  /// Using the given `state`, you should apply the given `value` to it,
+  /// and return the result.
   ///
   /// ```dart
-  /// St applyState(state) => state.copy(todoList: newTodoList);
+  /// AppState applyState(newTodoList, state) => state.copy(todoList: newTodoList);
   /// ```
   St applyState(Object? value, St state);
 
   /// You should save the `value` or other related value in the cloud.
   ///
   /// ```dart
-  /// void saveValue(newTodoList) => saveTodo(todo);
+  /// Future<void> saveValue(newTodoList) => saveTodo(newTodo);
   /// ```
   Future<void> saveValue(Object? newValue) {
     throw UnimplementedError();
@@ -494,7 +528,7 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
   /// If you want to skip this step, simply don't provide this method.
   ///
   /// ```dart
-  /// Object? reloadValue() => loadTodoList();
+  /// Future<Object?> reloadValue() => loadTodoList();
   /// ```
   Future<Object?> reloadValue() {
     throw UnimplementedError();

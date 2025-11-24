@@ -12,8 +12,7 @@ part of async_redux_store;
 ///
 /// ---
 ///
-/// This class comes with a lot of useful fields and methods,
-/// that you can use to interact with the store and the action lifecycle:
+/// This class comes with a lot of useful fields and methods:
 ///
 /// Most important ones are:
 ///
@@ -23,13 +22,13 @@ part of async_redux_store;
 /// > `dispatchAndWait` - Dispatches an action and returns a `Future` that resolves when it finishes.
 /// > `isWaiting` - Checks if a specific action or action type is currently being processed.
 /// > `isFailed` - Returns true if an action failed with a `UserException`.
-/// > `wrapError` - Optionally catches or modifies errors thrown by `reduce` or `before` methods.
 ///
-/// Then, there are many other useful fields and methods:
+/// Useful ones are:
 ///
 /// > `store` - Returns the store instance.
 /// > `before` - Optional method that runs before `reduce` during action dispatching.
 /// > `after` - Optional method that runs after `reduce` during action dispatching.
+/// > `wrapError` - Optionally catches or modifies errors thrown by `reduce` or `before` methods.
 /// > `dispatchAndWaitAll` - Dispatches multiple actions in parallel and waits for all to finish.
 /// > `dispatchAll` - Dispatches multiple actions in parallel.
 /// > `dispatchSync` - Dispatches a sync action, throws if the action is async.
@@ -46,6 +45,19 @@ part of async_redux_store;
 /// > `env` - Gets the store environment, useful for global values scoped to the store.
 /// > `microtask` - Returns a future that completes in the next microtask.
 /// > `assertUncompletedFuture` - Asserts that an async reducer has at least one await.
+///
+/// Useful mixins:
+///
+/// > `CheckInternet` - Checks if there is internet before running the action, shows dialog if not.
+/// > `NoDialog` - Used with `CheckInternet` to turn off the dialog when there is no internet.
+/// > `AbortWhenNoInternet` - Silently aborts the action if there is no internet.
+/// > `NonReentrant` - Prevents the action from being dispatched if it's already running.
+/// > `Retry` - Retries the action if it fails, with configurable delays and max retries.
+/// > `UnlimitedRetries` - Used with `Retry` to retry indefinitely.
+/// > `OptimisticUpdate` - Updates the state optimistically before saving to the cloud.
+/// > `Throttle` - Ensures the action is dispatched at most once per throttle period.
+/// > `Debounce` - Delays action execution until after a period of inactivity.
+/// > `UnlimitedRetryCheckInternet` - Retries indefinitely with internet checking, prevents reentrant dispatches.
 ///
 /// Finally, these are one-off methods that you may use in special situations:
 ///
