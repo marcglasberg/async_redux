@@ -453,7 +453,7 @@ mixin UnlimitedRetries<St> on Retry<St> {
 ///
 /// * [newValue]: Is the new value, that you want to see saved and applied to the state.
 /// * [getValueFromState]: Is a function that extract the value from the given state.
-/// * [applyState]: Is a function that applies the given value to the given state.
+/// * [applyValueToState]: Is a function that applies the given value to the given state.
 /// * [saveValue]: Is a function that saves the value to the cloud.
 /// * [reloadValue]: Is a function that reloads the value from the cloud.
 ///
@@ -474,7 +474,7 @@ mixin UnlimitedRetries<St> on Retry<St> {
 ///
 ///   // Apply the value to the state.
 ///   @override
-///   AppState applyState(AppState state, Object? value) => state.copy(todoList: value);
+///   AppState applyValueToState(AppState state, Object? value) => state.copy(todoList: value);
 ///
 ///   // Save the value to the cloud.
 ///   @override
@@ -511,9 +511,9 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
   /// and return the result.
   ///
   /// ```dart
-  /// AppState applyState(newTodoList, state) => state.copy(todoList: newTodoList);
+  /// AppState applyValueToState(state, newTodoList) => state.copy(todoList: newTodoList);
   /// ```
-  St applyState(Object? value, St state);
+  St applyValueToState(St state, Object? value);
 
   /// You should save the `value` or other related value in the cloud.
   ///
@@ -539,7 +539,7 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
     // Updates the value optimistically.
     final _newValue = newValue();
     final action = UpdateStateAction.withReducer(
-        (St state) => applyState(_newValue, state));
+        (St state) => applyValueToState(state, _newValue));
     dispatch(action);
 
     try {
@@ -550,13 +550,17 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
       // If the state now contains something else, we DO NOT rollback.
       if (getValueFromState(state) == _newValue) {
         final initialValue = getValueFromState(initialState);
-        return applyState(initialValue, state); // Rollback.
+
+        final rollbackAction = UpdateStateAction.withReducer(
+            (St state) => applyValueToState(state, initialValue));
+        dispatch(rollbackAction);
       }
+      rethrow;
     } finally {
       try {
         final Object? reloadedValue = await reloadValue();
         final action = UpdateStateAction.withReducer(
-            (St state) => applyState(reloadedValue, state));
+            (St state) => applyValueToState(state, reloadedValue));
         dispatch(action);
       } on UnimplementedError catch (_) {
         // If the reload was not implemented, do nothing.
