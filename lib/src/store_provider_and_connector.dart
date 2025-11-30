@@ -811,15 +811,31 @@ class StoreProvider<St> extends InheritedWidget {
   /// You don't need `St` to call this method.
   static Store _getStoreNoDependency_Untyped(BuildContext context,
       {Object? debug}) {
-    final _InheritedUntypedDoesNotRebuild? provider = context
-        .dependOnInheritedWidgetOfExactType<_InheritedUntypedDoesNotRebuild>();
+    //
+    try {
+      // Try to get the store from the dependency.
+      final element = context.getElementForInheritedWidgetOfExactType<
+          _InheritedUntypedDoesNotRebuild>();
 
-    if (provider == null)
-      throw _exceptionForWrongStoreType(
-          _typeOf<_InheritedUntypedDoesNotRebuild>(),
-          debug: debug);
+      if (element == null)
+        throw _exceptionForWrongStoreType(StoreException, debug: debug);
 
-    return provider._store;
+      final widget = element.widget as _InheritedUntypedDoesNotRebuild;
+      return widget._store;
+    }
+    //
+    // Try to get the store from the static global backdoor. Only works in
+    // production, since in tests there may be more than one store-provider.
+    catch (error) {
+      try {
+        return backdoorStaticGlobal();
+      } catch (e) {
+        // Swallow.
+      }
+
+      // Rethrow the original error when getting the store from the dependency.
+      rethrow;
+    }
   }
 
   /// Workaround to capture generics.
@@ -1066,6 +1082,7 @@ class StoreProvider<St> extends InheritedWidget {
   ///
   static Store<St> backdoorInheritedWidget<St>(BuildContext context,
       {Object? debug}) {
+    //
     final element =
         context.getElementForInheritedWidgetOfExactType<StoreProvider<St>>();
     final StoreProvider<St>? provider = element?.widget as StoreProvider<St>?;
@@ -1077,15 +1094,25 @@ class StoreProvider<St> extends InheritedWidget {
     return provider._store;
   }
 
-  /// Avoid using if you don't have a good reason to do so.
+  /// Avoid using this if you don't have a good reason to do so.
   ///
-  /// The [backdoorStaticGlobal] gives you direct access to the store for advanced use-cases.
-  /// It does NOT need the context, as it gets the store from the static
-  /// field [_staticStoreBackdoor]. Note this field is set when the [StoreProvider] is created,
-  /// which assumes the [StoreProvider] is used only once in your app. This is usually a
-  /// reasonable assumption, but can break in tests. It does NOT create a dependency
-  /// like [_getStoreWithDependency_Untyped] does, and it does NOT rebuild the state when the state changes,
-  /// when you access it like this: `var state = StoreProvider.backdoorStaticGlobal<AppState>().state;`.
+  /// The [backdoorStaticGlobal] gives you direct access to the store for
+  /// advanced use-cases. It does NOT need the context, as it gets the store
+  /// from the static field [_staticStoreBackdoor].
+  ///
+  /// Note this field is set when the [StoreProvider] is created, which assumes
+  /// the [StoreProvider] is used only once in your app. This is usually a
+  /// reasonable assumption in production, but can break in tests.
+  ///
+  /// It is similar to [_getStoreNoDependency_Untyped] in that is does not
+  /// create a dependency, but it does not need the context, which means
+  /// you can use it anywhere, even outside of the widget tree.
+  ///
+  /// Use it like this:
+  ///
+  /// ```dart
+  /// var state = StoreProvider.backdoorStaticGlobal<AppState>().state;`.
+  /// ```
   ///
   static Store<St> backdoorStaticGlobal<St>() {
     if (_staticStoreBackdoor == null)
@@ -1118,9 +1145,9 @@ class StoreProvider<St> extends InheritedWidget {
   }
 }
 
-/// An UNTYPED inherited widget used by `dispatch`, `dispatchAndWait` and `dispatchSync`.
-/// That's useful because they can dispatch without the knowing the St type, but it DOES NOT
-/// REBUILD.
+/// An UNTYPED inherited widget used by `dispatch`, `dispatchAndWait` and
+/// `dispatchSync`. That's useful because they can dispatch without the knowing
+/// the St type, but it DOES NOT REBUILD.
 class _InheritedUntypedDoesNotRebuild extends InheritedWidget {
   final Store _store;
 

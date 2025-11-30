@@ -8,33 +8,39 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 25.6.3
+
+* Allow dispatching actions from the `initState()` and `dispose()` methods of a
+  `StatefulWidget`. This only works when your app has a single `StoreProvider`,
+  which is almost always the case. For example:  
+
 ## 25.6.2
 
-* You can now use the selector extension `context.select((state) => ...)` to 
-  select only the part of the state you need in your widget, so that your widget 
+* You can now use the selector extension `context.select((state) => ...)` to
+  select only the part of the state you need in your widget, so that your widget
   only rebuilds when that particular part of the state changes. For example:
-    
+
   ```dart
   var myInfo = context.select((state) => state.myInfo);
   ```                          
-  
-  Note you can also access your state directly with `context.state.myInfo`, 
+
+  Note you can also access your state directly with `context.state.myInfo`,
   but that will rebuild your widget whenever **any** part of the state changes.
   Using `context.select()` is more efficient because it only rebuilds
   your widget when the selected part of the state changes.
 
-  Suggestion: When creating the first draft of your widget, you may 
-  use `context.state` just to get started quickly, and then later change it 
+  Suggestion: When creating the first draft of your widget, you may
+  use `context.state` just to get started quickly, and then later change it
   to use `context.select()` to optimize the rebuilds.
-      
+
   If you want to read your state and NOT rebuild your widget when the state
   changes, you can use `context.read()`. For example:
-    
+
   ```dart
   var myInfo = context.read().myInfo;
   ```
-  
-  However, to use `context.select()`, `context.read()`, and `context.state` 
+
+  However, to use `context.select()`, `context.read()`, and `context.state`
   as shown above, you need to define the following extension method in your
   own code (assuming your state class is called `AppState`):
 
@@ -56,8 +62,10 @@ Sponsored by [MyText.ai](https://mytext.ai)
 * You can now use the event extension `context.event((state) => ...)` to consume
   events from the state. These are one-time notifications used to trigger side
   effects in widgets, such as showing dialogs, clearing text fields, or
-  navigating to new screens. Unlike regular state values, events are automatically
-  "consumed" (marked as spent) after being read, ensuring they only trigger once.
+  navigating to new screens. Unlike regular state values, events are
+  automatically
+  "consumed" (marked as spent) after being read, ensuring they only trigger
+  once.
 
   First, define events in your state class and initialize them as spent:
 
@@ -92,7 +100,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
   }
   ```
 
-  Finally, use `context.event((state) => ...)` to consume events 
+  Finally, use `context.event((state) => ...)` to consume events
   in the build method of your widgets:
 
   ```dart
@@ -104,7 +112,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
   ```
 
   To use `context.event()` as shown above, you need to define the following
-  extension method in your own code (assuming your state class is called `AppState`):
+  extension method in your own code (assuming your state class is called
+  `AppState`):
 
   ```dart
   extension BuildContextExtension on BuildContext {    
@@ -113,15 +122,17 @@ Sponsored by [MyText.ai](https://mytext.ai)
   ```
 
   Important notes:
-  - Events are consumed only once. After consumption, they are marked as "spent"
-    and won't trigger again until a new event is dispatched.
-  - Each event can be consumed by **only one widget**. If you need multiple
-    widgets to react to the same trigger, use separate events in the state.
-  - Initialize events in the state as spent: `Evt.spent()` or `Evt<T>.spent()`.
-  - For events with **no generic type** (`Evt`): Returns **true** if the event
-    was dispatched, or **false** if it was already spent.
-  - For events with **a value type** (`Evt<T>`): Returns the **value** if the
-    event was dispatched, or **null** if it was already spent.
+    - Events are consumed only once. After consumption, they are marked as "
+      spent"
+      and won't trigger again until a new event is dispatched.
+    - Each event can be consumed by **only one widget**. If you need multiple
+      widgets to react to the same trigger, use separate events in the state.
+    - Initialize events in the state as spent: `Evt.spent()` or
+      `Evt<T>.spent()`.
+    - For events with **no generic type** (`Evt`): Returns **true** if the event
+      was dispatched, or **false** if it was already spent.
+    - For events with **a value type** (`Evt<T>`): Returns the **value** if the
+      event was dispatched, or **null** if it was already spent.
 
   See
   the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_event.dart">
@@ -190,9 +201,12 @@ Sponsored by [MyText.ai](https://mytext.ai)
   ```
 
   Benefits of using the environment:
-  - **Dependency Injection**: Inject services, repositories, and other dependencies.
-  - **Testability**: Easily swap implementations for testing (mock services, test APIs, etc.).
-  - **Clean Architecture**: Keep your actions and widgets decoupled from concrete implementations.
+    - **Dependency Injection**: Inject services, repositories, and other
+      dependencies.
+    - **Testability**: Easily swap implementations for testing (mock services,
+      test APIs, etc.).
+    - **Clean Architecture**: Keep your actions and widgets decoupled from
+      concrete implementations.
 
   See
   the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_environment.dart">
@@ -200,8 +214,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 25.4.0
 
-* Added `Store.disposeProp(key)` and `Action.disposeProp(key)` methods to 
-  dispose and remove Futures/Timers/Streams that were previously set 
+* Added `Store.disposeProp(key)` and `Action.disposeProp(key)` methods to
+  dispose and remove Futures/Timers/Streams that were previously set
   using `setProp()`.
   See [Streams and Timers](https://asyncredux.com/flutter/miscellaneous/streams-and-timers/).
 
@@ -676,8 +690,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
   context.clearExceptionFor(MyAction);
   ```      
 
-  However, to use `context.state` as shown above, you need to define the 
-  following extension method in your own code (assuming your state class is 
+  However, to use `context.state` as shown above, you need to define the
+  following extension method in your own code (assuming your state class is
   called `AppState`):
 
   ```dart  
@@ -1178,7 +1192,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
   It's generally easy to make sure you are not returning a completed future.
   In the rare case your reducer function is very complex, and you are unsure
-  that all code paths pass through an `await`, just 
+  that all code paths pass through an `await`, just
   add `assertUncompletedFuture();` at the very END of your `reduce`
   method, right before the `return`. If you do that, an error will be shown in
   the console if the `reduce` method ever returns a completed future.
