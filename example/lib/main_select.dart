@@ -15,6 +15,11 @@ late Store<AppState> store;
 /// while an async process downloads some text character that relates
 /// to the counter number (using the Star Wars API: https://swapi.dev).
 ///
+/// If there is no internet connection, it will display a dialog to the
+/// user, saying: "There is no Internet". This is implemented with mixin
+/// `CheckInternet` added to action `IncrementAndGetDescriptionAction`,
+/// and a `UserExceptionDialog` added below `MaterialApp`.
+///
 /// Open the console to see when each widget rebuilds. Here are the 4 widgets:
 ///
 /// 1. MyHomePage (red): rebuilds only during the initial build.
@@ -92,15 +97,19 @@ class AppState {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => StoreProvider<AppState>(
-      store: store,
-      child: MaterialApp(
-        home: MyHomePage(),
-      ));
+        store: store,
+        child: MaterialApp(
+          home: UserExceptionDialog<AppState>(
+            child: MyHomePage(),
+          ),
+        ),
+      );
 }
 
 /// This action increments the counter by 1,
 /// and then gets some character text relating to the new counter number.
-class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
+class IncrementAndGetDescriptionAction extends ReduxAction<AppState>
+    with CheckInternet {
   //
   // Async reducer.
   // To make it async we simply return Future<AppState> instead of AppState.
@@ -124,7 +133,10 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
   @override
   Object? wrapError(error, StackTrace stackTrace) {
     print('Error in IncrementAndGetDescriptionAction: $error');
-    return const UserException('Failed to load.');
+
+    return (error is UserException)
+        ? error
+        : const UserException('Failed to load.');
   }
 }
 

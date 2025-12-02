@@ -8,11 +8,139 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 26.0.0
+
+* Updated website documentation in [asyncredux.com](https://asyncredux.com).
+
+
+* BREAKING CHANGE: This version requires newer Android tooling (Android Gradle
+  Plugin 8.12.1 or higher, Gradle 8.13 or higher, and Kotlin 2.2.0). Projects
+  using older Android setups must update their environment before upgrading to
+  this release. Workaround: If you want to keep using older Gradle plugins,
+  simply add the following to the dependencies in your `pubspec.yaml` file:
+  `connectivity_plus: ^6.0.0`.
+
+
+* You can now use the new `MockBuildContext` to test **connector widgets**
+  (smart widgets) that rely on `BuildContext` extensions like `context.state`,
+  `context.select()`, `context.dispatch()`, and others.
+
+  This lets you test both state and callbacks without putting the widget in the
+  widget tree (regular `test` calls, no need to use `testWidgets`).
+  For example:
+
+  ```dart
+  // Define your smart widget (connector) using context extensions.
+  class MyConnector extends StatelessWidget {
+    @override
+    Widget build(BuildContext context) {
+      return MyWidget(
+        name: context.state.name,
+        onChangeName: () => context.dispatch(ChangeName('Bob')),
+      );
+    }
+  }
+  
+  class ChangeName extends ReduxAction<AppState> {
+    final String newName;
+    ChangeName(this.newName);
+    AppState reduce() => state.copy(name: newName);
+  }
+
+  // Test the connector.
+  test('MyConnector', () {
+    // Create a store with the desired state.
+    var store = Store<AppState>(initialState: AppState(name: 'John'));
+
+    // Create a mock context and build the widget.
+    var context = MockBuildContext(store);
+    var widget = MyConnector().build(context) as MyWidget;
+
+    // Test the widget state.
+    expect(widget.name, 'John');
+
+    // Test the widget callbacks. 
+    widget.onChangeName();
+    expect(store.state.name, 'Bob');
+  });
+  ```                       
+
+  Note, the dumb widget `MyWidget` is a simple widget that takes `name` and
+  `onChangeName`. You can test it with normal presentation tests (using
+  `testWidgets`) without a store. Just pass the needed values to its
+  constructor. For example:
+
+  ```dart
+  // Define your dumb widget.
+  class MyWidget extends StatelessWidget {
+    final String name;
+    final VoidCallback onChangeName;
+    const MyWidget({required this.name, required this.onChangeName});
+
+    @override
+    Widget build(BuildContext context) {
+      return TextButton(onPressed: onChangeName, child: Text(name));
+    }
+  }
+       
+  // Test it.
+  testWidgets('MyWidget', (tester) async {
+    bool called = false;
+    await tester.pumpWidget(MaterialApp(
+      home: MyWidget(name: 'John', onChangeName: () => called = true),
+    ));
+
+    expect(find.text('John'), findsOneWidget);
+    await tester.tap(find.byType(TextButton));
+    expect(called, true);
+  });
+  ```
+
+* `StoreConnector` is now considered deprecated.
+  It will **not** be marked as deprecated and will **never** be removed,
+  but you don't need to use it for new code.
+  For new code, when you want to implement the smart/dumb widget pattern,
+  prefer `BuildContext` extensions to implement the pattern,
+  along with `MockBuildContext` for testing, as shown above.
+
+  The goal of `StoreConnector` was to separate dumb widgets from smart widgets
+  and let you test the view model without mounting it. Then you could test the
+  dumb widget with simple presentation tests.
+  `MockBuildContext` gives you the same benefits, because the dumb widget
+  itself, when built with a mock context, works as the view model you can
+  inspect and use to call callbacks.
+
+  This makes `StoreConnector` unnecessary. `MockBuildContext` is simpler to use
+  and avoids extra view model classes and factories.
+
 ## 25.6.3
 
-* Allow dispatching actions from the `initState()` and `dispose()` methods of a
-  `StatefulWidget`. This only works when your app has a single `StoreProvider`,
-  which is almost always the case. For example:  
+* You can now use context extensions to dispatch actions from the `initState()`
+  and `dispose()` methods of a `StatefulWidget`.
+
+  ```dart
+  class MyScreen extends StatefulWidget {    
+    State<MyScreen> createState() => _MyScreenState();
+  }
+
+  class _MyScreenState extends State<MyScreen> {
+    
+    void initState() {
+      super.initState();
+      context.dispatch(LoadDataAction());
+    }
+
+    void dispose() {
+      context.dispatch(CleanupAction());
+      super.dispose();
+    }
+
+    Widget build(BuildContext context) => Text(context.state.data);
+  }
+  ```                                            
+
+  Note: For this feature to work, your app must have a single `StoreProvider`
+  (that's usually the case).
 
 ## 25.6.2
 
@@ -63,9 +191,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
   events from the state. These are one-time notifications used to trigger side
   effects in widgets, such as showing dialogs, clearing text fields, or
   navigating to new screens. Unlike regular state values, events are
-  automatically
-  "consumed" (marked as spent) after being read, ensuring they only trigger
-  once.
+  automatically "consumed" (marked as spent) after being read, ensuring they
+  only trigger once.
 
   First, define events in your state class and initialize them as spent:
 

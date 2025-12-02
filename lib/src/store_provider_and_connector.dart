@@ -128,6 +128,24 @@ abstract class StoreConnectorInterface<St, Model> {
 /// optimization, the Widget can be rebuilt only when the [Model] changes.
 /// In order for this to work correctly, you must implement [==] and [hashCode] for
 /// the [Model], and set the [distinct] option to true when creating your StoreConnector.
+///
+/// **IMPORTANT:**
+///  With the release of [MockBuildContext], the [StoreConnector] is now
+///  considered deprecated. It will not be marked as deprecated and will not be
+///  removed, but you should avoid it for new code.
+///  For new code, prefer [BuildContext] extensions with [MockBuildContext] for
+///  testing.
+///
+///  The goal of [StoreConnector] was to separate dumb widgets from smart
+///  widgets and let you test the view model without mounting it. Then you could
+///  test the dumb widget with simple presentation tests.
+///  `MockBuildContext` gives you the same benefits, because the dumb widget
+///  itself, when built with a mock context, works as the view model you can
+///  inspect and use to call callbacks.
+///
+///  This makes `StoreConnector` unnecessary. `MockBuildContext` is simpler to
+///  use and avoids extra view model classes and factories.
+///
 class StoreConnector<St, Model> extends StatelessWidget
     implements StoreConnectorInterface<St, Model> {
   //
@@ -789,7 +807,7 @@ class StoreProvider<St> extends InheritedWidget {
 
   /// This WILL create a dependency, and WILL potentially rebuild the state.
   /// You don't need `St` to call this method.
-  static Store _getStoreWithDependency_Untyped(BuildContext context,
+  static Store<St> _getStoreWithDependency_Untyped<St>(BuildContext context,
       {Object? debug}) {
     //
     final _InheritedUntypedRebuilds? provider =
@@ -799,17 +817,17 @@ class StoreProvider<St> extends InheritedWidget {
       throw _exceptionForWrongStoreType(_typeOf<_InheritedUntypedRebuilds>(),
           debug: debug);
 
-    // We only turn on rebuilds when this `state` method is used for the first time.
-    // This is to make it faster when this method is not used, which is the
-    // case if the state is only accessed via StoreConnector.
+    // We only turn on rebuilds when this `state` method is used for the first
+    // time. This is to make it faster when this method is not used, which is
+    // the case if the state is only accessed via StoreConnector.
     _InheritedUntypedRebuilds._isOn = true;
 
-    return provider._store;
+    return provider._store as Store<St>;
   }
 
   /// This WILL NOT create a dependency, and may NOT rebuild the state.
   /// You don't need `St` to call this method.
-  static Store _getStoreNoDependency_Untyped(BuildContext context,
+  static Store<St> _getStoreNoDependency_Untyped<St>(BuildContext context,
       {Object? debug}) {
     //
     try {
@@ -821,14 +839,14 @@ class StoreProvider<St> extends InheritedWidget {
         throw _exceptionForWrongStoreType(StoreException, debug: debug);
 
       final widget = element.widget as _InheritedUntypedDoesNotRebuild;
-      return widget._store;
+      return widget._store as Store<St>;
     }
     //
     // Try to get the store from the static global backdoor. Only works in
     // production, since in tests there may be more than one store-provider.
     catch (error) {
       try {
-        return backdoorStaticGlobal();
+        return backdoorStaticGlobal<St>();
       } catch (e) {
         // Swallow.
       }
@@ -907,13 +925,13 @@ class StoreProvider<St> extends InheritedWidget {
   /// ```dart
   /// context.dispatchAll([Action1(), Action2()])`.
   /// ```
-  static void dispatchAll<St>(
+  static List<ReduxAction<St>> dispatchAll<St>(
     BuildContext context,
     List<ReduxAction<St>> actions, {
     Object? debug,
     bool notify = true,
   }) =>
-      _getStoreNoDependency_Untyped(context, debug: debug)
+      _getStoreNoDependency_Untyped<St>(context, debug: debug)
           .dispatchAll(actions, notify: notify);
 
   /// Dispatch a list of actions with [ReduxAction.dispatchAndWaitAll]
@@ -928,13 +946,13 @@ class StoreProvider<St> extends InheritedWidget {
   /// ```dart
   /// var status = await context.dispatchAndWaitAll([Action1(), Action2()])`.
   /// ```
-  static Future<void> dispatchAndWaitAll<St>(
+  static Future<List<ReduxAction<St>>> dispatchAndWaitAll<St>(
     BuildContext context,
     List<ReduxAction<St>> actions, {
     Object? debug,
     bool notify = true,
   }) =>
-      _getStoreNoDependency_Untyped(context, debug: debug)
+      _getStoreNoDependency_Untyped<St>(context, debug: debug)
           .dispatchAndWaitAll(actions, notify: notify);
 
   /// Returns a future which will complete when the given state [condition] is true.
@@ -1460,7 +1478,9 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// - [getSelect] to select a specific part of the state and only rebuild
   ///   when that part changes (use it with `context.select()`).
   ///
-  St getState<St>() => StoreProvider.state<St>(this);
+  St getState<St>() => _isMock //
+      ? (_store.state as St) //
+      : StoreProvider.state<St>(this);
 
   /// Provides easy access to the AsyncRedux store state from a BuildContext.
   ///
@@ -1494,7 +1514,9 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// - [getSelect] to select a specific part of the state and only rebuild
   ///   when that part changes (use it with `context.select()`).
   ///
-  St getRead<St>() => StoreProvider.state<St>(this, notify: false);
+  St getRead<St>() => _isMock
+      ? (_store.state as St)
+      : StoreProvider.state<St>(this, notify: false);
 
   /// Consume an event from the state, and rebuild the widget when the event is
   /// dispatched.
@@ -1660,6 +1682,7 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// no longer be detected.
   ///
   R getSelect<St, R>(R Function(St state) selector, {bool debug = true}) {
+    if (_isMock) return selector(_store.state as St);
     _assertSelect(debug);
 
     // Get the InheritedElement WITHOUT creating a dependency yet.
@@ -1859,8 +1882,11 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   ///
-  FutureOr<ActionStatus> dispatch(ReduxAction action, {bool notify = true}) =>
-      StoreProvider.dispatch(this, action, notify: notify);
+  FutureOr<ActionStatus> dispatch(ReduxAction<St> action,
+          {bool notify = true}) =>
+      _isMock
+          ? _store.dispatch(action, notify: notify)
+          : StoreProvider.dispatch(this, action, notify: notify);
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
   /// The action may be sync or async. In both cases, it returns a [Future] that resolves when
@@ -1889,19 +1915,21 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// - [dispatch] which dispatches both sync and async actions.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   ///
-  Future<ActionStatus> dispatchAndWait(ReduxAction action,
+  Future<ActionStatus> dispatchAndWait(ReduxAction<St> action,
           {bool notify = true}) =>
-      StoreProvider.dispatchAndWait(this, action, notify: notify);
+      _isMock
+          ? _store.dispatchAndWait(action, notify: notify)
+          : StoreProvider.dispatchAndWait(this, action, notify: notify);
 
-  /// Dispatches all given [actions] in parallel, applying their reducer, and possibly changing
-  /// the store state.
+  /// Dispatches all given [actions] in parallel, applying their reducer, and
+  /// possibly changing the store state.
   ///
   /// ```dart
   /// dispatchAll([BuyAction('IBM'), SellAction('TSLA')]);
   /// ```
   ///
-  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
-  /// of these actions, even if it changes the state.
+  /// If you pass the [notify] parameter as `false`, widgets will not
+  /// necessarily rebuild because of these actions, even if it changes the state.
   ///
   /// See also:
   /// - [dispatch] which dispatches both sync and async actions.
@@ -1909,23 +1937,27 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   ///
-  void dispatchAll(List<ReduxAction<St>> actions, {bool notify = true}) =>
-      StoreProvider.dispatchAll(this, actions, notify: notify);
+  List<ReduxAction<St>> dispatchAll<St>(List<ReduxAction<St>> actions,
+      {bool notify = true}) {
+    return _isMock
+        ? _store.dispatchAll(actions, notify: notify) as List<ReduxAction<St>>
+        : StoreProvider.dispatchAll<St>(this, actions, notify: notify);
+  }
 
-  /// Dispatches all given [actions] in parallel, applying their reducers, and possibly changing
-  /// the store state. The actions may be sync or async. It returns a [Future] that resolves when
-  /// ALL actions finish.
+  /// Dispatches all given [actions] in parallel, applying their reducers, and
+  /// possibly changing the store state. The actions may be sync or async.
+  /// It returns a [Future] that resolves when ALL actions finish.
   ///
   /// ```dart
   /// await store.dispatchAndWaitAll([BuyAction('IBM'), SellAction('TSLA')]);
   /// ```
   ///
-  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
-  /// of these actions, even if they change the state.
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily
+  /// rebuild because of these actions, even if they change the state.
   ///
-  /// Note: While the state change from the action's reducers will have been applied when the
-  /// Future resolves, other independent processes that the action may have started may still
-  /// be in progress.
+  /// Note: While the state change from the action's reducers will have been
+  /// applied when the Future resolves, other independent processes that the
+  /// action may have started may still be in progress.
   ///
   /// See also:
   /// - [dispatch] which dispatches both sync and async actions.
@@ -1933,17 +1965,20 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   /// - [dispatchAll] which dispatches all given actions in parallel.
   ///
-  Future<void> dispatchAndWaitAll(
+  Future<List<ReduxAction<St>>> dispatchAndWaitAll<St>(
     List<ReduxAction<St>> actions, {
     bool notify = true,
   }) =>
-      StoreProvider.dispatchAndWaitAll(this, actions, notify: notify);
+      _isMock
+          ? _store.dispatchAndWaitAll(actions, notify: notify)
+              as Future<List<ReduxAction<St>>>
+          : StoreProvider.dispatchAndWaitAll(this, actions, notify: notify);
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
   /// However, if the action is ASYNC, it will throw a [StoreException].
   ///
-  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
-  /// of this action, even if it changes the state.
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily
+  /// rebuild because of this action, even if it changes the state.
   ///
   /// Method [dispatchSync] is of type [DispatchSync]. It returns `ActionStatus`,
   /// which means you can also get the final status of the action:
@@ -1956,13 +1991,16 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// - [dispatch] which dispatches both sync and async actions.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   ///
-  ActionStatus dispatchSync(ReduxAction action, {bool notify = true}) =>
-      StoreProvider.dispatchSync(this, action, notify: notify);
+  ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) =>
+      _isMock
+          ? _store.dispatchSync(action, notify: notify)
+          : StoreProvider.dispatchSync(this, action, notify: notify);
 
   /// You can use [isWaiting] and pass it [actionOrActionTypeOrList] to check if:
   /// * A specific async ACTION is currently being processed.
   /// * An async action of a specific TYPE is currently being processed.
-  /// * If any of a few given async actions or action types is currently being processed.
+  /// * If any of a few given async actions or action types is currently being
+  ///   processed.
   ///
   /// If you wait for an action TYPE, then it returns false when:
   /// - The ASYNC action of the type is NOT currently being processed.
@@ -1992,8 +2030,9 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// dispatch(BuyAction());
   /// if (context.isWaiting([BuyAction, SellAction])) { // Show a spinner }
   /// ```
-  bool isWaiting(Object actionOrTypeOrList) =>
-      StoreProvider.isWaiting(this, actionOrTypeOrList);
+  bool isWaiting(Object actionOrTypeOrList) => _isMock
+      ? _store.isWaiting(actionOrTypeOrList)
+      : StoreProvider.isWaiting(this, actionOrTypeOrList);
 
   /// Returns true if an [actionOrTypeOrList] failed with an [UserException].
   ///
@@ -2002,8 +2041,9 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// ```dart
   /// if (context.isFailed(MyAction)) { // Show an error message. }
   /// ```
-  bool isFailed(Object actionOrTypeOrList) =>
-      StoreProvider.isFailed(this, actionOrTypeOrList);
+  bool isFailed(Object actionOrTypeOrList) => _isMock
+      ? _store.isFailed(actionOrTypeOrList)
+      : StoreProvider.isFailed(this, actionOrTypeOrList);
 
   /// Returns the [UserException] of the [actionTypeOrList] that failed.
   ///
@@ -2015,19 +2055,22 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// ```dart
   /// if (context.isFailed(SaveUserAction)) Text(context.exceptionFor(SaveUserAction)!.reason ?? '');
   /// ```
-  UserException? exceptionFor(Object actionOrTypeOrList) =>
-      StoreProvider.exceptionFor(this, actionOrTypeOrList);
+  UserException? exceptionFor(Object actionOrTypeOrList) => _isMock
+      ? _store.exceptionFor(actionOrTypeOrList)
+      : StoreProvider.exceptionFor(this, actionOrTypeOrList);
 
   /// Removes the given [actionTypeOrList] from the list of action types that failed.
   ///
-  /// Note that dispatching an action already removes that action type from the exceptions list.
-  /// This removal happens as soon as the action is dispatched, not when it finishes.
+  /// Note that dispatching an action already removes that action type from the
+  /// exceptions list. This removal happens as soon as the action is dispatched,
+  /// not when it finishes.
   ///
   /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
-  void clearExceptionFor(Object actionOrTypeOrList) =>
-      StoreProvider.clearExceptionFor(this, actionOrTypeOrList);
+  void clearExceptionFor(Object actionOrTypeOrList) => _isMock
+      ? _store.clearExceptionFor(actionOrTypeOrList)
+      : StoreProvider.clearExceptionFor(this, actionOrTypeOrList);
 
   /// Given the BuildContext, provides easy access to the optional AsyncRedux
   /// store "environment" that you may have defined.
@@ -2049,7 +2092,15 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// var state = context.env;
   /// ```
   Object? getEnvironment<St>() {
+    if (_isMock) return _store.env;
+
     Store<St> store = StoreProvider.backdoorInheritedWidget<St>(this);
     return store.env;
   }
+
+  /// Allows [MockBuildContext] to be used for testing.
+  bool get _isMock => this is MockBuildContext;
+
+  /// Only use this after checking [_isMock].
+  Store get _store => (this as MockBuildContext).store;
 }

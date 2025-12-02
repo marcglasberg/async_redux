@@ -16,8 +16,19 @@ import 'package:flutter/material.dart';
 /// context.isWaiting(IncrementAction) || context.isWaiting(MultiplyAction)
 /// ```
 ///
-/// See how the `isCalculating` variable is defined in the `build` method
-/// of widget [MyHomePage].
+/// The `isCalculating` variable is defined in the `build` method
+/// of widget [MyHomePage]:
+///
+/// ```dart
+/// bool isCalculating = context.isWaiting([IncrementAction, MultiplyAction]);
+/// ```
+///
+/// In more detail:
+/// - There are two floating action buttons: one to increment the counter
+///   and another to multiply it by 2.
+/// - When any of the buttons is tapped, its respective action is dispatched.
+/// - While any of the actions is running, both buttons show a spinner
+///   and are disabled.
 ///
 void main() {
   runApp(const MyApp());

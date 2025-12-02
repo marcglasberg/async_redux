@@ -10,6 +10,7 @@ export 'src/error_observer.dart';
 export 'src/event_redux.dart';
 export 'src/global_wrap_error.dart';
 export 'src/log.dart';
+export 'src/mock_build_context.dart';
 export 'src/mock_store.dart';
 export 'src/model_observer.dart';
 export 'src/navigate_action.dart';

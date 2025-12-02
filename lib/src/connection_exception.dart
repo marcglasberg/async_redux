@@ -33,7 +33,7 @@ class ConnectionException extends AdvancedUserException {
     String? errorText,
     bool ifOpenDialog = true,
   }) : super(
-          (host != null)
+          (host == null || host == 'null')
               ? 'There is no Internet'
               : 'It was not possible to connect to $host.',
           reason: 'Please, verify your connection.',
