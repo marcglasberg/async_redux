@@ -76,6 +76,7 @@ abstract class ReduxAction<St> {
   ActionStatus _status = ActionStatus();
   bool _completedFuture = false;
 
+  @protected
   void setStore(Store<St> store) {
     _store = store;
     _initialState = _store.state;
@@ -88,8 +89,10 @@ abstract class ReduxAction<St> {
   ///
   /// In the case of SYNC actions that do not dispatch other SYNC actions,
   /// `this.state` and `this.initialState` will be the same.
+  @protected
   St get initialState => _initialState;
 
+  @protected
   Store<St> get store => _store;
 
   ActionStatus get status => _status;
@@ -112,6 +115,8 @@ abstract class ReduxAction<St> {
   /// ```
   ///
   /// See also: [setProp] and [env].
+  ///
+  @protected
   V prop<V>(Object? key) => store.prop<V>(key);
 
   /// Sets a property in the store.
@@ -125,6 +130,8 @@ abstract class ReduxAction<St> {
   /// ```
   ///
   /// See also: [prop] and [env].
+  ///
+  @protected
   void setProp(Object? key, Object? value) => store.setProp(key, value);
 
   /// The [disposeProps] method is used to clean up resources associated with
@@ -166,6 +173,7 @@ abstract class ReduxAction<St> {
   ///
   /// See also: [disposeProp], to dispose a single property by its key.
   ///
+  @protected
   void disposeProps([bool Function({Object? key, Object? value})? predicate]) =>
       store.disposeProps(predicate);
 
@@ -181,11 +189,14 @@ abstract class ReduxAction<St> {
   /// // Dispose a specific timer property
   /// store.disposeProp("myTimer");
   /// ```
+  @protected
   void disposeProp(Object? keyToDispose) => store.disposeProp(keyToDispose);
 
   /// To wait for the next microtask: `await microtask;`
+  @protected
   Future get microtask => Future.microtask(() {});
 
+  @protected
   St get state => _store.state;
 
   /// Returns true only if the action finished with no errors.
@@ -214,6 +225,7 @@ abstract class ReduxAction<St> {
   /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   ///
+  @protected
   Dispatch<St> get dispatch => _store.dispatch;
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
@@ -235,9 +247,11 @@ abstract class ReduxAction<St> {
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   ///
+  @protected
   DispatchSync<St> get dispatchSync => _store.dispatchSync;
 
   @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
+  @protected
   DispatchAsync<St> get dispatchAsync => _store.dispatchAndWait;
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
@@ -269,6 +283,7 @@ abstract class ReduxAction<St> {
   /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   ///
+  @protected
   DispatchAndWait<St> get dispatchAndWait => _store.dispatchAndWait;
 
   /// Dispatches all given [actions] in parallel, applying their reducers, and possibly changing
@@ -303,6 +318,7 @@ abstract class ReduxAction<St> {
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   /// - [dispatchAll] which dispatches all given actions in parallel.
   ///
+  @protected
   Future<List<ReduxAction<St>>> Function(List<ReduxAction<St>> actions,
       {bool notify}) get dispatchAndWaitAll => _store.dispatchAndWaitAll;
 
@@ -323,6 +339,7 @@ abstract class ReduxAction<St> {
   /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   ///
+  @protected
   List<ReduxAction<St>> Function(List<ReduxAction<St>> actions, {bool notify})
       get dispatchAll => _store.dispatchAll;
 
@@ -331,6 +348,7 @@ abstract class ReduxAction<St> {
   /// `reduce` method will NOT run, but the method `after` will.
   /// It may be synchronous (returning `void`) ou async (returning `Future<void>`).
   /// You should NOT return `FutureOr`.
+  @protected
   FutureOr<void> before() {}
 
   /// This is an optional method that may be overridden to run during action
@@ -339,6 +357,7 @@ abstract class ReduxAction<St> {
   /// can't throw errors. It may be synchronous only.
   /// Note this method will always be called,
   /// even if errors were thrown by `before` or `reduce`.
+  @protected
   void after() {}
 
   /// The `reduce` method is the action reducer. It may read the action state,
@@ -351,6 +370,7 @@ abstract class ReduxAction<St> {
   /// The `StoreConnector`s may rebuild only if the `reduce` method returns
   /// a state which is both not `null` and different from the previous one
   /// (comparing by `identical`, not `equals`).
+  @protected
   FutureOr<St?> reduce();
 
   /// You may override [wrapReduce] to wrap the [reduce] method and allow for
@@ -381,6 +401,7 @@ abstract class ReduxAction<St> {
   /// See mixins [Retry], [Throttle], and [Debounce] for real [wrapReduce]
   /// examples.
   ///
+  @protected
   FutureOr<St?> wrapReduce(Reducer<St> reduce) {
     return null;
   }
@@ -408,6 +429,7 @@ abstract class ReduxAction<St> {
   /// See also:
   /// - [GlobalWrapError] which is a global error wrapper that will be called after this one.
   ///
+  @protected
   Object? wrapError(Object error, StackTrace stackTrace) => error;
 
   /// If [abortDispatch] returns true, the action will NOT be dispatched: `before`, `reduce`
@@ -433,6 +455,7 @@ abstract class ReduxAction<St> {
   /// See also:
   /// - [AbortDispatchException] which is a way to abort the action by throwing an exception.
   ///
+  @protected
   bool abortDispatch() => false;
 
   /// You can use [isWaiting] to check if:
@@ -468,11 +491,13 @@ abstract class ReduxAction<St> {
   /// dispatch(BuyAction());
   /// if (store.isWaiting([BuyAction, SellAction])) { // Show a spinner }
   /// ```
+  @protected
   bool isWaiting(Object actionOrTypeOrList) =>
       _store.isWaiting(actionOrTypeOrList);
 
   /// Returns true if an [actionOrActionTypeOrList] failed with an [UserException].
   /// Note: This method uses the EXACT type in [actionOrActionTypeOrList]. Subtypes are not considered.
+  @protected
   bool isFailed(Object actionOrTypeOrList) =>
       _store.isFailed(actionOrTypeOrList);
 
@@ -482,6 +507,7 @@ abstract class ReduxAction<St> {
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
+  @protected
   UserException? exceptionFor(Object actionTypeOrList) =>
       _store.exceptionFor(actionTypeOrList);
 
@@ -494,6 +520,7 @@ abstract class ReduxAction<St> {
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
+  @protected
   void clearExceptionFor(Object actionTypeOrList) =>
       _store.clearExceptionFor(actionTypeOrList);
 
@@ -508,6 +535,7 @@ abstract class ReduxAction<St> {
   /// var action = await store.waitCondition((state) => state.name == "Bill");
   /// expect(action, isA<ChangeNameAction>());
   /// ```
+  @protected
   Future<ReduxAction<St>?> waitCondition(
     bool Function(St) condition, {
     int? timeoutMillis,
@@ -533,6 +561,7 @@ abstract class ReduxAction<St> {
   /// await dispatchAndWait(action1);
   /// await dispatchAndWait(action2);
   /// ```
+  @protected
   Future<void> waitAllActions(List<ReduxAction<St>> actions,
       {bool completeImmediately = false}) {
     if (actions.isEmpty)
@@ -563,17 +592,21 @@ abstract class ReduxAction<St> {
   /// in the `FutureImpl` class, it's not exposed. Also note, the error will be thrown
   /// asynchronously (will not stop the action from returning a state).
   ///
+  @protected
   void assertUncompletedFuture() {
     scheduleMicrotask(() {
       _completedFuture = true;
     });
   }
 
+  @protected
   bool ifWrapReduceOverridden_Sync() => wrapReduce is St? Function(Reducer<St>);
 
+  @protected
   bool ifWrapReduceOverridden_Async() =>
       wrapReduce is Future<St?> Function(Reducer<St>);
 
+  @protected
   bool ifWrapReduceOverridden() =>
       ifWrapReduceOverridden_Async() || ifWrapReduceOverridden_Sync();
 
