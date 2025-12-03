@@ -2527,11 +2527,13 @@ class _Flag<T> {
 /// reset when the store is recreated, for example during tests.
 class _InternalMixinProps {
   final Map<Object?, DateTime> throttleLockMap = {};
+  final Map<Object?, DateTime> freshKeyMap = {};
   final Map<Object?, int> debounceLockMap = {};
 
   /// Removes the locks for Throttle and Debounce.
   void clear() {
     throttleLockMap.clear();
+    freshKeyMap.clear();
     debounceLockMap.clear();
   }
 }

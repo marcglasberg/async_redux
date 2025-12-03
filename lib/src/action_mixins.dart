@@ -590,22 +590,23 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 /// and specify a throttle period so that it doesn't load the information again
 /// too often.
 ///
-/// If you are using a `StoreConnector`, you can use the `onInit` parameter:
+/// For example, you can dispatch the action in your widget's `initState`:
 ///
 /// ```dart
-/// class MyScreenConnector extends StatelessWidget {
-///   Widget build(BuildContext context) => StoreConnector<AppState, _Vm>(
-///     vm: () => _Factory(),
-///     onInit: _onInit, // Here!
-///     builder: (context, vm) {
-///       return MyScreenConnector(
-///         information: vm.information,
-///         ...
-///       ),
-///     );
+/// class MyScreen extends StatefulWidget {
+///   State<MyScreen> createState() => _MyScreenState();
+/// }
 ///
-///   void _onInit(Store<AppState> store) {
-///     store.dispatch(LoadAction());
+/// class _MyScreenState extends State<MyScreen> {
+///
+///   void initState() {
+///     super.initState();
+///     context.dispatch(LoadInformation());
+///   }
+///
+///   Widget build(BuildContext context) {
+///     var information = context.state.information;
+///     return Text('Information: $information');
 ///   }
 /// }
 /// ```
@@ -613,7 +614,7 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 /// and then:
 ///
 /// ```dart
-/// class LoadAction extends ReduxAction<AppState> with Throttle {
+/// class LoadInformation extends ReduxAction<AppState> with Throttle {
 ///
 ///   int throttle = 5000;
 ///
@@ -644,7 +645,7 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 ///    final bool force;
 ///    MyAction({this.force = false});
 ///
-///    bool ignoreThrottle => force; // Here!
+///    bool get ignoreThrottle => force; // Here!
 ///
 ///    int throttle = 500;
 ///    ...
@@ -713,12 +714,11 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 /// }
 /// ```
 ///
-/// If you override the [lockBuilder], ensure the number of different locks you
-/// create is limited, as the lock map is never cleared.
+/// Note: Expired locks are removed when expired, to prevent memory leaks.
 ///
 /// Notes:
 /// - It should not be combined with other mixins that override [abortDispatch] or [after].
-/// - It should not be combined with [NonReentrant] or [UnlimitedRetryCheckInternet].
+/// - It should not be combined with [Fresh], [NonReentrant] or [UnlimitedRetryCheckInternet].
 ///
 mixin Throttle<St> on ReduxAction<St> {
   //
@@ -733,16 +733,16 @@ mixin Throttle<St> on ReduxAction<St> {
   /// Override this method to customize the lock to any value.
   /// For example, you can return a string or an enum, and actions with the
   /// same lock value will throttle each other.
-  /// Ensure the number of different locks you create is limited, as
-  /// the lock map is never cleared.
+  /// Note: Expired locks are removed when expired, to prevent memory leaks.
   Object? lockBuilder() => runtimeType;
 
-  /// Map that stores the last time an action with a specific lock dispatched.
+  /// Map that stores the expiry time for each lock.
+  /// The value is the instant when the throttle period ends.
   Map<Object?, DateTime> get _throttleLockMap =>
       store.internalMixinProps.throttleLockMap;
 
   /// Removes the lock, allowing an action of the same type to be dispatched
-  /// again right away. You generally don't need to call this method.
+  /// again right away. You generally do not need to call this method.
   void removeLock() => _throttleLockMap.remove(lockBuilder());
 
   /// Removes all locks, allowing all actions to be dispatched again right away.
@@ -751,40 +751,40 @@ mixin Throttle<St> on ReduxAction<St> {
 
   @override
   bool abortDispatch() {
-    var lock = lockBuilder();
-    var now = DateTime.now().toUtc();
+    final lock = lockBuilder();
+    final now = DateTime.now().toUtc();
 
-    // If should ignore the throttle, then update time and allow the dispatch.
+    // If should ignore the throttle, then set a new expiry and allow dispatch.
     if (ignoreThrottle) {
-      _throttleLockMap[lock] = now;
+      _throttleLockMap[lock] = _expiringFrom(now);
       return false;
     }
-    //
-    else {
-      var time = _throttleLockMap[lock];
 
-      if (time == null) {
-        _throttleLockMap[lock] = now;
-        return false;
-      }
-      //
-      else {
-        // If the throttle time has NOT elapsed since last dispatch, abort.
-        if (now.difference(time).inMilliseconds < throttle)
-          return true;
-        //
-        // Otherwise, update the time and allow the dispatch.
-        else {
-          _throttleLockMap[lock] = now;
-          return false;
-        }
-      }
+    final expiresAt = _throttleLockMap[lock];
+
+    // If there is no lock, or it has expired, set a new expiry and allow.
+    if (expiresAt == null || !expiresAt.isAfter(now)) {
+      _throttleLockMap[lock] = _expiringFrom(now);
+      return false;
     }
+
+    // Still inside the throttle period, abort dispatch.
+    return true;
+  }
+
+  DateTime _expiringFrom(DateTime now) =>
+      now.add(Duration(milliseconds: throttle));
+
+  /// Remove locks whose expiry time is in the past or now.
+  void _prune() {
+    final now = DateTime.now().toUtc();
+    _throttleLockMap.removeWhere((_, expiresAt) => !expiresAt.isAfter(now));
   }
 
   @override
   void after() {
     if (removeLockOnError && (status.originalError != null)) removeLock();
+    _prune();
   }
 }
 
@@ -1069,6 +1069,430 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
           : [ConnectivityResult.none];
 
     return await (Connectivity().checkConnectivity());
+  }
+}
+
+/// The [Fresh] mixin lets you treat the result of an action as fresh for a
+/// given time period. While the information is fresh, repeated dispatches of
+/// the same action (or other actions with the same "fresh-key") are skipped,
+/// because that information is assumed to still be valid in the state.
+///
+/// After the fresh period ends, the information is considered "stale".
+/// The next dispatch of an action with the same "fresh-key" is allowed to
+/// run again, update the state, and start a new fresh period.
+///
+/// In short, [Fresh] helps you avoid reloading the same information too often.
+///
+///
+/// ## Basic usage
+///
+/// This is often used for actions that load information from a server. You can
+/// think of the fresh period as the time during which the loaded data is still
+/// good to use. After that time, a new dispatch will reload it.
+///
+/// A simple example in a `StatefulWidget` that loads information once when
+/// the widget is created:
+///
+/// ```dart
+/// class MyScreen extends StatefulWidget {
+///   State<MyScreen> createState() => _MyScreenState();
+/// }
+///
+/// class _MyScreenState extends State<MyScreen> {
+///   void initState() {
+///     super.initState();
+///     context.dispatch(LoadInformation()); // Here!
+///   }
+///
+///   Widget build(BuildContext context) {
+///     var information = context.state.information;
+///     return Text('Information: $information');
+///   }
+/// }
+/// ```
+///
+/// Use [Fresh] on the loading action so it does not run again while its data
+/// is still fresh:
+///
+/// ```dart
+/// class LoadInformation extends ReduxAction<AppState> with Fresh {
+///
+///   Future<AppState> reduce() async {
+///     var information = await loadInformation();
+///     return state.copy(information: information);
+///   }
+/// }
+/// ```
+///
+///
+/// ## How fresh-keys work
+///
+/// * Dispatched actions with different fresh-keys are not affected.
+///
+/// * Dispatched actions with the same fresh-key:
+///   - Are aborted while the data is fresh (the fresh period has not passed).
+///   - Run again when the data is stale (after the fresh period has passed).
+///
+/// In other words, freshness is tracked per fresh-key. Any two dispatches that
+/// share the same fresh-key share the same fresh period.
+///
+/// By default, the key is based on:
+/// * The action type (its `runtimeType`), and
+/// * The value returned by [freshKeyParams].
+///
+/// In the previous example, the fresh-key of the `LoadInformation` action is
+/// simply the action [runtimeType], since it did not override [freshKeyParams].
+///
+/// If you dispatch `LoadInformation` many times in a short period, only the
+/// first one runs while the data is fresh. The others are aborted. Later,
+/// when the fresh period ends, the next dispatch will run the action again.
+///
+/// The default [freshKeyParams] returns `null`, so the key is only the action
+/// type. This means all actions of the same type share the same fresh period,
+/// and different action types do not affect each other.
+///
+/// ### Using [freshKeyParams] to separate instances
+///
+/// Many actions need a separate fresh period per id, url, or some other field.
+/// In that case, override [freshKeyParams]. Actions of the same type but with
+/// different [freshKeyParams] values do not affect each other.
+///
+/// ```dart
+/// class LoadUserCart extends ReduxAction<AppState> with Fresh {
+///   final String userId;
+///   LoadUserCart(this.userId);
+///
+///   // The fresh-key parameter here is the `userId`, which means
+///   // each different `(LoadUserCart, userId)` has its own fresh period.
+///   Object? freshKeyParams() => userId;
+///   ...
+/// ```
+///
+/// You can also return more than one field by using a tuple:
+///
+/// ```dart
+/// // Each different `(LoadUserCart, userId, cartId)` has its own fresh period.
+/// Object? freshKeyParams() => (userId, cartId);
+/// ```
+///
+/// ## Configuring how long data stays fresh
+///
+/// The [freshFor] value is given in milliseconds. The default is `1000`
+/// (1 second).
+///
+/// To keep the data fresh for 5 seconds:
+///
+///
+/// ```dart
+/// class LoadInformation extends ReduxAction<AppState> with Fresh {
+///    int freshFor = 500; // Here!
+///    ...
+/// }
+/// ```
+///
+///
+/// ## Forcing the action to run
+///
+/// Sometimes you want to run the action even if the data is still fresh. For
+/// that, you can override [ignoreFresh]. When [ignoreFresh] is `true`, the
+/// action always runs and also starts a new fresh period for its key.
+///
+/// A common pattern is to add a `force` flag:
+///
+/// ```dart
+/// class LoadInformation extends ReduxAction<AppState> with Fresh {
+///    final bool force;
+///    LoadInformation({this.force = false});
+///
+///    bool get ignoreFresh => force; // Here!
+///    ...
+/// }
+/// ```
+///
+/// With this setup:
+/// * `LoadInformation()` runs only when its key is stale.
+/// * `LoadInformation(force: true)` always runs and also refreshes the key.
+///
+///
+/// ## When the action fails
+///
+/// If an action that uses [Fresh] throws an error, the mixin tries to behave
+/// as if that failing run did not make the key stay fresh for longer.
+///
+/// In practice:
+/// * If there was no fresh entry for that key before the action started,
+///   the key is cleared. You can dispatch the action again right away.
+/// * If there was already a fresh time stored for that key, that time is kept.
+/// * If another action using the same key finished after this one started and
+///   changed the fresh time, that newer fresh time is kept as is.
+///
+/// This means:
+/// * Errors never extend the fresh time by themselves.
+/// * A failure from an older action does not cancel a newer successful action
+///   that used the same fresh-key.
+///
+/// You can also control this by hand:
+///
+/// * Call [removeKey] from your action (for example inside [reduce] or
+///   [before]) to remove the key used by that action, so the next dispatch
+///   for that key can run immediately.
+/// * Call [removeAllKeys] from your action to clear all keys and let all
+///   actions run again as if nothing was fresh. This is probably useful
+///   during logout or similar scenarios.
+///
+/// Expired keys are cleaned automatically over time, so you usually do not
+/// need to worry about old entries.
+///
+///
+/// ## Using [computeFreshKey] to share keys across actions
+///
+/// If you want different action types to share the same key, override
+/// [computeFreshKey]. This is useful when several actions read or write the
+/// same logical resource and should respect the same fresh period.
+///
+/// For example, two actions that work on the same user data:
+///
+/// ```dart
+/// class LoadUserProfile extends ReduxAction<AppState> with Fresh {
+///   final String userId;
+///   LoadUserProfile(this.userId);
+///
+///   Object computeFreshKey() => userId; // key is only userId
+///   ...
+/// }
+///
+/// class LoadUserSettings extends ReduxAction<AppState> with Fresh {
+///   final String userId;
+///   LoadUserSettings(this.userId);
+///
+///   Object computeFreshKey() => userId; // same key as above
+///   ...
+/// }
+/// ```
+///
+/// Here:
+/// * `LoadUserProfile('123')` and `LoadUserSettings('123')` share one fresh
+///   period, because they use the same key.
+/// * Any object can be a key, for example an enum or a constant string.
+///
+///
+/// Notes:
+/// - It should not be combined with other mixins that override [abortDispatch] or [after].
+/// - It should not be combined with [Throttle], [NonReentrant] or [UnlimitedRetryCheckInternet].
+///
+mixin Fresh<St> on ReduxAction<St> {
+  //
+  int get freshFor => 1000; // Milliseconds
+
+  bool get ignoreFresh => false;
+
+  /// By default the fresh key is based on the action [runtimeType].
+  /// For example, all actions of type `LoadText` share the same
+  /// freshness:
+  ///
+  /// ```dart
+  /// // This action runs.
+  /// dispatch(LoadText(url: 'https://example.com'));
+  ///
+  /// // This does NOT run, because the previous LoadText is still fresh.
+  /// dispatch(LoadText(url: 'https://another-url.com'));
+  /// ```dart
+  ///
+  /// You can override [freshKeyParams] so that actions of the SAME TYPE
+  /// but with different parameters do not affect each other's freshness.
+  /// In this example, the `url` field becomes part of the fresh-key:
+  ///
+  /// ```dart
+  /// class LoadText extends ReduxAction<AppState> with Fresh {
+  ///   final String url;
+  ///   LoadText(this.url);
+  ///
+  ///   // The fresh-key includes the url.
+  ///   Object? freshKeyParams() => url;
+  ///   ...
+  /// }
+  /// ```
+  ///
+  /// Now, dispatching two `LoadText` actions with different `url` values
+  /// allows both of them to run, because each one uses a different fresh-key:
+  ///
+  /// ```dart
+  /// // This action runs.
+  /// dispatch(LoadText(url: 'https://example.com'));
+  ///
+  /// // This also runs, because the url is different, so it has a different fresh-key.
+  /// dispatch(LoadText(url: 'https://another-url.com'));
+  /// ```
+  ///
+  /// ## In more detail
+  ///
+  /// The default fresh-key, as returned by [computeFreshKey], combines the
+  /// action [runtimeType] with the value returned by [freshKeyParams].
+  ///
+  /// Most of the time you override [freshKeyParams] to return one field,
+  /// or a tuple of fields:
+  ///
+  /// ```dart
+  /// // Fresh-key is runtimeType + url
+  /// Object? freshKeyParams() => url;
+  ///
+  /// // Fresh-key is runtimeType + userId + cartId
+  /// Object? freshKeyParams() => (userId, cartId);
+  /// ```
+  ///
+  /// When [freshKeyParams] returns `null`, the key is just the action type.
+  /// In that case all actions of that type share the same freshness.
+  ///
+  /// See also:
+  /// - [computeFreshKey] if you want full control over how the key is built.
+  ///
+  Object? freshKeyParams() => null;
+
+  /// In most cases you want to use the default fresh-key computation, which
+  /// combines the action's [runtimeType] with the value returned by
+  /// [freshKeyParams]:
+  ///
+  /// ```dart
+  /// Object? computeFreshKey() => (runtimeType, freshKeyParams());
+  /// ```
+  ///
+  /// However, if you want different action types to share the same fresh
+  /// period, you must override [computeFreshKey] and return any key you want.
+  /// Some examples:
+  ///
+  /// ```dart
+  /// // The fresh-key is only the url, without the runtimeType.
+  /// Object? computeFreshKey() => url;
+  ///
+  /// // The fresh-key is a pair of values, without the runtimeType.
+  /// Object? computeFreshKey() => (userId, cartId);
+  ///
+  /// // The fresh-key is a constant string.
+  /// Object? computeFreshKey() => 'myKey';
+  ///
+  /// // The fresh-key is an enum value.
+  /// Object? computeFreshKey() => MyFreshnessKey.myKey;
+  /// ```
+  ///
+  /// For example, suppose you have two different actions, and you want
+  /// them to share the same fresh-key:
+  ///
+  /// ```dart
+  /// class LoadUserProfile extends ReduxAction<AppState> with Fresh {
+  ///   final String userId;
+  ///   LoadUserProfile(this.userId);
+  ///
+  ///   // The key is the userId only, without the runtimeType.
+  ///   Object? computeFreshKey() => userId;
+  ///   ...
+  /// }
+  ///
+  /// class LoadUserSettings extends ReduxAction<AppState> with Fresh {
+  ///   final String userId;
+  ///   LoadUserSettings(this.userId);
+  ///
+  ///   // The key is the userId only, without the runtimeType.
+  ///   Object? computeFreshKey() => userId;
+  ///   ...
+  /// }
+  /// ```
+  ///
+  /// With this setup, if you dispatch `LoadUserProfile('123')`,
+  /// then `LoadUserSettings('123')` will be aborted if dispatched within the
+  /// fresh period of the first action.
+  ///
+  /// See also:
+  /// - [freshKeyParams] when you want to differentiate fresh-keys by some
+  ///   of the fields of the action.
+  ///
+  Object computeFreshKey() => (runtimeType, freshKeyParams());
+
+  /// Map that stores the expiry time for each key.
+  /// The value is the instant when the fresh period ends.
+  Map<Object?, DateTime> get _freshKeyMap =>
+      store.internalMixinProps.freshKeyMap;
+
+  /// Removes the fresh-key used by this action, allowing an action using the
+  /// same fresh-key to be dispatched and run again, right away.
+  /// Calling this method will make the action stale immediately.
+  /// You generally do not need to call this method, but if you do, use
+  /// it only from your action's [reduce] or [before] methods.
+  void removeKey() {
+    _freshKeyMap.remove(_freshKey);
+    _keysRemoved = true;
+  }
+
+  /// Removes all fresh-key, allowing all actions to be dispatched and
+  /// run again right away.
+  /// Calling this method will make all actions stale immediately.
+  /// You generally do not need to call this method, but if you do, use
+  /// it only from your action's [reduce] or [before] methods.
+  void removeAllKeys() {
+    _freshKeyMap.clear();
+    _keysRemoved = true;
+  }
+
+  DateTime? _current;
+  Object? _freshKey;
+  bool _keysRemoved = false;
+  DateTime? _newExpiry;
+
+  @override
+  bool abortDispatch() {
+    _keysRemoved = false; // good to reset here
+    _freshKey = computeFreshKey();
+    _current = _freshKeyMap[_freshKey];
+    final now = DateTime.now().toUtc();
+
+    if (ignoreFresh) {
+      final expiry = _expiringFrom(now);
+      _freshKeyMap[_freshKey] = expiry;
+      _newExpiry = expiry;
+      _current = null; // Make it stale if the action fails.
+      return false;
+    }
+
+    final expiresAt = _current;
+
+    if (expiresAt == null || !expiresAt.isAfter(now)) {
+      final expiry = _expiringFrom(now);
+      _freshKeyMap[_freshKey] = expiry;
+      _newExpiry = expiry;
+      return false;
+    }
+
+    // Still fresh, abort.
+    _newExpiry = null;
+    return true;
+  }
+
+  DateTime _expiringFrom(DateTime now) =>
+      now.add(Duration(milliseconds: freshFor));
+
+  /// Remove keys whose expiry time is in the past or now.
+  void _prune() {
+    final now = DateTime.now().toUtc();
+    _freshKeyMap.removeWhere((_, expiresAt) => !expiresAt.isAfter(now));
+  }
+
+  @override
+  void after() {
+    if (!_keysRemoved && status.originalError != null && _freshKey != null) {
+      final current = _freshKeyMap[_freshKey];
+
+      // Only roll back if the map still contains the expiry written by this action.
+      if (current == _newExpiry) {
+        if (_current == null) {
+          // No previous expiry: remove key (stale).
+          _freshKeyMap.remove(_freshKey);
+        } else {
+          // Restore previous expiry.
+          _freshKeyMap[_freshKey] = _current!;
+        }
+      }
+    }
+
+    _prune();
   }
 }
 

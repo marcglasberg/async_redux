@@ -432,14 +432,15 @@ abstract class ReduxAction<St> {
   @protected
   Object? wrapError(Object error, StackTrace stackTrace) => error;
 
-  /// If [abortDispatch] returns true, the action will NOT be dispatched: `before`, `reduce`
-  /// and `after` will not be called, and the action will not be visible to the store observers.
+  /// If [abortDispatch] returns true, the action will NOT be dispatched:
+  /// `before`, `reduce` and `after` will not be called, and the action will not
+  /// be visible to the store observers.
   ///
-  /// Note: No observer will be called. It will be as if the action was never dispatched.
-  /// The action status will be `isDispatchAborted: true`.
+  /// Note: No observer will be called. It will be as if the action was never
+  /// dispatched. The action status will be `isDispatchAborted: true`.
   ///
-  /// For example, this mixin prevents reentrant actions (you can only call the action if it's not
-  /// already running):
+  /// For example, this mixin prevents reentrant actions (you can only call the
+  /// action if it's not already running):
   ///
   /// ```dart
   /// /// This mixin prevents reentrant actions. You can only call the action if it's not already
