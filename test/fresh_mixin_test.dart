@@ -885,6 +885,224 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+
+  // ==========================================================================
+  // Case 20: Fresh mixin cannot be combined with Throttle
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario('Fresh mixin cannot be combined with Throttle')
+      .given('An action that combines Fresh and Throttle mixins')
+      .when('The action is dispatched')
+      .then('It should throw an AssertionError')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    expect(
+      () => store.dispatch(FreshWithThrottleAction()),
+      throwsA(isA<AssertionError>().having(
+        (e) => e.message,
+        'message',
+        'The Fresh mixin cannot be combined with the Throttle mixin.',
+      )),
+    );
+  });
+
+  // ==========================================================================
+  // Case 21: Fresh mixin cannot be combined with NonReentrant
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario('Fresh mixin cannot be combined with NonReentrant')
+      .given('An action that combines Fresh and NonReentrant mixins')
+      .when('The action is dispatched')
+      .then('It should throw an AssertionError')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    expect(
+      () => store.dispatch(FreshWithNonReentrantAction()),
+      throwsA(isA<AssertionError>().having(
+        (e) => e.message,
+        'message',
+        'The Fresh mixin cannot be combined with the NonReentrant mixin.',
+      )),
+    );
+  });
+
+  // ==========================================================================
+  // Case 22: Fresh mixin cannot be combined with UnlimitedRetryCheckInternet
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario(
+          'Fresh mixin cannot be combined with UnlimitedRetryCheckInternet')
+      .given(
+          'An action that combines Fresh and UnlimitedRetryCheckInternet mixins')
+      .when('The action is dispatched')
+      .then('It should throw an AssertionError')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    expect(
+      () => store.dispatch(FreshWithUnlimitedRetryAction()),
+      throwsA(isA<AssertionError>().having(
+        (e) => e.message,
+        'message',
+        'The Fresh mixin cannot be combined with the UnlimitedRetryCheckInternet mixin.',
+      )),
+    );
+  });
+
+  // ==========================================================================
+  // Case 23: Throttle mixin cannot be combined with NonReentrant
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario('Throttle mixin cannot be combined with NonReentrant')
+      .given('An action that combines Throttle and NonReentrant mixins')
+      .when('The action is dispatched')
+      .then('It should throw an AssertionError')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    // NonReentrant.abortDispatch() runs and detects Throttle
+    expect(
+      () => store.dispatch(ThrottleWithNonReentrantAction()),
+      throwsA(isA<AssertionError>().having(
+        (e) => e.message,
+        'message',
+        'The NonReentrant mixin cannot be combined with the Throttle mixin.',
+      )),
+    );
+  });
+
+  // ==========================================================================
+  // Case 24: Throttle mixin cannot be combined with UnlimitedRetryCheckInternet
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario(
+          'Throttle mixin cannot be combined with UnlimitedRetryCheckInternet')
+      .given(
+          'An action that combines Throttle and UnlimitedRetryCheckInternet mixins')
+      .when('The action is dispatched')
+      .then('It should throw an AssertionError')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    // UnlimitedRetryCheckInternet.abortDispatch() runs and detects Throttle
+    expect(
+      () => store.dispatch(ThrottleWithUnlimitedRetryAction()),
+      throwsA(isA<AssertionError>().having(
+        (e) => e.message,
+        'message',
+        'The UnlimitedRetryCheckInternet mixin cannot be combined with the Throttle mixin.',
+      )),
+    );
+  });
+
+  // ==========================================================================
+  // Case 25: NonReentrant mixin cannot be combined with UnlimitedRetryCheckInternet
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario(
+          'NonReentrant mixin cannot be combined with UnlimitedRetryCheckInternet')
+      .given(
+          'An action that combines NonReentrant and UnlimitedRetryCheckInternet mixins')
+      .when('The action is dispatched')
+      .then('It should throw an AssertionError')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    // UnlimitedRetryCheckInternet.abortDispatch() runs and detects NonReentrant
+    expect(
+      () => store.dispatch(NonReentrantWithUnlimitedRetryAction()),
+      throwsA(isA<AssertionError>().having(
+        (e) => e.message,
+        'message',
+        'The UnlimitedRetryCheckInternet mixin cannot be combined with the NonReentrant mixin.',
+      )),
+    );
+  });
+
+  // ==========================================================================
+  // Case 26: CheckInternet mixin cannot be combined with AbortWhenNoInternet
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario(
+          'CheckInternet mixin cannot be combined with AbortWhenNoInternet')
+      .given(
+          'An action that combines CheckInternet and AbortWhenNoInternet mixins')
+      .when('The action is dispatched')
+      .then('It should throw an AssertionError')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    // AbortWhenNoInternet.before() runs and detects CheckInternet
+    expect(
+      () => store.dispatch(CheckInternetWithAbortWhenNoInternetAction()),
+      throwsA(isA<AssertionError>().having(
+        (e) => e.message,
+        'message',
+        'The AbortWhenNoInternet mixin cannot be combined with the CheckInternet mixin.',
+      )),
+    );
+  });
+
+  // ==========================================================================
+  // Case 27: CheckInternet mixin cannot be combined with UnlimitedRetryCheckInternet
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario(
+          'CheckInternet mixin cannot be combined with UnlimitedRetryCheckInternet')
+      .given(
+          'An action that combines CheckInternet and UnlimitedRetryCheckInternet mixins')
+      .when('The action is dispatched')
+      .then('It should throw an AssertionError')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    // UnlimitedRetryCheckInternet.abortDispatch() runs first and detects CheckInternet
+    expect(
+      () => store.dispatch(CheckInternetWithUnlimitedRetryAction()),
+      throwsA(isA<AssertionError>().having(
+        (e) => e.message,
+        'message',
+        'The UnlimitedRetryCheckInternet mixin cannot be combined with the CheckInternet mixin.',
+      )),
+    );
+  });
+
+  // ==========================================================================
+  // Case 28: AbortWhenNoInternet mixin cannot be combined with UnlimitedRetryCheckInternet
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario(
+          'AbortWhenNoInternet mixin cannot be combined with UnlimitedRetryCheckInternet')
+      .given(
+          'An action that combines AbortWhenNoInternet and UnlimitedRetryCheckInternet mixins')
+      .when('The action is dispatched')
+      .then('It should throw an AssertionError')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    // UnlimitedRetryCheckInternet.abortDispatch() runs first and detects AbortWhenNoInternet
+    expect(
+      () => store.dispatch(AbortWhenNoInternetWithUnlimitedRetryAction()),
+      throwsA(isA<AssertionError>().having(
+        (e) => e.message,
+        'message',
+        'The UnlimitedRetryCheckInternet mixin cannot be combined with the AbortWhenNoInternet mixin.',
+      )),
+    );
+  });
+
+  // ---------------------------------------------------------------------------
 }
 
 // =============================================================================
@@ -1149,6 +1367,132 @@ class CheckAction extends ReduxAction<AppState> with Fresh {
   @override
   AppState reduce() {
     // Should only run if the key is stale.
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// Action that combines Fresh with Throttle (incompatible)
+class FreshWithThrottleAction extends ReduxAction<AppState>
+    with
+        Throttle,
+        // ignore: private_collision_in_mixin_application
+        Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  int get throttle => 1000;
+
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// Action that combines Fresh with NonReentrant (incompatible)
+class FreshWithNonReentrantAction extends ReduxAction<AppState>
+    with
+        NonReentrant,
+        // ignore: private_collision_in_mixin_application
+        Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// Action that combines Fresh with UnlimitedRetryCheckInternet (incompatible)
+class FreshWithUnlimitedRetryAction extends ReduxAction<AppState>
+    with
+        UnlimitedRetryCheckInternet,
+        // ignore: private_collision_in_mixin_application
+        Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// Action that combines Throttle with NonReentrant (incompatible)
+class ThrottleWithNonReentrantAction extends ReduxAction<AppState>
+    with
+        Throttle,
+        // ignore: private_collision_in_mixin_application
+        NonReentrant {
+  @override
+  int get throttle => 1000;
+
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// Action that combines Throttle with UnlimitedRetryCheckInternet (incompatible)
+class ThrottleWithUnlimitedRetryAction extends ReduxAction<AppState>
+    with
+        Throttle,
+        // ignore: private_collision_in_mixin_application
+        UnlimitedRetryCheckInternet {
+  @override
+  int get throttle => 1000;
+
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// Action that combines NonReentrant with UnlimitedRetryCheckInternet (incompatible)
+class NonReentrantWithUnlimitedRetryAction extends ReduxAction<AppState>
+    with
+        NonReentrant,
+        // ignore: private_collision_in_mixin_application
+        UnlimitedRetryCheckInternet {
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// Action that combines CheckInternet with AbortWhenNoInternet (incompatible)
+class CheckInternetWithAbortWhenNoInternetAction extends ReduxAction<AppState>
+    with
+        CheckInternet,
+        // ignore: private_collision_in_mixin_application
+        AbortWhenNoInternet {
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// Action that combines CheckInternet with UnlimitedRetryCheckInternet (incompatible)
+class CheckInternetWithUnlimitedRetryAction extends ReduxAction<AppState>
+    with
+        CheckInternet,
+        // ignore: private_collision_in_mixin_application
+        UnlimitedRetryCheckInternet {
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// Action that combines AbortWhenNoInternet with UnlimitedRetryCheckInternet (incompatible)
+class AbortWhenNoInternetWithUnlimitedRetryAction extends ReduxAction<AppState>
+    with
+        AbortWhenNoInternet,
+        // ignore: private_collision_in_mixin_application
+        UnlimitedRetryCheckInternet {
+  @override
+  AppState reduce() {
     return state.copy(count: state.count + 1);
   }
 }

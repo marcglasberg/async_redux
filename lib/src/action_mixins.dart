@@ -50,6 +50,7 @@ import 'package:meta/meta.dart';
 /// - This mixin can safely be combined with [NonReentrant] or [Throttle] (not both).
 /// - It should not be combined with other mixins that override [before].
 /// - It should not be combined with other mixins that check the internet connection.
+/// - It should not be combined with [AbortWhenNoInternet] and [UnlimitedRetryCheckInternet].
 ///
 /// See also:
 /// * [NoDialog] - To just show a message in your widget, and not open a dialog.
@@ -95,11 +96,19 @@ mixin CheckInternet<St> on ReduxAction<St> {
   @mustCallSuper
   @override
   Future<void> before() async {
+    _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet();
+
     super.before();
     var result = await checkConnectivity();
 
     if (result.contains(ConnectivityResult.none))
       throw connectionException(result).withDialog(ifOpenDialog);
+  }
+
+  void
+      _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet() {
+    _incompatible<CheckInternet, AbortWhenNoInternet>(this);
+    _incompatible<CheckInternet, UnlimitedRetryCheckInternet>(this);
   }
 }
 
@@ -156,6 +165,7 @@ mixin NoDialog<St> on CheckInternet<St> {
 /// - This mixin can safely be combined with [NonReentrant] or [Throttle] (not both).
 /// - It should not be combined with other mixins that override [before].
 /// - It should not be combined with other mixins that check the internet connection.
+/// - It should not be combined with [CheckInternet], [NoDialog], and [UnlimitedRetryCheckInternet].
 ///
 /// See also:
 /// * [CheckInternet] - If you want to show a dialog to the user when there is no internet.
@@ -197,10 +207,18 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
   @mustCallSuper
   @override
   Future<void> before() async {
+    _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet();
+
     super.before();
     var result = await checkConnectivity();
     if (result.contains(ConnectivityResult.none))
       throw AbortDispatchException();
+  }
+
+  void
+      _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet() {
+    _incompatible<AbortWhenNoInternet, CheckInternet>(this);
+    _incompatible<AbortWhenNoInternet, UnlimitedRetryCheckInternet>(this);
   }
 }
 
@@ -218,11 +236,22 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
 /// Notes:
 /// - This mixin can safely be combined with [CheckInternet], [NoDialog], and [AbortWhenNoInternet].
 /// - It should not be combined with other mixins that override [abortDispatch].
-/// - It should not be combined with [Throttle] or [UnlimitedRetryCheckInternet].
+/// - It should not be combined with [Throttle], [UnlimitedRetryCheckInternet], or [Fresh].
 ///
 mixin NonReentrant<St> on ReduxAction<St> {
   @override
-  bool abortDispatch() => isWaiting(runtimeType);
+  bool abortDispatch() {
+    _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet();
+
+    return isWaiting(runtimeType);
+  }
+
+  void
+      _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet() {
+    _incompatible<NonReentrant, Fresh>(this);
+    _incompatible<NonReentrant, Throttle>(this);
+    _incompatible<NonReentrant, UnlimitedRetryCheckInternet>(this);
+  }
 }
 
 /// This mixin will retry the [reduce] method if it throws an error.
@@ -265,6 +294,12 @@ mixin NonReentrant<St> on ReduxAction<St> {
 /// Keep in mind that all actions using the [Retry] mixin will become asynchronous,
 /// even if the original action was synchronous.
 ///
+/// Notes:
+/// - Combining [Retry] with [CheckInternet] or [AbortWhenNoInternet] will
+///   not retry when there is no internet. It will only retry if there IS
+///   internet but the action fails for some other reason.
+/// - It should not be combined with [Debounce], [UnlimitedRetryCheckInternet].
+///
 mixin Retry<St> on ReduxAction<St> {
   //
   /// The delay before the first retry attempt.
@@ -292,6 +327,8 @@ mixin Retry<St> on ReduxAction<St> {
 
   @override
   Future<St?> wrapReduce(Reducer<St> reduce) async {
+    _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet();
+
     FutureOr<St?> newState;
 
     try {
@@ -329,6 +366,11 @@ mixin Retry<St> on ReduxAction<St> {
 
     return _currentDelay!;
   }
+
+  void _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet() {
+    _incompatible<Retry, Debounce>(this);
+    _incompatible<Retry, UnlimitedRetryCheckInternet>(this);
+  }
 }
 
 /// Add [UnlimitedRetries] to the [Retry] mixin, to retry indefinitely:
@@ -347,10 +389,6 @@ mixin UnlimitedRetries<St> on Retry<St> {
   int get maxRetries => -1;
 }
 
-/// The [OptimisticUpdate] mixin is still EXPERIMENTAL. You can use it,
-/// but test it well.
-/// ---
-///
 /// Let's use a "Todo" app as an example. We want to save a new Todo to a TodoList.
 ///
 /// This code saves the Todo, then reloads the TotoList from the cloud:
@@ -484,8 +522,11 @@ mixin UnlimitedRetries<St> on Retry<St> {
 ///   @override
 ///   Future<Object?> reloadValue() async => await loadTodoList();
 /// }
-///
 /// ```
+///
+/// Notes:
+/// - This mixin can be safely be combined with all others.
+///
 mixin OptimisticUpdate<St> on ReduxAction<St> {
   //
   /// You should return here the value that you want to update.
@@ -751,12 +792,14 @@ mixin Throttle<St> on ReduxAction<St> {
 
   @override
   bool abortDispatch() {
+    _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet();
+
     final lock = lockBuilder();
     final now = DateTime.now().toUtc();
 
     // If should ignore the throttle, then set a new expiry and allow dispatch.
     if (ignoreThrottle) {
-      _throttleLockMap[lock] = _expiringFrom(now);
+      _throttleLockMap[lock] = _expiringLockFrom(now);
       return false;
     }
 
@@ -764,7 +807,7 @@ mixin Throttle<St> on ReduxAction<St> {
 
     // If there is no lock, or it has expired, set a new expiry and allow.
     if (expiresAt == null || !expiresAt.isAfter(now)) {
-      _throttleLockMap[lock] = _expiringFrom(now);
+      _throttleLockMap[lock] = _expiringLockFrom(now);
       return false;
     }
 
@@ -772,7 +815,7 @@ mixin Throttle<St> on ReduxAction<St> {
     return true;
   }
 
-  DateTime _expiringFrom(DateTime now) =>
+  DateTime _expiringLockFrom(DateTime now) =>
       now.add(Duration(milliseconds: throttle));
 
   /// Remove locks whose expiry time is in the past or now.
@@ -785,6 +828,13 @@ mixin Throttle<St> on ReduxAction<St> {
   void after() {
     if (removeLockOnError && (status.originalError != null)) removeLock();
     _prune();
+  }
+
+  void
+      _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet() {
+    _incompatible<Throttle, Fresh>(this);
+    _incompatible<Throttle, NonReentrant>(this);
+    _incompatible<Throttle, UnlimitedRetryCheckInternet>(this);
   }
 }
 
@@ -846,7 +896,7 @@ mixin Throttle<St> on ReduxAction<St> {
 ///
 /// Notes:
 /// - It should not be combined with other mixins that override [wrapReduce].
-/// - It should not be combined with [Retry] or [UnlimitedRetryCheckInternet].
+/// - It should not be combined with [Retry], [UnlimitedRetries], or [UnlimitedRetryCheckInternet].
 ///
 mixin Debounce<St> on ReduxAction<St> {
   //
@@ -873,7 +923,8 @@ mixin Debounce<St> on ReduxAction<St> {
 
   @override
   Future<St?> wrapReduce(Reducer<St> reduce) async {
-    //
+    _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet();
+
     var lock = lockBuilder();
 
     // Increment and update the map with the new run count.
@@ -895,6 +946,11 @@ mixin Debounce<St> on ReduxAction<St> {
       _debounceLockMap.remove(lock);
       return reduce();
     }
+  }
+
+  void _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet() {
+    _incompatible<Debounce, Retry>(this);
+    _incompatible<Debounce, UnlimitedRetryCheckInternet>(this);
   }
 }
 
@@ -934,7 +990,13 @@ mixin Debounce<St> on ReduxAction<St> {
 mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
   //
   @override
-  bool abortDispatch() => isWaiting(runtimeType);
+  bool abortDispatch() {
+    _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet();
+    _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet();
+    _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet();
+
+    return isWaiting(runtimeType);
+  }
 
   /// The delay before the first retry attempt.
   Duration get initialDelay => const Duration(milliseconds: 350);
@@ -1069,6 +1131,24 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
           : [ConnectivityResult.none];
 
     return await (Connectivity().checkConnectivity());
+  }
+
+  void
+      _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet() {
+    _incompatible<UnlimitedRetryCheckInternet, Fresh>(this);
+    _incompatible<UnlimitedRetryCheckInternet, Throttle>(this);
+    _incompatible<UnlimitedRetryCheckInternet, NonReentrant>(this);
+  }
+
+  void
+      _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet() {
+    _incompatible<UnlimitedRetryCheckInternet, CheckInternet>(this);
+    _incompatible<UnlimitedRetryCheckInternet, AbortWhenNoInternet>(this);
+  }
+
+  void _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet() {
+    _incompatible<Retry, Debounce>(this);
+    _incompatible<Retry, UnlimitedRetryCheckInternet>(this);
   }
 }
 
@@ -1439,13 +1519,15 @@ mixin Fresh<St> on ReduxAction<St> {
 
   @override
   bool abortDispatch() {
+    _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet();
+
     _keysRemoved = false; // good to reset here
     _freshKey = computeFreshKey();
     _current = _freshKeyMap[_freshKey];
     final now = DateTime.now().toUtc();
 
     if (ignoreFresh) {
-      final expiry = _expiringFrom(now);
+      final expiry = _expiringKeyFrom(now);
       _freshKeyMap[_freshKey] = expiry;
       _newExpiry = expiry;
       _current = null; // Make it stale if the action fails.
@@ -1455,7 +1537,7 @@ mixin Fresh<St> on ReduxAction<St> {
     final expiresAt = _current;
 
     if (expiresAt == null || !expiresAt.isAfter(now)) {
-      final expiry = _expiringFrom(now);
+      final expiry = _expiringKeyFrom(now);
       _freshKeyMap[_freshKey] = expiry;
       _newExpiry = expiry;
       return false;
@@ -1466,7 +1548,14 @@ mixin Fresh<St> on ReduxAction<St> {
     return true;
   }
 
-  DateTime _expiringFrom(DateTime now) =>
+  void
+      _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet() {
+    _incompatible<Fresh, Throttle>(this);
+    _incompatible<Fresh, NonReentrant>(this);
+    _incompatible<Fresh, UnlimitedRetryCheckInternet>(this);
+  }
+
+  DateTime _expiringKeyFrom(DateTime now) =>
       now.add(Duration(milliseconds: freshFor));
 
   /// Remove keys whose expiry time is in the past or now.
@@ -1496,13 +1585,10 @@ mixin Fresh<St> on ReduxAction<St> {
   }
 }
 
-// TODO:
-/// Caching is the process of storing data in a temporary storage area so that
-/// it can be retrieved quickly. It is used to speed up the process of
-/// accessing data from the database or file system.
-///
-/// By using this mixin, you can cache the result of an action, so that if
-/// the action is dispatched again with the same parameters, during a certain
-/// period of time, it will return the cached result instead of running the
-/// action again.
-//mixin Cache<St> on ReduxAction<St> {}
+void _incompatible<T1, T2>(Object instance) {
+  assert(
+    instance is! T2,
+    'The ${T1.toString().split('<').first} mixin '
+    'cannot be combined with the ${T2.toString().split('<').first} mixin.',
+  );
+}

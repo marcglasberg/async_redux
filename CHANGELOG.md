@@ -8,10 +8,143 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 26.0.0
+## 26.1.0
 
 * Updated website documentation in [asyncredux.com](https://asyncredux.com).
 
+* Suppose you want to load from the server the information needed to show a
+  `UserProfileScreen`. You can dispatch action `LoadUserProfile` from the
+  `initState()` method of your widget:
+
+  ```dart 
+  class UserProfileScreen extends StatefulWidget {
+    _UserProfileScreenState createState() => _UserProfileScreenState();
+  }
+
+  class _UserProfileScreenState extends State<UserProfileScreen> {
+    void initState() {
+      super.initState();
+      store.dispatch(LoadUserProfile()); // Here!
+    }
+
+    Widget build(BuildContext context) => ...
+  }
+  ```
+
+  Now, add `with Fresh` to the `LoadUserProfile` action, which loads the user
+  profile:
+
+  ```dart
+  class LoadUserProfile extends AppAction with Fresh {
+
+    Future<AppState> reduce() async {
+      var profile = await loadUserProfile();
+      return state.copy(profile: profile);
+    }
+  }
+  ```           
+
+  To keep the data fresh for one minute, override `freshFor`, which is in
+  milliseconds.
+
+  ```dart
+  class LoadUserProfile extends AppAction with Fresh {
+     int freshFor = 60000; // Here!
+     ...
+  }
+  ```
+
+  Now, if the user leaves the screen and returns in less than a minute, the
+  profile will not be loaded again, because it is still fresh. If the user
+  returns later, the information is loaded again.
+
+  ### Another example
+
+  Suppose widget `UserAvatar` loads its own information when mounted:
+
+  ```dart
+    class UserAvatar extends StatefulWidget {
+        final String userId;
+        UserAvatar(this.userId);
+        _UserAvatarState createState() => _UserAvatarState();
+    }
+  
+    class _UserAvatarState extends State<UserAvatar> {
+        void initState() {
+          super.initState();
+          store.dispatch(LoadUserAvatar(widget.userId)); // Here!
+        }
+  
+        Widget build(BuildContext context) => ...
+    }
+  ```      
+
+  Now add `with Fresh` to the `LoadUserAvatar` action, which loads the user
+  avatar, and also override `freshKeyParams()` so that each different user id
+  has its own fresh period:
+
+  ```dart
+  class LoadUserAvatar extends AppAction with Fresh {
+    final String userId;
+    LoadUserAvatar(this.userId);
+  
+    Object? freshKeyParams() => userId; // Here!
+    
+    Future<AppState> reduce() async {
+      var avatar = await loadUserAvatar(userId);
+      return state.copy(avatars: {...state.avatars, userId: avatar});
+    }
+  }
+  ```     
+
+  Now, if the avatar for a given user is shown more than once in the screen, it
+  will only be loaded for that user once, effectively deduplicating
+  the loading of the same avatar multiple times.
+
+  ### In more detail
+
+  The `Fresh` mixin lets you mark the result of an action as "fresh" for a set
+  amount of time. While the result is fresh, repeated dispatches of the same
+  action (or of other actions that share the same fresh key) are skipped because
+  the current state already has valid data. When the fresh period ends, the
+  result becomes "stale" and the next dispatch runs the action again.
+
+  This is useful for actions that load information from a server. You can think
+  of the fresh period as the time during which the loaded data is still good to
+  use.
+
+  ### Fresh-keys
+
+  By default, the fresh-key is based on the action `runtimeType` and the value
+  returned by `freshKeyParams()`. If you need separate fresh periods per id,
+  url, or some other field, override `freshKeyParams()`:
+
+  ```dart
+  class LoadUserCart extends AppAction with Fresh {
+    final String userId;
+    LoadUserCart(this.userId);
+
+    // Each different `userId` in action LoadUserCart has its own fresh period.
+    Object? freshKeyParams() => userId;
+    ...
+  }
+  ```
+
+  You can also return a tuple if you want the key to depend on more than one
+  field:
+
+  ```dart
+  // Each different `LoadUserCart`, `userId`, and `cartId` combination has its own fresh period.
+  Object? freshKeyParams() => (userId, cartId);
+  ```
+
+  The `Fresh` mixin has many other useful features. See the documentation at
+  [asyncredux.com](https://asyncredux.com) to learn about `ignoreFresh`,
+  `computeFreshKey()`, and more.
+
+* Mixins now warn you when you use incompatible mixins together.  
+
+## 26.0.0
 
 * BREAKING CHANGE: This version requires newer Android tooling (Android Gradle
   Plugin 8.12.1 or higher, Gradle 8.13 or higher, and Kotlin 2.2.0). Projects
