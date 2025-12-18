@@ -183,12 +183,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 TextField(controller: controller),
                 const SizedBox(height: 20),
                 FloatingActionButton(
-                  onPressed: () => context.dispatch(ChangeTextAction()),
+                  onPressed: () => dispatch(ChangeTextAction()),
                   child: const Text("Change"),
                 ),
                 const SizedBox(height: 20),
                 FloatingActionButton(
-                  onPressed: () => context.dispatch(ClearTextAction()),
+                  onPressed: () => dispatch(ClearTextAction()),
                   child: const Text("Clear"),
                 ),
               ],

@@ -157,8 +157,7 @@ class MyHomePage extends StatelessWidget {
             ),
           ),
           floatingActionButton: FloatingActionButton(
-            onPressed: () =>
-                context.dispatch(IncrementAndGetDescriptionAction()),
+            onPressed: () => dispatch(IncrementAndGetDescriptionAction()),
             child: const Icon(Icons.add),
           ),
         ),

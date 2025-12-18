@@ -47,7 +47,7 @@ class HomePage extends StatelessWidget {
               child: SizedBox(width: 25, height: 25, child: CircularProgressIndicator()))
           : FloatingActionButton(
               disabledElevation: 0,
-              onPressed: () => context.dispatch(WaitAndIncrementAction()),
+              onPressed: () => dispatch(WaitAndIncrementAction()),
               child: const Icon(Icons.add),
             ),
     );
@@ -69,11 +69,11 @@ class WaitAndIncrementAction extends ReduxAction<AppState> {
 class CounterWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    var isWaiting = context.isWaiting(WaitAndIncrementAction);
+    var _isWaiting = context.isWaiting(WaitAndIncrementAction);
 
     return Text(
       '${context.state.counter}',
-      style: TextStyle(fontSize: 40, color: isWaiting ? Colors.grey[350] : Colors.black),
+      style: TextStyle(fontSize: 40, color: _isWaiting ? Colors.grey[350] : Colors.black),
     );
   }
 }

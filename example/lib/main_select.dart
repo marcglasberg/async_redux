@@ -175,7 +175,7 @@ class MyHomePage extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         // Dispatch action directly from widget
-        onPressed: () => context.dispatch(IncrementAndGetDescriptionAction()),
+        onPressed: () => dispatch(IncrementAndGetDescriptionAction()),
         child: const Icon(Icons.add),
       ),
     );

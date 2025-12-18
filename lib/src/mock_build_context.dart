@@ -37,7 +37,10 @@ import 'package:flutter/material.dart';
 class MockBuildContext extends BuildContext {
   final Store store;
 
-  MockBuildContext(this.store);
+  MockBuildContext(this.store) {
+    // Create the static store backdoor.
+    StoreProvider(store: store, child: const SizedBox());
+  }
 
   @override
   Widget get widget => const Placeholder();

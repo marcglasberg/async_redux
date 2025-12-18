@@ -114,11 +114,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     onChanged: (text) {
                       // This is optional, as the exception is already cleared when the
                       // action dispatches again. Comment it out to see the difference.
-                      if (text.length >= 4)
-                        context.clearExceptionFor(SaveUserAction);
+                      if (text.length >= 4) context.clearExceptionFor(SaveUserAction);
                     },
                     onSubmitted: (String text) =>
-                        context.dispatch(SaveUserAction(text)),
+                        dispatch(SaveUserAction(text)),
                   ),
                   const SizedBox(height: 30),
                   //
@@ -135,7 +134,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           floatingActionButton: FloatingActionButton(
-            onPressed: () => context.dispatch(SaveUserAction(controller!.text)),
+            onPressed: () => dispatch(SaveUserAction(controller!.text)),
             child: const Text("Save"),
           ),
         ),

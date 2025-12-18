@@ -404,8 +404,8 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   bool isWaiting(Object actionOrTypeOrList) =>
       _store.isWaiting(actionOrTypeOrList);
 
-  /// Returns true if an [actionOrActionTypeOrList] failed with an [UserException].
-  /// Note: This method uses the EXACT type in [actionOrActionTypeOrList]. Subtypes are not considered.
+  /// Returns true if an [actionOrTypeOrList] failed with an [UserException].
+  /// Note: This method uses the EXACT type in [actionOrTypeOrList]. Subtypes are not considered.
   bool isFailed(Object actionOrTypeOrList) =>
       _store.isFailed(actionOrTypeOrList);
 

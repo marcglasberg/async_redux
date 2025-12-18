@@ -224,6 +224,7 @@ abstract class ReduxAction<St> {
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchState] which dispatches a sync action that applies a given reducer to the current state.
   ///
   @protected
   Dispatch<St> get dispatch => _store.dispatch;
@@ -246,6 +247,7 @@ abstract class ReduxAction<St> {
   /// - [dispatchAll] which dispatches all given actions in parallel.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
+  /// - [dispatchState] which dispatches a sync action that applies a given reducer to the current state.
   ///
   @protected
   DispatchSync<St> get dispatchSync => _store.dispatchSync;
@@ -253,6 +255,32 @@ abstract class ReduxAction<St> {
   @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
   @protected
   DispatchAsync<St> get dispatchAsync => _store.dispatchAndWait;
+
+  /// This is a shortcut, equivalent to:
+  ///
+  /// ```dart
+  /// var status = dispatchSync(
+  ///   UpdateStateAction.withReducer(state),
+  /// );
+  /// ```
+  ///
+  /// In other words, it dispatches a sync action that applies the given [state].
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not
+  /// necessarily rebuild because of this action, even if it changes the state.
+  ///
+  /// This dispatch method is to be used ONLY inside other actions, and is not
+  /// available as an widget extension.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAll] which dispatches all given actions in parallel.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
+  ///
+  @protected
+  ActionStatus dispatchState(St state, {bool notify = true}) =>
+      dispatchSync(UpdateStateAction(state), notify: notify);
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
   /// The action may be sync or async. In both cases, it returns a [Future] that resolves when
@@ -282,6 +310,7 @@ abstract class ReduxAction<St> {
   /// - [dispatchAll] which dispatches all given actions in parallel.
   /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchState] which dispatches a sync action that applies a given reducer to the current state.
   ///
   @protected
   DispatchAndWait<St> get dispatchAndWait => _store.dispatchAndWait;
@@ -317,6 +346,7 @@ abstract class ReduxAction<St> {
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   /// - [dispatchAll] which dispatches all given actions in parallel.
+  /// - [dispatchState] which dispatches a sync action that applies a given reducer to the current state.
   ///
   @protected
   Future<List<ReduxAction<St>>> Function(List<ReduxAction<St>> actions,
@@ -338,6 +368,7 @@ abstract class ReduxAction<St> {
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchState] which dispatches a sync action that applies a given reducer to the current state.
   ///
   @protected
   List<ReduxAction<St>> Function(List<ReduxAction<St>> actions, {bool notify})
@@ -496,8 +527,8 @@ abstract class ReduxAction<St> {
   bool isWaiting(Object actionOrTypeOrList) =>
       _store.isWaiting(actionOrTypeOrList);
 
-  /// Returns true if an [actionOrActionTypeOrList] failed with an [UserException].
-  /// Note: This method uses the EXACT type in [actionOrActionTypeOrList]. Subtypes are not considered.
+  /// Returns true if an [actionOrTypeOrList] failed with an [UserException].
+  /// Note: This method uses the EXACT type in [actionOrTypeOrList]. Subtypes are not considered.
   @protected
   bool isFailed(Object actionOrTypeOrList) =>
       _store.isFailed(actionOrTypeOrList);
@@ -672,8 +703,12 @@ class AbortDispatchException implements Exception {
   int get hashCode => 0;
 }
 
-/// The [UpdateStateAction] action is used to update the state of the Redux store, by applying
-/// the given [reducerFunction] to the current state.
+/// The [UpdateStateAction] action is used to update the state of the Redux
+/// store, by applying the given [reducerFunction] to the current state.
+///
+/// Note that inside actions you can directly use [ReduxAction.dispatchState]
+/// which is a shortcut to dispatch an [UpdateStateAction].
+///
 class UpdateStateAction<St> extends ReduxAction<St> {
   //
   final St? Function(St) reducerFunction;

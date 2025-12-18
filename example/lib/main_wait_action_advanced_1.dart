@@ -132,7 +132,7 @@ class MyItem extends StatelessWidget {
         color: Colors.blue,
         child: Text("CLICK $index",
             style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
-        onPressed: () => context.dispatch(GetDescriptionAction(index)),
+        onPressed: () => dispatch(GetDescriptionAction(index)),
       );
 
   Text _indexDescription(String description) => Text(description,

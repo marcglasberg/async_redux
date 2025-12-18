@@ -36,10 +36,10 @@ Legend:
 | **NonReentrant**                |       ✅       |    ✅     |          ✅          |      —       |   ✅   |        ✅         |        ✅         |    ❌     |    ✅     |              ❌              |   ❌   |
 | **Retry**                       |      ⚠️       |    ⚠️    |         ⚠️          |      ✅       |   —   |        ✅         |        ✅         |    ✅     |    ❌     |              ❌              |   ✅   |
 | **UnlimitedRetries**            |      ⚠️       |    ⚠️    |         ⚠️          |      ✅       |  ➡️   |        —         |        ✅         |    ✅     |    ❌     |              ❌              |   ✅   |
-| **OptimisticUpdate**            |       ✅       |    ✅     |          ✅          |      ✅       |   ✅   |        ✅         |        —         |    ✅     |    ✅     |              ✅              |   ✅   |
+| **OptimisticUpdate**            |       ✅       |    ✅     |          ✅          |      ✅       |   ✅   |        ✅         |        —         |    ✅     |    ❌     |              ❌              |   ✅   |
 | **Throttle**                    |       ✅       |    ✅     |          ✅          |      ❌       |   ✅   |        ✅         |        ✅         |    —     |    ✅     |              ❌              |   ❌   |
-| **Debounce**                    |       ✅       |    ✅     |          ✅          |      ✅       |   ❌   |        ❌         |        ✅         |    ✅     |    —     |              ❌              |   ✅   |
-| **UnlimitedRetryCheckInternet** |       ❌       |    ❌     |          ❌          |      ❌       |   ❌   |        ❌         |        ✅         |    ❌     |    ❌     |              —              |   ❌   |
+| **Debounce**                    |       ✅       |    ✅     |          ✅          |      ✅       |   ❌   |        ❌         |        ❌         |    ✅     |    —     |              ❌              |   ✅   |
+| **UnlimitedRetryCheckInternet** |       ❌       |    ❌     |          ❌          |      ❌       |   ❌   |        ❌         |        ❌         |    ❌     |    ❌     |              —              |   ❌   |
 | **Fresh**                       |       ✅       |    ✅     |          ✅          |      ❌       |   ✅   |        ✅         |        ✅         |    ❌     |    ✅     |              ❌              |   —   |
 
 ## Incompatibility Groups
@@ -76,7 +76,8 @@ These mixins override `wrapReduce` and cannot be combined with each other:
 
 ⚠️ **Note**:  Combining `Retry` with `CheckInternet` or `AbortWhenNoInternet`
 will not retry when there is no internet. It will only retry if there **is**
-internet but the action fails for some other reason.
+internet but the action fails for some other reason. To retry indefinitely until
+internet is available, use `UnlimitedRetryCheckInternet` instead.
 
 ### NoDialog
 

@@ -7,6 +7,7 @@ library async_redux_store;
 
 import 'dart:async';
 import 'dart:collection';
+
 import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/src/process_persistence.dart';
 import 'package:collection/collection.dart';
@@ -1635,7 +1636,7 @@ class Store<St> {
     });
   }
 
-  /// You can use [isWaiting] and pass it [actionOrActionTypeOrList] to check if:
+  /// You can use [isWaiting] and pass it [actionOrTypeOrList] to check if:
   /// * A specific async ACTION is currently being processed.
   /// * An async action of a specific TYPE is currently being processed.
   /// * If any of a few given async actions or action types is currently being processed.
@@ -1668,26 +1669,26 @@ class Store<St> {
   /// dispatch(BuyAction());
   /// if (store.isWaiting([BuyAction, SellAction])) { // Show a spinner }
   /// ```
-  bool isWaiting(Object actionOrActionTypeOrList) {
+  bool isWaiting(Object actionOrTypeOrList) {
     //
     // 1) If a type was passed:
-    if (actionOrActionTypeOrList is Type) {
-      _awaitableActions.add(actionOrActionTypeOrList);
+    if (actionOrTypeOrList is Type) {
+      _awaitableActions.add(actionOrTypeOrList);
       return _actionsInProgress
-          .any((action) => action.runtimeType == actionOrActionTypeOrList);
+          .any((action) => action.runtimeType == actionOrTypeOrList);
     }
     //
     // 2) If an action was passed:
-    else if (actionOrActionTypeOrList is ReduxAction) {
-      _awaitableActions.add(actionOrActionTypeOrList.runtimeType);
-      return _actionsInProgress.contains(actionOrActionTypeOrList);
+    else if (actionOrTypeOrList is ReduxAction) {
+      _awaitableActions.add(actionOrTypeOrList.runtimeType);
+      return _actionsInProgress.contains(actionOrTypeOrList);
     }
     //
     // 3) If an iterable was passed:
     // 3.1) For each action or action type in the iterable...
-    else if (actionOrActionTypeOrList is Iterable) {
+    else if (actionOrTypeOrList is Iterable) {
       bool isWaiting = false;
-      for (var actionOrType in actionOrActionTypeOrList) {
+      for (var actionOrType in actionOrTypeOrList) {
         //
         // 3.2) If it's a type.
         if (actionOrType is Type) {
@@ -1712,7 +1713,7 @@ class Store<St> {
         else {
           Future.microtask(() {
             throw StoreException(
-                "You can't do isWaiting([${actionOrActionTypeOrList.runtimeType}]). "
+                "You can't do isWaiting([${actionOrTypeOrList.runtimeType}]). "
                 "Use only actions, action types, or a list of them.");
           });
         }
@@ -1726,7 +1727,7 @@ class Store<St> {
     else {
       Future.microtask(() {
         throw StoreException(
-            "You can't do isWaiting(${actionOrActionTypeOrList.runtimeType}), "
+            "You can't do isWaiting(${actionOrTypeOrList.runtimeType}), "
             "Use only actions, action types, or a list of them.");
       });
 
@@ -1734,10 +1735,10 @@ class Store<St> {
     }
   }
 
-  /// Returns true if an [actionOrActionTypeOrList] failed with an [UserException].
-  /// Note: This method uses the EXACT type in [actionOrActionTypeOrList]. Subtypes are not considered.
-  bool isFailed(Object actionOrActionTypeOrList) =>
-      exceptionFor(actionOrActionTypeOrList) != null;
+  /// Returns true if an [actionOrTypeOrList] failed with an [UserException].
+  /// Note: This method uses the EXACT type in [actionOrTypeOrList]. Subtypes are not considered.
+  bool isFailed(Object actionOrTypeOrList) =>
+      exceptionFor(actionOrTypeOrList) != null;
 
   /// Returns the [UserException] of the [actionTypeOrList] that failed.
   ///
@@ -2529,11 +2530,25 @@ class _InternalMixinProps {
   final Map<Object?, DateTime> throttleLockMap = {};
   final Map<Object?, DateTime> freshKeyMap = {};
   final Map<Object?, int> debounceLockMap = {};
+  final Set<Object?> nonReentrantKeySet = {};
 
-  /// Removes the locks for Throttle and Debounce.
+  /// Set for the [StableSync] mixin. Tracks which keys are currently locked.
+  final Set<Object?> stableSyncKeySet = {};
+
+  /// Map for the [StableSync] mixin. Tracks the local AND server revisions for each key.
+  final Map<
+      Object?,
+      ({
+        int localRevision,
+        int? serverRevision,
+      })> revisionMap = {};
+
+  /// Removes the locks for Throttle, Debounce, Fresh, NonReentrant, and StableSync.
   void clear() {
     throttleLockMap.clear();
     freshKeyMap.clear();
     debounceLockMap.clear();
+    nonReentrantKeySet.clear();
+    stableSyncKeySet.clear();
   }
 }

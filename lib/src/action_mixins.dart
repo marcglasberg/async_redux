@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:meta/meta.dart';
 
 /// This mixin can be used to check if there is internet when you run some
@@ -222,8 +223,8 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
   }
 }
 
-/// This mixin can be used to abort the action in case the action is still
-/// running from a previous dispatch. Just add `with NonReentrant`
+/// The [NonReentrant] mixin can be used to abort the action in case the action
+/// is still running from a previous dispatch. Just add `with NonReentrant`
 /// to your action. For example:
 ///
 /// ```dart
@@ -233,17 +234,113 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
 ///   }}
 /// ```
 ///
+/// ## Advanced usage
+///
+/// The non-reentrant check is, by default, based on the action [runtimeType].
+/// This means it will abort an action if another action of the same runtimeType
+/// is currently running. If you want to check based on more than simply the
+/// [runtimeType], you can override the [nonReentrantKeyParams] method.
+/// For example, here we use a field of the action to differentiate:
+///
+/// ```dart
+/// class SaveItem extends ReduxAction<AppState> with NonReentrant {
+///    final String itemId;
+///    SaveItem(this.itemId);
+///
+///    Object? nonReentrantKeyParams() => itemId;
+///    ...
+/// }
+/// ```
+///
+/// With this setup, `SaveItem('A')` and `SaveItem('B')` can run in parallel,
+/// but two `SaveItem('A')` cannot.
+///
+/// You can also use [computeNonReentrantKey] if you want different action types
+/// to share the same non-reentrant key. Check the documentation of that method
+/// for more information.
+///
 /// Notes:
 /// - This mixin can safely be combined with [CheckInternet], [NoDialog], and [AbortWhenNoInternet].
-/// - It should not be combined with other mixins that override [abortDispatch].
+/// - It should not be combined with other mixins that override [abortDispatch] or [after].
 /// - It should not be combined with [Throttle], [UnlimitedRetryCheckInternet], or [Fresh].
 ///
 mixin NonReentrant<St> on ReduxAction<St> {
+  //
+  /// By default the non-reentrant key is based on the action [runtimeType].
+  /// Override [nonReentrantKeyParams] so that actions of the SAME TYPE
+  /// but with different parameters do not block each other.
+  ///
+  /// For example:
+  ///
+  /// ```dart
+  /// class SaveItem extends ReduxAction<AppState> with NonReentrant {
+  ///   final String itemId;
+  ///   SaveItem(this.itemId);
+  ///
+  ///   Object? nonReentrantKeyParams() => itemId;
+  ///   ...
+  /// }
+  /// ```
+  ///
+  /// Now `SaveItem('A')` and `SaveItem('B')` can run in parallel,
+  /// but two concurrent dispatches of `SaveItem('A')` will not both run.
+  ///
+  Object? nonReentrantKeyParams() => null;
+
+  /// By default the non-reentrant key combines the action [runtimeType]
+  /// with [nonReentrantKeyParams]. Override this method if you want
+  /// different action types to share the same non-reentrant key.
+  ///
+  /// ```dart
+  /// class SaveUser extends ReduxAction<AppState> with NonReentrant {
+  ///   final String oderId;
+  ///   SaveUser(this.oderId);
+  ///
+  ///   Object? computeNonReentrantKey() => orderId;
+  ///   ...
+  /// }
+  ///
+  /// class DeleteUser extends ReduxAction<AppState> with NonReentrant {
+  ///   final String oderId;
+  ///   DeleteUser(this.oderId);
+  ///
+  ///   Object? computeNonReentrantKey() => orderId;
+  ///   ...
+  /// }
+  /// ```
+  ///
+  /// With this setup, `SaveUser('123')` and `DeleteUser('123')` cannot run
+  /// at the same time because they share the same key.
+  ///
+  Object computeNonReentrantKey() => (runtimeType, nonReentrantKeyParams());
+
+  /// The set of keys that are currently running.
+  Set<Object?> get _nonReentrantKeySet =>
+      store.internalMixinProps.nonReentrantKeySet;
+
+  Object? _nonReentrantKey;
+
   @override
   bool abortDispatch() {
     _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet();
 
-    return isWaiting(runtimeType);
+    _nonReentrantKey = computeNonReentrantKey();
+
+    // If the key is already in the set, abort.
+    if (_nonReentrantKeySet.contains(_nonReentrantKey))
+      return true;
+    //
+    // Otherwise, add the key and allow dispatch.
+    else {
+      _nonReentrantKeySet.add(_nonReentrantKey);
+      return false;
+    }
+  }
+
+  @override
+  void after() {
+    // Remove the key when the action finishes (success or failure).
+    _nonReentrantKeySet.remove(_nonReentrantKey);
   }
 
   void
@@ -297,8 +394,13 @@ mixin NonReentrant<St> on ReduxAction<St> {
 /// Notes:
 /// - Combining [Retry] with [CheckInternet] or [AbortWhenNoInternet] will
 ///   not retry when there is no internet. It will only retry if there IS
-///   internet but the action fails for some other reason.
+///   internet but the action fails for some other reason. To retry indefinitely
+///   until internet is available, use [UnlimitedRetryCheckInternet] instead.
 /// - It should not be combined with [Debounce], [UnlimitedRetryCheckInternet].
+/// - When combined with [OptimisticUpdate], the retry logic is handled by
+///   [OptimisticUpdate] to avoid UI flickering. Only the
+///   [OptimisticUpdate.saveValue] call is retried, keeping the optimistic
+///   state in place. See [OptimisticUpdate] for more details.
 ///
 mixin Retry<St> on ReduxAction<St> {
   //
@@ -328,6 +430,15 @@ mixin Retry<St> on ReduxAction<St> {
   @override
   Future<St?> wrapReduce(Reducer<St> reduce) async {
     _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet();
+
+    // When combined with OptimisticUpdate, we skip the retry logic here.
+    // OptimisticUpdate will handle retries internally to avoid UI flickering.
+    // See OptimisticUpdate.reduce for details.
+    if (this is OptimisticUpdate) {
+      FutureOr<St?> newState = reduce();
+      if (newState is Future) newState = await newState;
+      return newState;
+    }
 
     FutureOr<St?> newState;
 
@@ -391,7 +502,7 @@ mixin UnlimitedRetries<St> on Retry<St> {
 
 /// Let's use a "Todo" app as an example. We want to save a new Todo to a TodoList.
 ///
-/// This code saves the Todo, then reloads the TotoList from the cloud:
+/// This code saves the Todo, then reloads the TodoList from the cloud:
 ///
 /// ```dart
 /// class SaveTodo extends ReduxAction<AppState> {
@@ -413,7 +524,7 @@ mixin UnlimitedRetries<St> on Retry<St> {
 /// }
 /// ```
 ///
-/// The problem with the above code is that it make take a second to update the
+/// The problem with the above code is that it may take a second to update the
 /// todoList in the screen, while we save then load, which is not a good user
 /// experience.
 ///
@@ -444,7 +555,7 @@ mixin UnlimitedRetries<St> on Retry<St> {
 /// }
 /// ```
 ///
-/// That's better. But if the saving fails, the users still have to wait for
+/// That's better. But if the saving fails, users still have to wait for
 /// the reload until they see the reverted state. We can further improve this:
 ///
 /// ```dart
@@ -456,7 +567,7 @@ mixin UnlimitedRetries<St> on Retry<St> {
 ///
 ///       // Updates the TodoList optimistically.
 ///       var newTodoList = state.todoList.add(newTodo);
-///       dispatch(UpdateStateAction((state) => state.copy(todoList: newTodoList)));
+///       dispatchState(state.copy(todoList: newTodoList));
 ///
 ///       try {
 ///          // Saves the new Todo to the cloud.
@@ -472,7 +583,7 @@ mixin UnlimitedRetries<St> on Retry<St> {
 ///       finally {
 ///          // Loads the complete TodoList from the cloud.
 ///          var reloadedTodoList = await loadTodoList();
-///          dispatch(UpdateStateAction((state) => state.copy(todoList: reloadedTodoList)));
+///          dispatchState(state.copy(todoList: reloadedTodoList));
 ///       }
 ///    }
 /// }
@@ -524,8 +635,50 @@ mixin UnlimitedRetries<St> on Retry<St> {
 /// }
 /// ```
 ///
+/// ## Non-reentrant
+///
+/// Consider combining [OptimisticUpdate] with [NonReentrant] to prevent race
+/// conditions when the same action is dispatched multiple times before the
+/// first completes:
+///
+/// ```dart
+/// class SaveTodo extends AppAction with OptimisticUpdate, NonReentrant {
+///   ...
+/// }
+/// ```
+///
+/// Without [NonReentrant], concurrent dispatches can cause:
+/// - Conflicting optimistic updates overwriting each other
+/// - Incorrect rollback behavior (the rollback check may fail to detect the
+///   correct state to revert)
+/// - Race conditions in the reload phase
+/// - Server-side conflicts from concurrent save requests
+///
+/// If your action has parameters and you want to allow concurrent dispatches
+/// for *different* parameters (e.g., saving different items), use
+/// [nonReentrantKeyParams]:
+///
+/// ```dart
+/// class SaveTodo extends AppAction with OptimisticUpdate, NonReentrant {
+///   final String oderId;
+///   SaveTodo(this.oderId);
+///
+///   @override
+///   Object? nonReentrantKeyParams() => oderId;
+///   ...
+/// }
+/// ```
+///
+/// This allows `SaveTodo('A')` and `SaveTodo('B')` to run concurrently, while
+/// blocking concurrent dispatches of `SaveTodo('A')` with itself.
+///
 /// Notes:
-/// - This mixin can be safely be combined with all others.
+/// - When combined with [Retry], only the [saveValue] call is retried, not
+///   the optimistic update or rollback. This prevents UI flickering that would
+///   otherwise occur if the entire reduce was retried on each attempt. The
+///   optimistic state remains in place during retries, and rollback only
+///   happens if all retry attempts fail.
+/// - It should not be combined with [Debounce], or [UnlimitedRetryCheckInternet].
 ///
 mixin OptimisticUpdate<St> on ReduxAction<St> {
   //
@@ -585,7 +738,9 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 
     try {
       // Saves the new value to the cloud.
-      await saveValue(_newValue);
+      // If this action also uses the Retry mixin, we handle retries here
+      // to avoid UI flickering (applying/rolling back on each retry attempt).
+      await _saveValueWithRetryIfNeeded(_newValue);
     } catch (e) {
       // If the state still contains our optimistic update, we rollback.
       // If the state now contains something else, we DO NOT rollback.
@@ -610,28 +765,58 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 
     return null;
   }
+
+  /// When combined with Retry, this method retries only the `saveValue` call,
+  /// keeping the optimistic update in place and avoiding UI flickering.
+  Future<void> _saveValueWithRetryIfNeeded(Object? value) async {
+    // If this action doesn't use the Retry mixin, just call saveValue directly.
+    if (this is! Retry) {
+      await saveValue(value);
+      return;
+    }
+
+    // Access the Retry mixin's properties via casting.
+    final retryMixin = this as Retry<St>;
+
+    while (true) {
+      try {
+        await saveValue(value);
+        return; // Success, exit the retry loop.
+      } catch (error) {
+        retryMixin._attempts++;
+
+        // If maxRetries is reached (and not unlimited), rethrow the error.
+        if ((retryMixin.maxRetries >= 0) &&
+            (retryMixin._attempts > retryMixin.maxRetries)) {
+          rethrow;
+        }
+
+        // Wait before retrying.
+        final currentDelay = retryMixin.nextDelay();
+        await Future.delayed(currentDelay);
+        // Loop continues, retrying saveValue.
+      }
+    }
+  }
 }
 
 /// Throttling ensures the action will be dispatched at most once in the
-/// specified throttle period. In other words, it prevents the action from
-/// running too frequently.
+/// specified throttle period. It acts as a simple rate limit, so the action
+/// does not run too often.
 ///
-/// If an action is dispatched multiple times within a throttle period, it will
-/// only execute the first time, and the others will be aborted. After the
-/// throttle period has passed, the action will be allowed to execute again,
-/// which will reset the throttle period.
+/// If an action is dispatched multiple times within a throttle period, only
+/// the first dispatch runs and the others are aborted. After the throttle
+/// period has passed, the next dispatch is allowed to run again, which starts
+/// a new throttle period.
 ///
-/// If you use the action to load information, the throttle period may be
-/// considered as the time the loaded information is "fresh". After the
-/// throttle period, the information is considered "stale" and the action will
-/// be allowed to load the information again.
+/// This is useful when an action may be triggered many times in a short time,
+/// for example by fast user input or widget rebuilds, but you only want it to
+/// run from time to time instead of on every dispatch.
 ///
 /// For example, if you are using a `StatefulWidget` that needs to load some
-/// information, you can dispatch the loading action when widget is created,
-/// and specify a throttle period so that it doesn't load the information again
-/// too often.
-///
-/// For example, you can dispatch the action in your widget's `initState`:
+/// information, you can dispatch the loading action when the widget is
+/// created in `initState()` and specify a throttle period so that it does not
+/// reload that information too often:
 ///
 /// ```dart
 /// class MyScreen extends StatefulWidget {
@@ -642,7 +827,7 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 ///
 ///   void initState() {
 ///     super.initState();
-///     context.dispatch(LoadInformation());
+///     context.dispatch(LoadInformation()); // Here!
 ///   }
 ///
 ///   Widget build(BuildContext context) {
@@ -659,7 +844,7 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 ///
 ///   int throttle = 5000;
 ///
-///   Future<AppState?> reduce() async {
+///   Future<AppState> reduce() async {
 ///     var information = await loadInformation();
 ///     return state.copy(information: information);
 ///   }
@@ -695,9 +880,9 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 ///
 /// # If the action fails
 ///
-/// The throttle period is NOT reset if the action fails. This means that if
-/// the action fails, it will not run a second time if you dispatch it again
-/// within the throttle period.
+/// The throttle lock is NOT removed if the action fails. This means that if
+/// the action throws and you dispatch it again within the throttle period, it
+/// will not run a second time.
 ///
 /// If you want, you can specify a different behavior by making
 /// [removeLockOnError] true, like this:
@@ -710,8 +895,8 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 /// ```
 ///
 /// Now, if the action fails, it will remove the lock and allow the action to
-/// be dispatched again right away. Note this currently implemented in the
-/// [after] method, like this:
+/// be dispatched again right away. Note, this currently implemented in the
+/// [after] method, which means you can override it to customize this behavior:
 ///
 /// ```dart
 /// @override
@@ -719,9 +904,6 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 ///   if (removeLockOnError && (status.originalError != null)) removeLock();
 /// }
 /// ```
-///
-/// You can override the [after] method to customize this behavior of removing
-/// the lock under some conditions.
 ///
 /// # Advanced usage
 ///
@@ -972,9 +1154,12 @@ mixin Debounce<St> on ReduxAction<St> {
 /// }
 /// ```
 ///
-/// IMPORTANT: This mixin combines [Retry], [UnlimitedRetries], [AbortWhenNoInternet]
-/// and [NonReentrant] mixins. You should NOT use it with those mixins,
-/// or any other mixin that checks the internet connection.
+/// IMPORTANT: This mixin combines [Retry], [UnlimitedRetries],
+/// [AbortWhenNoInternet] and [NonReentrant] mixins, but there is
+/// difference. Combining [Retry] with [CheckInternet] or [AbortWhenNoInternet]
+/// will not retry when there is no internet. It will only retry if there IS
+/// internet but the action fails for some other reason. To retry indefinitely
+/// until internet is available, then you should use [UnlimitedRetryCheckInternet].
 ///
 /// IMPORTANT: It only checks if the internet is on or off on the device,
 /// not if the internet provider is really providing the service or if the
@@ -985,7 +1170,7 @@ mixin Debounce<St> on ReduxAction<St> {
 /// - It should not be combined with other mixins that override [wrapReduce] or [abortDispatch].
 /// - It should not be combined with other mixins that check the internet connection.
 /// - Make sure your `before` method does not throw an error, or the retry will NOT happen.
-/// - All retried will be printed to the console.
+/// - All retries will be printed to the console.
 ///
 mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
   //
@@ -1591,4 +1776,569 @@ void _incompatible<T1, T2>(Object instance) {
     'The ${T1.toString().split('<').first} mixin '
     'cannot be combined with the ${T2.toString().split('<').first} mixin.',
   );
+}
+
+/// The [StableSync] mixin is designed for actions where rapid user interactions
+/// (like toggling a "like" button) should update the UI immediately and
+/// send the updated value to the server, making sure the server and the UI
+/// are eventually consistent.
+///
+/// ---
+///
+/// The action is not throttled or debounced in any way, and every dispatch
+/// applies an optimistic update to the state immediately. This guarantees a
+/// very good user experience, because there is immediate feedback on every
+/// interaction.
+///
+/// However, while the first updated value (created by the first time the action
+/// is dispatched) is immediately sent to the server, any other value changes
+/// that occur while the first request is in flight will NOT be sent immediately.
+///
+/// Instead, when the first request completes, it checks if the state is still
+/// the same as the value that was sent. If not, a follow-up request is sent
+/// with the latest value. This process repeats until the state stabilizes.
+///
+/// Note this guarantees that at most one request is in flight at a time per
+/// key, potentially reducing the number of requests sent to the server while
+/// still coalescing intermediate changes.
+///
+/// Optionally:
+///
+/// * If the server responds with a value, that value is applied to the state.
+///   This is useful when the server normalizes or modifies values.
+///
+/// * When the state finally stabilizes and the request finishes, a
+///   callback is called, allowing you to perform side-effects.
+///
+/// * In special, if the last request fails, the optimistic state remains, but
+/// you can then load the current state from the server or handle the error as
+/// you see first by returning a value that will be applied to the state.
+///
+/// In other words, the mixin makes it easy for you to maintain perfect UI
+/// responsiveness while minimizing server load, and making sure the server and
+/// the UI eventually agree on the same value.
+///
+/// ---
+///
+/// ## How it works
+///
+/// 1. **Immediate UI feedback**: Every dispatch applies [valueToApply] to the
+///    state immediately via [applyOptimisticValueToState].
+///
+/// 2. **Single in-flight request**: Only one request runs at a time per key
+///    (as defined by [stableSyncKeyParams]). The first dispatch acquires a lock
+///    and calls [sendValueToServer] to send a request to the server.
+///
+/// 3. **StableSync changes**: If the store state changed while a request started
+///    by [sendValueToServer] was in flight (for example, the user tapped a
+///    "like" button again while the first request was pending), a follow-up
+///    request is automatically sent after the current one completes. The change
+///    is detected by comparing [getValueFromState] with the sent value returned
+///    by [valueToApply].
+///
+/// 4. **No unnecessary requests**: If, while the request is in-flight, the
+///    state changes but then returns to the same value as before (for example,
+///    the user tapped a "like" button again TWICE while the first request was
+///    pending), [getValueFromState] matches the sent value and no follow-up
+///    request is needed.
+///
+/// 5. **Server response handling**: If [sendValueToServer] returns a non-null
+///    value, it is applied to the state via [applyServerResponseToState] when
+///    the state stabilizes. This is optional but useful.
+///
+/// 6. **Completion callback**: When the state stabilizes and the last request
+///    finishes, [onFinish] is called, allowing you to handle errors or perform
+///    side-effects, like showing a message or reloading data.
+///
+/// ```
+/// State: liked = false (server confirmed)
+///
+/// User taps LIKE:
+///   → State: liked = true (optimistic)
+///   → Lock acquired, Request 1 sends: setLiked(true)
+///
+/// User taps UNLIKE (Request 1 still in flight):
+///   → State: liked = false (optimistic)
+///   → No request sent (locked)
+///
+/// User taps LIKE (Request 1 still in flight):
+///   → State: liked = true (optimistic)
+///   → No request sent (locked)
+///
+/// Request 1 completes:
+///   → Sent value was `true`, current state is `true`
+///   → They match, no follow-up needed, lock released
+/// ```
+///
+/// If the state had been `false` when Request 1 completed, a follow-up
+/// Request 2 would automatically be sent with `false`.
+///
+/// ## Usage
+///
+/// ```dart
+/// class ToggleLike extends AppAction with StableSync<AppState, bool> {
+///   final String itemId;
+///   ToggleLike(this.itemId);
+///
+///   // Different items can have concurrent requests
+///   @override
+///   Object? stableSyncKeyParams() => itemId;
+///
+///   // The new value to apply (toggle current state)
+///   @override
+///   bool valueToApply() => !state.items[itemId].liked;
+///
+///   // Apply the optimistic value to the state
+///   @override
+///   AppState applyOptimisticValueToState(bool isLiked) =>
+///       state.copyWith(items: state.items.setLiked(itemId, isLiked));
+///
+///   // Apply the server response to the state (can be different from optimistic)
+///   @override
+///   AppState applyServerResponseToState(Object? serverResponse) =>
+///       state.copyWith(items: state.items.setLiked(itemId, serverResponse as bool));
+///
+///   // Read the current value from state (used to detect if follow-up needed)
+///   @override
+///   Object? getValueFromState(AppState state) => state.items[itemId].liked;
+///
+///   // Send the value to the server, optionally return server-confirmed value
+///   @override
+///   Future<Object?> sendValueToServer(Object? optimisticValue) async {
+///     final response = await api.setLiked(itemId, optimisticValue);
+///     return response.liked; // Or return null if server doesn't return a value
+///   }
+///
+///   // Called when state stabilizes (optional). Return state to apply, or null.
+///   @override
+///   Future<AppState?> onFinish(Object? error) async {
+///     if (error != null) {
+///       // Handle error: reload from server to restore correct state
+///       final reloaded = await api.getItem(itemId);
+///       return state.copyWith(items: state.items.update(itemId, reloaded));
+///     }
+///     return null; // Success, no state change needed
+///   }
+/// }
+/// ```
+///
+/// ## Server response handling
+///
+/// [sendValueToServer] can return a value from the server. If non-null, this value is
+/// applied to the state **only when the state stabilizes** (no pending changes).
+/// This is useful when:
+/// - The server normalizes or modifies values
+/// - You want to confirm the server accepted the change
+/// - The server returns the current state after the update
+///
+/// If the server response differs from the current optimistic state when the
+/// state stabilizes, a follow-up request will be sent automatically.
+///
+/// ## Error handling
+///
+/// On failure, the optimistic state remains and [onFinish] is called with
+/// the error.
+///
+/// ## Difference from other mixins
+///
+/// - **vs [Debounce]**: Debounce waits for inactivity before sending *any*
+///   request. StableSync sends the first request immediately and only coalesces
+///   subsequent changes.
+///
+/// - **vs [NonReentrant]**: NonReentrant aborts subsequent dispatches entirely.
+///   StableSync applies the optimistic update and queues a follow-up request.
+///
+/// - **vs [OptimisticUpdate]**: OptimisticUpdate has rollback logic that breaks
+///   with concurrent dispatches. StableSync is designed for rapid toggling where
+///   only the final state matters.
+///
+/// Notes:
+/// - It should not be combined with [NonReentrant], [Throttle], [Debounce],
+///   [OptimisticUpdate], or [Fresh].
+///
+mixin StableSync<St, T> on ReduxAction<St> {
+  //
+  /// Optionally, override [stableSyncKeyParams] to differentiate coalescing by
+  /// action parameters. For example, if you have a like button per item,
+  /// return the item ID so that different items can have concurrent requests:
+  ///
+  /// ```dart
+  /// Object? stableSyncKeyParams() => itemId;
+  /// ```
+  ///
+  /// You can also return a record of values:
+  ///
+  /// ```dart
+  /// Object? stableSyncKeyParams() => (userId, itemId);
+  /// ```
+  ///
+  /// See also: [computeStableSyncKey], which uses this method by default to
+  /// build the key.
+  ///
+  Object? stableSyncKeyParams() => null;
+
+  /// By default the coalescing key combines the action [runtimeType]
+  /// with [stableSyncKeyParams]. Override this method if you want
+  /// different action types to share the same coalescing key.
+  Object computeStableSyncKey() => (runtimeType, stableSyncKeyParams());
+
+  /// Override [valueToApply] to return the value that should be applied
+  /// optimistically to the state and then sent to the server. This is called
+  /// synchronously and only once per dispatch, when the reducer starts.
+  ///
+  /// The value to apply can be anything, and is usually constructed from the
+  /// action fields, and/or from the current [state]. Valid examples are:
+  ///
+  /// ```dart
+  /// // Set the like button to "liked".
+  /// bool valueToApply() => true
+  ///
+  /// // Set the like button to "liked" or "not liked", according to
+  /// // the field `isLiked` of the action.
+  /// bool valueToApply() => isLiked;
+  ///
+  /// // Toggles the current state of the like button.
+  /// bool valueToApply() => !state.items[itemId].isLiked;
+  /// ```
+  ///
+  T valueToApply();
+
+  /// Override [applyOptimisticValueToState] to return a new state where the
+  /// given [optimisticValue] is applied to the current [state].
+  ///
+  /// Note, Async Redux calculated [optimisticValue] by previously
+  /// calling [valueToApply].
+  ///
+  /// ```dart
+  /// AppState applyOptimisticValueToState(state, isLiked) =>
+  ///     state.copyWith(items: state.items.setLiked(itemId, isLiked));
+  /// ```
+  St applyOptimisticValueToState(St state, T optimisticValue);
+
+  /// Override [applyServerResponseToState] to return a new state, where the
+  /// given [serverResponse] (previously received from the server when running
+  /// [sendValueToServer]) is applied to the current [state]. Example:
+  ///
+  /// ```dart
+  /// AppState applyServerResponseToState(state, serverResponse) =>
+  ///     state.copyWith(items: state.items.setLiked(itemId, serverResponse.date.isLiked));
+  /// ```
+  ///
+  /// Note [serverResponse] is never `null` here, because this method is only
+  /// called when [sendValueToServer] returned a non-null value.
+  ///
+  /// If you decide you DO NOT want to apply the server response to the state,
+  /// simply return `null`.
+  ///
+  St? applyServerResponseToState(St state, Object serverResponse);
+
+  /// Override [getValueFromState] to extract the value from the current [state].
+  /// This value will be later compared to one returned by [valueToApply] to
+  /// determine if a follow-up request is needed.
+  ///
+  /// Here is the rationale:
+  /// When a request completes, if the value in the state is different from
+  /// the value that was optimistically applied, it means the user changed it
+  /// again while the request was in flight, so a follow-up request is needed
+  /// to sync the latest value with the server.
+  ///
+  /// ```dart
+  /// bool getValueFromState(state) => state.items[itemId].liked;
+  /// ```
+  T getValueFromState(St state);
+
+  /// Override [sendValueToServer] to send the given [optimisticValue] to the
+  /// server, and optionally return the server's response.
+  ///
+  /// Note, Async Redux calculated [optimisticValue] by previously
+  /// calling [valueToApply].
+  ///
+  /// If [sendValueToServer] returns a non-null value, that value will be
+  /// applied to the state, but **only when the state stabilizes** (i.e., when
+  /// there are no more pending requests and the lock is about to be released).
+  /// This prevents the server response from overwriting subsequent user
+  /// interactions that occurred while the request was in flight.
+  ///
+  /// The value in the store state may change while the request is in flight.
+  /// For example, if the user presses a like button once, but then
+  /// presses it again before the first request finishes, the value in the
+  /// store state is now different from the optimistic value that was previously
+  /// applied. In this case, [sendValueToServer] will be called again to create
+  /// a follow-up request to sync the updated state with the server.
+  ///
+  /// If [sendValueToServer] returns `null`, the current optimistic state is
+  /// assumed to be correct and valid.
+  ///
+  /// ```dart
+  /// Future<Object?> saveValue(Object? optimisticValue) async {
+  ///   var response = await api.setLiked(itemId, optimisticValue);
+  ///   return response?.liked; // Return server-confirmed value, or null.
+  /// }
+  /// ```
+  Future<Object?> sendValueToServer(Object? optimisticValue);
+
+  /// If your app listens to updates (i.e., via WebSockets), you need to send
+  /// a [localRevision] number to the server.
+  ///
+  /// Both the server response AND the WebSocket updates must include this
+  /// revision, so the app can ignore any WebSocket update that is older than
+  /// the ones already applied.
+  ///
+  /// You can call [localRevision] from [sendValueToServer] to generate the
+  /// number to send. Note this value is incremented automatically at each
+  /// request, and is unique per key.
+  ///
+  /// IMPORTANT: If you do not listen to server updates, you can ignore
+  /// this method and never call it.
+  ///
+  int localRevision() {
+    // Here!!!
+    // /// Map that tracks local and server revisions for the given key.
+    // /// The value is a tuple: (localRevision, serverRevision)
+    // /// A map entry is created automatically for each new key,
+    // /// but only when and if [localRevision] is called.
+    // Map<Object?, (int, int)> get _revisionMap => store.internalMixinProps.revisionMap;
+  }
+
+  /// If your app listens to updates (i.e., via WebSockets), you must get
+  /// a [serverRevision] number from to the server. This number may be
+  /// sequential or a DateTime (see [serverRevisionAsDateTime]).
+  ///
+  /// Both the server response AND the WebSocket updates must include this
+  /// revision, so the app can ignore any WebSocket update that is older than
+  /// the ones already applied.
+  ///
+  /// You can call both [serverRevision] and [localRevision] from
+  /// [applyServerResponseToState] to decide if the server response should
+  /// be applied to the state or not.
+  ///
+  /// IMPORTANT: If you do not listen to server updates, you can ignore
+  /// this method and never call it.
+  ///
+  int serverRevision() {
+    // /// Map that tracks local and server revisions for the given key.
+    // /// The value is a tuple: (localRevision, serverRevision)
+    // Map<Object?, (int, int)> get _revisionMap => store.internalMixinProps.revisionMap;
+  }
+
+  /// If your app listens to updates (i.e., via WebSockets), you must use
+  /// [setServerRevision] to set the revision number you got from to the server.
+  /// This number may be sequential or a DateTime (see [setServerRevisionAsDateTime]).
+  ///
+  /// Both the server response AND the WebSocket updates must include this
+  /// revision, so the app can ignore any WebSocket update that is older than
+  /// the ones already applied.
+  ///
+  /// You can call both [serverRevision] and [localRevision] from
+  /// [applyServerResponseToState] to decide if the server response should
+  /// be applied to the state or not.
+  ///
+  /// IMPORTANT: If you do not listen to server updates, you can ignore
+  /// this method and never call it.
+  ///
+  void setServerRevision(int revision) {
+    // /// Map that tracks local and server revisions for the given key.
+    // /// The value is a tuple: (localRevision, serverRevision)
+    // Map<Object?, (int, int)> get _revisionMap => store.internalMixinProps.revisionMap;
+  }
+
+  void setServerRevisionAsDateTime(DateTime revision) {
+    setServerRevision(revision.millisecondsSinceEpoch);
+  }
+
+  DateTime serverRevisionAsDateTime() =>
+      DateTime.fromMillisecondsSinceEpoch(serverRevision());
+
+  /// Optionally, override [onFinish] to run any code after the synchronization
+  /// process completes. For example, you might want to reload related data from
+  /// the server, show a confirmation message, or perform cleanup.
+  ///
+  /// Note [onFinish] is called in both success and failure scenarios, but only
+  /// after the state stabilizes for this key (that is, after the last request
+  /// finishes and no follow-up request is needed).
+  ///
+  /// Important: The synchronization lock is released *before* [onFinish] runs.
+  /// This means new dispatches for the same key may start a new request while
+  /// [onFinish] is still executing.
+  ///
+  /// The [error] parameter will be `null` on success, or contain the error
+  /// object if the request failed.
+  ///
+  /// If [onFinish] returns a non-null state, it will be applied automatically.
+  /// If it returns `null`, no state change is made.
+  ///
+  /// ```dart
+  /// Future<St?> onFinish(Object? error) async {
+  ///   if (error == null) {
+  ///     // Success: show confirmation, log analytics, etc.
+  ///     return null;
+  ///   } else {
+  ///     // Failure: reload data from the server.
+  ///     var reloadedInfo = await api.loadInfo();
+  ///     return state.copy(info: reloadedInfo);
+  ///   }
+  /// }
+  /// ```
+  ///
+  /// Important:
+  ///
+  /// - If `onFinish(error)` throws, the original [error] is lost and the error
+  ///   thrown by [onFinish] becomes the action error. You can handle it in
+  ///   [wrapError].
+  ///
+  /// - Same on success: If `onFinish(null)` throws, the whole action fails
+  ///   even though the server request succeeded.  You can handle it in
+  ///   [wrapError].
+  ///
+  Future<St?> onFinish(Object? error) async => null;
+
+  @override
+  Future<St?> reduce() async {
+    _cannotCombineStableSyncWithOtherMixins();
+
+    final key = computeStableSyncKey();
+    var value = valueToApply();
+
+    // Always apply optimistic update immediately.
+    dispatchState(applyOptimisticValueToState(state, value));
+
+    // If locked, another request is in flight. The optimistic update is
+    // already applied, so just return. When the in-flight request completes,
+    // it will check if a follow-up is needed.
+    if (_stableSyncKeySet.contains(key)) {
+      return null;
+    }
+
+    // Acquire lock and send request.
+    _stableSyncKeySet.add(key);
+
+    await _sendAndFollowUp(key, value);
+
+    return null;
+  }
+
+  /// Set that tracks which keys are currently locked (requests in flight).
+  Set<Object?> get _stableSyncKeySet =>
+      store.internalMixinProps.stableSyncKeySet;
+
+  /// Map that tracks local and server revisions for the given key.
+  /// The values can be retrieved by methods [localRevision] and [serverRevision].
+  Map<
+      Object?,
+      ({
+        int localRevision,
+        int? serverRevision,
+      })> get _revisionMap => store.internalMixinProps.revisionMap;
+
+  /// Sends the request and handles follow-up requests if the state changed
+  /// while the request was in flight.
+  Future<void> _sendAndFollowUp(Object? key, T sentValue) async {
+    T _sentValue = sentValue;
+
+    int requestCount = 0;
+
+    while (true) {
+      requestCount++;
+
+      try {
+        // Send the value and get the server's response (may be null).
+        final Object? serverResponse = await sendValueToServer(_sentValue);
+
+        // Check if state changed while we were sending.
+        final stateValue = getValueFromState(state);
+
+        // If the state changed while the request was in flight,
+        // (like when the user taps a like button again)...
+        if (ifShouldSendAnotherRequest(
+          stateValue: stateValue,
+          sentValue: _sentValue,
+          requestCount: requestCount,
+        )) {
+          // Do NOT apply the server response yet (the state is not yet stable).
+          // We need a follow-up request. Loop again with the new value.
+          _sentValue = stateValue;
+          continue;
+        }
+        //
+        else {
+          // State matches what we sent, we're done. State has stabilized.
+          // Now apply the server response if one was returned.
+          if (serverResponse != null) {
+            var newState = applyServerResponseToState(state, serverResponse);
+            if (newState != null) dispatchState(newState);
+          }
+
+          // Release lock and call onFinish with no error.
+          _stableSyncKeySet.remove(key);
+          await _callOnFinish(null);
+          break; // Exit the loop
+        }
+      } catch (error) {
+        // Request failed. Release lock and call onFinish with the error.
+        _stableSyncKeySet.remove(key);
+        await _callOnFinish(error);
+        rethrow;
+      }
+    }
+  }
+
+  /// Calls [onFinish], applying the returned state if non-null.
+  Future<void> _callOnFinish(Object? error) async {
+    final newState = await onFinish(error);
+    if (newState != null) dispatchState(newState);
+  }
+
+  /// If [ifShouldSendAnotherRequest] returns true, the action will perform one
+  /// more request to try and send the value from the state to the server.
+  ///
+  /// The default behavior of this method is to compare:
+  /// - The [stateValue], which is the value currently in the store state.
+  /// - The [sentValue], which is the value that was sent to the server.
+  ///
+  /// If both are different, it means that the state was changed after
+  /// we sent the request, so we should send another request with the new value.
+  ///
+  /// Optionally, override this method if you need custom equality logic.
+  /// The default implementation uses the `==` operator.
+  ///
+  /// The number of follow-up requests is limited at [maxFollowUpRequests] to
+  /// avoid infinite loops. If that limit is exceeded, a [StateError] is thrown.
+  ///
+  bool ifShouldSendAnotherRequest({
+    required T stateValue,
+    required T sentValue,
+    required int requestCount,
+  }) {
+    // Safety check to avoid infinite loops.
+    if ((maxFollowUpRequests != -1) && (requestCount > maxFollowUpRequests)) {
+      throw StateError('Too many follow-up requests '
+          'in action $runtimeType (> $maxFollowUpRequests).');
+    }
+
+    return (stateValue is ImmutableCollection &&
+            sentValue is ImmutableCollection)
+        ? !stateValue.same(sentValue)
+        : stateValue != sentValue;
+  }
+
+  /// Maximum number of follow-up requests to send before throwing an error.
+  /// This is a safety limit to avoid infinite loops. Override if you need a
+  /// different limit. Use `-1` for no limit.
+  int get maxFollowUpRequests => 10000;
+
+  void _cannotCombineStableSyncWithOtherMixins() {
+    _incompatible<StableSync, NonReentrant>(this);
+    _incompatible<StableSync, Throttle>(this);
+    _incompatible<StableSync, OptimisticUpdate>(this);
+    _incompatible<StableSync, Fresh>(this);
+
+    // Works with Debounce!!!!!!!!
+    // Works with Debounce!!!!!!!!
+    // Works with Debounce!!!!!!!!
+    // Works with Debounce!!!!!!!!
+    // Works with Debounce!!!!!!!!
+    // Works with Debounce!!!!!!!!
+    // Works with Debounce!!!!!!!!
+    // _incompatible<StableSync, Debounce>(this);
+  }
 }

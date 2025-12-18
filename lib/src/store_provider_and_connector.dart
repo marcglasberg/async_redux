@@ -995,7 +995,7 @@ class StoreProvider<St> extends InheritedWidget {
     return backdoorInheritedWidget<St>(context).waitAllActions(actions);
   }
 
-  /// You can use [isWaiting] and pass it [actionOrActionTypeOrList] to check if:
+  /// You can use [isWaiting] and pass it [actionOrTypeOrList] to check if:
   /// * A specific async ACTION is currently being processed.
   /// * An async action of a specific TYPE is currently being processed.
   /// * If any of a few given async actions or action types is currently being processed.
@@ -1145,6 +1145,14 @@ class StoreProvider<St> extends InheritedWidget {
     }
 
     return _staticStoreBackdoor as Store<St>;
+  }
+
+  static Store backdoorStaticGlobalUntyped() {
+    if (_staticStoreBackdoor == null)
+      throw StoreException('Error: No Redux store found. '
+          'Did you forget to use the StoreProvider?');
+
+    return _staticStoreBackdoor!;
   }
 
   /// See [backdoorStaticGlobal].
@@ -1871,7 +1879,7 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// The action may be sync or async.
   ///
   /// ```dart
-  /// store.dispatch(MyAction());
+  /// context.dispatch(MyAction());
   /// ```
   /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
   /// of this action, even if it changes the state.
@@ -1949,7 +1957,7 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// It returns a [Future] that resolves when ALL actions finish.
   ///
   /// ```dart
-  /// await store.dispatchAndWaitAll([BuyAction('IBM'), SellAction('TSLA')]);
+  /// await context.dispatchAndWaitAll([BuyAction('IBM'), SellAction('TSLA')]);
   /// ```
   ///
   /// If you pass the [notify] parameter as `false`, widgets will not necessarily
@@ -1984,7 +1992,7 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// which means you can also get the final status of the action:
   ///
   /// ```dart
-  /// var status = store.dispatchSync(MyAction());
+  /// var status = context.dispatchSync(MyAction());
   /// ```
   ///
   /// See also:
@@ -1996,7 +2004,7 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
           ? _store.dispatchSync(action, notify: notify)
           : StoreProvider.dispatchSync(this, action, notify: notify);
 
-  /// You can use [isWaiting] and pass it [actionOrActionTypeOrList] to check if:
+  /// You can use [isWaiting] and pass it [actionOrTypeOrList] to check if:
   /// * A specific async ACTION is currently being processed.
   /// * An async action of a specific TYPE is currently being processed.
   /// * If any of a few given async actions or action types is currently being
@@ -2103,4 +2111,315 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
 
   /// Only use this after checking [_isMock].
   Store get _store => (this as MockBuildContext).store;
+}
+
+/// This extension allows you to write `dispatch()` instead of
+/// `context.dispatch()` inside the [State] of a [StatefulWidget]. It
+/// also works for `dispatchAndWait()`, `dispatchAll()`, `dispatchAndWaitAll()`,
+/// `dispatchSync()`, `isWaiting()`, `isFailed()`, `exceptionFor()`, and
+/// `clearExceptionFor()`.
+///
+/// - It is compatible with testing with [MockBuildContext].
+///
+/// - If your app has multiple [StoreProvider] widgets, you should continue
+/// using `context.dispatch()`.
+///
+extension StatefulWidgetExtensionForProviderAndConnector<St> on State {
+  //
+  /// Dispatches the action, applying its reducer, and possibly changing the
+  /// store state. The action may be sync or async.
+  ///
+  /// ```dart
+  /// dispatch(MyAction());
+  /// ```
+  /// If you pass the [notify] parameter as `false`, widgets will not
+  /// necessarily rebuild because of this action, even if it changes the state.
+  ///
+  /// Method [dispatch] is of type [Dispatch].
+  ///
+  /// IMPORTANT: You can use `dispatch()` only when your app has a single
+  /// [StoreProvider], which is almost always true. Otherwise, you need to use
+  /// `context.dispatch()` instead.
+  ///
+  /// See also:
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  ///
+  FutureOr<ActionStatus> dispatch(ReduxAction<St> action,
+          {bool notify = true}) =>
+      StoreProvider.backdoorStaticGlobal().dispatch(action, notify: notify);
+
+  /// Dispatches the action, applying its reducer, and possibly changing the
+  /// store state. The action may be sync or async. In both cases, it returns a
+  /// [Future] that resolves when the action finishes.
+  ///
+  /// ```dart
+  /// await dispatchAndWait(DoThisFirstAction());
+  /// dispatch(DoThisSecondAction());
+  /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not
+  /// necessarily rebuild because of this action, even if it changes the state.
+  ///
+  /// Note: While the state change from the action's reducer will have been
+  /// applied when the Future resolves, other independent processes that the
+  /// action may have started may still be in progress.
+  ///
+  /// Method [dispatchAndWait] is of type [DispatchAndWait]. It returns
+  /// `Future<ActionStatus>`, which means you can also get the final status of
+  /// the action after you `await` it:
+  ///
+  /// ```dart
+  /// var status = await dispatchAndWait(MyAction());
+  /// ```
+  ///
+  /// IMPORTANT: You can use `dispatchAndWait()` only when your app has a single
+  /// [StoreProvider], which is almost always true. Otherwise, you need to use
+  /// `context.dispatchAndWait()` instead.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  ///
+  Future<ActionStatus> dispatchAndWait(ReduxAction<St> action,
+          {bool notify = true}) =>
+      StoreProvider.backdoorStaticGlobal()
+          .dispatchAndWait(action, notify: notify);
+
+  /// Dispatches all given [actions] in parallel, applying their reducer, and
+  /// possibly changing the store state.
+  ///
+  /// ```dart
+  /// dispatchAll([BuyAction('IBM'), SellAction('TSLA')]);
+  /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not
+  /// necessarily rebuild because of these actions, even if it changes the state.
+  ///
+  /// IMPORTANT: You can use `dispatchAll()` only when your app has a single
+  /// [StoreProvider], which is almost always true. Otherwise, you need to use
+  /// `context.dispatchAll()` instead.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  ///
+  List<ReduxAction<St>> dispatchAll<St>(List<ReduxAction<St>> actions,
+          {bool notify = true}) =>
+      StoreProvider.backdoorStaticGlobal().dispatchAll(actions, notify: notify)
+          as List<ReduxAction<St>>;
+
+  /// Dispatches all given [actions] in parallel, applying their reducers, and
+  /// possibly changing the store state. The actions may be sync or async.
+  /// It returns a [Future] that resolves when ALL actions finish.
+  ///
+  /// ```dart
+  /// await dispatchAndWaitAll([BuyAction('IBM'), SellAction('TSLA')]);
+  /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not
+  /// necessarily rebuild because of these actions, even if they change the state.
+  ///
+  /// Note: While the state change from the action's reducers will have been
+  /// applied when the Future resolves, other independent processes that the
+  /// action may have started may still be in progress.
+  ///
+  /// IMPORTANT: You can use `dispatchAndWaitAll()` only when your app has a single
+  /// [StoreProvider], which is almost always true. Otherwise, you need to use
+  /// `context.dispatchAndWaitAll()` instead.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchAll] which dispatches all given actions in parallel.
+  ///
+  Future<List<ReduxAction<St>>> dispatchAndWaitAll<St>(
+    List<ReduxAction<St>> actions, {
+    bool notify = true,
+  }) =>
+      StoreProvider.backdoorStaticGlobal().dispatchAndWaitAll(actions,
+          notify: notify) as Future<List<ReduxAction<St>>>;
+
+  /// Dispatches the action, applying its reducer, and possibly changing the store
+  /// state. However, if the action is ASYNC, it will throw a [StoreException].
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not
+  /// necessarily rebuild because of this action, even if it changes the state.
+  ///
+  /// Method [dispatchSync] is of type [DispatchSync]. It returns `ActionStatus`,
+  /// which means you can also get the final status of the action:
+  ///
+  /// ```dart
+  /// var status = dispatchSync(MyAction());
+  /// ```
+  ///
+  /// IMPORTANT: You can use `dispatchSync()` only when your app has a single
+  /// [StoreProvider], which is almost always true. Otherwise, you need to use
+  /// `context.dispatchSync()` instead.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  ///
+  ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) =>
+      StoreProvider.backdoorStaticGlobal().dispatchSync(action, notify: notify);
+}
+
+/// This extension allows you to write `dispatch()` instead of
+/// `context.dispatch()` inside a [StatelessWidget]. It also works for
+/// `dispatchAndWait()`, `dispatchAll()`, `dispatchAndWaitAll()`,
+/// `dispatchSync()`, `isWaiting()`, `isFailed()`, `exceptionFor()`, and
+/// `clearExceptionFor()`.
+///
+/// - It is compatible with testing with [MockBuildContext].
+///
+/// - If your app has multiple [StoreProvider] widgets, you should continue
+/// using `context.dispatch()`.
+///
+extension StatelessWidgetExtensionForProviderAndConnector<St>
+    on StatelessWidget {
+  //
+  /// Dispatches the action, applying its reducer, and possibly changing the
+  /// store state. The action may be sync or async.
+  ///
+  /// ```dart
+  /// dispatch(MyAction());
+  /// ```
+  /// If you pass the [notify] parameter as `false`, widgets will not
+  /// necessarily rebuild because of this action, even if it changes the state.
+  ///
+  /// Method [dispatch] is of type [Dispatch].
+  ///
+  /// IMPORTANT: You can use `dispatch()` only when your app has a single
+  /// [StoreProvider], which is almost always true. Otherwise, you need to use
+  /// `context.dispatch()` instead.
+  ///
+  /// See also:
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  ///
+  FutureOr<ActionStatus> dispatch(ReduxAction<St> action,
+          {bool notify = true}) =>
+      StoreProvider.backdoorStaticGlobal().dispatch(action, notify: notify);
+
+  /// Dispatches the action, applying its reducer, and possibly changing the
+  /// store state. The action may be sync or async. In both cases, it returns a
+  /// [Future] that resolves when the action finishes.
+  ///
+  /// ```dart
+  /// await dispatchAndWait(DoThisFirstAction());
+  /// dispatch(DoThisSecondAction());
+  /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not
+  /// necessarily rebuild because of this action, even if it changes the state.
+  ///
+  /// Note: While the state change from the action's reducer will have been
+  /// applied when the Future resolves, other independent processes that the
+  /// action may have started may still be in progress.
+  ///
+  /// Method [dispatchAndWait] is of type [DispatchAndWait]. It returns
+  /// `Future<ActionStatus>`, which means you can also get the final status of
+  /// the action after you `await` it:
+  ///
+  /// ```dart
+  /// var status = await dispatchAndWait(MyAction());
+  /// ```
+  ///
+  /// IMPORTANT: You can use `dispatchAndWait()` only when your app has a single
+  /// [StoreProvider], which is almost always true. Otherwise, you need to use
+  /// `context.dispatchAndWait()` instead.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  ///
+  Future<ActionStatus> dispatchAndWait(ReduxAction<St> action,
+          {bool notify = true}) =>
+      StoreProvider.backdoorStaticGlobal()
+          .dispatchAndWait(action, notify: notify);
+
+  /// Dispatches all given [actions] in parallel, applying their reducer, and
+  /// possibly changing the store state.
+  ///
+  /// ```dart
+  /// dispatchAll([BuyAction('IBM'), SellAction('TSLA')]);
+  /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not
+  /// necessarily rebuild because of these actions, even if it changes the state.
+  ///
+  /// IMPORTANT: You can use `dispatchAll()` only when your app has a single
+  /// [StoreProvider], which is almost always true. Otherwise, you need to use
+  /// `context.dispatchAll()` instead.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchAndWaitAll] which dispatches all given actions, and returns a Future.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  ///
+  List<ReduxAction<St>> dispatchAll<St>(List<ReduxAction<St>> actions,
+          {bool notify = true}) =>
+      StoreProvider.backdoorStaticGlobal().dispatchAll(actions, notify: notify)
+          as List<ReduxAction<St>>;
+
+  /// Dispatches all given [actions] in parallel, applying their reducers, and
+  /// possibly changing the store state. The actions may be sync or async.
+  /// It returns a [Future] that resolves when ALL actions finish.
+  ///
+  /// ```dart
+  /// await dispatchAndWaitAll([BuyAction('IBM'), SellAction('TSLA')]);
+  /// ```
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not
+  /// necessarily rebuild because of these actions, even if they change the state.
+  ///
+  /// Note: While the state change from the action's reducers will have been
+  /// applied when the Future resolves, other independent processes that the
+  /// action may have started may still be in progress.
+  ///
+  /// IMPORTANT: You can use `dispatchAndWaitAll()` only when your app has a single
+  /// [StoreProvider], which is almost always true. Otherwise, you need to use
+  /// `context.dispatchAndWaitAll()` instead.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
+  /// - [dispatchAll] which dispatches all given actions in parallel.
+  ///
+  Future<List<ReduxAction<St>>> dispatchAndWaitAll<St>(
+    List<ReduxAction<St>> actions, {
+    bool notify = true,
+  }) =>
+      StoreProvider.backdoorStaticGlobal().dispatchAndWaitAll(actions,
+          notify: notify) as Future<List<ReduxAction<St>>>;
+
+  /// Dispatches the action, applying its reducer, and possibly changing the store
+  /// state. However, if the action is ASYNC, it will throw a [StoreException].
+  ///
+  /// If you pass the [notify] parameter as `false`, widgets will not
+  /// necessarily rebuild because of this action, even if it changes the state.
+  ///
+  /// Method [dispatchSync] is of type [DispatchSync]. It returns `ActionStatus`,
+  /// which means you can also get the final status of the action:
+  ///
+  /// ```dart
+  /// var status = dispatchSync(MyAction());
+  /// ```
+  ///
+  /// IMPORTANT: You can use `dispatchSync()` only when your app has a single
+  /// [StoreProvider], which is almost always true. Otherwise, you need to use
+  /// `context.dispatchSync()` instead.
+  ///
+  /// See also:
+  /// - [dispatch] which dispatches both sync and async actions.
+  /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
+  ///
+  ActionStatus dispatchSync(ReduxAction<St> action, {bool notify = true}) =>
+      StoreProvider.backdoorStaticGlobal().dispatchSync(action, notify: notify);
 }

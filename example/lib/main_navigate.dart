@@ -52,7 +52,7 @@ class Page1 extends StatelessWidget {
     return Page(
       color: Colors.red,
       text: "Tap me to push a new route!",
-      onChangePage: () => context.dispatch(NavigateAction.pushNamed("/myRoute")),
+      onChangePage: () => dispatch(NavigateAction.pushNamed("/myRoute")),
     );
   }
 }
@@ -63,7 +63,7 @@ class Page2 extends StatelessWidget {
     return Page(
       color: Colors.blue,
       text: "Tap me to pop this route!",
-      onChangePage: () => context.dispatch(NavigateAction.pop()),
+      onChangePage: () => dispatch(NavigateAction.pop()),
     );
   }
 }

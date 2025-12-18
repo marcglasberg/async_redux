@@ -31,6 +31,6 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  bdd_framework: ^4.0.5
+  bdd_framework: ^4.0.6
 
 flutter:

@@ -110,7 +110,7 @@ class RefreshAction extends ReduxAction<AppState> {
 }
 
 /// This is a "smart-widget" that directly accesses the store to select state
-/// and dispatch actions, using context.select(), context.dispatch(), etc.
+/// and dispatch actions, using context.select(), dispatch(), etc.
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key? key}) : super(key: key);
 
@@ -126,9 +126,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
 
     // Dispatch the initial refresh action
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.dispatch(RefreshAction());
-    });
+    dispatch(RefreshAction());
 
     _controller = ScrollController()..addListener(_scrollListener);
   }

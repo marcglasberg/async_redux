@@ -38,7 +38,7 @@ class IncrementAction extends ReduxAction<int> {
 }
 
 /// This is a "smart-widget" that directly accesses the store state using
-/// `context.state` and dispatches actions using `context.dispatch`.
+/// `context.state` and dispatches actions using `dispatch`.
 class MyHomePage extends StatelessWidget {
   MyHomePage({Key? key}) : super(key: key);
 
@@ -63,7 +63,7 @@ class MyHomePage extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         // Dispatch action directly from widget
-        onPressed: () => context.dispatch(IncrementAction(amount: 1)),
+        onPressed: () => dispatch(IncrementAction(amount: 1)),
         child: const Icon(Icons.add),
       ),
     );

@@ -7,20 +7,20 @@ import 'package:flutter/material.dart';
 /// Writing this:
 ///
 /// ```dart
-/// context.isWaiting([IncrementAction, MultiplyAction])
+/// isWaiting([IncrementAction, MultiplyAction])
 /// ```
 ///
 /// Is the same as writing this:
 ///
 /// ```dart
-/// context.isWaiting(IncrementAction) || context.isWaiting(MultiplyAction)
+/// isWaiting(IncrementAction) || isWaiting(MultiplyAction)
 /// ```
 ///
 /// The `isCalculating` variable is defined in the `build` method
 /// of widget [MyHomePage]:
 ///
 /// ```dart
-/// bool isCalculating = context.isWaiting([IncrementAction, MultiplyAction]);
+/// bool isCalculating = isWaiting([IncrementAction, MultiplyAction]);
 /// ```
 ///
 /// In more detail:
@@ -67,8 +67,8 @@ class MyHomePage extends StatelessWidget {
       title: 'IsWaiting multiple actions',
       counter: counter,
       isCalculating: isCalculating,
-      increment: () => context.dispatch(IncrementAction()),
-      multiply: () => context.dispatch(MultiplyAction()),
+      increment: () => dispatch(IncrementAction()),
+      multiply: () => dispatch(MultiplyAction()),
     );
   }
 }
