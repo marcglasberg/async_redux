@@ -3,7 +3,7 @@ import 'package:bdd_framework/bdd_framework.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  var feature = BddFeature('StableSync mixin');
+  var feature = BddFeature('StableSync mixin (no push)');
 
   // ==========================================================================
   // Case 1: Single dispatch applies optimistic update and sends request
