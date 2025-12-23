@@ -1,10 +1,11 @@
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
+import 'package:async_redux/src/stable_sync_with_push_mixin.dart';
 import 'package:bdd_framework/bdd_framework.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// These tests verify that [StableSync] correctly handles server-pushed updates
+/// These tests verify that [StableSyncWithPush] correctly handles server-pushed updates
 /// (e.g., via WebSockets) when using the revision-based synchronization system.
 ///
 /// The revision system consists of:
@@ -16,56 +17,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// 2. Last-write-wins semantics work across devices
 /// 3. Out-of-order/replay pushes don't regress state
 void main() {
-  var feature = BddFeature('StableSync push compatibility');
+  var feature = BddFeature('StableSyncWithPush push compatibility');
 
   setUp(() {
     resetTestState();
-  });
-
-  // ===========================================================================
-  // Case 1: Bug demonstration WITHOUT revisions
-  // ===========================================================================
-
-  Bdd(feature)
-      .scenario('BUG: Without revisions, push can cause missed follow-up.')
-      .given('An action WITHOUT revision tracking.')
-      .when('User taps twice and push arrives between taps.')
-      .then('StableSync incorrectly thinks state is stable.')
-      .note('This demonstrates the bug that revisions fix.')
-      .run((_) async {
-    var store = Store<AppState>(initialState: AppState(liked: false));
-
-    // Use completer to control when request completes
-    final request1Completer = Completer<void>();
-    requestCompleter = request1Completer;
-
-    // Tap #1: liked=false -> liked=true (optimistic)
-    store.dispatch(ToggleLikeActionNoRevisions());
-    await Future.delayed(const Duration(milliseconds: 10));
-    expect(store.state.liked, true, reason: 'Tap #1 optimistic update');
-    expect(requestLog, ['sendValue(true)']);
-
-    // Tap #2 (while request 1 in flight): liked=true -> liked=false (optimistic)
-    store.dispatch(ToggleLikeActionNoRevisions());
-    await Future.delayed(const Duration(milliseconds: 10));
-    expect(store.state.liked, false, reason: 'Tap #2 optimistic update');
-
-    // Push arrives (echo of request 1) - overwrites optimistic state!
-    // This simulates a WebSocket push arriving before request completes
-    store.dispatch(SimulatePushAction(liked: true));
-    await Future.delayed(const Duration(milliseconds: 10));
-    expect(store.state.liked, true, reason: 'Push overwrote optimistic state');
-
-    // Request 1 completes
-    request1Completer.complete();
-    await Future.delayed(const Duration(milliseconds: 50));
-
-    // BUG: StableSync sees store=true, sent=true, thinks it's stable!
-    // No follow-up sent, final state is WRONG (user's last tap was false)
-    expect(store.state.liked, true,
-        reason: 'BUG: Final state is wrong (should be false)');
-    expect(requestLog, ['sendValue(true)', 'onFinish()'],
-        reason: 'BUG: No follow-up request sent');
   });
 
   // ===========================================================================
@@ -76,7 +31,7 @@ void main() {
       .scenario('FIX: With revisions, push does not prevent follow-up.')
       .given('An action WITH revision tracking.')
       .when('User taps twice and push arrives between taps.')
-      .then('StableSync correctly sends follow-up based on localRevision.')
+      .then('StableSyncWithPush correctly sends follow-up based on localRevision.')
       .run((_) async {
     var store = Store<AppState>(
         initialState: AppState(liked: false, serverRevision: 10));
@@ -227,7 +182,8 @@ void main() {
     store.dispatch(SimulatePushWithRevisionAction(liked: false, serverRev: 15));
     await Future.delayed(const Duration(milliseconds: 10));
 
-    expect(store.state.liked, false, reason: 'Push with newer serverRev applied');
+    expect(store.state.liked, false,
+        reason: 'Push with newer serverRev applied');
     expect(store.state.serverRevision, 15,
         reason: 'Push serverRev applied (15 > 11)');
 
@@ -240,21 +196,25 @@ void main() {
   });
 
   // ===========================================================================
-  // Case 7: Backward compatibility - works without revisions
+  // Case 7: Throws error if informServerRevision() is not called
   // ===========================================================================
 
   Bdd(feature)
-      .scenario('Backward compatible: Works without revision calls.')
-      .given('An action that does not use localRevision/informServerRevision.')
-      .when('Normal dispatch flow occurs.')
-      .then('Original value-based comparison still works.')
+      .scenario('Throws error if informServerRevision() is not called.')
+      .given('An action that does not call informServerRevision().')
+      .when('sendValueToServer completes successfully.')
+      .then('A StateError is thrown.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(liked: false));
 
-    await store.dispatchAndWait(ToggleLikeActionNoRevisions());
-
-    expect(store.state.liked, true);
-    expect(requestLog, ['sendValue(true)', 'onFinish()']);
+    expect(
+      () => store.dispatchAndWait(ToggleLikeActionNoRevisions()),
+      throwsA(isA<StateError>().having(
+        (e) => e.message,
+        'message',
+        contains('informServerRevision()'),
+      )),
+    );
   });
 
   // ===========================================================================
@@ -323,8 +283,7 @@ void main() {
     await Future.delayed(const Duration(milliseconds: 500));
 
     // Should have at least 1 request (coalescing may occur)
-    final sendCount =
-        requestLog.where((s) => s.startsWith('sendValue')).length;
+    final sendCount = requestLog.where((s) => s.startsWith('sendValue')).length;
     expect(sendCount, greaterThanOrEqualTo(1));
 
     // Verify onFinish was called
@@ -448,8 +407,7 @@ void main() {
 
     // Push arrives (echo of Request 1) - overwrites optimistic state!
     // This simulates the server echoing back the first request's value
-    store.dispatch(
-        SimulatePushWithRevisionAction(liked: true, serverRev: 11));
+    store.dispatch(SimulatePushWithRevisionAction(liked: true, serverRev: 11));
     await Future.delayed(const Duration(milliseconds: 10));
     expect(store.state.liked, true, reason: 'Push overwrote optimistic state');
 
@@ -483,22 +441,24 @@ void main() {
   });
 
   // ===========================================================================
-  // BUG 2: Lost optimization - unnecessary request when value returns
+  // BUG 2: Preserve optimization - no follow-up when value returns
+  // to the SENT value while request is in flight.
   // ===========================================================================
-
   Bdd(feature)
-      .scenario('BUG: Push-mode sends unnecessary request on value toggle.')
+      .scenario(
+          'OK: Push-mode skips follow-up when user returns to sent value.')
       .given('isPushCompatible=true action.')
-      .when('User toggles twice back to original value.')
-      .then('Sends unnecessary follow-up (revision-only check loses value optimization).')
-      .note('Old value-based logic would skip request, revision-based does not.')
+      .when(
+          'User toggles, toggles back, then toggles again to the sent value (while request 1 is in flight).')
+      .then(
+          'Does not send a follow-up request (same optimization as value-based logic).')
       .run((_) async {
     var store = Store<AppState>(
         initialState: AppState(liked: false, serverRevision: 10));
 
     nextServerRevision = 11;
 
-    // Use completer to control when Request 1 completes
+    // Control when Request 1 completes.
     final request1Completer = Completer<void>();
     requestCompleter = request1Completer;
 
@@ -509,42 +469,28 @@ void main() {
     expect(requestLog, ['sendValue(true, localRev=1)']);
 
     // Tap #2 (while request 1 in flight): liked=true -> liked=false, localRev=2
-    // This returns the value to what was originally sent in Request 1
     store.dispatch(ToggleLikeActionWithRevisions());
     await Future.delayed(const Duration(milliseconds: 10));
-    expect(store.state.liked, false, reason: 'Tap #2 back to original');
+    expect(store.state.liked, false, reason: 'Tap #2 optimistic');
 
-    // Request 1 completes
+    // Tap #3 (still while request 1 in flight): liked=false -> liked=true, localRev=3
+    // Final value returns to the SAME VALUE that was sent in Request 1.
+    store.dispatch(ToggleLikeActionWithRevisions());
+    await Future.delayed(const Duration(milliseconds: 10));
+    expect(store.state.liked, true, reason: 'Tap #3 back to sent value');
+
+    // Request 1 completes.
     request1Completer.complete();
     await Future.delayed(const Duration(milliseconds: 100));
-
-    // BUG: Revision-based check sees currentLocalRev(2) > sentLocalRev(1)
-    // so it sends a follow-up even though state.liked is now false,
-    // which is what we already have (original state before any taps).
-    //
-    // The old value-based logic would compare:
-    //   stateValue (false) == sentValue (true)? No
-    // But it would also check if we NEED to send because the value differs
-    // from what the server knows. Since we're back to the original,
-    // ideally no request is needed.
-    //
-    // However, this is more nuanced - the optimization was that if you
-    // toggle back to the value you ALREADY SENT, you don't send again.
-    // Here we sent (true), and now state is (false), so a follow-up IS sent.
 
     final sendValueLogs =
         requestLog.where((s) => s.startsWith('sendValue')).toList();
 
-    // CORRECT: Should not send follow-up when user toggles back
-    // With proper optimization, toggling back to the original value
-    // should not trigger an unnecessary network request.
+    // CORRECT: Only the first request should be sent.
+    // Since the final value equals the sent value (true), no follow-up is needed.
     expect(sendValueLogs.length, 1,
         reason:
-            'Should only send 1 request (optimization: no follow-up when toggled back to original)');
-
-    // Note: This is an efficiency optimization that revision-only logic loses.
-    // The old value-based logic could detect when the final value
-    // doesn't need syncing and skip the follow-up request.
+            'Should only send 1 request (optimization: no follow-up when final value equals sent value)');
   });
 }
 
@@ -600,11 +546,11 @@ void resetTestState() {
 }
 
 // =============================================================================
-// Actions WITHOUT revision tracking (for demonstrating the bug)
+// Action that does NOT call informServerRevision() (to test error detection)
 // =============================================================================
 
 class ToggleLikeActionNoRevisions extends ReduxAction<AppState>
-    with StableSync<AppState, bool> {
+    with StableSyncWithPush<AppState, bool> {
   @override
   bool valueToApply() => !state.liked;
 
@@ -638,6 +584,11 @@ class ToggleLikeActionNoRevisions extends ReduxAction<AppState>
     requestLog.add('onFinish()');
     return null;
   }
+
+  @override
+  int? getServerRevisionFromState(Object? key) {
+    return state.serverRevisions[key];
+  }
 }
 
 // =============================================================================
@@ -645,12 +596,8 @@ class ToggleLikeActionNoRevisions extends ReduxAction<AppState>
 // =============================================================================
 
 class ToggleLikeActionWithRevisions extends ReduxAction<AppState>
-    with StableSync<AppState, bool> {
+    with StableSyncWithPush<AppState, bool> {
   int _serverRevFromResponse = 0;
-
-  // Enable revision-based synchronization for push compatibility.
-  @override
-  bool get isPushCompatible => true;
 
   @override
   bool valueToApply() => !state.liked;
@@ -698,21 +645,11 @@ class ToggleLikeActionWithRevisions extends ReduxAction<AppState>
     requestLog.add('onFinish()');
     return null;
   }
-}
-
-// =============================================================================
-// Push simulation actions
-// =============================================================================
-
-/// Simulates a push update WITHOUT revision tracking.
-/// Used to demonstrate the bug.
-class SimulatePushAction extends ReduxAction<AppState> {
-  final bool liked;
-
-  SimulatePushAction({required this.liked});
 
   @override
-  AppState reduce() => state.copy(liked: liked);
+  int? getServerRevisionFromState(Object? key) {
+    return state.serverRevisions[key];
+  }
 }
 
 /// Simulates a push update WITH revision tracking.
@@ -721,7 +658,8 @@ class SimulatePushWithRevisionAction extends ReduxAction<AppState> {
   final bool liked;
   final int serverRev;
 
-  SimulatePushWithRevisionAction({required this.liked, required this.serverRev});
+  SimulatePushWithRevisionAction(
+      {required this.liked, required this.serverRev});
 
   @override
   AppState? reduce() {

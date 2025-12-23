@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:async_redux/async_redux.dart';
 import 'package:bdd_framework/bdd_framework.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -97,8 +99,7 @@ void main() {
     expect(store.state.liked, false);
 
     // First request sent true, then follow-up sent false, then onFinish at end
-    expect(
-        requestLog, ['saveValue(true)', 'saveValue(false)', 'onFinish()']);
+    expect(requestLog, ['saveValue(true)', 'saveValue(false)', 'onFinish()']);
 
     saveValueDelay = Duration.zero;
   });
@@ -164,7 +165,7 @@ void main() {
   });
 
   // ==========================================================================
-  // Case 7: Different keys can have concurrent requests
+  // Case 6: Different keys can have concurrent requests
   // ==========================================================================
 
   Bdd(feature)
@@ -198,7 +199,7 @@ void main() {
   });
 
   // ==========================================================================
-  // Case 8: Same key blocks concurrent requests
+  // Case 7: Same key blocks concurrent requests
   // ==========================================================================
 
   Bdd(feature)
@@ -235,7 +236,7 @@ void main() {
   });
 
   // ==========================================================================
-  // Case 9: Lock is released after successful request
+  // Case 8: Lock is released after successful request
   // ==========================================================================
 
   Bdd(feature)
@@ -255,16 +256,12 @@ void main() {
     // Second dispatch after completion
     await store.dispatchAndWait(ToggleLikeAction());
     expect(store.state.liked, false);
-    expect(requestLog, [
-      'saveValue(true)',
-      'onFinish()',
-      'saveValue(false)',
-      'onFinish()'
-    ]);
+    expect(requestLog,
+        ['saveValue(true)', 'onFinish()', 'saveValue(false)', 'onFinish()']);
   });
 
   // ==========================================================================
-  // Case 10: Lock is released after failed request
+  // Case 9: Lock is released after failed request
   // ==========================================================================
 
   Bdd(feature)
@@ -286,16 +283,12 @@ void main() {
     shouldFail = false;
     await store.dispatchAndWait(ToggleLikeAction());
     expect(store.state.liked, false);
-    expect(requestLog, [
-      'saveValue(true)',
-      'onFinish()',
-      'saveValue(false)',
-      'onFinish()'
-    ]);
+    expect(requestLog,
+        ['saveValue(true)', 'onFinish()', 'saveValue(false)', 'onFinish()']);
   });
 
   // ==========================================================================
-  // Case 11: Multiple follow-up requests when state keeps changing
+  // Case 10: Multiple follow-up requests when state keeps changing
   // ==========================================================================
 
   Bdd(feature)
@@ -326,7 +319,7 @@ void main() {
   });
 
   // ==========================================================================
-  // Case 12: StableSync cannot be combined with NonReentrant
+  // Case 11: StableSync cannot be combined with NonReentrant
   // ==========================================================================
 
   Bdd(feature)
@@ -348,7 +341,7 @@ void main() {
   });
 
   // ==========================================================================
-  // Case 13: StableSync cannot be combined with Throttle
+  // Case 12: StableSync cannot be combined with Throttle
   // ==========================================================================
 
   Bdd(feature)
@@ -369,28 +362,76 @@ void main() {
     );
   });
 
-  // TODO: IGNORE
   // ==========================================================================
-  // Case 14: StableSync cannot be combined with Debounce
+  // Case 13: computeStableSyncKey can be overridden to share keys
   // ==========================================================================
-  //
-  // Bdd(feature)
-  //     .scenario('StableSync cannot be combined with Debounce.')
-  //     .given('An action that combines StableSync and Debounce.')
-  //     .when('The action is dispatched.')
-  //     .then('An assertion error is thrown.')
-  //     .run((_) async {
-  //   var store = Store<AppState>(initialState: AppState(liked: false));
-  //
-  //   expect(
-  //     () => store.dispatch(StableSyncWithDebounceAction()),
-  //     throwsA(isA<AssertionError>().having(
-  //       (e) => e.message,
-  //       'message',
-  //       'The StableSync mixin cannot be combined with the Debounce mixin.',
-  //     )),
-  //   );
-  // });
+
+  Bdd(feature)
+      .scenario('computeStableSyncKey can be overridden to share keys.')
+      .given('Two different action types with the same computeStableSyncKey.')
+      .when('Both are dispatched while the first is in flight.')
+      .then('They share the same lock.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(liked: false, count: 0));
+    requestLog.clear();
+    saveValueDelay = const Duration(milliseconds: 100);
+
+    // Dispatch first action type
+    store.dispatch(SharedKeyAction1());
+    await Future.delayed(const Duration(milliseconds: 10));
+    expect(store.state.count, 1);
+
+    // Dispatch second action type with same key (should be locked)
+    store.dispatch(SharedKeyAction2());
+    await Future.delayed(const Duration(milliseconds: 10));
+    expect(store.state.count, 2); // Optimistic update applied
+
+    // At this point, only first request sent
+    expect(requestLog, ['saveValue(sharedKey, 1)']);
+
+    await store.waitAllActions([]);
+
+    // Follow-up with current value
+    expect(requestLog, ['saveValue(sharedKey, 1)', 'saveValue(sharedKey, 2)']);
+
+    saveValueDelay = Duration.zero;
+  });
+
+  // ==========================================================================
+  // Case 14: State cleanup after store shutdown
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario('Coalescing state is cleared on store shutdown.')
+      .given('A StableSync action is in progress.')
+      .when('The store is shut down.')
+      .then('The coalescing state is cleared.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(liked: false));
+    requestLog.clear();
+    saveValueDelay = const Duration(milliseconds: 50);
+
+    // Start a request
+    store.dispatch(ToggleLikeAction());
+    await Future.delayed(const Duration(milliseconds: 10));
+
+    // Shutdown store
+    store.shutdown();
+
+    // Wait for old store's action to complete (it continues running even after shutdown)
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // Create new store - should have fresh coalescing state
+    var newStore = Store<AppState>(initialState: AppState(liked: false));
+    requestLog.clear();
+
+    // Should be able to dispatch without being blocked by old state
+    await newStore.dispatchAndWait(ToggleLikeAction());
+    expect(newStore.state.liked, true);
+    expect(requestLog, ['saveValue(true)', 'onFinish()']);
+
+    saveValueDelay = Duration.zero;
+  });
 
   // ==========================================================================
   // Case 15: StableSync cannot be combined with OptimisticUpdate
@@ -436,75 +477,229 @@ void main() {
     );
   });
 
+  // TODO: IGNORE
   // ==========================================================================
-  // Case 17: computeStableSyncKey can be overridden to share keys
+  // Case 17: StableSync cannot be combined with Debounce
+  // ==========================================================================
+  //
+  // Bdd(feature)
+  //     .scenario('StableSync cannot be combined with Debounce.')
+  //     .given('An action that combines StableSync and Debounce.')
+  //     .when('The action is dispatched.')
+  //     .then('An assertion error is thrown.')
+  //     .run((_) async {
+  //   var store = Store<AppState>(initialState: AppState(liked: false));
+  //
+  //   expect(
+  //     () => store.dispatch(StableSyncWithDebounceAction()),
+  //     throwsA(isA<AssertionError>().having(
+  //       (e) => e.message,
+  //       'message',
+  //       'The StableSync mixin cannot be combined with the Debounce mixin.',
+  //     )),
+  //   );
+  // });
+
+  // ==========================================================================
+  // Case 18: Server response is applied when non-null and state is stable
   // ==========================================================================
 
   Bdd(feature)
-      .scenario('computeStableSyncKey can be overridden to share keys.')
-      .given('Two different action types with the same computeStableSyncKey.')
-      .when('Both are dispatched while the first is in flight.')
-      .then('They share the same lock.')
+      .scenario(
+          'Server response is applied when sendValueToServer returns a non-null response and state is stable.')
+      .given(
+          'An action with the StableSync mixin where sendValueToServer returns a non-null response.')
+      .when(
+          'The action is dispatched once and no other dispatch happens while the request is in flight.')
+      .then('The optimistic update is applied immediately.')
+      .and(
+          'After the request completes, applyServerResponseToState is applied using the server response.')
+      .and('onFinish is called once after synchronization completes.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(liked: false, count: 0));
+    requestLog.clear();
+
+    // Dispatch action that returns server response
+    await store.dispatchAndWait(ServerResponseAction(increment: 10));
+
+    // Optimistic update was 10, but server returns 15 (normalized value)
+    expect(store.state.count, 15);
+    expect(requestLog, ['saveValue(10)', 'serverResponse(15)', 'onFinish()']);
+  });
+
+  // ==========================================================================
+  // Case 19: Earlier server response does not overwrite newer local optimistic value
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario(
+          'An earlier server response does not overwrite a newer local optimistic value.')
+      .given(
+          'An action with the StableSync mixin where sendValueToServer returns a non-null response.')
+      .when('The action is dispatched and a request is in flight.')
+      .and(
+          'The action is dispatched again for the same key while the first request is still in flight.')
+      .then('The latest optimistic value remains visible after the second dispatch.')
+      .and(
+          'The response from the first request is not applied in a way that overwrites the newer optimistic value.')
+      .and(
+          'If a follow-up request is needed, only the final stabilized result is applied.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(liked: false, count: 0));
     requestLog.clear();
     saveValueDelay = const Duration(milliseconds: 100);
 
-    // Dispatch first action type
-    store.dispatch(SharedKeyAction1());
+    // Dispatch first action: optimistic count = 10
+    store.dispatch(ServerResponseAction(increment: 10));
     await Future.delayed(const Duration(milliseconds: 10));
-    expect(store.state.count, 1);
+    expect(store.state.count, 10, reason: 'First optimistic update');
 
-    // Dispatch second action type with same key (should be locked)
-    store.dispatch(SharedKeyAction2());
+    // Dispatch second action while first is in flight: optimistic count = 20
+    store.dispatch(ServerResponseAction(increment: 10));
     await Future.delayed(const Duration(milliseconds: 10));
-    expect(store.state.count, 2); // Optimistic update applied
+    expect(store.state.count, 20, reason: 'Second optimistic update');
 
-    // At this point, only first request sent
-    expect(requestLog, ['saveValue(sharedKey, 1)']);
-
+    // Wait for all to complete
     await store.waitAllActions([]);
 
-    // Follow-up with current value
-    expect(requestLog, ['saveValue(sharedKey, 1)', 'saveValue(sharedKey, 2)']);
+    // First request would have returned 15 (server normalized 10 to 15),
+    // but that should NOT be applied because state changed while in flight.
+    // A follow-up request was sent with 20, which server normalizes to 25.
+    expect(store.state.count, 25, reason: 'Final state from follow-up');
+
+    // Request log shows: first request, follow-up request, then only final serverResponse applied
+    expect(requestLog, [
+      'saveValue(10)',
+      'saveValue(20)',
+      'serverResponse(25)',
+      'onFinish()'
+    ]);
 
     saveValueDelay = Duration.zero;
   });
 
   // ==========================================================================
-  // Case 18: State cleanup after store shutdown
+  // Case 20: Server response is ignored when applyServerResponseToState returns null
   // ==========================================================================
 
   Bdd(feature)
-      .scenario('Coalescing state is cleared on store shutdown.')
-      .given('A StableSync action is in progress.')
-      .when('The store is shut down.')
-      .then('The coalescing state is cleared.')
+      .scenario(
+          'Server response is ignored when applyServerResponseToState returns null.')
+      .given(
+          'An action with the StableSync mixin where sendValueToServer returns a non-null response.')
+      .when('The action is dispatched and completes successfully.')
+      .then('The optimistic update is applied immediately.')
+      .and('The server response is not applied to the state.')
+      .and('onFinish is still called after synchronization completes.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(liked: false, count: 0));
+    requestLog.clear();
+
+    // Dispatch action that ignores server response
+    await store.dispatchAndWait(IgnoreServerResponseAction(increment: 10));
+
+    // Optimistic update was 10, server returned 15, but it's ignored
+    expect(store.state.count, 10, reason: 'Server response ignored');
+    expect(requestLog, ['saveValue(10)', 'onFinish()']);
+  });
+
+  // ==========================================================================
+  // Case 21: With multiple follow-ups, only the final server response is applied
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario(
+          'With multiple follow-up requests, only the final non-null server response is applied.')
+      .given(
+          'An action with the StableSync mixin where sendValueToServer returns a non-null response.')
+      .when(
+          'The action is dispatched and the state changes during each request, causing multiple follow-up requests.')
+      .then('Multiple requests are sent until the state stabilizes.')
+      .and('Only the final server response is applied to the state.')
+      .and('onFinish is called once after synchronization completes.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(liked: false, count: 0));
+    requestLog.clear();
+
+    var requestCount = 0;
+    saveValueCallback = () async {
+      requestCount++;
+      await Future.delayed(const Duration(milliseconds: 50));
+      // Dispatch again during the first two requests to force follow-ups
+      if (requestCount <= 2) {
+        store.dispatch(ServerResponseAction(increment: 10));
+      }
+    };
+
+    // Initial dispatch: count goes from 0 to 10
+    await store.dispatchAndWait(ServerResponseAction(increment: 10));
+
+    // Should have sent 3 requests (initial + 2 follow-ups)
+    // Only the final server response should be applied
+    // Request chain: 10 -> server returns 15 (not applied, state changed to 20)
+    //                20 -> server returns 25 (not applied, state changed to 30)
+    //                30 -> server returns 35 (applied, state stable)
+    expect(store.state.count, 35, reason: 'Only final server response applied');
+
+    // Verify 3 saveValue calls, but only 1 serverResponse applied
+    expect(requestLog.where((e) => e.startsWith('saveValue')).length, 3);
+    expect(requestLog.where((e) => e.startsWith('serverResponse')).length, 1);
+    expect(requestLog.last, 'onFinish()');
+
+    saveValueCallback = null;
+  });
+
+  // ===========================================================================
+  // Case 22: Bug demonstration WITHOUT revisions
+  // ===========================================================================
+
+  Bdd(feature)
+      .scenario('BUG: Push can cause missed follow-up.')
+      .given('An action WITHOUT revision tracking.')
+      .when('User taps twice and push arrives between taps.')
+      .then('StableSync incorrectly thinks state is stable.')
+      .note('With push we must use the `StableSyncWithPush` mixin instead.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(liked: false));
-    requestLog.clear();
-    saveValueDelay = const Duration(milliseconds: 50);
 
-    // Start a request
+    // Reset shared test controls to avoid bleed-over from previous scenarios.
+    requestLog.clear();
+    saveValueDelay = Duration.zero;
+    shouldFail = false;
+    saveValueCallback = null;
+    requestCompleter = null;
+
+    // Use completer to control when request completes
+    final request1Completer = Completer<void>();
+    requestCompleter = request1Completer;
+
+    // Tap #1: liked=false -> liked=true (optimistic)
     store.dispatch(ToggleLikeAction());
     await Future.delayed(const Duration(milliseconds: 10));
+    expect(store.state.liked, true, reason: 'Tap #1 optimistic update');
+    expect(requestLog, ['saveValue(true)']);
 
-    // Shutdown store
-    store.shutdown();
+    // Tap #2 (while request 1 in flight): liked=true -> liked=false (optimistic)
+    store.dispatch(ToggleLikeAction());
+    await Future.delayed(const Duration(milliseconds: 10));
+    expect(store.state.liked, false, reason: 'Tap #2 optimistic update');
 
-    // Wait for old store's action to complete (it continues running even after shutdown)
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Push arrives (echo of request 1) - overwrites optimistic state!
+    // This simulates a WebSocket push arriving before request completes
+    store.dispatch(SimulatePushAction(liked: true));
+    await Future.delayed(const Duration(milliseconds: 10));
+    expect(store.state.liked, true, reason: 'Push overwrote optimistic state');
 
-    // Create new store - should have fresh coalescing state
-    var newStore = Store<AppState>(initialState: AppState(liked: false));
-    requestLog.clear();
+    // Request 1 completes
+    request1Completer.complete();
+    await Future.delayed(const Duration(milliseconds: 50));
 
-    // Should be able to dispatch without being blocked by old state
-    await newStore.dispatchAndWait(ToggleLikeAction());
-    expect(newStore.state.liked, true);
-    expect(requestLog, ['saveValue(true)', 'onFinish()']);
-
-    saveValueDelay = Duration.zero;
+    // BUG: StableSync sees store=true, sent=true, thinks it's stable!
+    // No follow-up sent, final state is WRONG (user's last tap was false)
+    expect(store.state.liked, true,
+        reason: 'BUG: Final state is wrong (should be false)');
+    expect(requestLog, ['saveValue(true)', 'onFinish()'],
+        reason: 'BUG: No follow-up request sent');
   });
 }
 
@@ -568,6 +763,11 @@ class ToggleLikeAction extends ReduxAction<AppState>
       await saveValueCallback!();
     } else if (saveValueDelay != Duration.zero) {
       await Future.delayed(saveValueDelay);
+    } else if (requestCompleter != null) {
+      // Allow tests to hold the request open until they manually complete it.
+      final completer = requestCompleter!;
+      requestCompleter = null;
+      await completer.future;
     }
     if (shouldFail) {
       throw const UserException('Send failed');
@@ -627,6 +827,86 @@ class ToggleLikeItemAction extends ReduxAction<AppState>
   @override
   Future<AppState?> onFinish(Object? error) async {
     requestLog.add('onFinish($itemId)');
+    return null;
+  }
+}
+
+/// Action that returns a non-null server response.
+/// Server "normalizes" the value by adding 5 (e.g., 10 becomes 15).
+class ServerResponseAction extends ReduxAction<AppState>
+    with StableSync<AppState, int> {
+  final int increment;
+
+  ServerResponseAction({required this.increment});
+
+  @override
+  int valueToApply() => state.count + increment;
+
+  @override
+  int getValueFromState(AppState state) => state.count;
+
+  @override
+  AppState applyOptimisticValueToState(state, int optimisticValueToApply) =>
+      state.copy(count: optimisticValueToApply);
+
+  @override
+  AppState? applyServerResponseToState(state, Object serverResponse) {
+    requestLog.add('serverResponse($serverResponse)');
+    return state.copy(count: serverResponse as int);
+  }
+
+  @override
+  Future<Object?> sendValueToServer(Object? value) async {
+    requestLog.add('saveValue($value)');
+    if (saveValueCallback != null) {
+      await saveValueCallback!();
+    } else if (saveValueDelay != Duration.zero) {
+      await Future.delayed(saveValueDelay);
+    }
+    // Server "normalizes" the value by adding 5
+    return (value as int) + 5;
+  }
+
+  @override
+  Future<AppState?> onFinish(Object? error) async {
+    requestLog.add('onFinish()');
+    return null;
+  }
+}
+
+/// Action that returns a non-null server response but ignores it.
+class IgnoreServerResponseAction extends ReduxAction<AppState>
+    with StableSync<AppState, int> {
+  final int increment;
+
+  IgnoreServerResponseAction({required this.increment});
+
+  @override
+  int valueToApply() => state.count + increment;
+
+  @override
+  int getValueFromState(AppState state) => state.count;
+
+  @override
+  AppState applyOptimisticValueToState(state, int optimisticValueToApply) =>
+      state.copy(count: optimisticValueToApply);
+
+  @override
+  AppState? applyServerResponseToState(state, Object serverResponse) {
+    // Intentionally return null to ignore the server response
+    return null;
+  }
+
+  @override
+  Future<Object?> sendValueToServer(Object? value) async {
+    requestLog.add('saveValue($value)');
+    // Server returns a value, but we'll ignore it
+    return (value as int) + 5;
+  }
+
+  @override
+  Future<AppState?> onFinish(Object? error) async {
+    requestLog.add('onFinish()');
     return null;
   }
 }
@@ -816,3 +1096,20 @@ class StableSyncWithFreshAction extends ReduxAction<AppState>
   @override
   Future<Object?> sendValueToServer(Object? value) async => null;
 }
+
+// =============================================================================
+// Push simulation actions
+// =============================================================================
+
+/// Simulates a push update WITHOUT revision tracking.
+/// Used to demonstrate the bug.
+class SimulatePushAction extends ReduxAction<AppState> {
+  final bool liked;
+
+  SimulatePushAction({required this.liked});
+
+  @override
+  AppState reduce() => state.copy(liked: liked);
+}
+
+Completer<void>? requestCompleter;

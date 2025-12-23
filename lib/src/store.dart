@@ -2541,6 +2541,8 @@ class _InternalMixinProps {
       ({
         int localRevision,
         int? serverRevision,
+        int intentBaseServerRevision,
+        Object? localValue,
       })> revisionMap = {};
 
   /// Removes the locks for Throttle, Debounce, Fresh, NonReentrant, and StableSync.
