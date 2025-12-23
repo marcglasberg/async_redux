@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
+import 'package:async_redux/src/optimistic_sync_with_push_mixin.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:meta/meta.dart';
@@ -397,10 +398,10 @@ mixin NonReentrant<St> on ReduxAction<St> {
 ///   internet but the action fails for some other reason. To retry indefinitely
 ///   until internet is available, use [UnlimitedRetryCheckInternet] instead.
 /// - It should not be combined with [Debounce], [UnlimitedRetryCheckInternet].
-/// - When combined with [OptimisticUpdate], the retry logic is handled by
-///   [OptimisticUpdate] to avoid UI flickering. Only the
-///   [OptimisticUpdate.saveValue] call is retried, keeping the optimistic
-///   state in place. See [OptimisticUpdate] for more details.
+/// - When combined with [OptimisticCommand], the retry logic is handled by
+///   [OptimisticCommand] to avoid UI flickering. Only the
+///   [OptimisticCommand.sendCommandToServer] call is retried, keeping the
+///   optimistic state in place. See [OptimisticCommand] for more details.
 ///
 mixin Retry<St> on ReduxAction<St> {
   //
@@ -431,10 +432,10 @@ mixin Retry<St> on ReduxAction<St> {
   Future<St?> wrapReduce(Reducer<St> reduce) async {
     _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet();
 
-    // When combined with OptimisticUpdate, we skip the retry logic here.
-    // OptimisticUpdate will handle retries internally to avoid UI flickering.
-    // See OptimisticUpdate.reduce for details.
-    if (this is OptimisticUpdate) {
+    // When combined with OptimisticCommand, we skip the retry logic here.
+    // OptimisticCommand will handle retries internally to avoid UI flickering.
+    // See OptimisticCommand.reduce for details.
+    if (this is OptimisticCommand) {
       FutureOr<St?> newState = reduce();
       if (newState is Future) newState = await newState;
       return newState;
@@ -500,122 +501,160 @@ mixin UnlimitedRetries<St> on Retry<St> {
   int get maxRetries => -1;
 }
 
-/// Let's use a "Todo" app as an example. We want to save a new Todo to a TodoList.
+/// The [OptimisticCommand] mixin is for actions that represent a command.
+///
+/// A command is something you want to run on the server once per dispatch.
+/// Typical examples are:
+/// * Create something (add todo, create comment, send message)
+/// * Delete something
+/// * Submit a form
+/// * Upload a file
+/// * Checkout, place order, confirm payment
+///
+/// This mixin gives fast UI feedback by applying an optimistic state change
+/// immediately, then running the command on the server, and optionally rolling
+/// back and reloading.
+///
+///
+/// When to use OptimisticSync instead
+///
+/// Use [OptimisticSync] or [OptimisticSyncWithPush] when the action is a set operation,
+/// meaning only the final value matters and intermediate values can be skipped.
+/// Typical examples are:
+/// * Like or follow toggle
+/// * Settings switch
+/// * Slider, checkbox
+/// * Update a field where the last value wins
+///
+/// In set operations, users may tap many times quickly. OptimisticSync is built for
+/// that and will coalesce rapid changes into a minimal number of server calls.
+/// [OptimisticCommand] is not built for that.
+///
+///
+/// Example: saving a Todo
+///
+/// Let's use a Todo app as an example. We want to save a new Todo to a TodoList.
 ///
 /// This code saves the Todo, then reloads the TodoList from the cloud:
 ///
 /// ```dart
 /// class SaveTodo extends ReduxAction<AppState> {
-///    final Todo newTodo;
-///    SaveTodo(this.newTodo);
+///   final Todo newTodo;
+///   SaveTodo(this.newTodo);
 ///
-///    Future<AppState> reduce() async {
-///
-///       try {
-///          // Saves the new Todo to the cloud.
-///          await saveTodo(newTodo);
-///       }
-///       finally {
-///          // Loads the complete TodoList from the cloud.
-///          var reloadedTodoList = await loadTodoList();
-///          return state.copy(todoList: reloadedTodoList);
-///       }
-///    }
+///   Future<AppState> reduce() async {
+///     try {
+///       // Saves the new Todo to the cloud.
+///       await saveTodo(newTodo);
+///     } finally {
+///       // Loads the complete TodoList from the cloud.
+///       var reloadedTodoList = await loadTodoList();
+///       return state.copy(todoList: reloadedTodoList);
+///     }
+///   }
 /// }
 /// ```
 ///
 /// The problem with the above code is that it may take a second to update the
-/// todoList in the screen, while we save then load, which is not a good user
-/// experience.
+/// todoList on screen, while we save then load.
 ///
-/// The solution is optimistically updating the TodoList before saving the new
-/// Todo to the cloud:
+/// The solution is to optimistically update the TodoList before saving:
 ///
 /// ```dart
 /// class SaveTodo extends ReduxAction<AppState> {
-///    final Todo newTodo;
-///    SaveTodo(this.newTodo);
+///   final Todo newTodo;
+///   SaveTodo(this.newTodo);
 ///
-///    Future<AppState> reduce() async {
+///   Future<AppState> reduce() async {
+///     // Updates the TodoList optimistically.
+///     dispatch(UpdateStateAction((state)
+///       => state.copy(todoList: state.todoList.add(newTodo))));
 ///
-///       // Updates the TodoList optimistically.
-///       dispatch(UpdateStateAction((state)
-///         => state.copy(todoList: state.todoList.add(newTodo))));
-///
-///       try {
-///          // Saves the new Todo to the cloud.
-///          await saveTodo(newTodo);
-///       }
-///       finally {
-///          // Loads the complete TodoList from the cloud.
-///          var reloadedTodoList = await loadTodoList();
-///          return state.copy(todoList: reloadedTodoList);
-///       }
-///    }
+///     try {
+///       // Saves the new Todo to the cloud.
+///       await saveTodo(newTodo);
+///     } finally {
+///       // Loads the complete TodoList from the cloud.
+///       var reloadedTodoList = await loadTodoList();
+///       return state.copy(todoList: reloadedTodoList);
+///     }
+///   }
 /// }
 /// ```
 ///
-/// That's better. But if the saving fails, users still have to wait for
-/// the reload until they see the reverted state. We can further improve this:
+/// That's better. But if saving fails, users still have to wait for the reload
+/// until they see the reverted state. We can further improve this:
 ///
 /// ```dart
 /// class SaveTodo extends ReduxAction<AppState> {
-///    final Todo newTodo;
-///    SaveTodo(this.newTodo);
+///   final Todo newTodo;
+///   SaveTodo(this.newTodo);
 ///
-///    Future<AppState> reduce() async {
+///   Future<AppState> reduce() async {
+///     // Updates the TodoList optimistically.
+///     var newTodoList = state.todoList.add(newTodo);
+///     dispatchState(state.copy(todoList: newTodoList));
 ///
-///       // Updates the TodoList optimistically.
-///       var newTodoList = state.todoList.add(newTodo);
-///       dispatchState(state.copy(todoList: newTodoList));
-///
-///       try {
-///          // Saves the new Todo to the cloud.
-///          await saveTodo(newTodo);
+///     try {
+///       // Saves the new Todo to the cloud.
+///       await saveTodo(newTodo);
+///     } catch (e) {
+///       // If the state still contains our optimistic update, we rollback.
+///       // If the state now contains something else, we do not rollback.
+///       if (state.todoList == newTodoList) {
+///         return state.copy(todoList: initialState.todoList); // Rollback.
 ///       }
-///       catch (e) {
-///          // If the state still contains our optimistic update, we rollback.
-///          // If the state now contains something else, we DO NOT rollback.
-///          if (state.todoList == newTodoList) {
-///             return state.copy(todoList: initialState.todoList); // Rollback.
-///          }
-///       }
-///       finally {
-///          // Loads the complete TodoList from the cloud.
-///          var reloadedTodoList = await loadTodoList();
-///          dispatchState(state.copy(todoList: reloadedTodoList));
-///       }
-///    }
+///       rethrow;
+///     } finally {
+///       // Loads the complete TodoList from the cloud.
+///       var reloadedTodoList = await loadTodoList();
+///       dispatchState(state.copy(todoList: reloadedTodoList));
+///     }
+///   }
 /// }
 /// ```
 ///
 /// Now the user sees the rollback immediately after the saving fails.
 ///
-/// Note: If you are using a realtime database or Websockets to receive
-/// real-time updates from the server, you may not need the finally block above,
-/// as long as the `newTodoList` above can be told apart from the current
-/// `state.todoList`. This can be a problem if the state in question is a
-/// primitive (boolean, number etc) or string.
+/// Note about realtime updates
 ///
-/// The [OptimisticUpdate] mixin helps you implement the above code for you,
-/// when you provide the following:
+/// If you are using a realtime database or WebSockets to receive server pushed
+/// updates, you may not need the reload step, as long as the optimistic value
+/// can be told apart from the current value in state.
 ///
-/// * [newValue]: Is the new value, that you want to see saved and applied to the state.
-/// * [getValueFromState]: Is a function that extract the value from the given state.
-/// * [applyValueToState]: Is a function that applies the given value to the given state.
-/// * [saveValue]: Is a function that saves the value to the cloud.
-/// * [reloadValue]: Is a function that reloads the value from the cloud.
+/// This can be a problem if the state in question is a primitive (bool, num)
+/// or String. In those cases it is easier for the value to match by accident,
+/// and rollback or reload may apply when you did not expect it.
 ///
-/// Here is the complete example using the mixin:
+///
+/// What this mixin does
+///
+/// [OptimisticCommand] helps you implement the pattern above when you provide:
+/// * [optimisticValue] returns the optimistic value you want to apply right away
+/// * [getValueFromState] extracts the current value from a given state
+/// * [applyValueToState] applies a value to a given state and returns the new state
+/// * [sendCommandToServer] runs the server command (it may use the action fields)
+/// * [reloadFromServer] optionally reloads from the server (do not override to skip)
+///
+/// Important details:
+/// * The optimistic update is applied immediately.
+/// * If [sendCommandToServer] fails, rollback happens only if the current state
+///   still matches the optimistic value created by this dispatch. The rollback
+///   restores the value from [initialState].
+/// * Reload is optional. If implemented, it runs after [sendCommandToServer]
+///   finishes, both on success and on failure.
+///
+///
+/// Complete example using the mixin
 ///
 /// ```dart
-/// class SaveTodo extends AppAction with OptimisticUpdate {
+/// class SaveTodo extends AppAction with OptimisticCommand {
 ///   final Todo newTodo;
 ///   SaveTodo(this.newTodo);
 ///
 ///   // The optimistic value to be applied right away.
 ///   @override
-///   Object? newValue() => state.todoList.add(newTodo);
+///   Object? optimisticValue() => state.todoList.add(newTodo);
 ///
 ///   // Read the current value from the state.
 ///   @override
@@ -623,155 +662,380 @@ mixin UnlimitedRetries<St> on Retry<St> {
 ///
 ///   // Apply the value to the state.
 ///   @override
-///   AppState applyValueToState(AppState state, Object? value) => state.copy(todoList: value);
+///   AppState applyValueToState(AppState state, Object? value)
+///     => state.copy(todoList: value);
 ///
-///   // Save the value to the cloud.
+///   // Run the server command.
+///   // You can ignore the value and just use action fields if you want.
 ///   @override
-///   Future<void> saveValue(Object? value) async => await saveTodo(newTodo);
+///   Future<void> sendCommandToServer(Object? optimisticValue) async => await saveTodo(newTodo);
 ///
-///   // Reload the value from the cloud. Omit to not reload.
+///   // Reload from the cloud. If you want to skip reload, do not override.
 ///   @override
-///   Future<Object?> reloadValue() async => await loadTodoList();
+///   Future<Object?> reloadFromServer() async => await loadTodoList();
 /// }
 /// ```
 ///
-/// ## Non-reentrant
 ///
-/// Consider combining [OptimisticUpdate] with [NonReentrant] to prevent race
+/// Non reentrant
+///
+/// Consider combining [OptimisticCommand] with [NonReentrant] to prevent race
 /// conditions when the same action is dispatched multiple times before the
 /// first completes:
 ///
 /// ```dart
-/// class SaveTodo extends AppAction with OptimisticUpdate, NonReentrant {
+/// class SaveTodo extends AppAction with OptimisticCommand, NonReentrant {
 ///   ...
 /// }
 /// ```
 ///
 /// Without [NonReentrant], concurrent dispatches can cause:
-/// - Conflicting optimistic updates overwriting each other
-/// - Incorrect rollback behavior (the rollback check may fail to detect the
-///   correct state to revert)
-/// - Race conditions in the reload phase
-/// - Server-side conflicts from concurrent save requests
+/// * Conflicting optimistic updates overwriting each other
+/// * Incorrect rollback behavior (the rollback check may no longer match)
+/// * Race conditions in the reload phase
+/// * Server side conflicts from concurrent requests
 ///
 /// If your action has parameters and you want to allow concurrent dispatches
-/// for *different* parameters (e.g., saving different items), use
-/// [nonReentrantKeyParams]:
+/// for different parameters (for example, saving different items), override
+/// [NonReentrant.nonReentrantKeyParams]. For example:
 ///
 /// ```dart
-/// class SaveTodo extends AppAction with OptimisticUpdate, NonReentrant {
-///   final String oderId;
-///   SaveTodo(this.oderId);
+/// class SaveTodo extends AppAction with OptimisticCommand, NonReentrant {
+///   final String orderId;
+///   SaveTodo(this.orderId);
 ///
 ///   @override
-///   Object? nonReentrantKeyParams() => oderId;
+///   Object? nonReentrantKeyParams() => orderId;
 ///   ...
 /// }
 /// ```
 ///
-/// This allows `SaveTodo('A')` and `SaveTodo('B')` to run concurrently, while
-/// blocking concurrent dispatches of `SaveTodo('A')` with itself.
+/// This allows SaveTodo('A') and SaveTodo('B') to run concurrently, while
+/// blocking concurrent dispatches of SaveTodo('A') with itself.
 ///
-/// Notes:
-/// - When combined with [Retry], only the [saveValue] call is retried, not
-///   the optimistic update or rollback. This prevents UI flickering that would
-///   otherwise occur if the entire reduce was retried on each attempt. The
-///   optimistic state remains in place during retries, and rollback only
-///   happens if all retry attempts fail.
-/// - It should not be combined with [Debounce], or [UnlimitedRetryCheckInternet].
 ///
-mixin OptimisticUpdate<St> on ReduxAction<St> {
+/// Retry
+///
+/// When combined with [Retry], only the [sendCommandToServer] call is retried,
+/// not the optimistic update or rollback. This prevents UI flickering that
+/// would otherwise occur if the entire reduce was retried on each attempt.
+///
+/// The optimistic state remains in place during retries, and rollback only
+/// happens if all retry attempts fail.
+///
+///
+/// Notes
+///
+/// * It should not be combined with [Debounce] or [UnlimitedRetryCheckInternet].
+/// * Equality checks use the == operator. Make sure your value type implements
+///   == in a way that makes sense for optimistic checks.
+///
+///
+/// See also
+///
+/// * [OptimisticSync] and [OptimisticSyncWithPush] for set operations (last value wins).
+///
+mixin OptimisticCommand<St> on ReduxAction<St> {
   //
-  /// You should return here the value that you want to update.
-  /// For example, if you want to add a new Todo to the todoList,
-  /// you should return the new todoList with the new Todo added.
+  /// Override this method to return the value that you want to update, and
+  /// that you want to apply optimistically to the state.
   ///
-  /// You can access the fields of the action, and the state,
-  /// and return the new value.
+  /// For example, if you want to add a new Todo to a todoList, you should
+  /// return the new todoList with the new Todo added.
+  ///
+  /// You can access the fields of the action, and the current [state], and
+  /// return the new value.
   ///
   /// ```dart
-  /// Object? newValue() => state.todoList.add(newTodo);
+  /// Object? optimisticValue() => state.todoList.add(newTodo);
   /// ```
-  Object? newValue();
+  Object? optimisticValue();
 
-  /// Using the given `state`, you should return the `value` from that state.
+  /// Using the given [state], you should return the current value from that
+  /// state. This is used to check if the state still contains the optimistic
+  /// value, so the mixin knows whether it is safe to rollback.
   ///
   /// ```dart
   /// Object? getValueFromState(AppState state) => state.todoList;
   /// ```
   Object? getValueFromState(St state);
 
-  /// Using the given `state`, you should apply the given `value` to it,
-  /// and return the result.
+  /// Using the given [state], you should apply the given [value] to it, and
+  /// return the result.
   ///
   /// ```dart
-  /// AppState applyValueToState(state, newTodoList) => state.copy(todoList: newTodoList);
+  /// AppState applyValueToState(state, newTodoList)
+  ///   => state.copy(todoList: newTodoList);
   /// ```
   St applyValueToState(St state, Object? value);
 
-  /// You should save the `value` or other related value in the cloud.
+  /// You should save the [optimisticValue] or other related value in the cloud.
+  ///
+  /// Note: This mixin is for commands, so you can ignore [optimisticValue] and
+  /// use the action fields instead, if that makes more sense for your API.
   ///
   /// ```dart
-  /// Future<void> saveValue(newTodoList) => saveTodo(newTodo);
+  /// Future<void> sendCommandToServer(newTodoList) => saveTodo(newTodo);
   /// ```
-  Future<void> saveValue(Object? newValue) {
+  Future<void> sendCommandToServer(Object? optimisticValue);
+
+  /// Override to reload the value from the cloud.
+  /// If you want to skip reload, do not override this method.
+  ///
+  /// Note: If you are using a realtime database or WebSockets to receive
+  /// server pushed updates, you may not need to reload here.
+  ///
+  /// ```dart
+  /// Future<Object?> reloadFromServer() => loadTodoList();
+  /// ```
+  Future<Object?> reloadFromServer() {
     throw UnimplementedError();
   }
 
-  /// You should reload the `value` from the cloud.
-  /// If you want to skip this step, simply don't provide this method.
+  /// Returns the state to apply when the command fails and the mixin decides
+  /// it is safe to rollback.
+  ///
+  /// This method is called only when:
+  /// * [sendCommandToServer] throws, AND
+  /// * [shouldRollback] returns true. By default it returns true only if the
+  ///   current value in the store still matches the optimistic value created
+  ///   by this dispatch (so we do not rollback over newer changes).
+  ///
+  /// Parameters:
+  ///
+  /// * [initialValue] is the value extracted from [initialState] using
+  ///   [getValueFromState]. It represents what the value was when this action
+  ///   was first dispatched.
+  ///
+  /// * [optimisticValue] is the value returned by [optimisticValue] and applied
+  ///   optimistically by this dispatch.
+  ///
+  /// * [error] is the error thrown by [sendCommandToServer].
+  ///
+  /// By default, the mixin restores [initialValue] by calling [applyValueToState].
+  ///
+  /// Override this method if rollback is not simply "put the old value back".
+  /// For example, you may want to:
+  /// * Keep the optimistic item but mark it as failed.
+  /// * Remove only the item you added, while keeping other local changes.
+  /// * Roll back multiple parts of the state, not just the value handled by
+  ///   [applyValueToState].
+  ///
+  /// Return `null` to skip rollback even when the mixin would normally rollback.
+  ///
+  St? rollbackState({
+    required Object? initialValue,
+    required Object? optimisticValue,
+    required Object error,
+  }) =>
+      applyValueToState(state, initialValue);
+
+  /// Returns true if the mixin should rollback after [sendCommandToServer]
+  /// fails. This method is called only when [sendCommandToServer] throws.
+  ///
+  /// The default behavior is:
+  /// Rollback only if the current value in the store still matches the
+  /// optimistic value created by this dispatch. This avoids rolling back over
+  /// newer changes that may have happened while the request was in flight.
+  ///
+  /// Override this if you need a different safety rule. For example:
+  /// * You want to always rollback, even if something else changed.
+  /// * You want to rollback only if a specific item is still present.
+  /// * You want to rollback only for some errors.
+  ///
+  bool shouldRollback({
+    required Object? currentValue,
+    required Object? initialValue,
+    required Object? optimisticValue,
+    required Object error,
+  }) {
+    // Default: rollback only if we are still seeing our own optimistic value.
+    if (currentValue is ImmutableCollection &&
+        optimisticValue is ImmutableCollection) {
+      return currentValue.same(optimisticValue);
+    } else {
+      return currentValue == optimisticValue;
+    }
+  }
+
+  /// Whether the mixin should call [reloadFromServer].
+  ///
+  /// This method is called in `finally`, both on success and on error, before
+  /// the reload happens.
+  ///
+  /// Parameters:
+  /// * [currentValue] is the value currently in the store (extracted with
+  ///   [getValueFromState]) at the moment we are deciding whether to reload.
+  ///
+  /// * [lastAppliedValue] is the last value this action applied for the same
+  ///   state slice. It is the optimistic value on success, or the rollback value
+  ///   if rollback was applied.
+  ///
+  /// * [optimisticValue] is the value returned by [optimisticValue] and applied
+  ///   optimistically by this dispatch.
+  ///
+  /// * [rollbackValue] is `null` if no rollback state was applied. If rollback
+  ///   was applied, this is the value extracted from the rollback state using
+  ///   [getValueFromState].
+  ///
+  /// * [error] is `null` on success, or the error thrown by [sendCommandToServer]
+  ///   on failure.
+  ///
+  /// Default behavior:
+  /// Returns true, meaning: If [reloadFromServer] is implemented, we reload.
+  ///
+  /// Override this method if you want to skip reloading in some cases.
+  /// For example, reload only on error, or skip reload when the value already
+  /// changed to something else. For example:
   ///
   /// ```dart
-  /// Future<Object?> reloadValue() => loadTodoList();
+  /// bool shouldReload(...) => currentValue == lastAppliedValue;
+  /// bool shouldApplyReload(...) => currentValue == lastAppliedValue;
   /// ```
-  Future<Object?> reloadValue() {
-    throw UnimplementedError();
-  }
+  ///
+  bool shouldReload({
+    required Object? currentValue,
+    required Object? lastAppliedValue,
+    required Object? optimisticValue,
+    required Object? rollbackValue,
+    required Object? error, // null on success
+  }) =>
+      true;
+
+  /// Returns true if the mixin should apply the result returned by
+  /// [reloadFromServer] to the state.
+  ///
+  /// This method is called after [reloadFromServer] completes, both on success
+  /// and on error.
+  ///
+  /// Parameters are the same as [shouldReload], plus:
+  /// * [reloadResult] is whatever [reloadFromServer] returned.
+  ///
+  /// Default behavior:
+  /// Always apply the reload result. This matches the common expectation that
+  /// if you chose to reload, the server is the source of truth.
+  ///
+  /// Override this method if you want to avoid overwriting newer local changes,
+  /// or if you need custom rules based on [reloadResult] or [error].
+  ///
+  bool shouldApplyReload({
+    required Object? currentValue,
+    required Object? lastAppliedValue,
+    required Object? optimisticValue,
+    required Object? rollbackValue,
+    required Object? reloadResult,
+    required Object? error, // null on success
+  }) =>
+      true;
+
+  /// Applies the result returned by [reloadFromServer] to the state.
+  ///
+  /// Override this method when [reloadFromServer] returns something that is not
+  /// the same type or shape expected by [applyValueToState], or when applying
+  /// the reload requires updating multiple parts of the state.
+  ///
+  /// Return `null` to ignore the reload result.
+  ///
+  St? applyReloadResultToState(St state, Object? reloadResult) =>
+      applyValueToState(state, reloadResult);
 
   @override
   Future<St?> reduce() async {
     // Updates the value optimistically.
-    final _newValue = newValue();
-    final action = UpdateStateAction.withReducer(
-        (St state) => applyValueToState(state, _newValue));
-    dispatch(action);
+    final optimistic = optimisticValue();
+    dispatchState(applyValueToState(state, optimistic));
+
+    Object? commandError;
+    Object? lastAppliedValue = optimistic; // what this action last wrote
+    Object? rollbackValue; // value slice after rollback, if any
 
     try {
       // Saves the new value to the cloud.
       // If this action also uses the Retry mixin, we handle retries here
       // to avoid UI flickering (applying/rolling back on each retry attempt).
-      await _saveValueWithRetryIfNeeded(_newValue);
-    } catch (e) {
-      // If the state still contains our optimistic update, we rollback.
-      // If the state now contains something else, we DO NOT rollback.
-      if (getValueFromState(state) == _newValue) {
-        final initialValue = getValueFromState(initialState);
+      await _sendCommandWithRetryIfNeeded(optimistic);
+    } catch (error) {
+      commandError = error;
 
-        final rollbackAction = UpdateStateAction.withReducer(
-            (St state) => applyValueToState(state, initialValue));
-        dispatch(rollbackAction);
+      // Decide if it is safe to rollback (default: only if we are still seeing
+      // our own optimistic value, to avoid undoing newer changes made while
+      // the request was in flight).
+      final currentValue = getValueFromState(state);
+      final initialValue = getValueFromState(initialState);
+
+      if (shouldRollback(
+        currentValue: currentValue,
+        initialValue: initialValue,
+        optimisticValue: optimistic,
+        error: error,
+      )) {
+        final rollback = rollbackState(
+          initialValue: initialValue,
+          optimisticValue: optimistic,
+          error: error,
+        );
+
+        if (rollback != null) {
+          dispatchState(rollback);
+
+          // Update "lastAppliedValue" to match what rollback wrote for the value slice.
+          rollbackValue = getValueFromState(rollback);
+          lastAppliedValue = rollbackValue;
+        }
       }
+
       rethrow;
     } finally {
       try {
-        final Object? reloadedValue = await reloadValue();
-        final action = UpdateStateAction.withReducer(
-            (St state) => applyValueToState(state, reloadedValue));
-        dispatch(action);
+        // Snapshot current value before deciding whether to reload.
+        final Object? currentValueBefore = getValueFromState(state);
+
+        final bool doReload = shouldReload(
+          currentValue: currentValueBefore,
+          lastAppliedValue: lastAppliedValue,
+          optimisticValue: optimistic,
+          rollbackValue: rollbackValue,
+          error: commandError, // null on success
+        );
+
+        if (doReload) {
+          final Object? reloadResult = await reloadFromServer();
+
+          // Re-read after await, because state may have changed while reloading.
+          final Object? currentValueAfter = getValueFromState(state);
+
+          final bool apply = shouldApplyReload(
+            currentValue: currentValueAfter,
+            lastAppliedValue: lastAppliedValue,
+            optimisticValue: optimistic,
+            rollbackValue: rollbackValue,
+            reloadResult: reloadResult,
+            error: commandError, // null on success
+          );
+
+          if (apply) {
+            final St? newState = applyReloadResultToState(state, reloadResult);
+            if (newState != null) dispatchState(newState);
+          }
+        }
       } on UnimplementedError catch (_) {
-        // If the reload was not implemented, do nothing.
+        // If reloadFromServer was not implemented, do nothing.
+      } catch (reloadError) {
+        // Important: Do not let reload failure hide the original command error.
+        if (commandError == null) rethrow;
       }
     }
 
     return null;
   }
 
-  /// When combined with Retry, this method retries only the `saveValue` call,
-  /// keeping the optimistic update in place and avoiding UI flickering.
-  Future<void> _saveValueWithRetryIfNeeded(Object? value) async {
-    // If this action doesn't use the Retry mixin, just call saveValue directly.
+  /// When combined with Retry, this method retries only the [sendCommandToServer]
+  /// call, keeping the optimistic update in place and avoiding UI flickering.
+  Future<void> _sendCommandWithRetryIfNeeded(Object? _optimisticValue) async {
+    // If this action doesn't use the Retry mixin,
+    // just call sendCommandToServer directly.
     if (this is! Retry) {
-      await saveValue(value);
+      await sendCommandToServer(_optimisticValue);
       return;
     }
 
@@ -780,7 +1044,7 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
 
     while (true) {
       try {
-        await saveValue(value);
+        await sendCommandToServer(_optimisticValue);
         return; // Success, exit the retry loop.
       } catch (error) {
         retryMixin._attempts++;
@@ -794,7 +1058,7 @@ mixin OptimisticUpdate<St> on ReduxAction<St> {
         // Wait before retrying.
         final currentDelay = retryMixin.nextDelay();
         await Future.delayed(currentDelay);
-        // Loop continues, retrying saveValue.
+        // Loop continues, retrying sendCommandToServer.
       }
     }
   }
@@ -1754,7 +2018,7 @@ mixin Fresh<St> on ReduxAction<St> {
     if (!_keysRemoved && status.originalError != null && _freshKey != null) {
       final current = _freshKeyMap[_freshKey];
 
-      // Only roll back if the map still contains the expiry written by this action.
+      // Only rollback if the map still contains the expiry written by this action.
       if (current == _newExpiry) {
         if (_current == null) {
           // No previous expiry: remove key (stale).

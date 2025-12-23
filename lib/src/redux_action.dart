@@ -54,7 +54,7 @@ part of async_redux_store;
 /// > `NonReentrant` - Prevents the action from being dispatched if it's already running.
 /// > `Retry` - Retries the action if it fails, with configurable delays and max retries.
 /// > `UnlimitedRetries` - Used with `Retry` to retry indefinitely.
-/// > `OptimisticUpdate` - Updates the state optimistically before saving to the cloud.
+/// > `OptimisticCommand` - Updates the state optimistically before saving to the cloud.
 /// > `Throttle` - Ensures the action is dispatched at most once per throttle period.
 /// > `Debounce` - Delays action execution until after a period of inactivity.
 /// > `UnlimitedRetryCheckInternet` - Retries indefinitely with internet checking, prevents reentrant dispatches.

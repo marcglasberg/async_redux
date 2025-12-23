@@ -5,7 +5,7 @@ import 'package:bdd_framework/bdd_framework.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  var feature = BddFeature('StableSync mixin (no push)');
+  var feature = BddFeature('OptimisticSync mixin (no push)');
 
   // ==========================================================================
   // Case 1: Single dispatch applies optimistic update and sends request
@@ -13,7 +13,7 @@ void main() {
 
   Bdd(feature)
       .scenario('Single dispatch applies optimistic update and sends request.')
-      .given('An action with the StableSync mixin.')
+      .given('An action with the OptimisticSync mixin.')
       .when('The action is dispatched once.')
       .then('The optimistic update is applied immediately.')
       .and('The request is sent to the server.')
@@ -34,7 +34,7 @@ void main() {
   Bdd(feature)
       .scenario(
           'Rapid dispatches apply all optimistic updates but coalesce requests.')
-      .given('An action with the StableSync mixin.')
+      .given('An action with the OptimisticSync mixin.')
       .when('The action is dispatched multiple times rapidly.')
       .then('All optimistic updates are applied immediately.')
       .and('Only necessary requests are sent (coalesced).')
@@ -74,7 +74,7 @@ void main() {
 
   Bdd(feature)
       .scenario('Follow-up request sent when state differs after completion.')
-      .given('An action with the StableSync mixin.')
+      .given('An action with the OptimisticSync mixin.')
       .when('The state changes while a request is in flight.')
       .and('The final state differs from what was sent.')
       .then('A follow-up request is sent with the new state.')
@@ -110,7 +110,7 @@ void main() {
 
   Bdd(feature)
       .scenario('No follow-up when state returns to sent value.')
-      .given('An action with the StableSync mixin.')
+      .given('An action with the OptimisticSync mixin.')
       .when('The state changes while a request is in flight.')
       .and('The state returns to the value that was sent.')
       .then('No follow-up request is sent.')
@@ -146,7 +146,7 @@ void main() {
 
   Bdd(feature)
       .scenario('Error calls onFinish and keeps optimistic state.')
-      .given('An action with the StableSync mixin.')
+      .given('An action with the OptimisticSync mixin.')
       .when('The request fails.')
       .then('onFinish is called.')
       .and('The optimistic state remains.')
@@ -170,7 +170,7 @@ void main() {
 
   Bdd(feature)
       .scenario('Different keys can have concurrent requests.')
-      .given('Actions with different stableSyncKeyParams.')
+      .given('Actions with different optimisticSyncKeyParams.')
       .when('Both are dispatched concurrently.')
       .then('Both requests are sent in parallel.')
       .run((_) async {
@@ -204,7 +204,7 @@ void main() {
 
   Bdd(feature)
       .scenario('Same key blocks concurrent requests.')
-      .given('Actions with the same stableSyncKeyParams.')
+      .given('Actions with the same optimisticSyncKeyParams.')
       .when('Both are dispatched while the first is in flight.')
       .then('The second does not send a request until the first completes.')
       .run((_) async {
@@ -241,7 +241,7 @@ void main() {
 
   Bdd(feature)
       .scenario('Lock is released after successful request.')
-      .given('A StableSync action has completed successfully.')
+      .given('A OptimisticSync action has completed successfully.')
       .when('The same action is dispatched again.')
       .then('A new request is sent (not blocked).')
       .run((_) async {
@@ -266,7 +266,7 @@ void main() {
 
   Bdd(feature)
       .scenario('Lock is released after failed request.')
-      .given('A StableSync action has failed.')
+      .given('A OptimisticSync action has failed.')
       .when('The same action is dispatched again.')
       .then('A new request is sent (not blocked).')
       .run((_) async {
@@ -293,7 +293,7 @@ void main() {
 
   Bdd(feature)
       .scenario('Multiple follow-up requests when state keeps changing.')
-      .given('An action with the StableSync mixin.')
+      .given('An action with the OptimisticSync mixin.')
       .when('The state changes during each request.')
       .then('Follow-up requests are sent until state stabilizes.')
       .run((_) async {
@@ -319,56 +319,56 @@ void main() {
   });
 
   // ==========================================================================
-  // Case 11: StableSync cannot be combined with NonReentrant
+  // Case 11: OptimisticSync cannot be combined with NonReentrant
   // ==========================================================================
 
   Bdd(feature)
-      .scenario('StableSync cannot be combined with NonReentrant.')
-      .given('An action that combines StableSync and NonReentrant.')
+      .scenario('OptimisticSync cannot be combined with NonReentrant.')
+      .given('An action that combines OptimisticSync and NonReentrant.')
       .when('The action is dispatched.')
       .then('An assertion error is thrown.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(liked: false));
 
     expect(
-      () => store.dispatch(StableSyncWithNonReentrantAction()),
+      () => store.dispatch(OptimisticSyncWithNonReentrantAction()),
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
-        'The StableSync mixin cannot be combined with the NonReentrant mixin.',
+        'The OptimisticSync mixin cannot be combined with the NonReentrant mixin.',
       )),
     );
   });
 
   // ==========================================================================
-  // Case 12: StableSync cannot be combined with Throttle
+  // Case 12: OptimisticSync cannot be combined with Throttle
   // ==========================================================================
 
   Bdd(feature)
-      .scenario('StableSync cannot be combined with Throttle.')
-      .given('An action that combines StableSync and Throttle.')
+      .scenario('OptimisticSync cannot be combined with Throttle.')
+      .given('An action that combines OptimisticSync and Throttle.')
       .when('The action is dispatched.')
       .then('An assertion error is thrown.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(liked: false));
 
     expect(
-      () => store.dispatch(StableSyncWithThrottleAction()),
+      () => store.dispatch(OptimisticSyncWithThrottleAction()),
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
-        'The StableSync mixin cannot be combined with the Throttle mixin.',
+        'The OptimisticSync mixin cannot be combined with the Throttle mixin.',
       )),
     );
   });
 
   // ==========================================================================
-  // Case 13: computeStableSyncKey can be overridden to share keys
+  // Case 13: computeOptimisticSyncKey can be overridden to share keys
   // ==========================================================================
 
   Bdd(feature)
-      .scenario('computeStableSyncKey can be overridden to share keys.')
-      .given('Two different action types with the same computeStableSyncKey.')
+      .scenario('computeOptimisticSyncKey can be overridden to share keys.')
+      .given('Two different action types with the same computeOptimisticSyncKey.')
       .when('Both are dispatched while the first is in flight.')
       .then('They share the same lock.')
       .run((_) async {
@@ -403,7 +403,7 @@ void main() {
 
   Bdd(feature)
       .scenario('Coalescing state is cleared on store shutdown.')
-      .given('A StableSync action is in progress.')
+      .given('A OptimisticSync action is in progress.')
       .when('The store is shut down.')
       .then('The coalescing state is cleared.')
       .run((_) async {
@@ -434,68 +434,68 @@ void main() {
   });
 
   // ==========================================================================
-  // Case 15: StableSync cannot be combined with OptimisticUpdate
+  // Case 15: OptimisticSync cannot be combined with OptimisticCommand
   // ==========================================================================
 
-  Bdd(feature)
-      .scenario('StableSync cannot be combined with OptimisticUpdate.')
-      .given('An action that combines StableSync and OptimisticUpdate.')
-      .when('The action is dispatched.')
-      .then('An assertion error is thrown.')
-      .run((_) async {
-    var store = Store<AppState>(initialState: AppState(liked: false));
-
-    expect(
-      () => store.dispatch(StableSyncWithOptimisticUpdateAction()),
-      throwsA(isA<AssertionError>().having(
-        (e) => e.message,
-        'message',
-        'The StableSync mixin cannot be combined with the OptimisticUpdate mixin.',
-      )),
-    );
-  });
-
-  // ==========================================================================
-  // Case 16: StableSync cannot be combined with Fresh
-  // ==========================================================================
-
-  Bdd(feature)
-      .scenario('StableSync cannot be combined with Fresh.')
-      .given('An action that combines StableSync and Fresh.')
-      .when('The action is dispatched.')
-      .then('An assertion error is thrown.')
-      .run((_) async {
-    var store = Store<AppState>(initialState: AppState(liked: false));
-
-    expect(
-      () => store.dispatch(StableSyncWithFreshAction()),
-      throwsA(isA<AssertionError>().having(
-        (e) => e.message,
-        'message',
-        'The StableSync mixin cannot be combined with the Fresh mixin.',
-      )),
-    );
-  });
-
-  // TODO: IGNORE
-  // ==========================================================================
-  // Case 17: StableSync cannot be combined with Debounce
-  // ==========================================================================
-  //
   // Bdd(feature)
-  //     .scenario('StableSync cannot be combined with Debounce.')
-  //     .given('An action that combines StableSync and Debounce.')
+  //     .scenario('OptimisticSync cannot be combined with OptimisticCommand.')
+  //     .given('An action that combines OptimisticSync and OptimisticCommand.')
   //     .when('The action is dispatched.')
   //     .then('An assertion error is thrown.')
   //     .run((_) async {
   //   var store = Store<AppState>(initialState: AppState(liked: false));
   //
   //   expect(
-  //     () => store.dispatch(StableSyncWithDebounceAction()),
+  //     () => store.dispatch(OptimisticSyncWithOptimisticUpdateAction()),
   //     throwsA(isA<AssertionError>().having(
   //       (e) => e.message,
   //       'message',
-  //       'The StableSync mixin cannot be combined with the Debounce mixin.',
+  //       'The OptimisticSync mixin cannot be combined with the OptimisticCommand mixin.',
+  //     )),
+  //   );
+  // });
+
+  // ==========================================================================
+  // Case 16: OptimisticSync cannot be combined with Fresh
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario('OptimisticSync cannot be combined with Fresh.')
+      .given('An action that combines OptimisticSync and Fresh.')
+      .when('The action is dispatched.')
+      .then('An assertion error is thrown.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(liked: false));
+
+    expect(
+      () => store.dispatch(OptimisticSyncWithFreshAction()),
+      throwsA(isA<AssertionError>().having(
+        (e) => e.message,
+        'message',
+        'The OptimisticSync mixin cannot be combined with the Fresh mixin.',
+      )),
+    );
+  });
+
+  // TODO: IGNORE
+  // ==========================================================================
+  // Case 17: OptimisticSync cannot be combined with Debounce
+  // ==========================================================================
+  //
+  // Bdd(feature)
+  //     .scenario('OptimisticSync cannot be combined with Debounce.')
+  //     .given('An action that combines OptimisticSync and Debounce.')
+  //     .when('The action is dispatched.')
+  //     .then('An assertion error is thrown.')
+  //     .run((_) async {
+  //   var store = Store<AppState>(initialState: AppState(liked: false));
+  //
+  //   expect(
+  //     () => store.dispatch(OptimisticSyncWithDebounceAction()),
+  //     throwsA(isA<AssertionError>().having(
+  //       (e) => e.message,
+  //       'message',
+  //       'The OptimisticSync mixin cannot be combined with the Debounce mixin.',
   //     )),
   //   );
   // });
@@ -508,7 +508,7 @@ void main() {
       .scenario(
           'Server response is applied when sendValueToServer returns a non-null response and state is stable.')
       .given(
-          'An action with the StableSync mixin where sendValueToServer returns a non-null response.')
+          'An action with the OptimisticSync mixin where sendValueToServer returns a non-null response.')
       .when(
           'The action is dispatched once and no other dispatch happens while the request is in flight.')
       .then('The optimistic update is applied immediately.')
@@ -535,11 +535,12 @@ void main() {
       .scenario(
           'An earlier server response does not overwrite a newer local optimistic value.')
       .given(
-          'An action with the StableSync mixin where sendValueToServer returns a non-null response.')
+          'An action with the OptimisticSync mixin where sendValueToServer returns a non-null response.')
       .when('The action is dispatched and a request is in flight.')
       .and(
           'The action is dispatched again for the same key while the first request is still in flight.')
-      .then('The latest optimistic value remains visible after the second dispatch.')
+      .then(
+          'The latest optimistic value remains visible after the second dispatch.')
       .and(
           'The response from the first request is not applied in a way that overwrites the newer optimistic value.')
       .and(
@@ -568,12 +569,8 @@ void main() {
     expect(store.state.count, 25, reason: 'Final state from follow-up');
 
     // Request log shows: first request, follow-up request, then only final serverResponse applied
-    expect(requestLog, [
-      'saveValue(10)',
-      'saveValue(20)',
-      'serverResponse(25)',
-      'onFinish()'
-    ]);
+    expect(requestLog,
+        ['saveValue(10)', 'saveValue(20)', 'serverResponse(25)', 'onFinish()']);
 
     saveValueDelay = Duration.zero;
   });
@@ -586,7 +583,7 @@ void main() {
       .scenario(
           'Server response is ignored when applyServerResponseToState returns null.')
       .given(
-          'An action with the StableSync mixin where sendValueToServer returns a non-null response.')
+          'An action with the OptimisticSync mixin where sendValueToServer returns a non-null response.')
       .when('The action is dispatched and completes successfully.')
       .then('The optimistic update is applied immediately.')
       .and('The server response is not applied to the state.')
@@ -611,7 +608,7 @@ void main() {
       .scenario(
           'With multiple follow-up requests, only the final non-null server response is applied.')
       .given(
-          'An action with the StableSync mixin where sendValueToServer returns a non-null response.')
+          'An action with the OptimisticSync mixin where sendValueToServer returns a non-null response.')
       .when(
           'The action is dispatched and the state changes during each request, causing multiple follow-up requests.')
       .then('Multiple requests are sent until the state stabilizes.')
@@ -657,8 +654,8 @@ void main() {
       .scenario('BUG: Push can cause missed follow-up.')
       .given('An action WITHOUT revision tracking.')
       .when('User taps twice and push arrives between taps.')
-      .then('StableSync incorrectly thinks state is stable.')
-      .note('With push we must use the `StableSyncWithPush` mixin instead.')
+      .then('OptimisticSync incorrectly thinks state is stable.')
+      .note('With push we must use the `OptimisticSyncWithPush` mixin instead.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(liked: false));
 
@@ -694,7 +691,7 @@ void main() {
     request1Completer.complete();
     await Future.delayed(const Duration(milliseconds: 50));
 
-    // BUG: StableSync sees store=true, sent=true, thinks it's stable!
+    // BUG: OptimisticSync sees store=true, sent=true, thinks it's stable!
     // No follow-up sent, final state is WRONG (user's last tap was false)
     expect(store.state.liked, true,
         reason: 'BUG: Final state is wrong (should be false)');
@@ -741,7 +738,7 @@ Future<void> Function()? saveValueCallback;
 
 /// Basic toggle like action.
 class ToggleLikeAction extends ReduxAction<AppState>
-    with StableSync<AppState, bool> {
+    with OptimisticSync<AppState, bool> {
   @override
   bool valueToApply() => !state.liked;
 
@@ -782,15 +779,15 @@ class ToggleLikeAction extends ReduxAction<AppState>
   }
 }
 
-/// Toggle like for a specific item (uses stableSyncKeyParams).
+/// Toggle like for a specific item (uses optimisticSyncKeyParams).
 class ToggleLikeItemAction extends ReduxAction<AppState>
-    with StableSync<AppState, bool> {
+    with OptimisticSync<AppState, bool> {
   final String itemId;
 
   ToggleLikeItemAction(this.itemId);
 
   @override
-  Object? stableSyncKeyParams() => itemId;
+  Object? optimisticSyncKeyParams() => itemId;
 
   @override
   bool valueToApply() => !(state.items[itemId] ?? false);
@@ -834,7 +831,7 @@ class ToggleLikeItemAction extends ReduxAction<AppState>
 /// Action that returns a non-null server response.
 /// Server "normalizes" the value by adding 5 (e.g., 10 becomes 15).
 class ServerResponseAction extends ReduxAction<AppState>
-    with StableSync<AppState, int> {
+    with OptimisticSync<AppState, int> {
   final int increment;
 
   ServerResponseAction({required this.increment});
@@ -876,7 +873,7 @@ class ServerResponseAction extends ReduxAction<AppState>
 
 /// Action that returns a non-null server response but ignores it.
 class IgnoreServerResponseAction extends ReduxAction<AppState>
-    with StableSync<AppState, int> {
+    with OptimisticSync<AppState, int> {
   final int increment;
 
   IgnoreServerResponseAction({required this.increment});
@@ -913,9 +910,9 @@ class IgnoreServerResponseAction extends ReduxAction<AppState>
 
 /// Action with shared key (type 1).
 class SharedKeyAction1 extends ReduxAction<AppState>
-    with StableSync<AppState, int> {
+    with OptimisticSync<AppState, int> {
   @override
-  Object computeStableSyncKey() => 'sharedKey';
+  Object computeOptimisticSyncKey() => 'sharedKey';
 
   @override
   int valueToApply() => state.count + 1;
@@ -943,9 +940,9 @@ class SharedKeyAction1 extends ReduxAction<AppState>
 
 /// Action with shared key (type 2).
 class SharedKeyAction2 extends ReduxAction<AppState>
-    with StableSync<AppState, int> {
+    with OptimisticSync<AppState, int> {
   @override
-  Object computeStableSyncKey() => 'sharedKey';
+  Object computeOptimisticSyncKey() => 'sharedKey';
 
   @override
   int valueToApply() => state.count + 1;
@@ -975,9 +972,9 @@ class SharedKeyAction2 extends ReduxAction<AppState>
 // Incompatible mixin combinations
 // =============================================================================
 
-class StableSyncWithNonReentrantAction extends ReduxAction<AppState>
+class OptimisticSyncWithNonReentrantAction extends ReduxAction<AppState>
     with
-        StableSync<AppState, bool>,
+        OptimisticSync<AppState, bool>,
         // ignore: private_collision_in_mixin_application
         NonReentrant {
   @override
@@ -998,9 +995,9 @@ class StableSyncWithNonReentrantAction extends ReduxAction<AppState>
   Future<Object?> sendValueToServer(Object? value) async => null;
 }
 
-class StableSyncWithThrottleAction extends ReduxAction<AppState>
+class OptimisticSyncWithThrottleAction extends ReduxAction<AppState>
     with
-        StableSync<AppState, bool>,
+        OptimisticSync<AppState, bool>,
         // ignore: private_collision_in_mixin_application
         Throttle {
   @override
@@ -1021,9 +1018,9 @@ class StableSyncWithThrottleAction extends ReduxAction<AppState>
   Future<Object?> sendValueToServer(Object? value) async => null;
 }
 
-class StableSyncWithDebounceAction extends ReduxAction<AppState>
+class OptimisticSyncWithDebounceAction extends ReduxAction<AppState>
     with
-        StableSync<AppState, bool>,
+        OptimisticSync<AppState, bool>,
         // ignore: private_collision_in_mixin_application
         Debounce {
   @override
@@ -1044,39 +1041,9 @@ class StableSyncWithDebounceAction extends ReduxAction<AppState>
   Future<Object?> sendValueToServer(Object? value) async => null;
 }
 
-class StableSyncWithOptimisticUpdateAction extends ReduxAction<AppState>
+class OptimisticSyncWithFreshAction extends ReduxAction<AppState>
     with
-        OptimisticUpdate<AppState>,
-        // ignore: private_collision_in_mixin_application
-        StableSync<AppState, bool> {
-  @override
-  Object? newValue() => !state.liked;
-
-  @override
-  bool valueToApply() => !state.liked;
-
-  @override
-  bool getValueFromState(AppState state) => state.liked;
-
-  @override
-  AppState applyOptimisticValueToState(state, bool optimisticValueToApply) =>
-      state.copy(liked: optimisticValueToApply);
-
-  @override
-  AppState applyServerResponseToState(state, Object? serverResponse) =>
-      state.copy(liked: serverResponse as bool);
-
-  @override
-  AppState applyValueToState(AppState state, Object? value) =>
-      state.copy(liked: value as bool);
-
-  @override
-  Future<Object?> sendValueToServer(Object? value) async => null;
-}
-
-class StableSyncWithFreshAction extends ReduxAction<AppState>
-    with
-        StableSync<AppState, bool>,
+        OptimisticSync<AppState, bool>,
         // ignore: private_collision_in_mixin_application
         Fresh {
   @override

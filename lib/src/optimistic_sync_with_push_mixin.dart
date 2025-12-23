@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:async_redux/async_redux.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
-/// The [StableSyncWithPush] mixin is designed for actions where:
+/// The [OptimisticSyncWithPush] mixin is designed for actions where:
 ///
 /// 1. Your app receives server-pushed updates (like WebSockets, Server-Sent
 ///    Events (SSE), Firebase) that may modify the same state this action
@@ -22,16 +22,16 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 ///    devices disagree.
 ///
 /// **IMPORTANT:** If your app does not receive server-pushed updates,
-/// use the [StableSync] mixin instead.
+/// use the [OptimisticSync] mixin instead.
 ///
 /// ---
 ///
 /// ## How it works
 ///
-/// Please read the documentation of [StableSync] first, as this mixin builds
+/// Please read the documentation of [OptimisticSync] first, as this mixin builds
 /// upon that behavior with additional logic to handle server-pushed updates.
 ///
-/// The [StableSyncWithPush] mixin extends [StableSync] by adding this:
+/// The [OptimisticSyncWithPush] mixin extends [OptimisticSync] by adding this:
 ///
 /// - Each local dispatch increments a `localRevision` counter
 /// - Server-pushed updates do NOT increment localRevision
@@ -42,7 +42,7 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 ///
 /// ```dart
 /// class ToggleLikeAction extends ReduxAction<AppState>
-///     with StableSyncWithPush<AppState, bool> {
+///     with OptimisticSyncWithPush<AppState, bool> {
 ///
 ///   @override
 ///   Future<Object?> sendValueToServer(Object? value) async {
@@ -56,33 +56,33 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 ///
 /// Notes:
 /// - It should not be combined with [NonReentrant], [Throttle], [Debounce],
-///   [OptimisticUpdate], or [Fresh].
+///   [OptimisticCommand], or [Fresh].
 ///
-mixin StableSyncWithPush<St, T> on ReduxAction<St> {
+mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
   //
-  /// Optionally, override [stableSyncKeyParams] to differentiate coalescing by
+  /// Optionally, override [optimisticSyncKeyParams] to differentiate coalescing by
   /// action parameters. For example, if you have a like button per item,
   /// return the item ID so that different items can have concurrent requests:
   ///
   /// ```dart
-  /// Object? stableSyncKeyParams() => itemId;
+  /// Object? optimisticSyncKeyParams() => itemId;
   /// ```
   ///
   /// You can also return a record of values:
   ///
   /// ```dart
-  /// Object? stableSyncKeyParams() => (userId, itemId);
+  /// Object? optimisticSyncKeyParams() => (userId, itemId);
   /// ```
   ///
-  /// See also: [computeStableSyncKey], which uses this method by default to
+  /// See also: [computeOptimisticSyncKey], which uses this method by default to
   /// build the key.
   ///
-  Object? stableSyncKeyParams() => null;
+  Object? optimisticSyncKeyParams() => null;
 
   /// By default the coalescing key combines the action [runtimeType]
-  /// with [stableSyncKeyParams]. Override this method if you want
+  /// with [optimisticSyncKeyParams]. Override this method if you want
   /// different action types to share the same coalescing key.
-  Object computeStableSyncKey() => (runtimeType, stableSyncKeyParams());
+  Object computeOptimisticSyncKey() => (runtimeType, optimisticSyncKeyParams());
 
   /// Override [valueToApply] to return the value that should be applied
   /// optimistically to the state and then sent to the server. This is called
@@ -410,13 +410,13 @@ mixin StableSyncWithPush<St, T> on ReduxAction<St> {
 
   @override
   Future<St?> reduce() async {
-    _cannotCombineStableSyncWithOtherMixins();
+    _cannotCombineOptimisticSyncWithOtherMixins();
 
     // Reset the flag so localRevision() can increment for this dispatch.
     _localRevisionCalled = false;
 
     // Compute and cache the key for this dispatch.
-    _currentKey = computeStableSyncKey();
+    _currentKey = computeOptimisticSyncKey();
 
     // We automatically track revisions for every dispatch.
     // This ensures blocked dispatches also increment the revision counter.
@@ -441,18 +441,18 @@ mixin StableSyncWithPush<St, T> on ReduxAction<St> {
     // If locked, another request is in flight. The optimistic update is
     // already applied, so just return. When the in-flight request completes,
     // it will check if a follow-up is needed.
-    if (_stableSyncKeySet.contains(_currentKey)) return null;
+    if (_optimisticSyncKeySet.contains(_currentKey)) return null;
 
     // Acquire lock and send request.
-    _stableSyncKeySet.add(_currentKey);
+    _optimisticSyncKeySet.add(_currentKey);
     await _sendAndFollowUp(_currentKey, value);
 
     return null;
   }
 
   /// Set that tracks which keys are currently locked (requests in flight).
-  Set<Object?> get _stableSyncKeySet =>
-      store.internalMixinProps.stableSyncKeySet;
+  Set<Object?> get _optimisticSyncKeySet =>
+      store.internalMixinProps.optimisticSyncKeySet;
 
   /// Map that tracks local and server revisions for the given key.
   /// The values can be retrieved by methods [localRevision] and [serverRevision].
@@ -506,9 +506,9 @@ mixin StableSyncWithPush<St, T> on ReduxAction<St> {
         // Validate that the developer called informServerRevision().
         if (_informedServerRev == null) {
           throw StateError(
-            'The StableSyncWithPush mixin requires calling '
+            'The OptimisticSyncWithPush mixin requires calling '
             'informServerRevision() inside sendValueToServer(). '
-            'If you don\'t need server-push handling, use StableSync instead.',
+            'If you don\'t need server-push handling, use OptimisticSync instead.',
           );
         }
 
@@ -579,13 +579,13 @@ mixin StableSyncWithPush<St, T> on ReduxAction<St> {
         }
 
         // Release lock and finish.
-        _stableSyncKeySet.remove(key);
+        _optimisticSyncKeySet.remove(key);
         await _callOnFinish(null);
         break;
       } catch (error) {
         // Request failed: release lock, run onFinish(error), then rethrow so the
         // action still fails as before.
-        _stableSyncKeySet.remove(key);
+        _optimisticSyncKeySet.remove(key);
         await _callOnFinish(error);
         rethrow;
       }
@@ -639,14 +639,14 @@ mixin StableSyncWithPush<St, T> on ReduxAction<St> {
   /// different limit. Use `-1` for no limit.
   int get maxFollowUpRequests => 10000;
 
-  void _cannotCombineStableSyncWithOtherMixins() {
-    _incompatible<StableSyncWithPush, NonReentrant>(this);
-    _incompatible<StableSyncWithPush, Throttle>(this);
-    _incompatible<StableSyncWithPush, OptimisticUpdate>(this);
-    _incompatible<StableSyncWithPush, Fresh>(this);
+  void _cannotCombineOptimisticSyncWithOtherMixins() {
+    _incompatible<OptimisticSyncWithPush, NonReentrant>(this);
+    _incompatible<OptimisticSyncWithPush, Throttle>(this);
+    _incompatible<OptimisticSyncWithPush, OptimisticCommand>(this);
+    _incompatible<OptimisticSyncWithPush, Fresh>(this);
 
     // Works with Debounce!!!!!!!!
-    // _incompatible<StableSyncWithPush, Debounce>(this);
+    // _incompatible<OptimisticSyncWithPush, Debounce>(this);
   }
 }
 
@@ -659,16 +659,16 @@ void _incompatible<T1, T2>(Object instance) {
 }
 
 mixin ServerPush<St> on ReduxAction<St> {
-  /// Return the Type of the StableSync/StableSyncWithPush action that owns
+  /// Return the Type of the OptimisticSync/OptimisticSyncWithPush action that owns
   /// this value (so both compute the same stable-sync key).
   Type associatedAction();
 
-  /// Same meaning as in StableSync: the params that differentiate keys.
-  Object? stableSyncKeyParams() => null;
+  /// Same meaning as in OptimisticSync: the params that differentiate keys.
+  Object? optimisticSyncKeyParams() => null;
 
-  /// Must match the StableSync action key computation.
-  /// Default: (associatedActionType, stableSyncKeyParams)
-  Object computeStableSyncKey() => (associatedAction(), stableSyncKeyParams());
+  /// Must match the OptimisticSync action key computation.
+  /// Default: (associatedActionType, optimisticSyncKeyParams)
+  Object computeOptimisticSyncKey() => (associatedAction(), optimisticSyncKeyParams());
 
   /// You must override this to provide the revision number that came with
   /// the push. For example:
@@ -713,7 +713,7 @@ mixin ServerPush<St> on ReduxAction<St> {
 
   @override
   St? reduce() {
-    final key = computeStableSyncKey();
+    final key = computeOptimisticSyncKey();
     final incomingServerRev = serverRevision();
 
     final entry0 = _revisionMap[key];
@@ -743,7 +743,7 @@ mixin ServerPush<St> on ReduxAction<St> {
     }
 
     // Optionally ignore while locked (not deferred by default).
-    if (!applyEvenIfLocked && _stableSyncKeySet.contains(key)) {
+    if (!applyEvenIfLocked && _optimisticSyncKeySet.contains(key)) {
       return null;
     }
 
@@ -764,8 +764,8 @@ mixin ServerPush<St> on ReduxAction<St> {
     return newState;
   }
 
-  Set<Object?> get _stableSyncKeySet =>
-      store.internalMixinProps.stableSyncKeySet;
+  Set<Object?> get _optimisticSyncKeySet =>
+      store.internalMixinProps.optimisticSyncKeySet;
 
   Map<
       Object?,

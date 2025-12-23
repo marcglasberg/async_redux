@@ -2532,10 +2532,10 @@ class _InternalMixinProps {
   final Map<Object?, int> debounceLockMap = {};
   final Set<Object?> nonReentrantKeySet = {};
 
-  /// Set for the [StableSync] mixin. Tracks which keys are currently locked.
-  final Set<Object?> stableSyncKeySet = {};
+  /// Set for the [OptimisticSync] mixin. Tracks which keys are currently locked.
+  final Set<Object?> optimisticSyncKeySet = {};
 
-  /// Map for the [StableSync] mixin. Tracks the local AND server revisions for each key.
+  /// Map for the [OptimisticSync] mixin. Tracks the local AND server revisions for each key.
   final Map<
       Object?,
       ({
@@ -2545,12 +2545,12 @@ class _InternalMixinProps {
         Object? localValue,
       })> revisionMap = {};
 
-  /// Removes the locks for Throttle, Debounce, Fresh, NonReentrant, and StableSync.
+  /// Removes the locks for Throttle, Debounce, Fresh, NonReentrant, and OptimisticSync.
   void clear() {
     throttleLockMap.clear();
     freshKeyMap.clear();
     debounceLockMap.clear();
     nonReentrantKeySet.clear();
-    stableSyncKeySet.clear();
+    optimisticSyncKeySet.clear();
   }
 }

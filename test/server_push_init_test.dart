@@ -2,7 +2,7 @@
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
-import 'package:async_redux/src/stable_sync_with_push_mixin.dart';
+import 'package:async_redux/src/optimistic_sync_with_push_mixin.dart';
 import 'package:bdd_framework/bdd_framework.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -17,7 +17,7 @@ void main() {
       .scenario(
           'Init: Fresh server response applies when backend revision >= persisted.')
       .given('App launched with state.serverRevision=100 and backend at 100.')
-      .when('User dispatches StableSyncWithPush action.')
+      .when('User dispatches OptimisticSyncWithPush action.')
       .then('Response is applied and serverRevision increases to 101.')
       .run((_) async {
     final store = Store<AppState>(
@@ -101,7 +101,7 @@ void main() {
           'Init: Stale server response is ignored using persisted serverRevision in state.')
       .given(
           'App launched with state.serverRevision=100 and a request returns serverRev=1.')
-      .when('A StableSyncWithPush action completes.')
+      .when('A OptimisticSyncWithPush action completes.')
       .then(
           'The stale response is not applied and serverRevision does not regress.')
       .run((_) async {
@@ -125,13 +125,13 @@ void main() {
 
   Bdd(feature)
       .scenario(
-          'Init: StableSyncWithPush seeds revisionMap from persisted state so ServerPush ordering works even if push cannot read state.')
+          'Init: OptimisticSyncWithPush seeds revisionMap from persisted state so ServerPush ordering works even if push cannot read state.')
       .given('App launched with state.serverRevision=100.')
       .when(
-          'A StableSyncWithPush request starts (in flight) and a stale push arrives, but the push action returns null from getServerRevisionFromState.')
+          'A OptimisticSyncWithPush request starts (in flight) and a stale push arrives, but the push action returns null from getServerRevisionFromState.')
       .then('The stale push is still ignored because revisionMap was seeded.')
       .note(
-          'This verifies the seeding path: StableSyncWithPush must copy the persisted serverRevision into revisionMap.')
+          'This verifies the seeding path: OptimisticSyncWithPush must copy the persisted serverRevision into revisionMap.')
       .run((_) async {
     final store = Store<AppState>(
         initialState: AppState(liked: false, serverRevision: 100));
@@ -201,10 +201,10 @@ void main() {
 
   Bdd(feature)
       .scenario(
-          'Init: StableSyncWithPush seeds per-key revisionMap from persisted state for item keys.')
+          'Init: OptimisticSyncWithPush seeds per-key revisionMap from persisted state for item keys.')
       .given('App launched with serverRevById[A]=100.')
       .when(
-          'A StableSyncWithPush request for A starts, and a stale push for A arrives that cannot read serverRev from state.')
+          'A OptimisticSyncWithPush request for A starts, and a stale push for A arrives that cannot read serverRev from state.')
       .then(
           'The stale push is ignored because revisionMap was seeded for key A.')
       .run((_) async {
@@ -351,7 +351,7 @@ void resetTestState() {
 // =============================================================================
 
 class ToggleLikeStableAction extends ReduxAction<AppState>
-    with StableSyncWithPush<AppState, bool> {
+    with OptimisticSyncWithPush<AppState, bool> {
   @override
   bool valueToApply() => !state.liked;
 
@@ -428,7 +428,7 @@ class PushLikeUpdate extends ReduxAction<AppState> with ServerPush<AppState> {
 }
 
 /// Same as PushLikeUpdate but pretends it cannot read persisted revision from state.
-/// Used to prove StableSyncWithPush seeded revisionMap.
+/// Used to prove OptimisticSyncWithPush seeded revisionMap.
 class PushLikeUpdateNoStateRev extends ReduxAction<AppState>
     with ServerPush<AppState> {
   final bool liked;
@@ -453,13 +453,13 @@ class PushLikeUpdateNoStateRev extends ReduxAction<AppState>
 }
 
 class ToggleLikeItemStableAction extends ReduxAction<AppStateItems>
-    with StableSyncWithPush<AppStateItems, bool> {
+    with OptimisticSyncWithPush<AppStateItems, bool> {
   final String itemId;
 
   ToggleLikeItemStableAction(this.itemId);
 
   @override
-  Object? stableSyncKeyParams() => itemId;
+  Object? optimisticSyncKeyParams() => itemId;
 
   @override
   bool valueToApply() => !(state.likedById[itemId] ?? false);
@@ -544,7 +544,7 @@ class PushItemLikeUpdate extends ReduxAction<AppStateItems>
   Type associatedAction() => ToggleLikeItemStableAction;
 
   @override
-  Object? stableSyncKeyParams() => itemId;
+  Object? optimisticSyncKeyParams() => itemId;
 
   @override
   int serverRevision() => serverRev;
@@ -575,7 +575,7 @@ class PushItemLikeUpdateNoStateRev extends ReduxAction<AppStateItems>
   Type associatedAction() => ToggleLikeItemStableAction;
 
   @override
-  Object? stableSyncKeyParams() => itemId;
+  Object? optimisticSyncKeyParams() => itemId;
 
   @override
   int serverRevision() => serverRev;

@@ -109,7 +109,7 @@ class SetLike extends AppAction {
 }
 
 /// TODO: Marcelo: Test if it works with DEBOUNCE!!!!!!!!!!!!
-class ToggleLike extends AppAction with StableSync<AppState, bool> {
+class ToggleLike extends AppAction with OptimisticSync<AppState, bool> {
   @override
   bool valueToApply() => !state.liked;
 
@@ -157,7 +157,7 @@ class MyApp extends StatelessWidget {
     return StoreProvider<AppState>(
       store: store,
       child: MaterialApp(
-        title: 'StableSync Mixin Demo',
+        title: 'OptimisticSync Mixin Demo',
         theme: ThemeData(primarySwatch: Colors.blue),
         home: const MyHomePage(),
       ),
@@ -193,7 +193,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('StableSync Mixin Demo')),
+      appBar: AppBar(title: const Text('OptimisticSync Mixin Demo')),
       body: Column(
         children: [
           // Top half: Like button (Redux state)

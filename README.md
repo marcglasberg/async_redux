@@ -443,16 +443,16 @@ class SearchText extends Action with Debounce {
 
 &nbsp;
 
-## OptimisticUpdate (soon)
+## OptimisticCommand (soon)
 
-Mixin `OptimisticUpdate` helps you provide instant feedback on actions that save
+Mixin `OptimisticCommand` helps you provide instant feedback on actions that save
 information to the server. You immediately apply state changes as if they were
 already successful, before confirming with the server. If the server update
 fails, the change is rolled back and, optionally, a notification can inform the
 user of the issue.
 
 ```dart
-class SaveName extends Action with OptimisticUpdate {   
+class SaveName extends Action with OptimisticCommand {   
   async reduce() { ... } 
 }
 ```

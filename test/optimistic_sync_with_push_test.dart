@@ -1,12 +1,13 @@
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
-import 'package:async_redux/src/stable_sync_with_push_mixin.dart';
+import 'package:async_redux/src/optimistic_sync_with_push_mixin.dart';
 import 'package:bdd_framework/bdd_framework.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// These tests verify that [StableSyncWithPush] correctly handles server-pushed updates
-/// (e.g., via WebSockets) when using the revision-based synchronization system.
+/// These tests verify that [OptimisticSyncWithPush] correctly handles
+/// server-pushed updates (e.g., via WebSockets) when using the revision-based
+/// synchronization system.
 ///
 /// The revision system consists of:
 /// - [localRevision]: Tracks local user intent (increments on each dispatch)
@@ -17,7 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// 2. Last-write-wins semantics work across devices
 /// 3. Out-of-order/replay pushes don't regress state
 void main() {
-  var feature = BddFeature('StableSyncWithPush push compatibility');
+  var feature = BddFeature('OptimisticSyncWithPush push compatibility');
 
   setUp(() {
     resetTestState();
@@ -31,7 +32,7 @@ void main() {
       .scenario('FIX: With revisions, push does not prevent follow-up.')
       .given('An action WITH revision tracking.')
       .when('User taps twice and push arrives between taps.')
-      .then('StableSyncWithPush correctly sends follow-up based on localRevision.')
+      .then('OptimisticSyncWithPush correctly sends follow-up based on localRevision.')
       .run((_) async {
     var store = Store<AppState>(
         initialState: AppState(liked: false, serverRevision: 10));
@@ -550,7 +551,7 @@ void resetTestState() {
 // =============================================================================
 
 class ToggleLikeActionNoRevisions extends ReduxAction<AppState>
-    with StableSyncWithPush<AppState, bool> {
+    with OptimisticSyncWithPush<AppState, bool> {
   @override
   bool valueToApply() => !state.liked;
 
@@ -596,7 +597,7 @@ class ToggleLikeActionNoRevisions extends ReduxAction<AppState>
 // =============================================================================
 
 class ToggleLikeActionWithRevisions extends ReduxAction<AppState>
-    with StableSyncWithPush<AppState, bool> {
+    with OptimisticSyncWithPush<AppState, bool> {
   int _serverRevFromResponse = 0;
 
   @override

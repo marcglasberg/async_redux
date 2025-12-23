@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
-import 'package:async_redux/src/stable_sync_with_push_mixin.dart';
+import 'package:async_redux/src/optimistic_sync_with_push_mixin.dart';
 import 'package:bdd_framework/bdd_framework.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  var feature = BddFeature('ServerPush + StableSyncWithPush missing scenarios');
+  var feature = BddFeature('ServerPush + OptimisticSyncWithPush missing scenarios');
 
   setUp(() {
     resetTestState();
@@ -14,7 +14,7 @@ void main() {
 
   Bdd(feature)
       .scenario('BUG: Remote newer push can be overwritten by local follow-up.')
-      .given('A StableSyncWithPush action has a request in flight '
+      .given('A OptimisticSyncWithPush action has a request in flight '
           'and localRevision advanced.')
       .when('A ServerPush arrives with a newer serverRevision from another '
           'device before the request completes.')
@@ -66,7 +66,7 @@ void main() {
 
   Bdd(feature)
       .scenario('ServerPush does not increment localRevision.')
-      .given('A StableSyncWithPush action where requests log localRev values.')
+      .given('A OptimisticSyncWithPush action where requests log localRev values.')
       .when('A ServerPush action is dispatched between local taps.')
       .then('The next local request uses the next localRevision '
           'as if the push never happened.')
@@ -97,7 +97,7 @@ void main() {
   Bdd(feature)
       .scenario(
           'ServerPush applies immediately even while the stable-sync key is locked.')
-      .given('A StableSyncWithPush action has a request in flight for a key.')
+      .given('A OptimisticSyncWithPush action has a request in flight for a key.')
       .when(
           'A ServerPush arrives for the same key with a newer serverRevision.')
       .then(
@@ -135,12 +135,12 @@ void main() {
   Bdd(feature)
       .scenario(
           'ServerPush keying: push for item B does not interfere with item A in flight.')
-      .given('Two StableSync keys A and B, and a request is in flight for A.')
+      .given('Two OptimisticSync keys A and B, and a request is in flight for A.')
       .when('A ServerPush arrives for B and then for A.')
       .then(
           'Both pushes apply immediately to their own keys and do not affect the other key lock or revisions.')
       .note(
-          'Verifies stableSyncKeyParams and computeStableSyncKey alignment between StableSyncWithPush and ServerPush.')
+          'Verifies optimisticSyncKeyParams and computeOptimisticSyncKey alignment between OptimisticSyncWithPush and ServerPush.')
       .run((_) async {
     var store = Store<AppStateItems>(initialState: AppStateItems.initial());
 
@@ -210,7 +210,7 @@ void main() {
       .scenario(
           'Optimization preserved with pushes: no follow-up if final local value equals sent value.')
       .given(
-          'A StableSyncWithPush action with request 1 in flight and ServerPush updates may arrive.')
+          'A OptimisticSyncWithPush action with request 1 in flight and ServerPush updates may arrive.')
       .when(
           'User changes intent during the request but ends back at the original sent value.')
       .then(
@@ -265,7 +265,7 @@ void main() {
       .scenario(
           'Stale ServerPush does not overwrite local optimistic UI while request is in flight.')
       .given(
-          'A StableSyncWithPush action has a request in flight and the store is optimistic.')
+          'A OptimisticSyncWithPush action has a request in flight and the store is optimistic.')
       .when(
           'A ServerPush arrives with an older serverRevision for the same key.')
       .then(
@@ -307,7 +307,7 @@ void main() {
   Bdd(feature)
       .scenario(
           'Stale server response is NOT applied when a newer ServerPush arrives before the response.')
-      .given('A StableSyncWithPush action has a request in flight.')
+      .given('A OptimisticSyncWithPush action has a request in flight.')
       .when('A ServerPush arrives with a newer serverRevision before the '
           'request completes.')
       .then('The stale response is ignored and the pushed state remains.')
@@ -370,7 +370,7 @@ void main() {
   Bdd(feature)
       .scenario(
           'Push echo overwriting store during in-flight request does not break follow-up.')
-      .given('A StableSyncWithPush action has a request in flight.')
+      .given('A OptimisticSyncWithPush action has a request in flight.')
       .when('User taps again and a push echo overwrites the store.')
       .then('The follow-up still sends the latest local intent value.')
       .note(
@@ -400,7 +400,7 @@ void main() {
     await Future.delayed(const Duration(milliseconds: 10));
     expect(store.state.liked, true);
 
-    // Finish request 1, causing StableSyncWithPush to detect localRev advanced
+    // Finish request 1, causing OptimisticSyncWithPush to detect localRev advanced
     // and send follow-up with the latest local intent (false).
     c.complete();
     await Future.delayed(const Duration(milliseconds: 200));
@@ -492,7 +492,7 @@ void resetTestState() {
 // =============================================================================
 
 class ToggleLikeStableAction extends ReduxAction<AppState>
-    with StableSyncWithPush<AppState, bool> {
+    with OptimisticSyncWithPush<AppState, bool> {
   int _serverRevFromResponse = 0;
 
   @override
@@ -566,14 +566,14 @@ class PushLikeUpdate extends ReduxAction<AppState> with ServerPush {
 }
 
 class ToggleLikeItemStableAction extends ReduxAction<AppStateItems>
-    with StableSyncWithPush<AppStateItems, bool> {
+    with OptimisticSyncWithPush<AppStateItems, bool> {
   final String itemId;
   int _serverRevFromResponse = 0;
 
   ToggleLikeItemStableAction(this.itemId);
 
   @override
-  Object? stableSyncKeyParams() => itemId;
+  Object? optimisticSyncKeyParams() => itemId;
 
   @override
   bool valueToApply() => !(state.likedById[itemId] ?? false);
@@ -638,7 +638,7 @@ class PushItemLikeUpdate extends ReduxAction<AppStateItems>
   Type associatedAction() => ToggleLikeItemStableAction;
 
   @override
-  Object? stableSyncKeyParams() => itemId;
+  Object? optimisticSyncKeyParams() => itemId;
 
   @override
   int serverRevision() => serverRev;

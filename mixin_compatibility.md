@@ -12,7 +12,7 @@ This document describes the compatibility between AsyncRedux action mixins.
 | `NonReentrant`                | Aborts if the same action is already running                    | `abortDispatch`               |
 | `Retry`                       | Retries the action on error with exponential backoff            | `wrapReduce`                  |
 | `UnlimitedRetries`            | Modifier for `Retry` to retry indefinitely                      | (requires `Retry`)            |
-| `OptimisticUpdate`            | Applies state changes optimistically, rolls back on error       | `reduce`                      |
+| `OptimisticCommand`            | Applies state changes optimistically, rolls back on error       | `reduce`                      |
 | `Throttle`                    | Limits action execution to at most once per throttle period     | `abortDispatch`, `after`      |
 | `Debounce`                    | Delays execution until after a period of inactivity             | `wrapReduce`                  |
 | `UnlimitedRetryCheckInternet` | Combines internet check + unlimited retry + non-reentrant       | `abortDispatch`, `wrapReduce` |
@@ -28,7 +28,7 @@ Legend:
 - ➡️ = Requires (must be used together)
 - — = Same mixin
 
-|                                 | CheckInternet | NoDialog | AbortWhenNoInternet | NonReentrant | Retry | UnlimitedRetries | OptimisticUpdate | Throttle | Debounce | UnlimitedRetryCheckInternet | Fresh |
+|                                 | CheckInternet | NoDialog | AbortWhenNoInternet | NonReentrant | Retry | UnlimitedRetries | OptimisticCommand | Throttle | Debounce | UnlimitedRetryCheckInternet | Fresh |
 |---------------------------------|:-------------:|:--------:|:-------------------:|:------------:|:-----:|:----------------:|:----------------:|:--------:|:--------:|:---------------------------:|:-----:|
 | **CheckInternet**               |       —       |    ✅     |          ❌          |      ✅       |  ⚠️   |        ⚠️        |        ✅         |    ✅     |    ✅     |              ❌              |   ✅   |
 | **NoDialog**                    |      ➡️       |    —     |          ❌          |      ✅       |  ⚠️   |        ⚠️        |        ✅         |    ✅     |    ✅     |              ❌              |   ✅   |
@@ -36,7 +36,7 @@ Legend:
 | **NonReentrant**                |       ✅       |    ✅     |          ✅          |      —       |   ✅   |        ✅         |        ✅         |    ❌     |    ✅     |              ❌              |   ❌   |
 | **Retry**                       |      ⚠️       |    ⚠️    |         ⚠️          |      ✅       |   —   |        ✅         |        ✅         |    ✅     |    ❌     |              ❌              |   ✅   |
 | **UnlimitedRetries**            |      ⚠️       |    ⚠️    |         ⚠️          |      ✅       |  ➡️   |        —         |        ✅         |    ✅     |    ❌     |              ❌              |   ✅   |
-| **OptimisticUpdate**            |       ✅       |    ✅     |          ✅          |      ✅       |   ✅   |        ✅         |        —         |    ✅     |    ❌     |              ❌              |   ✅   |
+| **OptimisticCommand**            |       ✅       |    ✅     |          ✅          |      ✅       |   ✅   |        ✅         |        —         |    ✅     |    ❌     |              ❌              |   ✅   |
 | **Throttle**                    |       ✅       |    ✅     |          ✅          |      ❌       |   ✅   |        ✅         |        ✅         |    —     |    ✅     |              ❌              |   ❌   |
 | **Debounce**                    |       ✅       |    ✅     |          ✅          |      ✅       |   ❌   |        ❌         |        ❌         |    ✅     |    —     |              ❌              |   ✅   |
 | **UnlimitedRetryCheckInternet** |       ❌       |    ❌     |          ❌          |      ❌       |   ❌   |        ❌         |        ❌         |    ❌     |    ❌     |              —              |   ❌   |

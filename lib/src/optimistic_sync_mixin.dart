@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:async_redux/async_redux.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
-/// The [StableSync] mixin is designed for actions where user interactions
+/// The [OptimisticSync] mixin is designed for actions where user interactions
 /// (like toggling a "like" button) should update the UI immediately and
 /// send the updated value to the server, making sure the server and the UI
 /// are eventually consistent.
@@ -52,10 +52,10 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 ///    state immediately via [applyOptimisticValueToState].
 ///
 /// 2. **Single in-flight request**: Only one request runs at a time per key
-///    (as defined by [stableSyncKeyParams]). The first dispatch acquires a lock
+///    (as defined by [optimisticSyncKeyParams]). The first dispatch acquires a lock
 ///    and calls [sendValueToServer] to send a request to the server.
 ///
-/// 3. **StableSync changes**: If the store state changed while a request started
+/// 3. **OptimisticSync changes**: If the store state changed while a request started
 ///    by [sendValueToServer] was in flight (for example, the user tapped a
 ///    "like" button again while the first request was pending), a follow-up
 ///    request is automatically sent after the current one completes. The change
@@ -102,13 +102,13 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 /// ## Usage
 ///
 /// ```dart
-/// class ToggleLike extends AppAction with StableSync<AppState, bool> {
+/// class ToggleLike extends AppAction with OptimisticSync<AppState, bool> {
 ///   final String itemId;
 ///   ToggleLike(this.itemId);
 ///
 ///   // Different items can have concurrent requests
 ///   @override
-///   Object? stableSyncKeyParams() => itemId;
+///   Object? optimisticSyncKeyParams() => itemId;
 ///
 ///   // The new value to apply (toggle current state)
 ///   @override
@@ -168,45 +168,96 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 /// ## Difference from other mixins
 ///
 /// - **vs [Debounce]**: Debounce waits for inactivity before sending *any*
-///   request. StableSync sends the first request immediately and only coalesces
+///   request. OptimisticSync sends the first request immediately and only coalesces
 ///   subsequent changes.
 ///
 /// - **vs [NonReentrant]**: NonReentrant aborts subsequent dispatches entirely.
-///   StableSync applies the optimistic update and queues a follow-up request.
+///   OptimisticSync applies the optimistic update and queues a follow-up request.
 ///
-/// - **vs [OptimisticUpdate]**: OptimisticUpdate has rollback logic that breaks
-///   with concurrent dispatches. StableSync is designed for rapid toggling where
+/// - **vs [OptimisticCommand]**: OptimisticCommand has rollback logic that breaks
+///   with concurrent dispatches. OptimisticSync is designed for rapid toggling where
 ///   only the final state matters.
+///
+/// ## Rollback support
+///
+/// The mixin exposes two fields to help with rollback logic in [onFinish].
+///
+/// - [optimisticValue]: The value returned by [valueToApply] for the current
+///   dispatch. This is set once at the start of reduce() and remains available
+///   throughout the action lifecycle, including in [onFinish].
+///
+/// - [lastSentValue]: The most recent value passed to [sendValueToServer].
+///   Updated right before each server request. Useful for debugging/logging.
+///
+/// Example rollback guard using [optimisticValue]:
+///
+/// ```dart
+/// Future<St?> onFinish(Object? error) async {
+///   if (error != null) {
+///     // Only rollback if the state still reflects our optimistic update.
+///     // If the user made another change, don't overwrite it.
+///     if (getValueFromState(state) == optimisticValue) {
+///       return applyOptimisticValueToState(state, initialValue);
+///     }
+///   }
+///   return null;
+/// }
+/// ```
+///
+/// Another possibility is to use [onFinish] to reload the value from the
+/// server. Here is an example:
+///
+/// ```dart
+/// Future<St?> onFinish(Object? error) async {
+///   try {
+///     final fresh = await api.fetchValue(itemId);
+///     return applyServerResponseToState(state, fresh);
+///   } catch (_) {
+///     return null; // Ignore reload failures and keep the current state.
+///   }
+/// }
+/// ```
 ///
 /// Notes:
 /// - It should not be combined with [NonReentrant], [Throttle], [Debounce],
-///   [OptimisticUpdate], or [Fresh].
+///   [OptimisticCommand], or [Fresh].
 ///
-mixin StableSync<St, T> on ReduxAction<St> {
+mixin OptimisticSync<St, T> on ReduxAction<St> {
   //
-  /// Optionally, override [stableSyncKeyParams] to differentiate coalescing by
+  /// The optimistic value that was applied to the state for the current
+  /// dispatch. This is set once at the start of [reduce] to the value returned
+  /// by [valueToApply], and remains available in [onFinish] for rollback logic.
+  late final T optimisticValue;
+
+  /// The most recent value that was passed to [sendValueToServer].
+  /// This is updated right before each server request (including follow-ups).
+  /// Useful for debugging, logging, or implementing custom guards.
+  /// Reset to `null` at the start of each dispatch.
+  T? lastSentValue;
+  //
+  /// Optionally, override [optimisticSyncKeyParams] to differentiate coalescing by
   /// action parameters. For example, if you have a like button per item,
   /// return the item ID so that different items can have concurrent requests:
   ///
   /// ```dart
-  /// Object? stableSyncKeyParams() => itemId;
+  /// Object? optimisticSyncKeyParams() => itemId;
   /// ```
   ///
   /// You can also return a record of values:
   ///
   /// ```dart
-  /// Object? stableSyncKeyParams() => (userId, itemId);
+  /// Object? optimisticSyncKeyParams() => (userId, itemId);
   /// ```
   ///
-  /// See also: [computeStableSyncKey], which uses this method by default to
+  /// See also: [computeOptimisticSyncKey], which uses this method by default to
   /// build the key.
   ///
-  Object? stableSyncKeyParams() => null;
+  Object? optimisticSyncKeyParams() => null;
 
   /// By default the coalescing key combines the action [runtimeType]
-  /// with [stableSyncKeyParams]. Override this method if you want
+  /// with [optimisticSyncKeyParams]. Override this method if you want
   /// different action types to share the same coalescing key.
-  Object computeStableSyncKey() => (runtimeType, stableSyncKeyParams());
+  Object computeOptimisticSyncKey() => (runtimeType, optimisticSyncKeyParams());
 
   /// Override [valueToApply] to return the value that should be applied
   /// optimistically to the state and then sent to the server. This is called
@@ -348,12 +399,18 @@ mixin StableSync<St, T> on ReduxAction<St> {
 
   @override
   Future<St?> reduce() async {
-    _cannotCombineStableSyncWithOtherMixins();
+    _cannotCombineOptimisticSyncWithOtherMixins();
+
+    // Reset per-dispatch tracking fields.
+    lastSentValue = null;
 
     // Compute and cache the key for this dispatch.
-    var _currentKey = computeStableSyncKey();
+    var _currentKey = computeOptimisticSyncKey();
 
     final value = valueToApply();
+
+    // Store the optimistic value for this dispatch (available in onFinish).
+    optimisticValue = value;
 
     // Always apply optimistic update immediately.
     dispatchState(applyOptimisticValueToState(state, value));
@@ -361,30 +418,23 @@ mixin StableSync<St, T> on ReduxAction<St> {
     // If locked, another request is in flight. The optimistic update is
     // already applied, so just return. When the in-flight request completes,
     // it will check if a follow-up is needed.
-    if (_stableSyncKeySet.contains(_currentKey)) return null;
+    if (_optimisticSyncKeySet.contains(_currentKey)) return null;
 
     // Acquire lock and send request.
-    _stableSyncKeySet.add(_currentKey);
+    _optimisticSyncKeySet.add(_currentKey);
     await _sendAndFollowUp(_currentKey, value);
 
     return null;
   }
 
   /// Set that tracks which keys are currently locked (requests in flight).
-  Set<Object?> get _stableSyncKeySet =>
-      store.internalMixinProps.stableSyncKeySet;
+  Set<Object?> get _optimisticSyncKeySet =>
+      store.internalMixinProps.optimisticSyncKeySet;
 
   /// Sends the request and handles follow-up requests if the state changed
+  /// (by comparing the value returned by [getValueFromState] with [sentValue])
   /// while the request was in flight.
   ///
-  /// When revision tracking is enabled (`isPushCompatible == true`), follow-up
-  /// logic is primarily based on `localRevision` (local intent order), and the
-  /// value to resend comes from the latest *local intent value* saved in
-  /// `_revisionMap` (so it can't be corrupted by server pushes that overwrite
-  /// the store while a request is in flight).
-  ///
-  /// When revision tracking is disabled, the original behavior is preserved:
-  /// follow-up logic compares `stateValue` vs the sent value.
   Future<void> _sendAndFollowUp(Object? key, T sentValue) async {
     T _sentValue = sentValue;
 
@@ -394,6 +444,9 @@ mixin StableSync<St, T> on ReduxAction<St> {
       requestCount++;
 
       try {
+        // Track the value being sent (for debugging/rollback guards).
+        lastSentValue = _sentValue;
+
         // Send the value and get the server response (may be null).
         final Object? serverResponse = await sendValueToServer(_sentValue);
 
@@ -426,13 +479,13 @@ mixin StableSync<St, T> on ReduxAction<St> {
         }
 
         // Release lock and finish.
-        _stableSyncKeySet.remove(key);
+        _optimisticSyncKeySet.remove(key);
         await _callOnFinish(null);
         break;
       } catch (error) {
         // Request failed: release lock, run onFinish(error), then rethrow so the
         // action still fails as before.
-        _stableSyncKeySet.remove(key);
+        _optimisticSyncKeySet.remove(key);
         await _callOnFinish(error);
         rethrow;
       }
@@ -483,11 +536,11 @@ mixin StableSync<St, T> on ReduxAction<St> {
   /// different limit. Use `-1` for no limit.
   int get maxFollowUpRequests => 10000;
 
-  void _cannotCombineStableSyncWithOtherMixins() {
-    _incompatible<StableSync, NonReentrant>(this);
-    _incompatible<StableSync, Throttle>(this);
-    _incompatible<StableSync, OptimisticUpdate>(this);
-    _incompatible<StableSync, Fresh>(this);
+  void _cannotCombineOptimisticSyncWithOtherMixins() {
+    _incompatible<OptimisticSync, NonReentrant>(this);
+    _incompatible<OptimisticSync, Throttle>(this);
+    _incompatible<OptimisticSync, OptimisticCommand>(this);
+    _incompatible<OptimisticSync, Fresh>(this);
 
     // Works with Debounce!!!!!!!!
     // Works with Debounce!!!!!!!!
@@ -496,7 +549,7 @@ mixin StableSync<St, T> on ReduxAction<St> {
     // Works with Debounce!!!!!!!!
     // Works with Debounce!!!!!!!!
     // Works with Debounce!!!!!!!!
-    // _incompatible<StableSync, Debounce>(this);
+    // _incompatible<OptimisticSync, Debounce>(this);
   }
 }
 
