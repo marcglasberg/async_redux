@@ -44,34 +44,42 @@
 /// When using PUSH, we must persist the server revision as well to ensure
 /// correct operation across app restarts.
 ///
+/// Note: If you DO NOT use push, try mixins [OptimisticSync] or
+/// [OptimisticCommand] instead. They are much easier to implement since they
+/// don't require revision tracking.
+///
 import 'dart:async';
 import 'dart:convert';
 
 import 'package:async_redux/async_redux.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 late Store<AppState> store;
+late MyPersistor persistor;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Create the persistor.
-  var persistor = MyPersistor();
+  persistor = MyPersistor();
 
   // Load persisted state.
   var initialState = await persistor.readState();
 
   // If no persisted state exists, create the default initial state and save it.
   if (initialState == null) {
-    initialState = AppState(liked: false, serverRevision: 0);
+    initialState = AppState(liked: false);
     await persistor.saveInitialState(initialState);
   }
 
   // Initialize the server SIMULATION, by setting the like and revision counter.
   // In production, this would be the real server, using a database.
-  server.revisionCounter = initialState.serverRevision;
+  // The key is (ToggleLike, null) as computed by computeOptimisticSyncKey().
+  server.revisionCounter =
+      initialState.getServerRevision((ToggleLike, null)) ?? 0;
   server.databaseLiked = initialState.liked;
 
   store = Store<AppState>(
@@ -84,30 +92,56 @@ void main() async {
 
 class AppState {
   final bool liked;
-  final int serverRevision;
 
-  AppState({required this.liked, this.serverRevision = 0});
+  /// Stores the last known server revision for each [OptimisticSyncWithPush]
+  /// action. Keys are stringified versions of action keys (e.g.,
+  /// "(ToggleLike, null)"). It's persisted with [MyPersistor] to maintain
+  /// correct operation across app restarts. The mixin uses these revisions to
+  /// detect stale push updates and ensure eventual consistency.
+  final IMap<String, int> serverRevisionMap;
+
+  AppState({required this.liked, IMap<String, int>? serverRevisionMap})
+      : serverRevisionMap = serverRevisionMap ?? const IMapConst({});
 
   @useResult
-  AppState copy({bool? isLiked, int? serverRevision}) => AppState(
+  AppState copy({bool? isLiked, IMap<String, int>? serverRevisionMap}) =>
+      AppState(
         liked: isLiked ?? this.liked,
-        serverRevision: serverRevision ?? this.serverRevision,
+        serverRevisionMap: serverRevisionMap ?? this.serverRevisionMap,
       );
+
+  /// Returns a copy of the state with the server revision updated for the given key.
+  @useResult
+  AppState withServerRevision(Object? key, int revision) => copy(
+        serverRevisionMap: serverRevisionMap.add(_keyToString(key), revision),
+      );
+
+  /// Returns the server revision for the given key, or null if not found.
+  int? getServerRevision(Object? key) =>
+      serverRevisionMap.get(_keyToString(key));
 
   Map<String, dynamic> toJson() => {
         'liked': liked,
-        'serverRevision': serverRevision,
+        'serverRevisionMap': serverRevisionMap.unlock,
       };
 
   factory AppState.fromJson(Map<String, dynamic> json) => AppState(
         liked: json['liked'] as bool? ?? false,
-        serverRevision: json['serverRevision'] as int? ?? 0,
+        serverRevisionMap: IMap<String, int>.fromEntries(
+          (json['serverRevisionMap'] as Map<String, dynamic>? ?? {})
+              .entries
+              .map((e) => MapEntry(e.key, e.value as int)),
+        ),
       );
 
   @override
   String toString() =>
-      'AppState(liked: $liked, serverRevision: $serverRevision)';
+      'AppState(liked: $liked, serverRevisionMap: $serverRevisionMap)';
 }
+
+/// Converts an action key to a String for persistence.
+/// The key is typically the runtimeType of the action, or a custom identifier for keyed actions.
+String _keyToString(Object? key) => key?.toString() ?? '_default_';
 
 /// Persistor that saves AppState to shared_preferences.
 class MyPersistor extends Persistor<AppState> {
@@ -157,8 +191,8 @@ class ServerResponse {
 }
 
 /// ServerPush action for handling WebSocket push updates.
-/// This action properly integrates with OptimisticSyncWithPush.
-class PushLikeUpdate extends AppAction with ServerPush<AppState> {
+/// This action properly integrates with [OptimisticSyncWithPush].
+class PushLikeUpdate extends AppAction with ServerPush {
   final bool liked;
   final int serverRev;
 
@@ -176,13 +210,13 @@ class PushLikeUpdate extends AppAction with ServerPush<AppState> {
   @override
   AppState? applyServerPushToState(
       AppState state, Object? key, int serverRevision) {
-    return state.copy(isLiked: liked, serverRevision: serverRevision);
+    return state.copy(isLiked: liked).withServerRevision(key, serverRevision);
   }
 
   /// Return the current server revision from state for this key.
   @override
   int? getServerRevisionFromState(Object? key) {
-    return state.serverRevision;
+    return state.getServerRevision(key);
   }
 
   @override
@@ -202,16 +236,18 @@ class ToggleLike extends AppAction with OptimisticSyncWithPush<AppState, bool> {
 
   @override
   AppState applyOptimisticValueToState(
-          AppState state, bool optimisticValueToApply) =>
+    AppState state,
+    bool optimisticValueToApply,
+  ) =>
       state.copy(isLiked: optimisticValueToApply);
 
   @override
   AppState? applyServerResponseToState(AppState state, Object? serverResponse) {
     // Apply both the liked value and the server revision.
-    return state.copy(
-      isLiked: serverResponse as bool,
-      serverRevision: _serverRevFromResponse,
-    );
+    // Use computeOptimisticSyncKey() to get the same key used by the mixin.
+    return state
+        .copy(isLiked: serverResponse as bool)
+        .withServerRevision(computeOptimisticSyncKey(), _serverRevFromResponse);
   }
 
   @override
@@ -235,7 +271,7 @@ class ToggleLike extends AppAction with OptimisticSyncWithPush<AppState, bool> {
   /// Return the current server revision from state.
   @override
   int? getServerRevisionFromState(Object? key) {
-    return state.serverRevision;
+    return state.getServerRevision(key);
   }
 
   // If there was an error, revert the state to the database value.
@@ -250,6 +286,21 @@ class ToggleLike extends AppAction with OptimisticSyncWithPush<AppState, bool> {
 
   @override
   String toString() => '${super.toString()}(${!state.liked})';
+}
+
+/// Resets all state: deletes persisted state and resets server simulation.
+class ResetAllState extends AppAction {
+  @override
+  Future<AppState?> reduce() async {
+    // Delete persisted state.
+    await persistor.deleteState();
+
+    // Reset server simulation.
+    server.reset();
+
+    // Return fresh initial state.
+    return AppState(liked: false);
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -297,7 +348,16 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('OptimisticSyncWithPush Mixin Demo')),
+      appBar: AppBar(
+        title: const Text('OptimisticSyncWithPush Mixin Demo'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 20),
+            tooltip: 'Reset all state',
+            onPressed: () => store.dispatch(ResetAllState()),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           // Top half: Like button (Redux state)
@@ -607,6 +667,15 @@ class SimulatedServer {
       revisionCounter++;
       push(isLiked: databaseLiked, serverRev: revisionCounter);
     }
+  }
+
+  /// Resets the server to its initial state.
+  void reset() {
+    databaseLiked = false;
+    isRequestInProgress = false;
+    requestCount = 0;
+    shouldFail = false;
+    revisionCounter = 0;
   }
 
   /// Interruptible delay that checks [shouldFail] every 50ms.

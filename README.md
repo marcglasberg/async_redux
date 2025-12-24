@@ -395,21 +395,41 @@ class LoadText extends Action with UnlimitedRetryCheckInternet {
 
 &nbsp;
 
-## Throttle
+## Fresh
 
-Mixin `Throttle` prevents a dispatched action from running too often.
-If the action loads information, the information is considered _fresh_.
-Only after the throttle period ends is the information considered _stale_,
-allowing the action to run again to reload the information.
+Mixin `Fresh` prevents a dispatched action from reloading the same information
+while it is still up to date. The first dispatch always runs and loads the data.
+While the data is _fresh_, later dispatches do nothing. When the fresh period
+ends, the data becomes _stale_ and the action may run again.
 
 ```dart
-class LoadPrices extends Action with Throttle {  
+class LoadPrices extends Action with Fresh {  
   
-  final int throttle = 5000; // Milliseconds
+  final int freshFor = 5000; // Milliseconds
 
   Future<AppState> reduce() async {      
     var result = await loadJson('https://example.com/prices');              
     return state.copy(prices: result);
+  }
+}
+```
+
+&nbsp;
+
+## Throttle
+
+Mixin Throttle limits how often an action can run, acting as a simple rate
+limit. The first dispatch runs right away.
+Any later dispatches during the throttle period are ignored.
+Once the period ends, the next dispatch is allowed to run again.
+
+```dart
+class RefreshFeed extends Action with Throttle {
+  final int throttle = 3000; // Milliseconds
+
+  Future<AppState> reduce() async {
+    final items = await loadJson('https://example.com/feed');
+    return state.copy(feedItems: items);
   }
 }
 ```
@@ -443,16 +463,55 @@ class SearchText extends Action with Debounce {
 
 &nbsp;
 
-## OptimisticCommand (soon)
+## OptimisticCommand
 
-Mixin `OptimisticCommand` helps you provide instant feedback on actions that save
-information to the server. You immediately apply state changes as if they were
-already successful, before confirming with the server. If the server update
-fails, the change is rolled back and, optionally, a notification can inform the
-user of the issue.
+Mixin `OptimisticCommand` helps you provide instant feedback on **blocking**
+actions that save information to the server. You immediately apply state changes
+as if they were already successful. The UI prevents the user from making other
+changes until the server confirms the update. If the update fails, the change
+is rolled back.
 
 ```dart
-class SaveName extends Action with OptimisticCommand {   
+class SaveTodo extends Action with OptimisticCommand {
+  final Todo todo;
+  SaveTodo(this.todo); 
+   
+  async reduce() { ... } 
+}
+```
+
+&nbsp;
+
+## OptimisticSync
+
+Mixin `OptimisticSync` helps you provide instant feedback on **non-blocking**
+actions that save information to the server. The UI does **not** prevent the
+user from making other changes. Changes are applied locally right away,
+while the mixin synchronizes those changes with the server in the background.
+
+```dart
+class SaveLike extends Action with OptimisticSync {
+  final bool isLiked;
+  SaveLike(this.isLiked); 
+  
+  async reduce() { ... } 
+}
+```
+
+&nbsp;
+
+## OptimisticSyncWithPush
+
+Mixin `OptimisticSyncWithPush` is similar to `OptimisticSync`, but it also
+assumes that the app listens to the server, for example via WebSockets.
+It supports server versioning and multiple clients updating the same data
+concurrently.
+
+```dart
+class SaveLike extends Action with OptimisticSyncWithPush {
+  final bool isLiked;
+  SaveLike(this.isLiked); 
+  
   async reduce() { ... } 
 }
 ```
