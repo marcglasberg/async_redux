@@ -2590,15 +2590,51 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
   /// If it returns `null`, no state change is made.
   ///
   /// ```dart
-  /// Future<St?> onFinish(Object? error) async {
+  /// Future<AppState?> onFinish(Object? error) async {
   ///   if (error == null) {
   ///     // Success: show confirmation, log analytics, etc.
   ///     return null;
   ///   } else {
-  ///     // Failure: reload data from the server.
-  ///     var reloadedInfo = await api.loadInfo();
-  ///     return state.copy(info: reloadedInfo);
+  ///     // Failure:
+  ///     // - Show a dialog.
+  ///     // - Reload data from the server.
+  ///     // - Rollback the optimistic update.
   ///   }
+  /// }
+  /// ```
+  ///
+  /// To show an error dialog in [onFinish]:
+  ///
+  /// ```dart
+  /// dispatch(UserExceptionAction('The server request failed', reason: 'Info reloaded.');
+  /// ```
+  ///
+  /// To reload data from the server in [onFinish]:
+  ///
+  /// ```dart
+  /// return state.copy(info: await api.loadInfo());
+  /// ```
+  ///
+  /// To rollback the optimistic update in [onFinish]:
+  ///
+  /// ```dart
+  /// return state.copy(isLiked: getValueFromState(initialState));
+  /// ```
+  ///
+  /// You can combine the above strategies as needed:
+  ///
+  /// ```dart
+  /// Future<AppState?> onFinish(Object? error) async {
+  ///   if (error == null) return null;
+  ///
+  ///   // 1. Show an error message to the user.
+  ///   dispatch(UserExceptionAction('The server request failed', reason: 'Info reloaded.'));
+  ///
+  ///   // 2. Immediately rollback to the initial state before the action.
+  ///   dispatchState(state.copy(info: await api.loadInfo());
+  ///
+  ///   // 3. Then, to be sure, reload the value from the database.
+  ///   return state.copy(isLiked: getValueFromState(initialState));
   /// }
   /// ```
   ///

@@ -21,6 +21,9 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
   It's blocking in the sense that the user cannot perform other operation
   in the same state until the command completes (success or failure).
+ 
+  See file `example/lib/main_optimistic_command.dart` for an example app
+  demonstrating the use of `OptimisticCommand` in a like button.
 
   ```dart
   class SaveTodo extends AppAction with OptimisticCommand {
@@ -85,7 +88,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
   switches, or any control where the user might interact multiple times
   before the server responds.
   
-  See file `example/lib/main_like_button.dart` for an example app
+  See file `example/lib/main_optimistic_sync.dart` for an example app
   demonstrating the use of `OptimisticSync` in a like button.
 
   ```dart
@@ -171,6 +174,9 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
   **Important:** If your app does NOT receive server-pushed updates, use the
   simpler `OptimisticSync` mixin instead.
+
+  See file `example/lib/main_optimistic_sync_with_push.dart` for an example app
+  demonstrating the use of `OptimisticSyncWithPush` in a like button.
 
 ## 26.1.0
 

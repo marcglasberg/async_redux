@@ -1,3 +1,43 @@
+/// This example is meant to demonstrate the [OptimisticSync] mixin in action.
+/// The screen is split into two halves: the top shows the UI state (Redux), and
+/// the bottom shows the simulated database state (server).
+///
+/// ## Use cases to try:
+///
+/// ### 1. Optimistic update
+/// Tap the heart icon. The UI updates instantly (top half), while the database
+/// takes ~3.5 seconds to update (bottom half shows "Saving...").
+///
+/// ### 2. Coalescing (key feature)
+/// Tap the heart rapidly multiple times while "Saving..." is displayed. Notice:
+/// - The UI toggles instantly on each tap (always responsive).
+/// - Only one request is in flight at a time ("Saving 1...").
+/// - When the request completes, if the current UI state differs from what was
+///   sent, a follow-up request is automatically sent ("Saving 2...").
+/// - If you toggle an even number of times, no follow-up is needed because the
+///   final state matches what was originally sent.
+///
+/// ### 3. Button always enabled
+/// Unlike [OptimisticCommand], the button is never disabled. This allows rapid
+/// interactions without waiting for server responses.
+///
+/// ### 4. Reload on error
+/// Tap the heart to start saving. While "Saving..." is displayed, tap "Request
+/// fails". The UI keeps its optimistic state, but [OptimisticSync.onFinish] is
+/// called with the error. In this example, we show an error dialog,
+/// immediately revert to the initial state before the action, and then,
+/// just to be sure, reload the value from the database.
+///
+/// ### 5. External database changes (no push)
+/// Use the "Liked" or "Not Liked" buttons at the bottom to change the database
+/// directly. The UI may update only if a request is still in progress, because
+/// the request response will overwrite the UI state when it completes.
+/// But when there is no request in progress, the UI state won't update,
+/// because [OptimisticSync] doesn't support push notifications. The UI only
+/// syncs when you tap the heart again.
+///
+/// Note: If you use push, try mixin [OptimisticSyncWithPush] instead.
+///
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
@@ -5,76 +45,6 @@ import 'package:flutter/material.dart';
 import "package:meta/meta.dart";
 
 late Store<AppState> store;
-
-/// Simulated database value (not in the Redux store).
-bool databaseLiked = false;
-
-/// Whether a request is currently in progress.
-bool isRequestInProgress = false;
-
-/// Number of requests received by the server.
-int requestCount = 0;
-
-/// Whether the next request should fail.
-bool shouldFail = false;
-
-/// Whether websocket should push database changes.
-bool websocketPushEnabled = false;
-
-int delayBeforeWriteToDatabase = 1500;
-int delayAfterWriteToDatabase = 2000;
-
-/// Interruptible delay that checks shouldFail every 50ms.
-Future<void> _interruptibleDelay(int milliseconds) async {
-  const checkInterval = 50;
-  int remaining = milliseconds;
-  while (remaining > 0) {
-    if (shouldFail) {
-      shouldFail = false;
-      isRequestInProgress = false;
-      throw Exception('Simulated server error');
-    }
-    final wait = remaining < checkInterval ? remaining : checkInterval;
-    await Future.delayed(Duration(milliseconds: wait));
-    remaining -= checkInterval;
-  }
-}
-
-/// Simulates saving to a database.
-/// Waits 500ms, changes the value, then waits 2000ms before returning.
-Future<bool> saveLike(bool flag) async {
-  print('\nINI------------------------------------------------------------');
-  requestCount++;
-  isRequestInProgress = true;
-  print('flag.a = ${flag}');
-  await _interruptibleDelay(delayBeforeWriteToDatabase);
-
-  databaseLiked = flag;
-  print('flag.b = ${flag}');
-  if (websocketPushEnabled) {
-    push(isLiked: flag);
-  }
-  await _interruptibleDelay(delayAfterWriteToDatabase);
-  isRequestInProgress = false;
-  print('flag.c = ${flag}');
-  print('\nEND------------------------------------------------------------');
-
-  // When the save request is complete, return the current value in the database.
-  // This is not necessarily the same as the value we tried to save, simulating
-  // a situation where the server has the final say.
-  return databaseLiked;
-}
-
-Future<bool> reload() async {
-  // Simulate a quick reload from the database.
-  await Future.delayed(const Duration(milliseconds: 300));
-  return databaseLiked;
-}
-
-Future<void> push({required bool isLiked}) async {
-  await Future.delayed(const Duration(milliseconds: 50));
-  store.dispatch(SetLike(isLiked));
-}
 
 void main() {
   store = Store<AppState>(
@@ -127,21 +97,29 @@ class ToggleLike extends AppAction with OptimisticSync<AppState, bool> {
   }
 
   @override
-  Future<bool> sendValueToServer(Object? value) => saveLike(value as bool);
+  Future<bool> sendValueToServer(Object? value) =>
+      server.saveLike(value as bool);
 
-  // If there was an error, revert the state to the database value.
+  // If there was an error:
+  // 1. Show an error message to the user.
+  // 2. Immediately revert to the initial state before the action.
+  // 3. Then, to be sure, reload the value from the database.
   @override
   Future<AppState?> onFinish(Object? error) async {
-    //
-    // If no error, do nothing.
-    if (error == null)
-      return null;
-    //
-    // If there was an error, reload the value from the database.
-    else {
-      bool isLiked = await reload();
-      return state.copy(isLiked: isLiked);
-    }
+    if (error == null) return null;
+
+    // 1. Show an error message to the user.
+    dispatch(
+      UserExceptionAction('The server request failed',
+          reason: 'The like status was rolled back and then reloaded.'),
+    );
+
+    // 2. Immediately rollback to the initial state before the action.
+    dispatchState(state.copy(isLiked: getValueFromState(initialState)));
+
+    // 3. Then, to be sure, reload the value from the database.
+    bool isLiked = await server.reload();
+    return state.copy(isLiked: isLiked);
   }
 
   @override
@@ -156,9 +134,12 @@ class MyApp extends StatelessWidget {
     return StoreProvider<AppState>(
       store: store,
       child: MaterialApp(
+        debugShowCheckedModeBanner: false,
         title: 'OptimisticSync Mixin Demo',
         theme: ThemeData(primarySwatch: Colors.blue),
-        home: const MyHomePage(),
+        home: UserExceptionDialog<AppState>(
+          child: const MyHomePage(),
+        ),
       ),
     );
   }
@@ -266,13 +247,15 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     const SizedBox(height: 20),
                     Icon(
-                      databaseLiked ? Icons.favorite : Icons.favorite_border,
+                      server.databaseLiked
+                          ? Icons.favorite
+                          : Icons.favorite_border,
                       size: 80,
-                      color: databaseLiked ? Colors.red : Colors.grey,
+                      color: server.databaseLiked ? Colors.red : Colors.grey,
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      databaseLiked ? 'Liked' : 'Not Liked',
+                      server.databaseLiked ? 'Liked' : 'Not Liked',
                       style: const TextStyle(fontSize: 24),
                     ),
                     const SizedBox(height: 20),
@@ -280,21 +263,21 @@ class _MyHomePageState extends State<MyHomePage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          isRequestInProgress
-                              ? 'Saving $requestCount...'
+                          server.isRequestInProgress
+                              ? 'Saving ${server.requestCount}...'
                               : 'Idle',
                           style: TextStyle(
                             fontSize: 16,
-                            color: isRequestInProgress
+                            color: server.isRequestInProgress
                                 ? Colors.orange
                                 : Colors.grey,
-                            fontWeight: isRequestInProgress
+                            fontWeight: server.isRequestInProgress
                                 ? FontWeight.bold
                                 : FontWeight.normal,
                           ),
                         ),
                         const SizedBox(width: 10),
-                        if (isRequestInProgress)
+                        if (server.isRequestInProgress)
                           const SizedBox(
                             width: 16,
                             height: 16,
@@ -307,7 +290,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Updates after server round-trip (${(delayBeforeWriteToDatabase + delayAfterWriteToDatabase) / 1000}s)',
+                      'Updates after server round-trip (${(server.delayBeforeWrite + server.delayAfterWrite) / 1000}s)',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey,
@@ -315,7 +298,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Number of requests received: $requestCount',
+                      'Number of requests received: ${server.requestCount}',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey,
@@ -339,12 +322,8 @@ class _MyHomePageState extends State<MyHomePage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               ElevatedButton.icon(
-                                onPressed: () {
-                                  databaseLiked = true;
-                                  if (websocketPushEnabled) {
-                                    push(isLiked: databaseLiked);
-                                  }
-                                },
+                                onPressed: () =>
+                                    server.simulateExternalChange(true),
                                 icon: const Icon(Icons.favorite, size: 16),
                                 label: const Text('Liked'),
                                 style: ElevatedButton.styleFrom(
@@ -354,12 +333,8 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                               const SizedBox(width: 16),
                               ElevatedButton.icon(
-                                onPressed: () {
-                                  databaseLiked = false;
-                                  if (websocketPushEnabled) {
-                                    push(isLiked: databaseLiked);
-                                  }
-                                },
+                                onPressed: () =>
+                                    server.simulateExternalChange(false),
                                 icon:
                                     const Icon(Icons.favorite_border, size: 16),
                                 label: const Text('Not Liked'),
@@ -372,34 +347,17 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                           const SizedBox(height: 8),
                           ElevatedButton.icon(
-                            onPressed: () {
-                              shouldFail = true;
-                            },
+                            onPressed: server.isRequestInProgress
+                                ? () {
+                                    server.shouldFail = true;
+                                  }
+                                : null,
                             icon: const Icon(Icons.error_outline, size: 16),
                             label: const Text('Request fails'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.orange.shade100,
                               foregroundColor: Colors.orange.shade900,
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                'Push database changes',
-                                style: TextStyle(fontSize: 14),
-                              ),
-                              const SizedBox(width: 8),
-                              Switch(
-                                value: websocketPushEnabled,
-                                onChanged: (value) {
-                                  setState(() {
-                                    websocketPushEnabled = value;
-                                  });
-                                },
-                              ),
-                            ],
                           ),
                         ],
                       ),
@@ -416,3 +374,83 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 abstract class AppAction extends ReduxAction<AppState> {}
+
+// ////////////////////////////////////////////////////////////////////////////
+
+/// Singleton instance of the simulated server.
+final server = SimulatedServer();
+
+/// Simulates a remote server with database and request handling.
+/// All server-side state and behavior is encapsulated here to clearly separate
+/// it from the local app state managed by Redux.
+class SimulatedServer {
+  // ---------------------------------------------------------------------------
+  // Server State
+  // ---------------------------------------------------------------------------
+
+  /// The "database" value stored on the server.
+  bool databaseLiked = false;
+
+  /// Whether a request is currently being processed.
+  bool isRequestInProgress = false;
+
+  /// Total number of requests received by the server.
+  int requestCount = 0;
+
+  /// When true, the next request will fail (for testing error handling).
+  bool shouldFail = false;
+
+  /// Simulated network delay before writing to database (ms).
+  int delayBeforeWrite = 1500;
+
+  /// Simulated network delay after writing to database (ms).
+  int delayAfterWrite = 2000;
+
+  // ---------------------------------------------------------------------------
+  // Server Methods
+  // ---------------------------------------------------------------------------
+
+  /// Simulates saving to the database.
+  /// Returns the current database value after save completes.
+  Future<bool> saveLike(bool flag) async {
+    requestCount++;
+    isRequestInProgress = true;
+    await _interruptibleDelay(delayBeforeWrite);
+
+    databaseLiked = flag;
+    await _interruptibleDelay(delayAfterWrite);
+    isRequestInProgress = false;
+
+    // Return the current value in the database.
+    // This may differ from the saved value, simulating server-side logic.
+    return databaseLiked;
+  }
+
+  /// Simulates reloading the current value from the database.
+  Future<bool> reload() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    return databaseLiked;
+  }
+
+  /// Simulates an external change to the database (e.g., from another client).
+  void simulateExternalChange(bool liked) {
+    databaseLiked = liked;
+  }
+
+  /// Interruptible delay that checks [shouldFail] every 50ms.
+  /// Allows simulating mid-flight request failures.
+  Future<void> _interruptibleDelay(int milliseconds) async {
+    const checkInterval = 50;
+    int remaining = milliseconds;
+    while (remaining > 0) {
+      if (shouldFail) {
+        shouldFail = false;
+        isRequestInProgress = false;
+        throw Exception('Simulated server error');
+      }
+      final wait = remaining < checkInterval ? remaining : checkInterval;
+      await Future.delayed(Duration(milliseconds: wait));
+      remaining -= checkInterval;
+    }
+  }
+}
