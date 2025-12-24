@@ -15,8 +15,12 @@ Sponsored by [MyText.ai](https://mytext.ai)
   update the UI immediately, send a command to the server, and automatically
   rollback if the server request fails.
 
-  This is useful for actions like adding a todo item, deleting a record, or
-  any "fire-and-forget" command where you want instant UI feedback.
+  This is useful for **blocking** user interactions like adding a todo item,
+  deleting a record, or updating user settings, where you want instant UI
+  feedback but also need to ensure consistency with the server.
+
+  It's blocking in the sense that the user cannot perform other operation
+  in the same state until the command completes (success or failure).
 
   ```dart
   class SaveTodo extends AppAction with OptimisticCommand {
@@ -70,14 +74,19 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 * Added the `OptimisticSync` mixin.
 
-  Use this mixin for non-blocking user interactions where you want instant UI
-  feedback and automatic synchronization with the server. The mixin handles
-  rapid user interactions gracefully by coalescing requests and ensuring
-  eventual consistency.
+  Use this mixin for **non-blocking** user interactions where you want instant
+  UI feedback and automatic synchronization with the server.
+  It's non-blocking in the sense that the user can continue performing other
+  operations in the same state while synchronization is in progress.
+  The mixin handles rapid user interactions gracefully by coalescing requests
+  and ensuring eventual consistency.
 
   This is ideal for toggle buttons (like/unlike, follow/unfollow), sliders,
   switches, or any control where the user might interact multiple times
   before the server responds.
+  
+  See file `example/lib/main_like_button.dart` for an example app
+  demonstrating the use of `OptimisticSync` in a like button.
 
   ```dart
   class ToggleLike extends ReduxAction<AppState>

@@ -108,7 +108,6 @@ class SetLike extends AppAction {
   String toString() => '${super.toString()}($isLiked)';
 }
 
-/// TODO: Marcelo: Test if it works with DEBOUNCE!!!!!!!!!!!!
 class ToggleLike extends AppAction with OptimisticSync<AppState, bool> {
   @override
   bool valueToApply() => !state.liked;
