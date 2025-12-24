@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
-import 'package:async_redux/src/optimistic_sync_with_push_mixin.dart';
 import 'package:bdd_framework/bdd_framework.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -18,7 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// 2. Last-write-wins semantics work across devices
 /// 3. Out-of-order/replay pushes don't regress state
 void main() {
-  var feature = BddFeature('OptimisticSyncWithPush push compatibility');
+  var feature = BddFeature('OptimisticSyncWithPush mixin');
 
   setUp(() {
     resetTestState();
@@ -32,7 +31,8 @@ void main() {
       .scenario('FIX: With revisions, push does not prevent follow-up.')
       .given('An action WITH revision tracking.')
       .when('User taps twice and push arrives between taps.')
-      .then('OptimisticSyncWithPush correctly sends follow-up based on localRevision.')
+      .then(
+          'OptimisticSyncWithPush correctly sends follow-up based on localRevision.')
       .run((_) async {
     var store = Store<AppState>(
         initialState: AppState(liked: false, serverRevision: 10));

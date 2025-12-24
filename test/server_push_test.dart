@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
-import 'package:async_redux/src/optimistic_sync_with_push_mixin.dart';
 import 'package:bdd_framework/bdd_framework.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  var feature = BddFeature('ServerPush + OptimisticSyncWithPush missing scenarios');
+  var feature =
+      BddFeature('ServerPush mixin');
 
   setUp(() {
     resetTestState();
@@ -66,7 +66,8 @@ void main() {
 
   Bdd(feature)
       .scenario('ServerPush does not increment localRevision.')
-      .given('A OptimisticSyncWithPush action where requests log localRev values.')
+      .given(
+          'A OptimisticSyncWithPush action where requests log localRev values.')
       .when('A ServerPush action is dispatched between local taps.')
       .then('The next local request uses the next localRevision '
           'as if the push never happened.')
@@ -97,7 +98,8 @@ void main() {
   Bdd(feature)
       .scenario(
           'ServerPush applies immediately even while the stable-sync key is locked.')
-      .given('A OptimisticSyncWithPush action has a request in flight for a key.')
+      .given(
+          'A OptimisticSyncWithPush action has a request in flight for a key.')
       .when(
           'A ServerPush arrives for the same key with a newer serverRevision.')
       .then(
@@ -135,7 +137,8 @@ void main() {
   Bdd(feature)
       .scenario(
           'ServerPush keying: push for item B does not interfere with item A in flight.')
-      .given('Two OptimisticSync keys A and B, and a request is in flight for A.')
+      .given(
+          'Two OptimisticSync keys A and B, and a request is in flight for A.')
       .when('A ServerPush arrives for B and then for A.')
       .then(
           'Both pushes apply immediately to their own keys and do not affect the other key lock or revisions.')
@@ -512,7 +515,7 @@ class ToggleLikeStableAction extends ReduxAction<AppState>
       serverRevision: _serverRevFromResponse,
     );
   }
-  
+
   @override
   Future<Object?> sendValueToServer(Object? value) async {
     final localRev = localRevision();

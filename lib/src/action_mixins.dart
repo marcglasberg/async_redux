@@ -349,6 +349,7 @@ mixin NonReentrant<St> on ReduxAction<St> {
     _incompatible<NonReentrant, Fresh>(this);
     _incompatible<NonReentrant, Throttle>(this);
     _incompatible<NonReentrant, UnlimitedRetryCheckInternet>(this);
+    _incompatible<NonReentrant, OptimisticCommand>(this);
   }
 }
 
@@ -502,9 +503,9 @@ mixin UnlimitedRetries<St> on Retry<St> {
 }
 
 /// The [OptimisticCommand] mixin is for actions that represent a command.
-///
 /// A command is something you want to run on the server once per dispatch.
 /// Typical examples are:
+///
 /// * Create something (add todo, create comment, send message)
 /// * Delete something
 /// * Submit a form
@@ -516,26 +517,26 @@ mixin UnlimitedRetries<St> on Retry<St> {
 /// back and reloading.
 ///
 ///
-/// When to use OptimisticSync instead
+/// ## When to use the `OptimisticSync` mixin instead
 ///
-/// Use [OptimisticSync] or [OptimisticSyncWithPush] when the action is a set operation,
-/// meaning only the final value matters and intermediate values can be skipped.
-/// Typical examples are:
+/// Use [OptimisticSync] or [OptimisticSyncWithPush] when the action is a save
+/// operation, meaning only the final value matters and intermediate values
+/// can be skipped. Typical examples are:
+///
 /// * Like or follow toggle
 /// * Settings switch
 /// * Slider, checkbox
 /// * Update a field where the last value wins
 ///
-/// In set operations, users may tap many times quickly. OptimisticSync is built for
-/// that and will coalesce rapid changes into a minimal number of server calls.
-/// [OptimisticCommand] is not built for that.
+/// In save operations, users may tap many times quickly. `OptimisticSync` is
+/// built for that and will coalesce rapid changes into a minimal number of
+/// server calls. [OptimisticCommand] is not built for that.
 ///
 ///
-/// Example: saving a Todo
+/// ## The problem
 ///
-/// Let's use a Todo app as an example. We want to save a new Todo to a TodoList.
-///
-/// This code saves the Todo, then reloads the TodoList from the cloud:
+/// Let's use a Todo app as an example. We want to save a new Todo to a
+/// TodoList. This code saves the Todo, then reloads the TodoList from the cloud:
 ///
 /// ```dart
 /// class SaveTodo extends ReduxAction<AppState> {
@@ -614,93 +615,88 @@ mixin UnlimitedRetries<St> on Retry<St> {
 /// }
 /// ```
 ///
-/// Now the user sees the rollback immediately after the saving fails.
+/// Now the user sees the rollback immediately after the saving fails. The
+/// [OptimisticCommand] mixin helps you implement this pattern easily, and
+/// takes care of the edge cases.
 ///
-/// Note about realtime updates
+/// ## How to use this mixin
 ///
-/// If you are using a realtime database or WebSockets to receive server pushed
-/// updates, you may not need the reload step, as long as the optimistic value
-/// can be told apart from the current value in state.
-///
-/// This can be a problem if the state in question is a primitive (bool, num)
-/// or String. In those cases it is easier for the value to match by accident,
-/// and rollback or reload may apply when you did not expect it.
-///
-///
-/// What this mixin does
-///
-/// [OptimisticCommand] helps you implement the pattern above when you provide:
+/// You must provide:
 /// * [optimisticValue] returns the optimistic value you want to apply right away
 /// * [getValueFromState] extracts the current value from a given state
 /// * [applyValueToState] applies a value to a given state and returns the new state
 /// * [sendCommandToServer] runs the server command (it may use the action fields)
 /// * [reloadFromServer] optionally reloads from the server (do not override to skip)
+/// * [applyReloadResultToState] applies the reload result to the state (the default uses [applyValueToState])
 ///
 /// Important details:
+///
 /// * The optimistic update is applied immediately.
+///
 /// * If [sendCommandToServer] fails, rollback happens only if the current state
 ///   still matches the optimistic value created by this dispatch. The rollback
 ///   restores the value from [initialState].
+///
 /// * Reload is optional. If implemented, it runs after [sendCommandToServer]
 ///   finishes, both on success and on failure.
 ///
-///
-/// Complete example using the mixin
+/// ### Complete example using the mixin
 ///
 /// ```dart
 /// class SaveTodo extends AppAction with OptimisticCommand {
 ///   final Todo newTodo;
 ///   SaveTodo(this.newTodo);
 ///
-///   // The optimistic value to be applied right away.
+///   // The new Todo is going to be optimistically applied to the state, right away.
 ///   @override
-///   Object? optimisticValue() => state.todoList.add(newTodo);
+///   Object? optimisticValue() => newTodo;
 ///
-///   // Read the current value from the state.
+///   // We teach the action how to read the Todo from the state.
 ///   @override
-///   Object? getValueFromState(AppState state) => state.todoList;
+///   Object? getValueFromState(AppState state) => state.todoList.getById(newTodo.id);
 ///
 ///   // Apply the value to the state.
 ///   @override
 ///   AppState applyValueToState(AppState state, Object? value)
-///     => state.copy(todoList: value);
+///     => state.copy(todoList: state.todoList.add(newTodo));
 ///
-///   // Run the server command.
-///   // You can ignore the value and just use action fields if you want.
+///   // Contact the server to send the command (save the Todo). I
 ///   @override
-///   Future<void> sendCommandToServer(Object? optimisticValue) async => await saveTodo(newTodo);
+///   Future<void> sendCommandToServer(Object? newTodo) async => await saveTodo(newTodo);
 ///
-///   // Reload from the cloud. If you want to skip reload, do not override.
+///   // Reload from the cloud (in case of error).
 ///   @override
-///   Future<Object?> reloadFromServer() async => await loadTodoList();
+///   Future<Object?> reloadFromServer() async => await loadTodo();
 /// }
 /// ```
 ///
 ///
-/// Non reentrant
+/// ## Non-reentrant behavior
 ///
-/// Consider combining [OptimisticCommand] with [NonReentrant] to prevent race
-/// conditions when the same action is dispatched multiple times before the
-/// first completes:
+/// [OptimisticCommand] is always non-reentrant. If the same action is
+/// dispatched while a previous dispatch is still running, the new dispatch
+/// is aborted. This prevents race conditions such as:
 ///
-/// ```dart
-/// class SaveTodo extends AppAction with OptimisticCommand, NonReentrant {
-///   ...
-/// }
-/// ```
-///
-/// Without [NonReentrant], concurrent dispatches can cause:
 /// * Conflicting optimistic updates overwriting each other
 /// * Incorrect rollback behavior (the rollback check may no longer match)
 /// * Race conditions in the reload phase
 /// * Server side conflicts from concurrent requests
 ///
-/// If your action has parameters and you want to allow concurrent dispatches
-/// for different parameters (for example, saving different items), override
-/// [NonReentrant.nonReentrantKeyParams]. For example:
+/// Your UI should let the user know that the command is in progress,
+/// so they do not try to dispatch it again until it finishes. That's easy
+/// to do with AsyncRedux, just check if the action is in progress:
 ///
 /// ```dart
-/// class SaveTodo extends AppAction with OptimisticCommand, NonReentrant {
+/// bool isSaving = context.isWaiting(SaveTodo);
+/// ```
+///
+/// By default, the non-reentrant check is based on the action [runtimeType].
+/// If your action has parameters and you want to allow concurrent dispatches
+/// for different parameters (for example, saving different items), override
+/// [nonReentrantKeyParams]. For example:
+///
+/// ```dart
+/// class SaveTodo extends AppAction with OptimisticCommand {
 ///   final String orderId;
 ///   SaveTodo(this.orderId);
 ///
@@ -713,8 +709,22 @@ mixin UnlimitedRetries<St> on Retry<St> {
 /// This allows SaveTodo('A') and SaveTodo('B') to run concurrently, while
 /// blocking concurrent dispatches of SaveTodo('A') with itself.
 ///
+/// This is useful for commands that you **do** want to run in parallel,
+/// as long as they are for different items. Common examples include:
+/// 
+/// * Uploading multiple files at the same time (key by fileId)
+/// * Sending multiple chat messages at the same time (key by clientMessageId)
+/// * Enqueuing multiple jobs at the same time (key by jobId)
 ///
-/// Retry
+/// In these cases, each key runs non-reentrantly, but different keys can run
+/// concurrently.
+///
+/// You can also use [computeNonReentrantKey] if you want different action types
+/// to share the same non-reentrant key. Check the documentation of that method
+/// for more information.
+///
+///
+/// ## [Retry]
 ///
 /// When combined with [Retry], only the [sendCommandToServer] call is retried,
 /// not the optimistic update or rollback. This prevents UI flickering that
@@ -724,32 +734,50 @@ mixin UnlimitedRetries<St> on Retry<St> {
 /// happens if all retry attempts fail.
 ///
 ///
-/// Notes
+/// # [CheckInternet] or [AbortWhenNoInternet]
 ///
-/// * It should not be combined with [Debounce] or [UnlimitedRetryCheckInternet].
-/// * Equality checks use the == operator. Make sure your value type implements
+/// When combined with [CheckInternet] and [AbortWhenNoInternet], when offline:
+///
+/// * No optimistic state is applied
+/// * No lock is acquired
+/// * No server call is attempted
+/// * The action fails and your dialog shows (for [CheckInternet])
+///
+/// 
+/// Notes:
+/// - Equality checks use the == operator. Make sure your value type implements
 ///   == in a way that makes sense for optimistic checks.
+/// - It can be combined with [Retry], [CheckInternet] and [AbortWhenNoInternet].
+/// - It should not be combined with [NonReentrant], [Throttle], [Debounce],
+///   [Fresh], [UnlimitedRetryCheckInternet], [UnlimitedRetries],
+///   [OptimisticSync], [OptimisticSyncWithPush], or [ServerPush].
 ///
-///
-/// See also
-///
-/// * [OptimisticSync] and [OptimisticSyncWithPush] for set operations (last value wins).
+/// See also:
+/// * [OptimisticSync] and [OptimisticSyncWithPush] for save operations.
 ///
 mixin OptimisticCommand<St> on ReduxAction<St> {
   //
   /// Override this method to return the value that you want to update, and
   /// that you want to apply optimistically to the state.
   ///
-  /// For example, if you want to add a new Todo to a todoList, you should
-  /// return the new todoList with the new Todo added.
-  ///
   /// You can access the fields of the action, and the current [state], and
   /// return the new value.
   ///
   /// ```dart
-  /// Object? optimisticValue() => state.todoList.add(newTodo);
+  /// Object? optimisticValue() => newTodo;
   /// ```
   Object? optimisticValue();
+
+  /// Using the given [state], you should apply the given [value] to it, and
+  /// return the result. This will be used to apply the optimistic value to
+  /// the state, and also later to rollback, if necessary, by applying the
+  /// initial value.
+  ///
+  /// ```dart
+  /// AppState applyValueToState(state, newTodoList)
+  ///   => state.copy(todoList: newTodoList);
+  /// ```
+  St applyValueToState(St state, Object? value);
 
   /// Using the given [state], you should return the current value from that
   /// state. This is used to check if the state still contains the optimistic
@@ -759,15 +787,6 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
   /// Object? getValueFromState(AppState state) => state.todoList;
   /// ```
   Object? getValueFromState(St state);
-
-  /// Using the given [state], you should apply the given [value] to it, and
-  /// return the result.
-  ///
-  /// ```dart
-  /// AppState applyValueToState(state, newTodoList)
-  ///   => state.copy(todoList: newTodoList);
-  /// ```
-  St applyValueToState(St state, Object? value);
 
   /// You should save the [optimisticValue] or other related value in the cloud.
   ///
@@ -939,6 +958,54 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
   St? applyReloadResultToState(St state, Object? reloadResult) =>
       applyValueToState(state, reloadResult);
 
+  /// By default the non-reentrant key is based on the action [runtimeType].
+  /// Override [nonReentrantKeyParams] so that actions of the SAME TYPE
+  /// but with different parameters do not block each other.
+  ///
+  /// For example:
+  ///
+  /// ```dart
+  /// class SaveItem extends AppAction with OptimisticCommand {
+  ///   final String itemId;
+  ///   SaveItem(this.itemId);
+  ///
+  ///   Object? nonReentrantKeyParams() => itemId;
+  ///   ...
+  /// }
+  /// ```
+  ///
+  /// Now `SaveItem('A')` and `SaveItem('B')` can run in parallel,
+  /// but two concurrent dispatches of `SaveItem('A')` will not both run.
+  ///
+  Object? nonReentrantKeyParams() => null;
+
+  /// By default the non-reentrant key combines the action [runtimeType]
+  /// with [nonReentrantKeyParams]. Override this method if you want
+  /// different action types to share the same non-reentrant key.
+  ///
+  /// ```dart
+  /// class SaveUser extends ReduxAction<AppState> with OptimisticCommand {
+  ///   final String oderId;
+  ///   SaveUser(this.oderId);
+  ///
+  ///   Object? computeNonReentrantKey() => orderId;
+  ///   ...
+  /// }
+  ///
+  /// class DeleteUser extends ReduxAction<AppState> with OptimisticCommand {
+  ///   final String oderId;
+  ///   DeleteUser(this.oderId);
+  ///
+  ///   Object? computeNonReentrantKey() => orderId;
+  ///   ...
+  /// }
+  /// ```
+  ///
+  /// With this setup, `SaveUser('123')` and `DeleteUser('123')` cannot run
+  /// at the same time because they share the same key.
+  ///
+  Object computeNonReentrantKey() => (runtimeType, nonReentrantKeyParams());
+
   @override
   Future<St?> reduce() async {
     // Updates the value optimistically.
@@ -1061,6 +1128,50 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
         // Loop continues, retrying sendCommandToServer.
       }
     }
+  }
+
+  /// The set of keys that are currently running.
+  Set<Object?> get _nonReentrantCommandKeySet =>
+      store.internalMixinProps.nonReentrantKeySet;
+
+  Object? _nonReentrantCommandKey;
+
+  @override
+  bool abortDispatch() {
+    _cannot_combine_mixins_OptimisticCommand();
+
+    _nonReentrantCommandKey = computeNonReentrantKey();
+
+    // If the key is already in the set, abort.
+    if (_nonReentrantCommandKeySet.contains(_nonReentrantCommandKey))
+      return true;
+    //
+    // Otherwise, add the key and allow dispatch.
+    else {
+      _nonReentrantCommandKeySet.add(_nonReentrantCommandKey);
+      return false;
+    }
+  }
+
+  @override
+  void after() {
+    // Remove the key when the action finishes (success or failure).
+    _nonReentrantCommandKeySet.remove(_nonReentrantCommandKey);
+  }
+
+  /// Only [Retry], [CheckInternet] and [AbortWhenNoInternet] can be combined
+  /// with [OptimisticCommand].
+  /// 
+  void _cannot_combine_mixins_OptimisticCommand() {
+    _incompatible<OptimisticCommand, NonReentrant>(this);
+    _incompatible<OptimisticCommand, Fresh>(this);
+    _incompatible<OptimisticCommand, Throttle>(this);
+    _incompatible<OptimisticCommand, UnlimitedRetryCheckInternet>(this);
+    _incompatible<OptimisticCommand, Debounce>(this);
+    _incompatible<OptimisticCommand, UnlimitedRetries>(this);
+    _incompatible<OptimisticCommand, OptimisticSync>(this);
+    _incompatible<OptimisticCommand, OptimisticSyncWithPush>(this);
+    _incompatible<OptimisticCommand, ServerPush>(this);
   }
 }
 
@@ -1281,6 +1392,7 @@ mixin Throttle<St> on ReduxAction<St> {
     _incompatible<Throttle, Fresh>(this);
     _incompatible<Throttle, NonReentrant>(this);
     _incompatible<Throttle, UnlimitedRetryCheckInternet>(this);
+    _incompatible<Throttle, OptimisticCommand>(this);
   }
 }
 
@@ -2002,6 +2114,7 @@ mixin Fresh<St> on ReduxAction<St> {
     _incompatible<Fresh, Throttle>(this);
     _incompatible<Fresh, NonReentrant>(this);
     _incompatible<Fresh, UnlimitedRetryCheckInternet>(this);
+    _incompatible<Fresh, OptimisticCommand>(this);
   }
 
   DateTime _expiringKeyFrom(DateTime now) =>
@@ -2040,4 +2153,1326 @@ void _incompatible<T1, T2>(Object instance) {
     'The ${T1.toString().split('<').first} mixin '
     'cannot be combined with the ${T2.toString().split('<').first} mixin.',
   );
+}
+
+/// The [OptimisticSync] mixin is designed for actions where user interactions
+/// (like toggling a "like" button) should update the UI immediately and
+/// send the updated value to the server, making sure the server and the UI
+/// are eventually consistent.
+///
+/// ---
+///
+/// The action is not throttled or debounced in any way, and every dispatch
+/// applies an optimistic update to the state immediately. This guarantees a
+/// very good user experience, because there is immediate feedback on every
+/// interaction.
+///
+/// However, while the first updated value (created by the first time the action
+/// is dispatched) is immediately sent to the server, any other value changes
+/// that occur while the first request is in flight will NOT be sent immediately.
+///
+/// Instead, when the first request completes, it checks if the state is still
+/// the same as the value that was sent. If not, a follow-up request is sent
+/// with the latest value. This process repeats until the state stabilizes.
+///
+/// Note this guarantees that only **one** request is in flight at a time per
+/// key, potentially reducing the number of requests sent to the server while
+/// still coalescing intermediate changes.
+///
+/// Optionally:
+///
+/// * If the server responds with a value, that value is applied to the state.
+///   This is useful when the server normalizes or modifies values.
+///
+/// * When the state finally stabilizes and the request finishes, a callback
+///   function is called, allowing you to perform side-effects.
+///
+/// * In special, if the last request fails, the optimistic state remains, but
+///   in the callback you can then load the current state from the server or
+///   handle the error as you see first by returning a value that will be
+///   applied to the state.
+///
+/// In other words, the mixin makes it easy for you to maintain perfect UI
+/// responsiveness while minimizing server load, and making sure the server and
+/// the UI eventually agree on the same value.
+///
+/// ---
+///
+/// ## How it works
+///
+/// 1. **Immediate UI feedback**: Every dispatch applies [valueToApply] to the
+///    state immediately via [applyOptimisticValueToState].
+///
+/// 2. **Single in-flight request**: Only one request runs at a time per key
+///    (as defined by [optimisticSyncKeyParams]). The first dispatch acquires a lock
+///    and calls [sendValueToServer] to send a request to the server.
+///
+/// 3. **OptimisticSync changes**: If the store state changed while a request started
+///    by [sendValueToServer] was in flight (for example, the user tapped a
+///    "like" button again while the first request was pending), a follow-up
+///    request is automatically sent after the current one completes. The change
+///    is detected by comparing [getValueFromState] with the sent value returned
+///    by [valueToApply].
+///
+/// 4. **No unnecessary requests**: If, while the request is in-flight, the
+///    state changes but then returns to the same value as before (for example,
+///    the user tapped a "like" button again TWICE while the first request was
+///    pending), [getValueFromState] matches the sent value and no follow-up
+///    request is needed.
+///
+/// 5. **Server response handling**: If [sendValueToServer] returns a non-null
+///    value, it is applied to the state via [applyServerResponseToState] when
+///    the state stabilizes. This is optional but useful.
+///
+/// 6. **Completion callback**: When the state stabilizes and the last request
+///    finishes, [onFinish] is called, allowing you to handle errors or perform
+///    side-effects, like showing a message or reloading data.
+///
+/// ```
+/// State: liked = false (server confirmed)
+///
+/// User taps LIKE:
+///   → State: liked = true (optimistic)
+///   → Lock acquired, Request 1 sends: setLiked(true)
+///
+/// User taps UNLIKE (Request 1 still in flight):
+///   → State: liked = false (optimistic)
+///   → No request sent (locked)
+///
+/// User taps LIKE (Request 1 still in flight):
+///   → State: liked = true (optimistic)
+///   → No request sent (locked)
+///
+/// Request 1 completes:
+///   → Sent value was `true`, current state is `true`
+///   → They match, no follow-up needed, lock released
+/// ```
+///
+/// If the state had been `false` when Request 1 completed, a follow-up
+/// Request 2 would automatically be sent with `false`.
+///
+/// ## Usage
+///
+/// ```dart
+/// class ToggleLike extends AppAction with OptimisticSync<AppState, bool> {
+///   final String itemId;
+///   ToggleLike(this.itemId);
+///
+///   // Different items can have concurrent requests
+///   @override
+///   Object? optimisticSyncKeyParams() => itemId;
+///
+///   // The new value to apply (toggle current state)
+///   @override
+///   bool valueToApply() => !state.items[itemId].liked;
+///
+///   // Apply the optimistic value to the state
+///   @override
+///   AppState applyOptimisticValueToState(bool isLiked) =>
+///       state.copyWith(items: state.items.setLiked(itemId, isLiked));
+///
+///   // Apply the server response to the state (can be different from optimistic)
+///   @override
+///   AppState? applyServerResponseToState(Object? serverResponse) =>
+///       state.copyWith(items: state.items.setLiked(itemId, serverResponse as bool));
+///
+///   // Read the current value from state (used to detect if follow-up needed)
+///   @override
+///   Object? getValueFromState(AppState state) => state.items[itemId].liked;
+///
+///   // Send the value to the server, optionally return server-confirmed value
+///   @override
+///   Future<Object?> sendValueToServer(Object? optimisticValue) async {
+///     final response = await api.setLiked(itemId, optimisticValue);
+///     return response.liked; // Or return null if server doesn't return a value
+///   }
+///
+///   // Called when state stabilizes (optional). Return state to apply, or null.
+///   @override
+///   Future<AppState?> onFinish(Object? error) async {
+///     if (error != null) {
+///       // Handle error: reload from server to restore correct state
+///       final reloaded = await api.getItem(itemId);
+///       return state.copyWith(items: state.items.update(itemId, reloaded));
+///     }
+///     return null; // Success, no state change needed
+///   }
+/// }
+/// ```
+///
+/// ## Server response handling
+///
+/// [sendValueToServer] can return a value from the server. If non-null, this value is
+/// applied to the state **only when the state stabilizes** (no pending changes).
+/// This is useful when:
+/// - The server normalizes or modifies values
+/// - You want to confirm the server accepted the change
+/// - The server returns the current state after the update
+///
+/// If the server response differs from the current optimistic state when the
+/// state stabilizes, a follow-up request will be sent automatically.
+///
+/// ## Error handling
+///
+/// On failure, the optimistic state remains and [onFinish] is called with
+/// the error.
+///
+/// ## Difference from other mixins
+///
+/// - **vs [Debounce]**: Debounce waits for inactivity before sending *any*
+///   request. OptimisticSync sends the first request immediately and only coalesces
+///   subsequent changes.
+///
+/// - **vs [NonReentrant]**: NonReentrant aborts subsequent dispatches entirely.
+///   OptimisticSync applies the optimistic update and queues a follow-up request.
+///
+/// - **vs [OptimisticCommand]**: OptimisticCommand has rollback logic that breaks
+///   with concurrent dispatches. OptimisticSync is designed for rapid toggling where
+///   only the final state matters.
+///
+/// ## Rollback support
+///
+/// The mixin exposes two fields to help with rollback logic in [onFinish].
+///
+/// - [optimisticValue]: The value returned by [valueToApply] for the current
+///   dispatch. This is set once at the start of reduce() and remains available
+///   throughout the action lifecycle, including in [onFinish].
+///
+/// - [lastSentValue]: The most recent value passed to [sendValueToServer].
+///   Updated right before each server request. Useful for debugging/logging.
+///
+/// Example rollback guard using [optimisticValue]:
+///
+/// ```dart
+/// Future<St?> onFinish(Object? error) async {
+///   if (error != null) {
+///     // Only rollback if the state still reflects our optimistic update.
+///     // If the user made another change, don't overwrite it.
+///     if (getValueFromState(state) == optimisticValue) {
+///       return applyOptimisticValueToState(state, initialValue);
+///     }
+///   }
+///   return null;
+/// }
+/// ```
+///
+/// Another possibility is to use [onFinish] to reload the value from the
+/// server. Here is an example:
+///
+/// ```dart
+/// Future<St?> onFinish(Object? error) async {
+///   try {
+///     final fresh = await api.fetchValue(itemId);
+///     return applyServerResponseToState(state, fresh);
+///   } catch (_) {
+///     return null; // Ignore reload failures and keep the current state.
+///   }
+/// }
+/// ```
+///
+/// Notes:
+/// - It can be combined with [CheckInternet] and [AbortWhenNoInternet].
+/// - It should not be combined with [NonReentrant], [Throttle], [Debounce],
+///   [Fresh], [UnlimitedRetryCheckInternet], [UnlimitedRetries],
+///   [OptimisticCommand], [OptimisticSyncWithPush], or [ServerPush].
+///
+mixin OptimisticSync<St, T> on ReduxAction<St> {
+  //
+  /// The optimistic value that was applied to the state for the current
+  /// dispatch. This is set once at the start of [reduce] to the value returned
+  /// by [valueToApply], and remains available in [onFinish] for rollback logic.
+  late final T optimisticValue;
+
+  /// The most recent value that was passed to [sendValueToServer].
+  /// This is updated right before each server request (including follow-ups).
+  /// Useful for debugging, logging, or implementing custom guards.
+  /// Reset to `null` at the start of each dispatch.
+  T? lastSentValue;
+
+  /// Optionally, override [optimisticSyncKeyParams] to differentiate coalescing by
+  /// action parameters. For example, if you have a like button per item,
+  /// return the item ID so that different items can have concurrent requests:
+  ///
+  /// ```dart
+  /// Object? optimisticSyncKeyParams() => itemId;
+  /// ```
+  ///
+  /// You can also return a record of values:
+  ///
+  /// ```dart
+  /// Object? optimisticSyncKeyParams() => (userId, itemId);
+  /// ```
+  ///
+  /// See also: [computeOptimisticSyncKey], which uses this method by default to
+  /// build the key.
+  ///
+  Object? optimisticSyncKeyParams() => null;
+
+  /// By default the coalescing key combines the action [runtimeType]
+  /// with [optimisticSyncKeyParams]. Override this method if you want
+  /// different action types to share the same coalescing key.
+  Object computeOptimisticSyncKey() => (runtimeType, optimisticSyncKeyParams());
+
+  /// Override [valueToApply] to return the value that should be applied
+  /// optimistically to the state and then sent to the server. This is called
+  /// synchronously and only once per dispatch, when the reducer starts.
+  ///
+  /// The value to apply can be anything, and is usually constructed from the
+  /// action fields, and/or from the current [state]. Valid examples are:
+  ///
+  /// ```dart
+  /// // Set the like button to "liked".
+  /// bool valueToApply() => true
+  ///
+  /// // Set the like button to "liked" or "not liked", according to
+  /// // the field `isLiked` of the action.
+  /// bool valueToApply() => isLiked;
+  ///
+  /// // Toggles the current state of the like button.
+  /// bool valueToApply() => !state.items[itemId].isLiked;
+  /// ```
+  ///
+  T valueToApply();
+
+  /// Override [applyOptimisticValueToState] to return a new state where the
+  /// given [optimisticValue] is applied to the current [state].
+  ///
+  /// Note, Async Redux calculated [optimisticValue] by previously
+  /// calling [valueToApply].
+  ///
+  /// ```dart
+  /// AppState applyOptimisticValueToState(state, isLiked) =>
+  ///     state.copyWith(items: state.items.setLiked(itemId, isLiked));
+  /// ```
+  St applyOptimisticValueToState(St state, T optimisticValue);
+
+  /// Override [applyServerResponseToState] to return a new state, where the
+  /// given [serverResponse] (previously received from the server when running
+  /// [sendValueToServer]) is applied to the current [state]. Example:
+  ///
+  /// ```dart
+  /// AppState? applyServerResponseToState(state, serverResponse) =>
+  ///     state.copyWith(items: state.items.setLiked(itemId, serverResponse.date.isLiked));
+  /// ```
+  ///
+  /// Note [serverResponse] is never `null` here, because this method is only
+  /// called when [sendValueToServer] returned a non-null value.
+  ///
+  /// If you decide you DO NOT want to apply the server response to the state,
+  /// simply return `null`.
+  ///
+  St? applyServerResponseToState(St state, Object serverResponse);
+
+  /// Override [getValueFromState] to extract the value from the current [state].
+  /// This value will be later compared to one returned by [valueToApply] to
+  /// determine if a follow-up request is needed.
+  ///
+  /// Here is the rationale:
+  /// When a request completes, if the value in the state is different from
+  /// the value that was optimistically applied, it means the user changed it
+  /// again while the request was in flight, so a follow-up request is needed
+  /// to sync the latest value with the server.
+  ///
+  /// ```dart
+  /// bool getValueFromState(state) => state.items[itemId].liked;
+  /// ```
+  T getValueFromState(St state);
+
+  /// Override [sendValueToServer] to send the given [optimisticValue] to the
+  /// server, and optionally return the server's response.
+  ///
+  /// Note, Async Redux calculated [optimisticValue] by previously
+  /// calling [valueToApply].
+  ///
+  /// If [sendValueToServer] returns a non-null value, that value will be
+  /// applied to the state, but **only when the state stabilizes** (i.e., when
+  /// there are no more pending requests and the lock is about to be released).
+  /// This prevents the server response from overwriting subsequent user
+  /// interactions that occurred while the request was in flight.
+  ///
+  /// The value in the store state may change while the request is in flight.
+  /// For example, if the user presses a like button once, but then
+  /// presses it again before the first request finishes, the value in the
+  /// store state is now different from the optimistic value that was previously
+  /// applied. In this case, [sendValueToServer] will be called again to create
+  /// a follow-up request to sync the updated state with the server.
+  ///
+  /// If [sendValueToServer] returns `null`, the current optimistic state is
+  /// assumed to be correct and valid.
+  ///
+  /// ```dart
+  /// Future<Object?> saveValue(Object? optimisticValue) async {
+  ///   var response = await api.setLiked(itemId, optimisticValue);
+  ///   return response?.liked; // Return server-confirmed value, or null.
+  /// }
+  /// ```
+  Future<Object?> sendValueToServer(Object? optimisticValue);
+
+  /// Optionally, override [onFinish] to run any code after the synchronization
+  /// process completes. For example, you might want to reload related data from
+  /// the server, show a confirmation message, or perform cleanup.
+  ///
+  /// Note [onFinish] is called in both success and failure scenarios, but only
+  /// after the state stabilizes for this key (that is, after the last request
+  /// finishes and no follow-up request is needed).
+  ///
+  /// Important: The synchronization lock is released *before* [onFinish] runs.
+  /// This means new dispatches for the same key may start a new request while
+  /// [onFinish] is still executing.
+  ///
+  /// The [error] parameter will be `null` on success, or contain the error
+  /// object if the request failed.
+  ///
+  /// If [onFinish] returns a non-null state, it will be applied automatically.
+  /// If it returns `null`, no state change is made.
+  ///
+  /// ```dart
+  /// Future<St?> onFinish(Object? error) async {
+  ///   if (error == null) {
+  ///     // Success: show confirmation, log analytics, etc.
+  ///     return null;
+  ///   } else {
+  ///     // Failure: reload data from the server.
+  ///     var reloadedInfo = await api.loadInfo();
+  ///     return state.copy(info: reloadedInfo);
+  ///   }
+  /// }
+  /// ```
+  ///
+  /// Important:
+  ///
+  /// - If `onFinish(error)` throws, the original [error] is lost and the error
+  ///   thrown by [onFinish] becomes the action error. You can handle it in
+  ///   [wrapError].
+  ///
+  /// - Same on success: If `onFinish(null)` throws, the whole action fails
+  ///   even though the server request succeeded.  You can handle it in
+  ///   [wrapError].
+  ///
+  Future<St?> onFinish(Object? error) async => null;
+
+  @override
+  Future<St?> reduce() async {
+    _cannot_combine_mixins_OptimisticSync();
+
+    // Reset per-dispatch tracking fields.
+    lastSentValue = null;
+
+    // Compute and cache the key for this dispatch.
+    var _currentKey = computeOptimisticSyncKey();
+
+    final value = valueToApply();
+
+    // Store the optimistic value for this dispatch (available in onFinish).
+    optimisticValue = value;
+
+    // Always apply optimistic update immediately.
+    dispatchState(applyOptimisticValueToState(state, value));
+
+    // If locked, another request is in flight. The optimistic update is
+    // already applied, so just return. When the in-flight request completes,
+    // it will check if a follow-up is needed.
+    if (_optimisticSyncKeySet.contains(_currentKey)) return null;
+
+    // Acquire lock and send request.
+    _optimisticSyncKeySet.add(_currentKey);
+    await _sendAndFollowUp(_currentKey, value);
+
+    return null;
+  }
+
+  /// Set that tracks which keys are currently locked (requests in flight).
+  Set<Object?> get _optimisticSyncKeySet =>
+      store.internalMixinProps.optimisticSyncKeySet;
+
+  /// Sends the request and handles follow-up requests if the state changed
+  /// (by comparing the value returned by [getValueFromState] with [sentValue])
+  /// while the request was in flight.
+  ///
+  Future<void> _sendAndFollowUp(Object? key, T sentValue) async {
+    T _sentValue = sentValue;
+
+    int requestCount = 0;
+
+    while (true) {
+      requestCount++;
+
+      try {
+        // Track the value being sent (for debugging/rollback guards).
+        lastSentValue = _sentValue;
+
+        // Send the value and get the server response (may be null).
+        final Object? serverResponse = await sendValueToServer(_sentValue);
+
+        // Read the current value from the store.
+        // WARNING: In push mode this may reflect a server push, not local intent.
+        final stateValue = getValueFromState(state);
+
+        bool needFollowUp = false;
+
+        // Original value-based behavior (no push compatibility):
+        // If the store value differs from what we sent, send a follow-up with
+        // the current store value.
+        needFollowUp = ifShouldSendAnotherRequest(
+          stateValue: stateValue,
+          sentValue: _sentValue,
+          requestCount: requestCount,
+        );
+
+        if (needFollowUp) _sentValue = stateValue;
+
+        // If we need a follow-up, loop again without applying server response.
+        // The state is not stable yet.
+        if (needFollowUp) continue;
+
+        // State is stable for this key. Now we may apply the server response,
+        // but only if it is not stale relative to newer pushes.
+        if (serverResponse != null) {
+          final newState = applyServerResponseToState(state, serverResponse);
+          if (newState != null) dispatchState(newState);
+        }
+
+        // Release lock and finish.
+        _optimisticSyncKeySet.remove(key);
+        await _callOnFinish(null);
+        break;
+      } catch (error) {
+        // Request failed: release lock, run onFinish(error), then rethrow so the
+        // action still fails as before.
+        _optimisticSyncKeySet.remove(key);
+        await _callOnFinish(error);
+        rethrow;
+      }
+    }
+  }
+
+  /// Calls [onFinish], applying the returned state if non-null.
+  Future<void> _callOnFinish(Object? error) async {
+    final newState = await onFinish(error);
+    if (newState != null) dispatchState(newState);
+  }
+
+  /// If [ifShouldSendAnotherRequest] returns true, the action will perform one
+  /// more request to try and send the value from the state to the server.
+  ///
+  /// The default behavior of this method is to compare:
+  /// - The [stateValue], which is the value currently in the store state.
+  /// - The [sentValue], which is the value that was sent to the server.
+  ///
+  /// If both are different, it means that the state was changed after
+  /// we sent the request, so we should send another request with the new value.
+  ///
+  /// Optionally, override this method if you need custom equality logic.
+  /// The default implementation uses the `==` operator.
+  ///
+  /// The number of follow-up requests is limited at [maxFollowUpRequests] to
+  /// avoid infinite loops. If that limit is exceeded, a [StateError] is thrown.
+  ///
+  bool ifShouldSendAnotherRequest({
+    required T stateValue,
+    required T sentValue,
+    required int requestCount,
+  }) {
+    // Safety check to avoid infinite loops.
+    if ((maxFollowUpRequests != -1) && (requestCount > maxFollowUpRequests)) {
+      throw StateError('Too many follow-up requests '
+          'in action $runtimeType (> $maxFollowUpRequests).');
+    }
+
+    return (stateValue is ImmutableCollection &&
+        sentValue is ImmutableCollection)
+        ? !stateValue.same(sentValue)
+        : stateValue != sentValue;
+  }
+
+  /// Maximum number of follow-up requests to send before throwing an error.
+  /// This is a safety limit to avoid infinite loops. Override if you need a
+  /// different limit. Use `-1` for no limit.
+  int get maxFollowUpRequests => 10000;
+
+  /// Only [CheckInternet] and [AbortWhenNoInternet] can be combined
+  /// with [OptimisticSync].
+  void _cannot_combine_mixins_OptimisticSync() {
+    _incompatible<OptimisticSync, NonReentrant>(this);
+    _incompatible<OptimisticSync, Fresh>(this);
+    _incompatible<OptimisticSync, Throttle>(this);
+    _incompatible<OptimisticSync, UnlimitedRetryCheckInternet>(this);
+    _incompatible<OptimisticSync, Debounce>(this);
+    _incompatible<OptimisticSync, UnlimitedRetries>(this);
+    _incompatible<OptimisticSync, OptimisticCommand>(this);
+    _incompatible<OptimisticSync, OptimisticSyncWithPush>(this);
+    _incompatible<OptimisticSync, ServerPush>(this);
+  }
+}
+
+/// The [OptimisticSyncWithPush] mixin is designed for actions where:
+///
+/// 1. Your app receives server-pushed updates (like WebSockets, Server-Sent
+///    Events (SSE), Firebase) that may modify the same state this action
+///    controls.
+///
+/// 2. Non-blocking user interactions (like toggling a "like" button) should
+///    update the UI immediately and send the updated value to the server,
+///    making sure the server and the UI are eventually consistent.
+///
+/// 3. Multiple devices can modify the same data (optional).
+///
+/// 4. Resilient to out of order delivery.
+///
+/// 4. You want "last write wins" semantics across devices. In other words,
+///    with multiple devices, that's how we decide what truth is when two
+///    devices disagree.
+///
+/// **IMPORTANT:** If your app does not receive server-pushed updates,
+/// use the [OptimisticSync] mixin instead.
+///
+/// ---
+///
+/// ## How it works
+///
+/// Please read the documentation of [OptimisticSync] first, as this mixin builds
+/// upon that behavior with additional logic to handle server-pushed updates.
+///
+/// The [OptimisticSyncWithPush] mixin extends [OptimisticSync] by adding this:
+///
+/// - Each local dispatch increments a `localRevision` counter
+/// - Server-pushed updates do NOT increment localRevision
+/// - Follow-up logic compares revisions instead of values
+/// - This prevents push updates from incorrectly marking state as "stable"
+///
+/// **Example:**
+///
+/// ```dart
+/// class ToggleLikeAction extends ReduxAction<AppState>
+///     with OptimisticSyncWithPush<AppState, bool> {
+///
+///   @override
+///   Future<Object?> sendValueToServer(Object? value) async {
+///     int localRev = localRevision(); // Get current revision
+///     var response = await api.setLiked(itemId, value, localRev: localRev);
+///     informServerRevision(response.serverRev); // Track server revision
+///     return response.liked;
+///   }
+/// }
+/// ```
+///
+/// Notes:
+/// - It can be combined with [CheckInternet] and [AbortWhenNoInternet].
+/// - It should not be combined with [NonReentrant], [Throttle], [Debounce],
+///   [Fresh], [UnlimitedRetryCheckInternet], [UnlimitedRetries],
+///   [OptimisticCommand], [OptimisticSyncWithPush], or [ServerPush].
+///
+mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
+  //
+  /// Optionally, override [optimisticSyncKeyParams] to differentiate coalescing by
+  /// action parameters. For example, if you have a like button per item,
+  /// return the item ID so that different items can have concurrent requests:
+  ///
+  /// ```dart
+  /// Object? optimisticSyncKeyParams() => itemId;
+  /// ```
+  ///
+  /// You can also return a record of values:
+  ///
+  /// ```dart
+  /// Object? optimisticSyncKeyParams() => (userId, itemId);
+  /// ```
+  ///
+  /// See also: [computeOptimisticSyncKey], which uses this method by default to
+  /// build the key.
+  ///
+  Object? optimisticSyncKeyParams() => null;
+
+  /// By default the coalescing key combines the action [runtimeType]
+  /// with [optimisticSyncKeyParams]. Override this method if you want
+  /// different action types to share the same coalescing key.
+  Object computeOptimisticSyncKey() => (runtimeType, optimisticSyncKeyParams());
+
+  /// Override [valueToApply] to return the value that should be applied
+  /// optimistically to the state and then sent to the server. This is called
+  /// synchronously and only once per dispatch, when the reducer starts.
+  ///
+  /// The value to apply can be anything, and is usually constructed from the
+  /// action fields, and/or from the current [state]. Valid examples are:
+  ///
+  /// ```dart
+  /// // Set the like button to "liked".
+  /// bool valueToApply() => true
+  ///
+  /// // Set the like button to "liked" or "not liked", according to
+  /// // the field `isLiked` of the action.
+  /// bool valueToApply() => isLiked;
+  ///
+  /// // Toggles the current state of the like button.
+  /// bool valueToApply() => !state.items[itemId].isLiked;
+  /// ```
+  ///
+  T valueToApply();
+
+  /// Override [applyOptimisticValueToState] to return a new state where the
+  /// given [optimisticValue] is applied to the current [state].
+  ///
+  /// Note, Async Redux calculated [optimisticValue] by previously
+  /// calling [valueToApply].
+  ///
+  /// ```dart
+  /// AppState applyOptimisticValueToState(state, isLiked) =>
+  ///     state.copyWith(items: state.items.setLiked(itemId, isLiked));
+  /// ```
+  St applyOptimisticValueToState(St state, T optimisticValue);
+
+  /// Override [applyServerResponseToState] to return a new state, where the
+  /// given [serverResponse] (previously received from the server when running
+  /// [sendValueToServer]) is applied to the current [state]. Example:
+  ///
+  /// ```dart
+  /// AppState? applyServerResponseToState(state, serverResponse) =>
+  ///     state.copyWith(items: state.items.setLiked(itemId, serverResponse.date.isLiked));
+  /// ```
+  ///
+  /// Note [serverResponse] is never `null` here, because this method is only
+  /// called when [sendValueToServer] returned a non-null value.
+  ///
+  /// If you decide you DO NOT want to apply the server response to the state,
+  /// simply return `null`.
+  ///
+  St? applyServerResponseToState(St state, Object serverResponse);
+
+  /// Override [getValueFromState] to extract the value from the current [state].
+  /// This value will be later compared to one returned by [valueToApply] to
+  /// determine if a follow-up request is needed.
+  ///
+  /// Here is the rationale:
+  /// When a request completes, if the value in the state is different from
+  /// the value that was optimistically applied, it means the user changed it
+  /// again while the request was in flight, so a follow-up request is needed
+  /// to sync the latest value with the server.
+  ///
+  /// ```dart
+  /// bool getValueFromState(state) => state.items[itemId].liked;
+  /// ```
+  T getValueFromState(St state);
+
+  /// Override [sendValueToServer] to send the given [optimisticValue] to the
+  /// server, and optionally return the server's response.
+  ///
+  /// Note, Async Redux calculated [optimisticValue] by previously
+  /// calling [valueToApply].
+  ///
+  /// If [sendValueToServer] returns a non-null value, that value will be
+  /// applied to the state, but **only when the state stabilizes** (i.e., when
+  /// there are no more pending requests and the lock is about to be released).
+  /// This prevents the server response from overwriting subsequent user
+  /// interactions that occurred while the request was in flight.
+  ///
+  /// The value in the store state may change while the request is in flight.
+  /// For example, if the user presses a like button once, but then
+  /// presses it again before the first request finishes, the value in the
+  /// store state is now different from the optimistic value that was previously
+  /// applied. In this case, [sendValueToServer] will be called again to create
+  /// a follow-up request to sync the updated state with the server.
+  ///
+  /// If [sendValueToServer] returns `null`, the current optimistic state is
+  /// assumed to be correct and valid.
+  ///
+  /// ```dart
+  /// Future<Object?> saveValue(Object? optimisticValue) async {
+  ///   var response = await api.setLiked(itemId, optimisticValue);
+  ///   return response?.liked; // Return server-confirmed value, or null.
+  /// }
+  /// ```
+  Future<Object?> sendValueToServer(Object? optimisticValue);
+
+  /// If your app listens to server-pushed updates (e.g., via WebSockets),
+  /// call [localRevision] to enable revision-based synchronization that
+  /// correctly handles concurrent updates from multiple devices.
+  ///
+  /// **When to use:**
+  /// Call [localRevision] from [sendValueToServer] to get the revision number
+  /// to send with your request. The server should echo this back in its
+  /// response so the client knows which request completed.
+  ///
+  /// **How it works:**
+  /// - Each dispatch that calls [localRevision] increments the revision for
+  ///   this key (the first call per dispatch increments; subsequent calls in
+  ///   the same dispatch return the same value).
+  /// - When a request completes, the framework compares the current
+  ///   localRevision with what was sent. If they differ, a follow-up request
+  ///   is sent automatically.
+  /// - Server-pushed updates should NOT call [localRevision] (they are not
+  ///   local intent). Instead, use [informServerRevision] to track server state.
+  ///
+  /// **Important:** Call [localRevision] BEFORE any `await` in your
+  /// [sendValueToServer] implementation to ensure the captured value is
+  /// consistent.
+  ///
+  /// **Example:**
+  /// ```dart
+  /// Future<Object?> sendValueToServer(Object? optimisticValue) async {
+  ///   int localRev = localRevision(); // Capture BEFORE await
+  ///   var response = await api.setLiked(itemId, optimisticValue, localRev: localRev);
+  ///   informServerRevision(response.serverRev);
+  ///   return response.liked; // The mixin decides whether to apply this
+  /// }
+  /// ```
+  ///
+  /// **Note:** If your app does not listen to server-pushed updates, you can
+  /// ignore this method. The default value-comparison logic will still work.
+  ///
+  int localRevision() {
+    final key = _currentKey!;
+
+    if (!_localRevisionCalled) {
+      _localRevisionCalled = true;
+
+      // Increment for this dispatch.
+      final entry = _revisionMap[key];
+      final int newLocalRev = (entry?.localRevision ?? 0) + 1;
+
+      // Snapshot the current known server revision at the moment this local intent is created.
+      final int? fromMap = entry?.serverRevision;
+      final int? fromState = getServerRevisionFromState(key);
+      final int baseServerRev = _bestKnownServerRevision(key);
+
+      // Keep null only if we truly know nothing.
+      final int? storedServerRev =
+      (fromMap == null && fromState == null) ? null : baseServerRev;
+
+      _revisionMap[key] = (
+      localRevision: newLocalRev,
+      serverRevision: storedServerRev,
+      intentBaseServerRevision: baseServerRev,
+      localValue: entry?.localValue, // preserve latest local intent value
+      );
+    }
+
+    // Always return the current value (might have been updated by other dispatches)
+    return _revisionMap[key]!.localRevision;
+  }
+
+  /// Tracks whether [localRevision] has been called in this dispatch.
+  /// Reset at the start of [reduce].
+  bool _localRevisionCalled = false;
+
+  /// Tracks the server revision informed by the user during [sendValueToServer].
+  /// Used by _sendAndFollowUp to determine if the response should be applied.
+  /// Reset before each call to [sendValueToServer].
+  int? _informedServerRev;
+
+  /// Cached coalescing key for the current dispatch.
+  /// Computed once in [reduce] and reused by [localRevision],
+  /// [_serverRevision], and [informServerRevision].
+  Object? _currentKey;
+
+  /// Note: This mutates `_revisionMap`.
+  int _bestKnownServerRevision(Object? key) {
+    final entry = _revisionMap[key];
+    final int fromMap = entry?.serverRevision ?? 0;
+    final int fromState = getServerRevisionFromState(key) ?? 0;
+
+    if (fromState > fromMap) {
+      _revisionMap[key] = (
+      localRevision: entry?.localRevision ?? 0,
+      serverRevision: fromState,
+      intentBaseServerRevision: entry?.intentBaseServerRevision ?? fromState,
+      localValue: entry?.localValue,
+      );
+      return fromState;
+    }
+
+    return fromMap;
+  }
+
+  /// Returns the current known server revision for this key.
+  ///
+  /// The serverRevision represents the server's view of the latest write
+  /// (under "last write wins" semantics).
+  ///
+  /// Returns 0 if no server revision has been set for this key.
+  ///
+  /// See also: [informServerRevision].
+  ///
+  int _serverRevision() {
+    final key = _currentKey!;
+    return _bestKnownServerRevision(key);
+  }
+
+  /// You must override this to return the server revision you saved in the
+  /// state in [ServerPush.applyServerPushToState] for the given [key].
+  ///
+  /// You MUST return `null` when unknown (not `0`).
+  int? getServerRevisionFromState(Object? key);
+
+  /// Call this from [sendValueToServer] to inform the mixin about the
+  /// server revision returned in the response.
+  ///
+  /// The mixin uses this information internally to:
+  /// - Track the latest known server revision (for "last write wins" ordering)
+  /// - Determine whether to apply the server response (stale responses are
+  ///   automatically ignored)
+  ///
+  /// **Usage:** Just call this method with the serverRevision from the response.
+  /// The mixin handles all the logic - you don't need to check or compare
+  /// anything yourself.
+  ///
+  /// **Example:**
+  /// ```dart
+  /// Future<Object?> sendValueToServer(Object? optimisticValue) async {
+  ///   int localRev = localRevision();
+  ///   var response = await api.setLiked(itemId, optimisticValue, localRev: localRev);
+  ///   informServerRevision(response.serverRev);
+  ///   return response.liked; // The mixin decides whether to apply this
+  /// }
+  /// ```
+  ///
+  /// **Behavior:**
+  /// - Only updates the stored serverRevision if [revision] is greater than
+  ///   the current value (prevents regression from stale/out-of-order updates)
+  /// - The mixin will only apply the returned server response if this revision
+  ///   is still the newest (no newer push has arrived in the meantime)
+  ///
+  /// See also: [informServerRevisionAsDateTime].
+  ///
+  void informServerRevision(int revision) {
+    _informedServerRev = revision;
+
+    final key = _currentKey!;
+    final entry = _revisionMap[key];
+
+    final int currentServerRev = _bestKnownServerRevision(key);
+
+    // Only move forward, but keep local intent info.
+    if (revision > currentServerRev) {
+      _revisionMap[key] = (
+      localRevision: entry?.localRevision ?? 0,
+      serverRevision: revision,
+      intentBaseServerRevision: entry?.intentBaseServerRevision ?? currentServerRev,
+      localValue: entry?.localValue,
+      );
+    }
+  }
+
+  /// Convenience method to inform the server revision from a DateTime.
+  /// Uses `millisecondsSinceEpoch` as the revision number.
+  ///
+  /// See also: [informServerRevision].
+  ///
+  void informServerRevisionAsDateTime(DateTime revision) {
+    informServerRevision(revision.millisecondsSinceEpoch);
+  }
+
+  /// Convenience method to get the server revision as a DateTime.
+  /// Interprets the revision number as `millisecondsSinceEpoch`.
+  ///
+  /// Returns `DateTime.fromMillisecondsSinceEpoch(0)` if no revision is set.
+  ///
+  DateTime serverRevisionAsDateTime() =>
+      DateTime.fromMillisecondsSinceEpoch(_serverRevision(), isUtc: true);
+
+  /// Optionally, override [onFinish] to run any code after the synchronization
+  /// process completes. For example, you might want to reload related data from
+  /// the server, show a confirmation message, or perform cleanup.
+  ///
+  /// Note [onFinish] is called in both success and failure scenarios, but only
+  /// after the state stabilizes for this key (that is, after the last request
+  /// finishes and no follow-up request is needed).
+  ///
+  /// Important: The synchronization lock is released *before* [onFinish] runs.
+  /// This means new dispatches for the same key may start a new request while
+  /// [onFinish] is still executing.
+  ///
+  /// The [error] parameter will be `null` on success, or contain the error
+  /// object if the request failed.
+  ///
+  /// If [onFinish] returns a non-null state, it will be applied automatically.
+  /// If it returns `null`, no state change is made.
+  ///
+  /// ```dart
+  /// Future<St?> onFinish(Object? error) async {
+  ///   if (error == null) {
+  ///     // Success: show confirmation, log analytics, etc.
+  ///     return null;
+  ///   } else {
+  ///     // Failure: reload data from the server.
+  ///     var reloadedInfo = await api.loadInfo();
+  ///     return state.copy(info: reloadedInfo);
+  ///   }
+  /// }
+  /// ```
+  ///
+  /// Important:
+  ///
+  /// - If `onFinish(error)` throws, the original [error] is lost and the error
+  ///   thrown by [onFinish] becomes the action error. You can handle it in
+  ///   [wrapError].
+  ///
+  /// - Same on success: If `onFinish(null)` throws, the whole action fails
+  ///   even though the server request succeeded.  You can handle it in
+  ///   [wrapError].
+  ///
+  Future<St?> onFinish(Object? error) async => null;
+
+  @override
+  Future<St?> reduce() async {
+    _cannot_combine_mixins_OptimisticSyncWithPush();
+
+    // Reset the flag so localRevision() can increment for this dispatch.
+    _localRevisionCalled = false;
+
+    // Compute and cache the key for this dispatch.
+    _currentKey = computeOptimisticSyncKey();
+
+    // We automatically track revisions for every dispatch.
+    // This ensures blocked dispatches also increment the revision counter.
+    localRevision();
+
+    final value = valueToApply();
+
+    // Record the latest local intended value for this key, so follow-ups don't
+    // depend on store state (which may be overwritten by pushes).
+    final entry = _revisionMap[_currentKey];
+    _revisionMap[_currentKey] = (
+    localRevision: entry?.localRevision ?? 0,
+    serverRevision: entry?.serverRevision,
+    intentBaseServerRevision:
+    entry?.intentBaseServerRevision ?? (entry?.serverRevision ?? 0),
+    localValue: value,
+    );
+
+    // Always apply optimistic update immediately.
+    dispatchState(applyOptimisticValueToState(state, value));
+
+    // If locked, another request is in flight. The optimistic update is
+    // already applied, so just return. When the in-flight request completes,
+    // it will check if a follow-up is needed.
+    if (_optimisticSyncKeySet.contains(_currentKey)) return null;
+
+    // Acquire lock and send request.
+    _optimisticSyncKeySet.add(_currentKey);
+    await _sendAndFollowUp(_currentKey, value);
+
+    return null;
+  }
+
+  /// Set that tracks which keys are currently locked (requests in flight).
+  Set<Object?> get _optimisticSyncKeySet =>
+      store.internalMixinProps.optimisticSyncKeySet;
+
+  /// Map that tracks local and server revisions for the given key.
+  /// The values can be retrieved by methods [localRevision] and [serverRevision].
+  Map<
+      Object?,
+      ({
+      int localRevision,
+      int? serverRevision,
+      int intentBaseServerRevision,
+      Object? localValue,
+      })> get _revisionMap => store.internalMixinProps.revisionMap;
+
+  T? _getLatestLocalValue(Object? key) {
+    final v = _revisionMap[key]?.localValue;
+    return (v is T) ? v : null;
+  }
+
+  /// Sends the request and handles follow-up requests if the state changed
+  /// while the request was in flight.
+  ///
+  /// When revision tracking is enabled (`isPushCompatible == true`), follow-up
+  /// logic is primarily based on `localRevision` (local intent order), and the
+  /// value to resend comes from the latest *local intent value* saved in
+  /// `_revisionMap` (so it can't be corrupted by server pushes that overwrite
+  /// the store while a request is in flight).
+  ///
+  /// When revision tracking is disabled, the original behavior is preserved:
+  /// follow-up logic compares `stateValue` vs the sent value.
+  Future<void> _sendAndFollowUp(Object? key, T sentValue) async {
+    T _sentValue = sentValue;
+
+    int requestCount = 0;
+
+    while (true) {
+      requestCount++;
+
+      // Capture the local revision representing the intent we are about to send.
+      // This is captured before `sendValueToServer` so it represents "what this
+      // request corresponds to", even if new local dispatches happen while the
+      // request is in flight.
+      final int? sentLocalRev = _getLocalRevision(key);
+
+      // Reset before each request so we can detect whether the user called
+      // `informServerRevision()` while executing `sendValueToServer`.
+      _informedServerRev = null;
+
+      try {
+        // Send the value and get the server response (may be null).
+        final Object? serverResponse = await sendValueToServer(_sentValue);
+
+        // Validate that the developer called informServerRevision().
+        if (_informedServerRev == null) {
+          throw StateError(
+            'The OptimisticSyncWithPush mixin requires calling '
+                'informServerRevision() inside sendValueToServer(). '
+                'If you don\'t need server-push handling, use OptimisticSync instead.',
+          );
+        }
+
+        // Read the current value from the store.
+        // WARNING: In push mode this may reflect a server push, not local intent.
+        final stateValue = getValueFromState(state);
+
+        bool needFollowUp = false;
+
+        // Revision-based follow-up decision:
+        // If localRevision advanced since this request started, the user changed
+        // intent while the request was in flight, so we may need a follow-up.
+        final int currentLocalRev = _getLocalRevision(key);
+
+        if (currentLocalRev > sentLocalRev!) {
+          final entry = _revisionMap[key];
+          final int currentServerRev = _bestKnownServerRevision(key);
+          final int intentBaseServerRev = entry?.intentBaseServerRevision ?? 0;
+
+          // Remote-wins guard:
+          // If a newer server revision arrived than the revision returned by THIS response,
+          // and that newer server revision is also newer than the server revision that was
+          // current when the latest local intent was created, then the latest local intent
+          // is considered superseded under last-write-wins. Do not follow up.
+          final bool remoteSupersededThisResponse =
+              currentServerRev > _informedServerRev!;
+
+          final bool remoteSupersededLatestIntent =
+              currentServerRev > intentBaseServerRev;
+
+          if (remoteSupersededThisResponse && remoteSupersededLatestIntent) {
+            needFollowUp = false;
+          } else {
+            // IMPORTANT: Use the latest *local intent* value for this key, which
+            // we saved at dispatch time. Do not rely on store state here, because
+            // pushes can overwrite the store while the request is in flight.
+            final T latestLocalValue = _getLatestLocalValue(key) ?? stateValue;
+
+            // Optimization (restores old behavior):
+            // If the user changed intent during the request but ended up back at
+            // the same value we already sent, skip the follow-up request.
+            needFollowUp = ifShouldSendAnotherRequest(
+              stateValue: latestLocalValue,
+              sentValue: _sentValue,
+              requestCount: requestCount,
+            );
+
+            // If we do need a follow-up, resend the latest local intent value.
+            if (needFollowUp) _sentValue = latestLocalValue;
+          }
+        }
+
+        // If we need a follow-up, loop again without applying server response.
+        // The state is not stable yet.
+        if (needFollowUp) continue;
+
+        // State is stable for this key. Now we may apply the server response,
+        // but only if it is not stale relative to newer pushes.
+        if (serverResponse != null) {
+          // Only apply if the informed server revision still matches the latest
+          // known server revision for this key (i.e., no newer push arrived).
+          final bool shouldApply = _informedServerRev == _serverRevision();
+
+          if (shouldApply) {
+            final newState = applyServerResponseToState(state, serverResponse);
+            if (newState != null) dispatchState(newState);
+          }
+        }
+
+        // Release lock and finish.
+        _optimisticSyncKeySet.remove(key);
+        await _callOnFinish(null);
+        break;
+      } catch (error) {
+        // Request failed: release lock, run onFinish(error), then rethrow so the
+        // action still fails as before.
+        _optimisticSyncKeySet.remove(key);
+        await _callOnFinish(error);
+        rethrow;
+      }
+    }
+  }
+
+  /// Returns the current localRevision for this key, or 0 if not tracking.
+  int _getLocalRevision(Object? key) => _revisionMap[key]?.localRevision ?? 0;
+
+  /// Calls [onFinish], applying the returned state if non-null.
+  Future<void> _callOnFinish(Object? error) async {
+    final newState = await onFinish(error);
+    if (newState != null) dispatchState(newState);
+  }
+
+  /// If [ifShouldSendAnotherRequest] returns true, the action will perform one
+  /// more request to try and send the value from the state to the server.
+  ///
+  /// The default behavior of this method is to compare:
+  /// - The [stateValue], which is the value currently in the store state.
+  /// - The [sentValue], which is the value that was sent to the server.
+  ///
+  /// If both are different, it means that the state was changed after
+  /// we sent the request, so we should send another request with the new value.
+  ///
+  /// Optionally, override this method if you need custom equality logic.
+  /// The default implementation uses the `==` operator.
+  ///
+  /// The number of follow-up requests is limited at [maxFollowUpRequests] to
+  /// avoid infinite loops. If that limit is exceeded, a [StateError] is thrown.
+  ///
+  bool ifShouldSendAnotherRequest({
+    required T stateValue,
+    required T sentValue,
+    required int requestCount,
+  }) {
+    // Safety check to avoid infinite loops.
+    if ((maxFollowUpRequests != -1) && (requestCount > maxFollowUpRequests)) {
+      throw StateError('Too many follow-up requests '
+          'in action $runtimeType (> $maxFollowUpRequests).');
+    }
+
+    return (stateValue is ImmutableCollection &&
+        sentValue is ImmutableCollection)
+        ? !stateValue.same(sentValue)
+        : stateValue != sentValue;
+  }
+
+  /// Maximum number of follow-up requests to send before throwing an error.
+  /// This is a safety limit to avoid infinite loops. Override if you need a
+  /// different limit. Use `-1` for no limit.
+  int get maxFollowUpRequests => 10000;
+
+  /// Only [CheckInternet] and [AbortWhenNoInternet] can be combined
+  /// with [OptimisticSyncWithPush].
+  void _cannot_combine_mixins_OptimisticSyncWithPush() {
+    _incompatible<OptimisticSyncWithPush, NonReentrant>(this);
+    _incompatible<OptimisticSyncWithPush, Fresh>(this);
+    _incompatible<OptimisticSyncWithPush, Throttle>(this);
+    _incompatible<OptimisticSyncWithPush, UnlimitedRetryCheckInternet>(this);
+    _incompatible<OptimisticSyncWithPush, Debounce>(this);
+    _incompatible<OptimisticSyncWithPush, UnlimitedRetries>(this);
+    _incompatible<OptimisticSyncWithPush, OptimisticCommand>(this);
+    _incompatible<OptimisticSyncWithPush, OptimisticSync>(this);
+    _incompatible<OptimisticSyncWithPush, ServerPush>(this);
+  }
+}
+
+mixin ServerPush<St> on ReduxAction<St> {
+  /// Return the Type of the OptimisticSync/OptimisticSyncWithPush action that owns
+  /// this value (so both compute the same stable-sync key).
+  Type associatedAction();
+
+  /// Same meaning as in OptimisticSync: the params that differentiate keys.
+  Object? optimisticSyncKeyParams() => null;
+
+  /// Must match the OptimisticSync action key computation.
+  /// Default: (associatedActionType, optimisticSyncKeyParams)
+  Object computeOptimisticSyncKey() => (associatedAction(), optimisticSyncKeyParams());
+
+  /// You must override this to provide the revision number that came with
+  /// the push. For example:
+  ///
+  /// ```dart
+  /// class PushLikeUpdate extends AppAction with ServerPush {
+  ///   final bool liked;
+  ///   final int serverRev;
+  ///   PushLikeUpdate({required this.liked, required this.serverRev});
+  ///
+  ///   Type associatedAction() => ToggleLikeStableAction;
+  ///
+  ///   int serverRevision() => serverRev;
+  ///
+  ///   AppState? applyServerPushToState(AppState state)
+  ///     => state.copy(liked: liked, serverRevision: serverRev);
+  /// }
+  /// ```dart
+  int serverRevision();
+
+  /// You must override this to:
+  /// - Apply the pushed data to [state].
+  /// - Save the [serverRevision] for the current [key] to the [state].
+  ///
+  /// Return `null` to ignore the push.
+  ///
+  /// IMPORTANT: This should be a pure state transform and must NOT call
+  /// localRevision() or sendValueToServer().
+  ///
+  St? applyServerPushToState(St state, Object? key, int serverRevision);
+
+  /// You must override this to return the server revision you saved in the
+  /// state in [applyServerPushToState] for the given [key].
+  ///
+  /// You MUST return `null` when unknown (not `0`).
+  int? getServerRevisionFromState(Object? key);
+
+  /// If true (default), applies the push even while the stable-sync key is locked.
+  /// If you set this to false, you must handle deferral elsewhere, otherwise the
+  /// push will be ignored while locked.
+  bool get applyEvenIfLocked => true;
+
+  @override
+  St? reduce() {
+    final key = computeOptimisticSyncKey();
+    final incomingServerRev = serverRevision();
+
+    final entry0 = _revisionMap[key];
+    final fromMap = entry0?.serverRevision;
+    final fromState = getServerRevisionFromState(key);
+
+    final currentServerRev = (fromMap == null && fromState == null)
+        ? null
+        : ((fromMap ?? 0) > (fromState ?? 0)
+        ? (fromMap ?? 0)
+        : (fromState ?? 0));
+
+    // Seed the map from persisted state if needed.
+    // This is important even when we ignore the push as stale.
+    if (fromMap == null && fromState != null) {
+      _revisionMap[key] = (
+      localRevision: entry0?.localRevision ?? 0,
+      serverRevision: fromState,
+      intentBaseServerRevision: entry0?.intentBaseServerRevision ?? fromState,
+      localValue: entry0?.localValue,
+      );
+    }
+
+    // Ignore stale/out-of-order pushes.
+    if (currentServerRev != null && incomingServerRev <= currentServerRev) {
+      return null;
+    }
+
+    // Optionally ignore while locked (not deferred by default).
+    if (!applyEvenIfLocked && _optimisticSyncKeySet.contains(key)) {
+      return null;
+    }
+
+    // Apply pushed state.
+    final newState = applyServerPushToState(state, key, incomingServerRev);
+    if (newState == null) return null;
+
+    // Record newest known server revision for this key (preserve local intent info).
+    final entry = _revisionMap[key];
+    _revisionMap[key] = (
+    localRevision: entry?.localRevision ?? 0,
+    serverRevision: incomingServerRev,
+    intentBaseServerRevision:
+    entry?.intentBaseServerRevision ?? (currentServerRev ?? 0),
+    localValue: entry?.localValue,
+    );
+
+    return newState;
+  }
+
+  Set<Object?> get _optimisticSyncKeySet =>
+      store.internalMixinProps.optimisticSyncKeySet;
+
+  Map<
+      Object?,
+      ({
+      int localRevision,
+      int? serverRevision,
+      int intentBaseServerRevision,
+      Object? localValue,
+      })> get _revisionMap => store.internalMixinProps.revisionMap;
 }

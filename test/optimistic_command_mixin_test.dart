@@ -3,7 +3,7 @@ import 'package:bdd_framework/bdd_framework.dart';
 import 'package:flutter_test/flutter_test.dart' hide Retry;
 
 void main() {
-  var feature = BddFeature('Optimistic update actions');
+  var feature = BddFeature('OptimisticCommand mixin');
 
   Bdd(feature)
       .scenario('OptimisticCommand applies value, saves, and reloads.')
@@ -708,6 +708,262 @@ void main() {
     expect(action.receivedValueInSendCommand, isNotNull);
     expect(action.createdOptimisticValue, isNotNull);
     expect(identical(action.receivedValueInSendCommand, action.createdOptimisticValue), isTrue);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Tests for built-in non-reentrant behavior
+  // ---------------------------------------------------------------------------
+
+  Bdd(feature)
+      .scenario('OptimisticCommand blocks concurrent dispatches.')
+      .given('An OptimisticCommand action that takes some time to finish.')
+      .when('The action is dispatched.')
+      .and('Another action of the same type is dispatched before the previous one finished.')
+      .then('The second dispatch is aborted.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    // Dispatch first action that takes 100ms.
+    store.dispatch(OptimisticCommandSlowAction('item1', delayMillis: 100));
+    expect(store.isWaiting(OptimisticCommandSlowAction), true);
+
+    // Wait a bit and dispatch another action of the same type.
+    await Future.delayed(const Duration(milliseconds: 10));
+    store.dispatch(OptimisticCommandSlowAction('item2', delayMillis: 10));
+
+    // Wait for all actions to finish.
+    await store.waitAllActions([]);
+    expect(store.isWaiting(OptimisticCommandSlowAction), false);
+
+    // Only the first action ran, adding 'item1'.
+    // The second action was aborted.
+    expect(store.state.items, ['initial', 'item1']);
+  });
+
+  Bdd(feature)
+      .scenario('OptimisticCommand allows dispatch after action completes.')
+      .given('An OptimisticCommand action has completed.')
+      .when('The same action type is dispatched again.')
+      .then('It should run successfully.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    // Dispatch first action and wait for completion.
+    await store.dispatchAndWait(OptimisticCommandSlowAction('item1', delayMillis: 10));
+    expect(store.state.items, ['initial', 'item1']);
+
+    // After completion, we can dispatch again.
+    await store.dispatchAndWait(OptimisticCommandSlowAction('item2', delayMillis: 10));
+    expect(store.state.items, ['initial', 'item1', 'item2']);
+  });
+
+  Bdd(feature)
+      .scenario('OptimisticCommand releases key even when action fails.')
+      .given('An OptimisticCommand action that throws an error.')
+      .when('The action is dispatched and fails.')
+      .then('A subsequent dispatch of the same action type should run.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    // Dispatch action that will fail.
+    await store.dispatchAndWait(OptimisticCommandFailingAction());
+    expect(store.state.items, ['initial']); // Rolled back due to failure.
+
+    // After failure, we can dispatch again (key was released in after()).
+    await store.dispatchAndWait(OptimisticCommandSlowAction('item1', delayMillis: 10));
+    expect(store.state.items, ['initial', 'item1']);
+  });
+
+  Bdd(feature)
+      .scenario('OptimisticCommand with different nonReentrantKeyParams can run in parallel.')
+      .given('An OptimisticCommand action that uses nonReentrantKeyParams.')
+      .when('Two actions with different params are dispatched concurrently.')
+      .then('Both actions should run.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: []));
+
+    // Dispatch two actions with different itemIds - they should both run.
+    store.dispatch(OptimisticCommandWithParams('A', 'valueA', delayMillis: 100));
+    store.dispatch(OptimisticCommandWithParams('B', 'valueB', delayMillis: 100));
+
+    // Wait for both to complete.
+    await store.waitAllActions([]);
+
+    // Both should have run.
+    expect(store.state.items.length, 2);
+    expect(store.state.items.contains('valueA'), isTrue);
+    expect(store.state.items.contains('valueB'), isTrue);
+  });
+
+  Bdd(feature)
+      .scenario('OptimisticCommand with same nonReentrantKeyParams blocks each other.')
+      .given('An OptimisticCommand action that uses nonReentrantKeyParams.')
+      .when('Two actions with the same params are dispatched concurrently.')
+      .then('Only the first action should run.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: []));
+
+    // Dispatch two actions with the same itemId.
+    store.dispatch(OptimisticCommandWithParams('A', 'valueA1', delayMillis: 100));
+
+    // Wait a bit to ensure first action started.
+    await Future.delayed(const Duration(milliseconds: 10));
+
+    // This should be aborted because 'A' is already running.
+    store.dispatch(OptimisticCommandWithParams('A', 'valueA2', delayMillis: 10));
+
+    // Wait for all to complete.
+    await store.waitAllActions([]);
+
+    // Only first should have run.
+    expect(store.state.items, ['valueA1']);
+  });
+
+  Bdd(feature)
+      .scenario('Different OptimisticCommand action types with same computeNonReentrantKey block each other.')
+      .given('Two different OptimisticCommand action types that share the same non-reentrant key.')
+      .when('Both actions are dispatched concurrently.')
+      .then('Only the first action should run.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: []));
+
+    // Dispatch first action with shared key.
+    store.dispatch(OptimisticCommandSharedKey1('value1', delayMillis: 100));
+
+    // Wait a bit to ensure first action started.
+    await Future.delayed(const Duration(milliseconds: 10));
+
+    // Dispatch second action type with same shared key - should be aborted.
+    store.dispatch(OptimisticCommandSharedKey2('value2', delayMillis: 10));
+
+    // Wait for all to complete.
+    await store.waitAllActions([]);
+
+    // Only first should have run.
+    expect(store.state.items, ['value1']);
+  });
+
+  Bdd(feature)
+      .scenario('After first OptimisticCommand completes, second action type with shared key can run.')
+      .given('Two different OptimisticCommand action types that share the same non-reentrant key.')
+      .when('The first action completes.')
+      .then('The second action type can run.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: []));
+
+    // Dispatch and wait for first action.
+    await store.dispatchAndWait(OptimisticCommandSharedKey1('value1', delayMillis: 10));
+    expect(store.state.items, ['value1']);
+
+    // Now second action type with same key should run.
+    await store.dispatchAndWait(OptimisticCommandSharedKey2('value2', delayMillis: 10));
+    expect(store.state.items, ['value1', 'value2']);
+  });
+
+  Bdd(feature)
+      .scenario('OptimisticCommand key is released after error in reduce.')
+      .given('An OptimisticCommand action with params that throws.')
+      .when('The action fails.')
+      .then('The key is released and another action with same params can run.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: []));
+
+    // Dispatch action with param 'X' that fails.
+    await store.dispatchAndWait(OptimisticCommandWithParamsThatFails('X'));
+    expect(store.state.items, []); // Rolled back.
+
+    // Now dispatch another action with same param - should run.
+    await store.dispatchAndWait(OptimisticCommandWithParams('X', 'valueX', delayMillis: 10));
+    expect(store.state.items, ['valueX']);
+  });
+
+  Bdd(feature)
+      .scenario('Multiple OptimisticCommand concurrent dispatches with various params.')
+      .given('Multiple OptimisticCommand actions with different params.')
+      .when('They are dispatched concurrently.')
+      .then('Actions with different params run, actions with same params are blocked.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: []));
+
+    // Dispatch multiple actions:
+    // - Two with param 'A' (second should be blocked)
+    // - Two with param 'B' (second should be blocked)
+    // - One with param 'C' (should run)
+    store.dispatch(OptimisticCommandWithParams('A', 'A1', delayMillis: 100));
+    store.dispatch(OptimisticCommandWithParams('B', 'B1', delayMillis: 100));
+    store.dispatch(OptimisticCommandWithParams('C', 'C1', delayMillis: 100));
+
+    await Future.delayed(const Duration(milliseconds: 10));
+
+    store.dispatch(OptimisticCommandWithParams('A', 'A2', delayMillis: 10)); // blocked
+    store.dispatch(OptimisticCommandWithParams('B', 'B2', delayMillis: 10)); // blocked
+
+    await store.waitAllActions([]);
+
+    // Only A1, B1, C1 should have run.
+    expect(store.state.items.length, 3);
+    expect(store.state.items.contains('A1'), isTrue);
+    expect(store.state.items.contains('B1'), isTrue);
+    expect(store.state.items.contains('C1'), isTrue);
+    expect(store.state.items.contains('A2'), isFalse);
+    expect(store.state.items.contains('B2'), isFalse);
+  });
+
+  Bdd(feature)
+      .scenario('OptimisticCommand cannot be combined with NonReentrant mixin.')
+      .given('An action that combines OptimisticCommand and NonReentrant.')
+      .when('The action is dispatched.')
+      .then('An assertion error is thrown.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    // This should throw an assertion error due to incompatible mixins.
+    expect(
+      () => store.dispatch(OptimisticCommandWithNonReentrant('item')),
+      throwsA(isA<AssertionError>().having(
+        (e) => e.message,
+        'message',
+        contains('OptimisticCommand'),
+      )),
+    );
+  });
+
+  Bdd(feature)
+      .scenario('OptimisticCommand cannot be combined with Throttle mixin.')
+      .given('An action that combines OptimisticCommand and Throttle.')
+      .when('The action is dispatched.')
+      .then('An assertion error is thrown.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    // This should throw an assertion error due to incompatible mixins.
+    expect(
+      () => store.dispatch(OptimisticCommandWithThrottle('item')),
+      throwsA(isA<AssertionError>().having(
+        (e) => e.message,
+        'message',
+        contains('OptimisticCommand'),
+      )),
+    );
+  });
+
+  Bdd(feature)
+      .scenario('OptimisticCommand cannot be combined with Fresh mixin.')
+      .given('An action that combines OptimisticCommand and Fresh.')
+      .when('The action is dispatched.')
+      .then('An assertion error is thrown.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    // This should throw an assertion error due to incompatible mixins.
+    expect(
+      () => store.dispatch(OptimisticCommandWithFresh('item')),
+      throwsA(isA<AssertionError>().having(
+        (e) => e.message,
+        'message',
+        contains('OptimisticCommand'),
+      )),
+    );
   });
 }
 
@@ -1815,4 +2071,242 @@ class SaveItemActionCheckIdentity extends ReduxAction<AppState>
   }
 
   // No reload to keep test simple.
+}
+
+// -----------------------------------------------------------------------------
+// Actions for non-reentrant behavior tests
+// -----------------------------------------------------------------------------
+
+/// OptimisticCommand action with configurable delay (for testing non-reentrant behavior).
+class OptimisticCommandSlowAction extends ReduxAction<AppState>
+    with OptimisticCommand<AppState> {
+  final String newItem;
+  final int delayMillis;
+
+  OptimisticCommandSlowAction(this.newItem, {required this.delayMillis});
+
+  @override
+  Object? optimisticValue() => [...state.items, newItem];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) =>
+      state.copy(items: value as List<String>);
+
+  @override
+  Future<void> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(Duration(milliseconds: delayMillis));
+  }
+
+  // No reload to keep test simple.
+}
+
+/// OptimisticCommand action that always fails (for testing key release on failure).
+class OptimisticCommandFailingAction extends ReduxAction<AppState>
+    with OptimisticCommand<AppState> {
+  @override
+  Object? optimisticValue() => [...state.items, 'failing_item'];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) =>
+      state.copy(items: value as List<String>);
+
+  @override
+  Future<void> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+    throw const UserException('Intentional failure');
+  }
+
+  // No reload to keep test simple.
+}
+
+/// OptimisticCommand action that uses nonReentrantKeyParams to differentiate by itemId.
+class OptimisticCommandWithParams extends ReduxAction<AppState>
+    with OptimisticCommand<AppState> {
+  final String itemId;
+  final String value;
+  final int delayMillis;
+
+  OptimisticCommandWithParams(this.itemId, this.value, {required this.delayMillis});
+
+  @override
+  Object? nonReentrantKeyParams() => itemId;
+
+  @override
+  Object? optimisticValue() => [...state.items, value];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) =>
+      state.copy(items: value as List<String>);
+
+  @override
+  Future<void> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(Duration(milliseconds: delayMillis));
+  }
+
+  // No reload to keep test simple.
+}
+
+/// OptimisticCommand action that uses nonReentrantKeyParams and always fails.
+class OptimisticCommandWithParamsThatFails extends ReduxAction<AppState>
+    with OptimisticCommand<AppState> {
+  final String itemId;
+
+  OptimisticCommandWithParamsThatFails(this.itemId);
+
+  @override
+  Object? nonReentrantKeyParams() => itemId;
+
+  @override
+  Object? optimisticValue() => [...state.items, 'failing_$itemId'];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) =>
+      state.copy(items: value as List<String>);
+
+  @override
+  Future<void> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+    throw const UserException('Intentional failure');
+  }
+
+  // No reload to keep test simple.
+}
+
+/// First OptimisticCommand action type that uses a shared non-reentrant key via computeNonReentrantKey.
+class OptimisticCommandSharedKey1 extends ReduxAction<AppState>
+    with OptimisticCommand<AppState> {
+  final String value;
+  final int delayMillis;
+
+  OptimisticCommandSharedKey1(this.value, {required this.delayMillis});
+
+  @override
+  Object computeNonReentrantKey() => 'sharedOptimisticKey';
+
+  @override
+  Object? optimisticValue() => [...state.items, value];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) =>
+      state.copy(items: value as List<String>);
+
+  @override
+  Future<void> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(Duration(milliseconds: delayMillis));
+  }
+
+  // No reload to keep test simple.
+}
+
+/// Second OptimisticCommand action type that uses the same shared non-reentrant key.
+class OptimisticCommandSharedKey2 extends ReduxAction<AppState>
+    with OptimisticCommand<AppState> {
+  final String value;
+  final int delayMillis;
+
+  OptimisticCommandSharedKey2(this.value, {required this.delayMillis});
+
+  @override
+  Object computeNonReentrantKey() => 'sharedOptimisticKey';
+
+  @override
+  Object? optimisticValue() => [...state.items, value];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) =>
+      state.copy(items: value as List<String>);
+
+  @override
+  Future<void> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(Duration(milliseconds: delayMillis));
+  }
+
+  // No reload to keep test simple.
+}
+
+/// OptimisticCommand action that also uses NonReentrant (should throw assertion error).
+class OptimisticCommandWithNonReentrant extends ReduxAction<AppState>
+    with OptimisticCommand<AppState>, NonReentrant<AppState> {
+  final String newItem;
+
+  OptimisticCommandWithNonReentrant(this.newItem);
+
+  @override
+  Object? optimisticValue() => [...state.items, newItem];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) =>
+      state.copy(items: value as List<String>);
+
+  @override
+  Future<void> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+  }
+}
+
+/// OptimisticCommand action that also uses Throttle (should throw assertion error).
+class OptimisticCommandWithThrottle extends ReduxAction<AppState>
+    with OptimisticCommand<AppState>, Throttle<AppState> {
+  final String newItem;
+
+  OptimisticCommandWithThrottle(this.newItem);
+
+  @override
+  Object? optimisticValue() => [...state.items, newItem];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) =>
+      state.copy(items: value as List<String>);
+
+  @override
+  Future<void> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+  }
+}
+
+/// OptimisticCommand action that also uses Fresh (should throw assertion error).
+class OptimisticCommandWithFresh extends ReduxAction<AppState>
+    with OptimisticCommand<AppState>, Fresh<AppState> {
+  final String newItem;
+
+  OptimisticCommandWithFresh(this.newItem);
+
+  @override
+  Object? optimisticValue() => [...state.items, newItem];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) =>
+      state.copy(items: value as List<String>);
+
+  @override
+  Future<void> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+  }
 }

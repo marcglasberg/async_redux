@@ -1,13 +1,11 @@
-// server_push_init_test.dart
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
-import 'package:async_redux/src/optimistic_sync_with_push_mixin.dart';
 import 'package:bdd_framework/bdd_framework.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final feature = BddFeature('ServerPush init (persisted revisions)');
+  final feature = BddFeature('ServerPush mixin initialization');
 
   setUp(() {
     resetTestState();
@@ -76,10 +74,11 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario(
-          'Init: Push with equal serverRevision is ignored at startup.')
-      .given('App launched with state.serverRevision=100 and revisionMap empty.')
-      .when('A ServerPush arrives with serverRevision=100 and a different liked value.')
+      .scenario('Init: Push with equal serverRevision is ignored at startup.')
+      .given(
+          'App launched with state.serverRevision=100 and revisionMap empty.')
+      .when(
+          'A ServerPush arrives with serverRevision=100 and a different liked value.')
       .then('The push is ignored and state remains unchanged.')
       .run((_) async {
     final store = Store<AppState>(
@@ -152,8 +151,8 @@ void main() {
 
     // Stale push arrives (delayed message). Backend has already moved on,
     // so we only deliver the stale message to the client.
-    await store.dispatchAndWait(
-        PushLikeUpdateNoStateRev(liked: false, serverRev: 99));
+    await store
+        .dispatchAndWait(PushLikeUpdateNoStateRev(liked: false, serverRev: 99));
 
     // If seeding didn't happen, this would incorrectly apply and set serverRevision=99.
     expect(store.state.serverRevision, 100);

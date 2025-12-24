@@ -14,7 +14,6 @@ export 'src/mock_build_context.dart';
 export 'src/mock_store.dart';
 export 'src/model_observer.dart';
 export 'src/navigate_action.dart';
-export 'src/optimistic_sync_mixin.dart';
 export 'src/persistor.dart';
 export 'src/state_observer.dart';
 export 'src/store.dart';
