@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
-import 'package:async_redux/src/optimistic_sync_with_push_mixin.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:meta/meta.dart';
@@ -432,6 +431,7 @@ mixin Retry<St> on ReduxAction<St> {
   @override
   Future<St?> wrapReduce(Reducer<St> reduce) async {
     _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet();
+    _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_OptimisticSync_OptimisticSyncWithPush_ServerPush();
 
     // When combined with OptimisticCommand, we skip the retry logic here.
     // OptimisticCommand will handle retries internally to avoid UI flickering.
@@ -483,6 +483,14 @@ mixin Retry<St> on ReduxAction<St> {
   void _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet() {
     _incompatible<Retry, Debounce>(this);
     _incompatible<Retry, UnlimitedRetryCheckInternet>(this);
+  }
+
+  void
+      _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
+    _incompatible<Retry, UnlimitedRetryCheckInternet>(this);
+    _incompatible<Retry, OptimisticSync>(this);
+    _incompatible<Retry, OptimisticSyncWithPush>(this);
+    _incompatible<Retry, ServerPush>(this);
   }
 }
 
@@ -638,7 +646,8 @@ mixin UnlimitedRetries<St> on Retry<St> {
 ///   restores the value from [initialState].
 ///
 /// * Reload is optional. If implemented, it runs after [sendCommandToServer]
-///   finishes, both on success and on failure.
+///   finishes, only in case of error (this can be changed by overriding
+///   [shouldReload] to return true).
 ///
 /// ### Complete example using the mixin
 ///
@@ -662,7 +671,12 @@ mixin UnlimitedRetries<St> on Retry<St> {
 ///
 ///   // Contact the server to send the command (save the Todo). I
 ///   @override
-///   Future<void> sendCommandToServer(Object? newTodo) async => await saveTodo(newTodo);
+///   Future<Todo> sendCommandToServer(Object? newTodo) async => await saveTodo(newTodo);
+///
+///   // If the server returns a value, we may apply it to the state.
+///   @override
+///   AppState applyServerResponseToState(AppState state, Todo todo)
+///     => state.copy(todoList: state.todoList.add(todo));
 ///
 ///   // Reload from the cloud (in case of error).
 ///   @override
@@ -711,7 +725,7 @@ mixin UnlimitedRetries<St> on Retry<St> {
 ///
 /// This is useful for commands that you **do** want to run in parallel,
 /// as long as they are for different items. Common examples include:
-/// 
+///
 /// * Uploading multiple files at the same time (key by fileId)
 /// * Sending multiple chat messages at the same time (key by clientMessageId)
 /// * Enqueuing multiple jobs at the same time (key by jobId)
@@ -743,7 +757,7 @@ mixin UnlimitedRetries<St> on Retry<St> {
 /// * No server call is attempted
 /// * The action fails and your dialog shows (for [CheckInternet])
 ///
-/// 
+///
 /// Notes:
 /// - Equality checks use the == operator. Make sure your value type implements
 ///   == in a way that makes sense for optimistic checks.
@@ -788,15 +802,39 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
   /// ```
   Object? getValueFromState(St state);
 
-  /// You should save the [optimisticValue] or other related value in the cloud.
+  /// You should save the [optimisticValue] or other related value in the cloud,
+  /// and optionally return the server's response.
   ///
-  /// Note: This mixin is for commands, so you can ignore [optimisticValue] and
-  /// use the action fields instead, if that makes more sense for your API.
+  /// Note: You can ignore [optimisticValue] and use the action fields instead,
+  /// if that makes more sense for your API.
+  ///
+  /// If [sendCommandToServer] returns a non-null value, that value will be
+  /// passed to [applyServerResponseToState] to update the state.
   ///
   /// ```dart
-  /// Future<void> sendCommandToServer(newTodoList) => saveTodo(newTodo);
+  /// Future<Object?> sendCommandToServer(newTodoList) async {
+  ///   var response = await saveTodo(newTodo);
+  ///   return response; // Return server-confirmed value, or null.
+  /// }
   /// ```
-  Future<void> sendCommandToServer(Object? optimisticValue);
+  Future<Object?> sendCommandToServer(Object? optimisticValue);
+
+  /// Override [applyServerResponseToState] to return a new state, where the
+  /// given [serverResponse] (previously received from the server when running
+  /// [sendCommandToServer]) is applied to the current [state]. Example:
+  ///
+  /// ```dart
+  /// AppState? applyServerResponseToState(state, serverResponse) =>
+  ///     state.copyWith(todoList: serverResponse.todoList);
+  /// ```
+  ///
+  /// Note [serverResponse] is never `null` here, because this method is only
+  /// called when [sendCommandToServer] returned a non-null value.
+  ///
+  /// If you decide you DO NOT want to apply the server response to the state,
+  /// simply return `null`.
+  ///
+  St? applyServerResponseToState(St state, Object serverResponse) => null;
 
   /// Override to reload the value from the cloud.
   /// If you want to skip reload, do not override this method.
@@ -919,7 +957,7 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
     required Object? rollbackValue,
     required Object? error, // null on success
   }) =>
-      true;
+      error != null;
 
   /// Returns true if the mixin should apply the result returned by
   /// [reloadFromServer] to the state.
@@ -1020,7 +1058,19 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
       // Saves the new value to the cloud.
       // If this action also uses the Retry mixin, we handle retries here
       // to avoid UI flickering (applying/rolling back on each retry attempt).
-      await _sendCommandWithRetryIfNeeded(optimistic);
+      final serverResponse = await _sendCommandWithRetryIfNeeded(optimistic);
+
+      // Apply server response if not null.
+      if (serverResponse != null) {
+        final St? newState = applyServerResponseToState(state, serverResponse);
+
+        if (newState != null) {
+          dispatchState(newState);
+
+          // Keep lastAppliedValue in sync with what we just wrote for the slice.
+          lastAppliedValue = getValueFromState(newState);
+        }
+      }
     } catch (error) {
       commandError = error;
 
@@ -1098,12 +1148,12 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 
   /// When combined with Retry, this method retries only the [sendCommandToServer]
   /// call, keeping the optimistic update in place and avoiding UI flickering.
-  Future<void> _sendCommandWithRetryIfNeeded(Object? _optimisticValue) async {
+  Future<Object?> _sendCommandWithRetryIfNeeded(
+      Object? _optimisticValue) async {
     // If this action doesn't use the Retry mixin,
     // just call sendCommandToServer directly.
     if (this is! Retry) {
-      await sendCommandToServer(_optimisticValue);
-      return;
+      return sendCommandToServer(_optimisticValue);
     }
 
     // Access the Retry mixin's properties via casting.
@@ -1111,8 +1161,7 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 
     while (true) {
       try {
-        await sendCommandToServer(_optimisticValue);
-        return; // Success, exit the retry loop.
+        return await sendCommandToServer(_optimisticValue);
       } catch (error) {
         retryMixin._attempts++;
 
@@ -1139,6 +1188,7 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
   @override
   bool abortDispatch() {
     _cannot_combine_mixins_OptimisticCommand();
+    _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
 
     _nonReentrantCommandKey = computeNonReentrantKey();
 
@@ -1161,14 +1211,18 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 
   /// Only [Retry], [CheckInternet] and [AbortWhenNoInternet] can be combined
   /// with [OptimisticCommand].
-  /// 
+  ///
   void _cannot_combine_mixins_OptimisticCommand() {
     _incompatible<OptimisticCommand, NonReentrant>(this);
     _incompatible<OptimisticCommand, Fresh>(this);
     _incompatible<OptimisticCommand, Throttle>(this);
-    _incompatible<OptimisticCommand, UnlimitedRetryCheckInternet>(this);
     _incompatible<OptimisticCommand, Debounce>(this);
     _incompatible<OptimisticCommand, UnlimitedRetries>(this);
+  }
+
+  void
+      _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
+    _incompatible<OptimisticCommand, UnlimitedRetryCheckInternet>(this);
     _incompatible<OptimisticCommand, OptimisticSync>(this);
     _incompatible<OptimisticCommand, OptimisticSyncWithPush>(this);
     _incompatible<OptimisticCommand, ServerPush>(this);
@@ -1555,6 +1609,7 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
     _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet();
     _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet();
     _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet();
+    _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
 
     return isWaiting(runtimeType);
   }
@@ -1708,8 +1763,16 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
   }
 
   void _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet() {
-    _incompatible<Retry, Debounce>(this);
-    _incompatible<Retry, UnlimitedRetryCheckInternet>(this);
+    _incompatible<UnlimitedRetryCheckInternet, Debounce>(this);
+    _incompatible<UnlimitedRetryCheckInternet, Retry>(this);
+  }
+
+  void
+      _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
+    _incompatible<UnlimitedRetryCheckInternet, OptimisticCommand>(this);
+    _incompatible<UnlimitedRetryCheckInternet, OptimisticSync>(this);
+    _incompatible<UnlimitedRetryCheckInternet, OptimisticSyncWithPush>(this);
+    _incompatible<UnlimitedRetryCheckInternet, ServerPush>(this);
   }
 }
 
@@ -2554,6 +2617,7 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
   @override
   Future<St?> reduce() async {
     _cannot_combine_mixins_OptimisticSync();
+    _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
 
     // Reset per-dispatch tracking fields.
     lastSentValue = null;
@@ -2680,7 +2744,7 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
     }
 
     return (stateValue is ImmutableCollection &&
-        sentValue is ImmutableCollection)
+            sentValue is ImmutableCollection)
         ? !stateValue.same(sentValue)
         : stateValue != sentValue;
   }
@@ -2696,12 +2760,17 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
     _incompatible<OptimisticSync, NonReentrant>(this);
     _incompatible<OptimisticSync, Fresh>(this);
     _incompatible<OptimisticSync, Throttle>(this);
-    _incompatible<OptimisticSync, UnlimitedRetryCheckInternet>(this);
     _incompatible<OptimisticSync, Debounce>(this);
     _incompatible<OptimisticSync, UnlimitedRetries>(this);
+  }
+
+  void
+      _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
+    _incompatible<OptimisticSync, UnlimitedRetryCheckInternet>(this);
     _incompatible<OptimisticSync, OptimisticCommand>(this);
     _incompatible<OptimisticSync, OptimisticSyncWithPush>(this);
     _incompatible<OptimisticSync, ServerPush>(this);
+    _incompatible<OptimisticSync, Retry>(this);
   }
 }
 
@@ -2936,13 +3005,13 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
 
       // Keep null only if we truly know nothing.
       final int? storedServerRev =
-      (fromMap == null && fromState == null) ? null : baseServerRev;
+          (fromMap == null && fromState == null) ? null : baseServerRev;
 
       _revisionMap[key] = (
-      localRevision: newLocalRev,
-      serverRevision: storedServerRev,
-      intentBaseServerRevision: baseServerRev,
-      localValue: entry?.localValue, // preserve latest local intent value
+        localRevision: newLocalRev,
+        serverRevision: storedServerRev,
+        intentBaseServerRevision: baseServerRev,
+        localValue: entry?.localValue, // preserve latest local intent value
       );
     }
 
@@ -2972,10 +3041,10 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
 
     if (fromState > fromMap) {
       _revisionMap[key] = (
-      localRevision: entry?.localRevision ?? 0,
-      serverRevision: fromState,
-      intentBaseServerRevision: entry?.intentBaseServerRevision ?? fromState,
-      localValue: entry?.localValue,
+        localRevision: entry?.localRevision ?? 0,
+        serverRevision: fromState,
+        intentBaseServerRevision: entry?.intentBaseServerRevision ?? fromState,
+        localValue: entry?.localValue,
       );
       return fromState;
     }
@@ -3044,10 +3113,11 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
     // Only move forward, but keep local intent info.
     if (revision > currentServerRev) {
       _revisionMap[key] = (
-      localRevision: entry?.localRevision ?? 0,
-      serverRevision: revision,
-      intentBaseServerRevision: entry?.intentBaseServerRevision ?? currentServerRev,
-      localValue: entry?.localValue,
+        localRevision: entry?.localRevision ?? 0,
+        serverRevision: revision,
+        intentBaseServerRevision:
+            entry?.intentBaseServerRevision ?? currentServerRev,
+        localValue: entry?.localValue,
       );
     }
   }
@@ -3115,6 +3185,7 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
   @override
   Future<St?> reduce() async {
     _cannot_combine_mixins_OptimisticSyncWithPush();
+    _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
 
     // Reset the flag so localRevision() can increment for this dispatch.
     _localRevisionCalled = false;
@@ -3132,11 +3203,11 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
     // depend on store state (which may be overwritten by pushes).
     final entry = _revisionMap[_currentKey];
     _revisionMap[_currentKey] = (
-    localRevision: entry?.localRevision ?? 0,
-    serverRevision: entry?.serverRevision,
-    intentBaseServerRevision:
-    entry?.intentBaseServerRevision ?? (entry?.serverRevision ?? 0),
-    localValue: value,
+      localRevision: entry?.localRevision ?? 0,
+      serverRevision: entry?.serverRevision,
+      intentBaseServerRevision:
+          entry?.intentBaseServerRevision ?? (entry?.serverRevision ?? 0),
+      localValue: value,
     );
 
     // Always apply optimistic update immediately.
@@ -3163,10 +3234,10 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
   Map<
       Object?,
       ({
-      int localRevision,
-      int? serverRevision,
-      int intentBaseServerRevision,
-      Object? localValue,
+        int localRevision,
+        int? serverRevision,
+        int intentBaseServerRevision,
+        Object? localValue,
       })> get _revisionMap => store.internalMixinProps.revisionMap;
 
   T? _getLatestLocalValue(Object? key) {
@@ -3211,8 +3282,8 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
         if (_informedServerRev == null) {
           throw StateError(
             'The OptimisticSyncWithPush mixin requires calling '
-                'informServerRevision() inside sendValueToServer(). '
-                'If you don\'t need server-push handling, use OptimisticSync instead.',
+            'informServerRevision() inside sendValueToServer(). '
+            'If you don\'t need server-push handling, use OptimisticSync instead.',
           );
         }
 
@@ -3333,7 +3404,7 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
     }
 
     return (stateValue is ImmutableCollection &&
-        sentValue is ImmutableCollection)
+            sentValue is ImmutableCollection)
         ? !stateValue.same(sentValue)
         : stateValue != sentValue;
   }
@@ -3349,12 +3420,17 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
     _incompatible<OptimisticSyncWithPush, NonReentrant>(this);
     _incompatible<OptimisticSyncWithPush, Fresh>(this);
     _incompatible<OptimisticSyncWithPush, Throttle>(this);
-    _incompatible<OptimisticSyncWithPush, UnlimitedRetryCheckInternet>(this);
     _incompatible<OptimisticSyncWithPush, Debounce>(this);
     _incompatible<OptimisticSyncWithPush, UnlimitedRetries>(this);
+  }
+
+  void
+      _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
+    _incompatible<OptimisticSyncWithPush, UnlimitedRetryCheckInternet>(this);
     _incompatible<OptimisticSyncWithPush, OptimisticCommand>(this);
     _incompatible<OptimisticSyncWithPush, OptimisticSync>(this);
     _incompatible<OptimisticSyncWithPush, ServerPush>(this);
+    _incompatible<OptimisticSyncWithPush, Retry>(this);
   }
 }
 
@@ -3368,7 +3444,8 @@ mixin ServerPush<St> on ReduxAction<St> {
 
   /// Must match the OptimisticSync action key computation.
   /// Default: (associatedActionType, optimisticSyncKeyParams)
-  Object computeOptimisticSyncKey() => (associatedAction(), optimisticSyncKeyParams());
+  Object computeOptimisticSyncKey() =>
+      (associatedAction(), optimisticSyncKeyParams());
 
   /// You must override this to provide the revision number that came with
   /// the push. For example:
@@ -3413,6 +3490,9 @@ mixin ServerPush<St> on ReduxAction<St> {
 
   @override
   St? reduce() {
+    _cannot_combine_mixins_ServerPush();
+    _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+
     final key = computeOptimisticSyncKey();
     final incomingServerRev = serverRevision();
 
@@ -3423,17 +3503,17 @@ mixin ServerPush<St> on ReduxAction<St> {
     final currentServerRev = (fromMap == null && fromState == null)
         ? null
         : ((fromMap ?? 0) > (fromState ?? 0)
-        ? (fromMap ?? 0)
-        : (fromState ?? 0));
+            ? (fromMap ?? 0)
+            : (fromState ?? 0));
 
     // Seed the map from persisted state if needed.
     // This is important even when we ignore the push as stale.
     if (fromMap == null && fromState != null) {
       _revisionMap[key] = (
-      localRevision: entry0?.localRevision ?? 0,
-      serverRevision: fromState,
-      intentBaseServerRevision: entry0?.intentBaseServerRevision ?? fromState,
-      localValue: entry0?.localValue,
+        localRevision: entry0?.localRevision ?? 0,
+        serverRevision: fromState,
+        intentBaseServerRevision: entry0?.intentBaseServerRevision ?? fromState,
+        localValue: entry0?.localValue,
       );
     }
 
@@ -3454,11 +3534,11 @@ mixin ServerPush<St> on ReduxAction<St> {
     // Record newest known server revision for this key (preserve local intent info).
     final entry = _revisionMap[key];
     _revisionMap[key] = (
-    localRevision: entry?.localRevision ?? 0,
-    serverRevision: incomingServerRev,
-    intentBaseServerRevision:
-    entry?.intentBaseServerRevision ?? (currentServerRev ?? 0),
-    localValue: entry?.localValue,
+      localRevision: entry?.localRevision ?? 0,
+      serverRevision: incomingServerRev,
+      intentBaseServerRevision:
+          entry?.intentBaseServerRevision ?? (currentServerRev ?? 0),
+      localValue: entry?.localValue,
     );
 
     return newState;
@@ -3470,9 +3550,27 @@ mixin ServerPush<St> on ReduxAction<St> {
   Map<
       Object?,
       ({
-      int localRevision,
-      int? serverRevision,
-      int intentBaseServerRevision,
-      Object? localValue,
+        int localRevision,
+        int? serverRevision,
+        int intentBaseServerRevision,
+        Object? localValue,
       })> get _revisionMap => store.internalMixinProps.revisionMap;
+
+  void _cannot_combine_mixins_ServerPush() {
+    _incompatible<ServerPush, CheckInternet>(this);
+    _incompatible<ServerPush, AbortWhenNoInternet>(this);
+    _incompatible<ServerPush, NonReentrant>(this);
+    _incompatible<ServerPush, Fresh>(this);
+    _incompatible<ServerPush, Throttle>(this);
+    _incompatible<ServerPush, Debounce>(this);
+    _incompatible<ServerPush, UnlimitedRetries>(this);
+  }
+
+  void
+      _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
+    _incompatible<ServerPush, UnlimitedRetryCheckInternet>(this);
+    _incompatible<ServerPush, OptimisticCommand>(this);
+    _incompatible<ServerPush, OptimisticSync>(this);
+    _incompatible<ServerPush, Retry>(this);
+  }
 }

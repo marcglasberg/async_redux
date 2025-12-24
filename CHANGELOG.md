@@ -1,8 +1,7 @@
 _Visit
 the <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/MobileAppFlutterRedux/README.md">
 Async Redux App Example GitHub Repo</a> for a full-fledged example app
-showcasing the
-fundamentals and best practices._
+showcasing the fundamentals and best practices._
 
 Sponsored by [MyText.ai](https://mytext.ai)
 
@@ -39,8 +38,13 @@ Sponsored by [MyText.ai](https://mytext.ai)
  
     // Contact the server to send the command (save the Todo). I
     @override
-    Future<void> sendCommandToServer(Object? newTodo) async => await saveTodo(newTodo);
- 
+    Future<Todo> sendCommandToServer(Object? newTodo) async => await saveTodo(newTodo);
+                
+    // If the server returns a value, we may apply it to the state.
+    @override
+    AppState applyServerResponseToState(AppState state, Todo todo)
+      => state.copy(todoList: state.todoList.add(todo));
+
     // Reload from the cloud (in case of error).
     @override
     Future<Object?> reloadFromServer() async => await loadTodo();
@@ -49,53 +53,20 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
   ### Key features:
 
-  - **Instant UI update**: The state is updated immediately when the action
-    is dispatched, before the server request completes.
+    - **Instant UI update**: The state is updated immediately when the action
+      is dispatched, before the server request completes.
 
-  - **Automatic rollback**: If `sendCommandToServer` fails, the mixin checks
-    if the current state still contains the optimistic value. If so, it
-    safely rolls back to the initial value.
+    - **Automatic rollback**: If `sendCommandToServer` fails, the mixin checks
+      if the current state still contains the optimistic value. If so, it
+      safely rolls back to the initial value.
 
-  - **Non-reentrant by default**: Concurrent dispatches of the same action
-    type are prevented. Use `nonReentrantKeyParams()` to allow parallel
-    execution for different parameters (e.g., different item IDs).
+    - **Non-reentrant by default**: Concurrent dispatches of the same action
+      type are prevented. Use `nonReentrantKeyParams()` to allow parallel
+      execution for different parameters (e.g., different item IDs).
 
-  - **Optional reload**: Override `reloadFromServer()` to fetch fresh data
-    from the server after the command completes (success or failure).
+    - **Optional reload**: Override `reloadFromServer()` to fetch fresh data
+      from the server after the command completes (success or failure).
 
-  ### Customizing rollback behavior:
-
-  Override `shouldRollback()` to control when rollback happens:
-
-  ```dart
-  bool shouldRollback({
-    required Object? currentValue,
-    required Object? initialValue,
-    required Object? optimisticValue,
-    required Object error,
-  }) {
-    // Only rollback for network errors
-    return error is NetworkException;
-  }
-  ```
-
-  Override `rollbackState()` for custom rollback logic (e.g., marking an
-  item as failed instead of removing it):
-
-  ```dart
-  AppState? rollbackState({
-    required Object? initialValue,
-    required Object? optimisticValue,
-    required Object error,
-  }) {
-    // Mark the item as failed instead of removing it
-    return state.copy(
-      todoList: state.todoList.map((t) =>
-        t.id == newTodo.id ? t.copyWith(status: 'failed') : t
-      ).toList(),
-    );
-  }
-  ```
 
 * Added the `OptimisticSync` mixin.
 
@@ -141,29 +112,29 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
   ### How it works:
 
-  1. **Optimistic update**: When dispatched, the UI is updated immediately.
+    1. **Optimistic update**: When dispatched, the UI is updated immediately.
 
-  2. **Request coalescing**: If the user interacts again while a request is
-     in flight, the new value is applied to the UI but no new request is
-     sent yet. The mixin waits for the current request to complete.
+    2. **Request coalescing**: If the user interacts again while a request is
+       in flight, the new value is applied to the UI but no new request is
+       sent yet. The mixin waits for the current request to complete.
 
-  3. **Follow-up requests**: After the request completes, the mixin checks
-     if the state value differs from what was sent. If so, it sends a
-     follow-up request with the latest value.
+    3. **Follow-up requests**: After the request completes, the mixin checks
+       if the state value differs from what was sent. If so, it sends a
+       follow-up request with the latest value.
 
-  4. **Server response**: When the state finally stabilizes, the server
-     response is applied (if provided).
+    4. **Server response**: When the state finally stabilizes, the server
+       response is applied (if provided).
 
   ### Example scenario:
 
   User rapidly clicks a like button: Like → Unlike → Like
 
-  1. First click: UI shows "liked", request sent with `true`
-  2. Second click: UI shows "unliked", no new request yet (one in flight)
-  3. Third click: UI shows "liked", no new request yet
-  4. First request completes: Mixin sees state (`true`) matches what was
-     sent (`true`), so no follow-up needed
-  5. UI remains "liked", server is in sync
+    1. First click: UI shows "liked", request sent with `true`
+    2. Second click: UI shows "unliked", no new request yet (one in flight)
+    3. Third click: UI shows "liked", no new request yet
+    4. First request completes: Mixin sees state (`true`) matches what was
+       sent (`true`), so no follow-up needed
+    5. UI remains "liked", server is in sync
 
   ### Customization:
 
@@ -186,19 +157,11 @@ Sponsored by [MyText.ai](https://mytext.ai)
   (WebSockets, Server-Sent Events, Firebase, etc.) that may modify the same
   state your actions control.
 
+  Read the documentation in `OptimisticSync` and `ServerPush` to understand how
+  they work.
+
   **Important:** If your app does NOT receive server-pushed updates, use the
   simpler `OptimisticSync` mixin instead.
-
-  ### OptimisticSyncWithPush
-
-  This mixin extends `OptimisticSync` by adding revision-based tracking to
-  correctly handle concurrent updates from multiple devices and 
-  ** server pushes**. Pushes must be applied with an action that uses the
-  `ServerPush` mixin.
-
-  Read the documentation in `OptimisticSync` and `ServerPush` to understand how
-  the synchronization works.
-                   
 
 ## 26.1.0
 

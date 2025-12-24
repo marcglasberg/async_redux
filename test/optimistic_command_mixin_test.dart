@@ -27,7 +27,8 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario('OptimisticCommand + Retry: retries sendCommandToServer only, no UI flickering.')
+      .scenario(
+          'OptimisticCommand + Retry: retries sendCommandToServer only, no UI flickering.')
       .given('An action with both OptimisticCommand and Retry mixins.')
       .and('sendCommandToServer fails the first 2 times, then succeeds.')
       .when('The action is dispatched.')
@@ -49,13 +50,15 @@ void main() {
     // State changes tracked inside the action should show:
     // [optimistic] then [reloaded].
     // NOT: [optimistic] [rollback] [optimistic] [rollback] [optimistic] [reloaded]
-    expect(action.stateChangesLog.length, 2); // Only 2 state changes, no flickering
+    expect(action.stateChangesLog.length,
+        2); // Only 2 state changes, no flickering
     expect(action.stateChangesLog[0], ['initial', 'new_item']); // Optimistic
     expect(action.stateChangesLog[1], ['reloaded']); // Reloaded
   });
 
   Bdd(feature)
-      .scenario('OptimisticCommand + Retry: rolls back only after all retries fail.')
+      .scenario(
+          'OptimisticCommand + Retry: rolls back only after all retries fail.')
       .given('An action with both OptimisticCommand and Retry mixins.')
       .and('sendCommandToServer always fails (maxRetries = 3).')
       .when('The action is dispatched.')
@@ -77,36 +80,14 @@ void main() {
     // With our fix: [opt] [roll] [reload] (rollback + reload in finally)
     expect(action.stateChangesLog.length, 3);
     expect(action.stateChangesLog[0], ['initial', 'new_item']); // Optimistic
-    expect(action.stateChangesLog[1], ['initial']); // Rolled back after all retries failed
+    expect(action.stateChangesLog[1],
+        ['initial']); // Rolled back after all retries failed
     expect(action.stateChangesLog[2], ['reloaded']); // Reload in finally
   });
 
   Bdd(feature)
-      .scenario('OptimisticCommand + UnlimitedRetries: retries until success.')
-      .given('An action with OptimisticCommand and UnlimitedRetries mixins.')
-      .and('sendCommandToServer fails the first 5 times, then succeeds.')
-      .when('The action is dispatched.')
-      .then('The optimistic value stays in place during all retries.')
-      .and('No flickering occurs.')
-      .run((_) async {
-    var store = Store<AppState>(initialState: AppState(items: ['initial']));
-
-    var action = SaveItemActionWithUnlimitedRetry('new_item', failCount: 5);
-    await store.dispatchAndWait(action);
-
-    // Final state should have the reloaded items.
-    expect(store.state.items, ['reloaded']);
-    expect(action.status.isCompletedOk, isTrue);
-    expect(action.attempts, 5); // Failed 5 times, then succeeded
-
-    // CRITICAL: Verify NO flickering.
-    expect(action.stateChangesLog.length, 2);
-    expect(action.stateChangesLog[0], ['initial', 'new_item']); // Optimistic
-    expect(action.stateChangesLog[1], ['reloaded']); // Reloaded
-  });
-
-  Bdd(feature)
-      .scenario('OptimisticCommand without Retry: normal behavior, no retry logic.')
+      .scenario(
+          'OptimisticCommand without Retry: normal behavior, no retry logic.')
       .given('An action with only OptimisticCommand mixin (no Retry).')
       .and('sendCommandToServer fails.')
       .when('The action is dispatched.')
@@ -143,7 +124,8 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario('OptimisticCommand does NOT rollback if state changed by another action.')
+      .scenario(
+          'OptimisticCommand does NOT rollback if state changed by another action.')
       .given('An action with OptimisticCommand mixin.')
       .and('Another action modifies the state during sendCommandToServer.')
       .when('The action fails.')
@@ -168,7 +150,8 @@ void main() {
 
   Bdd(feature)
       .scenario('OptimisticCommand without reloadFromServer implementation.')
-      .given('An action with OptimisticCommand that does not implement reloadFromServer.')
+      .given(
+          'An action with OptimisticCommand that does not implement reloadFromServer.')
       .when('The action is dispatched and sendCommandToServer succeeds.')
       .then('The reload step is skipped (no error).')
       .and('The state keeps the optimistic value.')
@@ -188,8 +171,10 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario('OptimisticCommand without reloadFromServer: rollback on failure.')
-      .given('An action with OptimisticCommand that does not implement reloadFromServer.')
+      .scenario(
+          'OptimisticCommand without reloadFromServer: rollback on failure.')
+      .given(
+          'An action with OptimisticCommand that does not implement reloadFromServer.')
       .when('The action is dispatched and sendCommandToServer fails.')
       .then('The optimistic value is rolled back.')
       .and('The reload step is skipped (no error).')
@@ -210,8 +195,10 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario('OptimisticCommand + Retry without reloadFromServer: no flickering.')
-      .given('An action with OptimisticCommand and Retry, but no reloadFromServer.')
+      .scenario(
+          'OptimisticCommand + Retry without reloadFromServer: no flickering.')
+      .given(
+          'An action with OptimisticCommand and Retry, but no reloadFromServer.')
       .and('sendCommandToServer fails the first 2 times, then succeeds.')
       .when('The action is dispatched.')
       .then('No flickering occurs and state keeps optimistic value.')
@@ -236,7 +223,8 @@ void main() {
   // ---------------------------------------------------------------------------
 
   Bdd(feature)
-      .scenario('Custom rollbackState marks item as failed instead of removing it.')
+      .scenario(
+          'Custom rollbackState marks item as failed instead of removing it.')
       .given('An action with OptimisticCommand that overrides rollbackState.')
       .when('The action fails.')
       .then('The custom rollback is applied (item marked as failed).')
@@ -263,7 +251,8 @@ void main() {
 
   Bdd(feature)
       .scenario('rollbackState returning null skips rollback.')
-      .given('An action with OptimisticCommand that overrides rollbackState to return null.')
+      .given(
+          'An action with OptimisticCommand that overrides rollbackState to return null.')
       .when('The action fails.')
       .then('No rollback occurs and state keeps the optimistic value.')
       .run((_) async {
@@ -288,7 +277,8 @@ void main() {
 
   Bdd(feature)
       .scenario('shouldRollback always true: rollback even when state changed.')
-      .given('An action with OptimisticCommand that overrides shouldRollback to always return true.')
+      .given(
+          'An action with OptimisticCommand that overrides shouldRollback to always return true.')
       .and('Another action modifies the state during sendCommandToServer.')
       .when('The action fails.')
       .then('The rollback happens even though state changed.')
@@ -311,7 +301,8 @@ void main() {
 
   Bdd(feature)
       .scenario('shouldRollback always false: never rollback.')
-      .given('An action with OptimisticCommand that overrides shouldRollback to always return false.')
+      .given(
+          'An action with OptimisticCommand that overrides shouldRollback to always return false.')
       .when('The action fails.')
       .then('No rollback occurs and state keeps the optimistic value.')
       .run((_) async {
@@ -331,14 +322,17 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario('shouldRollback conditional: rollback only for validation errors.')
-      .given('An action with shouldRollback that returns false for network errors.')
+      .scenario(
+          'shouldRollback conditional: rollback only for validation errors.')
+      .given(
+          'An action with shouldRollback that returns false for network errors.')
       .when('The action fails with a network error.')
       .then('No rollback occurs.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(items: ['initial']));
 
-    var action = SaveItemActionWithConditionalRollback('new_item', throwNetworkError: true);
+    var action = SaveItemActionWithConditionalRollback('new_item',
+        throwNetworkError: true);
     await store.dispatchAndWait(action);
 
     expect(action.status.isCompletedFailed, isTrue);
@@ -350,13 +344,15 @@ void main() {
 
   Bdd(feature)
       .scenario('shouldRollback conditional: rollback for validation errors.')
-      .given('An action with shouldRollback that returns true for validation errors.')
+      .given(
+          'An action with shouldRollback that returns true for validation errors.')
       .when('The action fails with a validation error.')
       .then('Rollback occurs.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(items: ['initial']));
 
-    var action = SaveItemActionWithConditionalRollback('new_item', throwNetworkError: false);
+    var action = SaveItemActionWithConditionalRollback('new_item',
+        throwNetworkError: false);
     await store.dispatchAndWait(action);
 
     expect(action.status.isCompletedFailed, isTrue);
@@ -380,7 +376,8 @@ void main() {
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(items: ['initial']));
 
-    var action = SaveItemActionWithConditionalReload('new_item', shouldFail: false);
+    var action =
+        SaveItemActionWithConditionalReload('new_item', shouldFail: false);
     await store.dispatchAndWait(action);
 
     expect(action.status.isCompletedOk, isTrue);
@@ -399,7 +396,8 @@ void main() {
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(items: ['initial']));
 
-    var action = SaveItemActionWithConditionalReload('new_item', shouldFail: true);
+    var action =
+        SaveItemActionWithConditionalReload('new_item', shouldFail: true);
     await store.dispatchAndWait(action);
 
     expect(action.status.isCompletedFailed, isTrue);
@@ -414,8 +412,10 @@ void main() {
   // ---------------------------------------------------------------------------
 
   Bdd(feature)
-      .scenario('shouldApplyReload returns true when state unchanged: reload applied.')
-      .given('An action with shouldApplyReload that checks if state is unchanged.')
+      .scenario(
+          'shouldApplyReload returns true when state unchanged: reload applied.')
+      .given(
+          'An action with shouldApplyReload that checks if state is unchanged.')
       .and('No other action modifies state during reload.')
       .when('The action succeeds.')
       .then('Reload result is applied.')
@@ -436,8 +436,10 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario('shouldApplyReload returns false when state changed: reload skipped.')
-      .given('An action with shouldApplyReload that checks if state is unchanged.')
+      .scenario(
+          'shouldApplyReload returns false when state changed: reload skipped.')
+      .given(
+          'An action with shouldApplyReload that checks if state is unchanged.')
       .and('Another action modifies state during reload.')
       .when('The action succeeds.')
       .then('Reload result is NOT applied to avoid overwriting newer changes.')
@@ -464,7 +466,8 @@ void main() {
 
   Bdd(feature)
       .scenario('Custom applyReloadResultToState transforms reload result.')
-      .given('An action with applyReloadResultToState that transforms the reload result.')
+      .given(
+          'An action with applyReloadResultToState that transforms the reload result.')
       .and('reloadFromServer returns a map instead of a list.')
       .when('The action succeeds.')
       .then('The custom transformation is applied.')
@@ -481,10 +484,12 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario('applyReloadResultToState returning null skips applying reload.')
+      .scenario(
+          'applyReloadResultToState returning null skips applying reload.')
       .given('An action with applyReloadResultToState that returns null.')
       .when('The action succeeds and reload completes.')
-      .then('The reload result is NOT applied and state keeps optimistic value.')
+      .then(
+          'The reload result is NOT applied and state keeps optimistic value.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(items: ['initial']));
 
@@ -512,8 +517,10 @@ void main() {
       .and('reloadFromServer throws.')
       .when('The action is dispatched.')
       .then('The action fails (reload error is not swallowed).')
-      .and('The optimistic value remains applied (reload did not overwrite it).')
-      .note('This locks the intended behavior when reload fails but there was no prior error.')
+      .and(
+          'The optimistic value remains applied (reload did not overwrite it).')
+      .note(
+          'This locks the intended behavior when reload fails but there was no prior error.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(items: ['initial']));
 
@@ -583,7 +590,8 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario('OptimisticCommand: shouldApplyReload can use the error parameter '
+      .scenario(
+          'OptimisticCommand: shouldApplyReload can use the error parameter '
           'to skip applying reload on failure.')
       .given('An action with OptimisticCommand mixin.')
       .and('sendCommandToServer throws.')
@@ -591,7 +599,8 @@ void main() {
       .and('shouldApplyReload returns false when error != null.')
       .when('The action is dispatched.')
       .then('reloadFromServer is called (because shouldReload returned true).')
-      .and('The reload result is not applied (because shouldApplyReload returned false).')
+      .and(
+          'The reload result is not applied (because shouldApplyReload returned false).')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(items: ['initial']));
 
@@ -609,15 +618,19 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario('OptimisticCommand: lastAppliedValue passed to shouldReload/shouldApplyReload '
+      .scenario(
+          'OptimisticCommand: lastAppliedValue passed to shouldReload/shouldApplyReload '
           'is the rollbackValue when rollback was applied.')
       .given('An action with OptimisticCommand mixin.')
       .and('sendCommandToServer throws.')
-      .and('Rollback is applied (shouldRollback returns true and rollbackState returns a non-null state).')
-      .and('shouldReload captures the received lastAppliedValue and rollbackValue.')
+      .and(
+          'Rollback is applied (shouldRollback returns true and rollbackState returns a non-null state).')
+      .and(
+          'shouldReload captures the received lastAppliedValue and rollbackValue.')
       .when('The action is dispatched.')
       .then('lastAppliedValue equals rollbackValue when rollback happened.')
-      .note('This verifies your bookkeeping: on error, the "last thing we applied" '
+      .note(
+          'This verifies your bookkeeping: on error, the "last thing we applied" '
           'should reflect rollback, not the optimistic value.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(items: ['initial']));
@@ -639,14 +652,16 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario('OptimisticCommand: lastAppliedValue passed to shouldReload/shouldApplyReload '
+      .scenario(
+          'OptimisticCommand: lastAppliedValue passed to shouldReload/shouldApplyReload '
           'is the optimisticValue on success.')
       .given('An action with OptimisticCommand mixin.')
       .and('sendCommandToServer succeeds.')
       .and('shouldReload captures the received lastAppliedValue.')
       .when('The action is dispatched.')
       .then('lastAppliedValue equals optimisticValue.')
-      .note('Ensures lastAppliedValue semantics are stable across success vs failure.')
+      .note(
+          'Ensures lastAppliedValue semantics are stable across success vs failure.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(items: ['initial']));
 
@@ -676,7 +691,8 @@ void main() {
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(items: ['initial']));
 
-    var action = SaveItemActionWithOptimisticValueCounter('new_item', failCount: 3);
+    var action =
+        SaveItemActionWithOptimisticValueCounter('new_item', failCount: 3);
     await store.dispatchAndWait(action);
 
     expect(action.status.isCompletedOk, isTrue);
@@ -689,13 +705,16 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario('OptimisticCommand: sendCommandToServer receives the same optimisticValue '
+      .scenario(
+          'OptimisticCommand: sendCommandToServer receives the same optimisticValue '
           'instance that was applied to state.')
       .given('An action with OptimisticCommand mixin.')
       .and('optimisticValue returns an object whose identity can be checked.')
       .when('The action is dispatched.')
-      .then('sendCommandToServer receives the same object instance returned by optimisticValue.')
-      .note('This is useful if users build an optimistic payload object and want to reuse it in the command.')
+      .then(
+          'sendCommandToServer receives the same object instance returned by optimisticValue.')
+      .note(
+          'This is useful if users build an optimistic payload object and want to reuse it in the command.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(items: ['initial']));
 
@@ -707,7 +726,10 @@ void main() {
     // The object passed to sendCommandToServer should be identical to the one returned by optimisticValue.
     expect(action.receivedValueInSendCommand, isNotNull);
     expect(action.createdOptimisticValue, isNotNull);
-    expect(identical(action.receivedValueInSendCommand, action.createdOptimisticValue), isTrue);
+    expect(
+        identical(
+            action.receivedValueInSendCommand, action.createdOptimisticValue),
+        isTrue);
   });
 
   // ---------------------------------------------------------------------------
@@ -718,7 +740,8 @@ void main() {
       .scenario('OptimisticCommand blocks concurrent dispatches.')
       .given('An OptimisticCommand action that takes some time to finish.')
       .when('The action is dispatched.')
-      .and('Another action of the same type is dispatched before the previous one finished.')
+      .and(
+          'Another action of the same type is dispatched before the previous one finished.')
       .then('The second dispatch is aborted.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(items: ['initial']));
@@ -749,11 +772,13 @@ void main() {
     var store = Store<AppState>(initialState: AppState(items: ['initial']));
 
     // Dispatch first action and wait for completion.
-    await store.dispatchAndWait(OptimisticCommandSlowAction('item1', delayMillis: 10));
+    await store
+        .dispatchAndWait(OptimisticCommandSlowAction('item1', delayMillis: 10));
     expect(store.state.items, ['initial', 'item1']);
 
     // After completion, we can dispatch again.
-    await store.dispatchAndWait(OptimisticCommandSlowAction('item2', delayMillis: 10));
+    await store
+        .dispatchAndWait(OptimisticCommandSlowAction('item2', delayMillis: 10));
     expect(store.state.items, ['initial', 'item1', 'item2']);
   });
 
@@ -770,12 +795,14 @@ void main() {
     expect(store.state.items, ['initial']); // Rolled back due to failure.
 
     // After failure, we can dispatch again (key was released in after()).
-    await store.dispatchAndWait(OptimisticCommandSlowAction('item1', delayMillis: 10));
+    await store
+        .dispatchAndWait(OptimisticCommandSlowAction('item1', delayMillis: 10));
     expect(store.state.items, ['initial', 'item1']);
   });
 
   Bdd(feature)
-      .scenario('OptimisticCommand with different nonReentrantKeyParams can run in parallel.')
+      .scenario(
+          'OptimisticCommand with different nonReentrantKeyParams can run in parallel.')
       .given('An OptimisticCommand action that uses nonReentrantKeyParams.')
       .when('Two actions with different params are dispatched concurrently.')
       .then('Both actions should run.')
@@ -783,8 +810,10 @@ void main() {
     var store = Store<AppState>(initialState: AppState(items: []));
 
     // Dispatch two actions with different itemIds - they should both run.
-    store.dispatch(OptimisticCommandWithParams('A', 'valueA', delayMillis: 100));
-    store.dispatch(OptimisticCommandWithParams('B', 'valueB', delayMillis: 100));
+    store
+        .dispatch(OptimisticCommandWithParams('A', 'valueA', delayMillis: 100));
+    store
+        .dispatch(OptimisticCommandWithParams('B', 'valueB', delayMillis: 100));
 
     // Wait for both to complete.
     await store.waitAllActions([]);
@@ -796,7 +825,8 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario('OptimisticCommand with same nonReentrantKeyParams blocks each other.')
+      .scenario(
+          'OptimisticCommand with same nonReentrantKeyParams blocks each other.')
       .given('An OptimisticCommand action that uses nonReentrantKeyParams.')
       .when('Two actions with the same params are dispatched concurrently.')
       .then('Only the first action should run.')
@@ -804,13 +834,15 @@ void main() {
     var store = Store<AppState>(initialState: AppState(items: []));
 
     // Dispatch two actions with the same itemId.
-    store.dispatch(OptimisticCommandWithParams('A', 'valueA1', delayMillis: 100));
+    store.dispatch(
+        OptimisticCommandWithParams('A', 'valueA1', delayMillis: 100));
 
     // Wait a bit to ensure first action started.
     await Future.delayed(const Duration(milliseconds: 10));
 
     // This should be aborted because 'A' is already running.
-    store.dispatch(OptimisticCommandWithParams('A', 'valueA2', delayMillis: 10));
+    store
+        .dispatch(OptimisticCommandWithParams('A', 'valueA2', delayMillis: 10));
 
     // Wait for all to complete.
     await store.waitAllActions([]);
@@ -820,8 +852,10 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario('Different OptimisticCommand action types with same computeNonReentrantKey block each other.')
-      .given('Two different OptimisticCommand action types that share the same non-reentrant key.')
+      .scenario(
+          'Different OptimisticCommand action types with same computeNonReentrantKey block each other.')
+      .given(
+          'Two different OptimisticCommand action types that share the same non-reentrant key.')
       .when('Both actions are dispatched concurrently.')
       .then('Only the first action should run.')
       .run((_) async {
@@ -844,19 +878,23 @@ void main() {
   });
 
   Bdd(feature)
-      .scenario('After first OptimisticCommand completes, second action type with shared key can run.')
-      .given('Two different OptimisticCommand action types that share the same non-reentrant key.')
+      .scenario(
+          'After first OptimisticCommand completes, second action type with shared key can run.')
+      .given(
+          'Two different OptimisticCommand action types that share the same non-reentrant key.')
       .when('The first action completes.')
       .then('The second action type can run.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(items: []));
 
     // Dispatch and wait for first action.
-    await store.dispatchAndWait(OptimisticCommandSharedKey1('value1', delayMillis: 10));
+    await store.dispatchAndWait(
+        OptimisticCommandSharedKey1('value1', delayMillis: 10));
     expect(store.state.items, ['value1']);
 
     // Now second action type with same key should run.
-    await store.dispatchAndWait(OptimisticCommandSharedKey2('value2', delayMillis: 10));
+    await store.dispatchAndWait(
+        OptimisticCommandSharedKey2('value2', delayMillis: 10));
     expect(store.state.items, ['value1', 'value2']);
   });
 
@@ -873,15 +911,18 @@ void main() {
     expect(store.state.items, []); // Rolled back.
 
     // Now dispatch another action with same param - should run.
-    await store.dispatchAndWait(OptimisticCommandWithParams('X', 'valueX', delayMillis: 10));
+    await store.dispatchAndWait(
+        OptimisticCommandWithParams('X', 'valueX', delayMillis: 10));
     expect(store.state.items, ['valueX']);
   });
 
   Bdd(feature)
-      .scenario('Multiple OptimisticCommand concurrent dispatches with various params.')
+      .scenario(
+          'Multiple OptimisticCommand concurrent dispatches with various params.')
       .given('Multiple OptimisticCommand actions with different params.')
       .when('They are dispatched concurrently.')
-      .then('Actions with different params run, actions with same params are blocked.')
+      .then(
+          'Actions with different params run, actions with same params are blocked.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(items: []));
 
@@ -895,8 +936,10 @@ void main() {
 
     await Future.delayed(const Duration(milliseconds: 10));
 
-    store.dispatch(OptimisticCommandWithParams('A', 'A2', delayMillis: 10)); // blocked
-    store.dispatch(OptimisticCommandWithParams('B', 'B2', delayMillis: 10)); // blocked
+    store.dispatch(
+        OptimisticCommandWithParams('A', 'A2', delayMillis: 10)); // blocked
+    store.dispatch(
+        OptimisticCommandWithParams('B', 'B2', delayMillis: 10)); // blocked
 
     await store.waitAllActions([]);
 
@@ -965,6 +1008,249 @@ void main() {
       )),
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // Tests for DEFAULT shouldReload behavior (only reload on error)
+  // ---------------------------------------------------------------------------
+
+  Bdd(feature)
+      .scenario('Default shouldReload: does NOT reload on success.')
+      .given('An action with OptimisticCommand using default shouldReload.')
+      .and('sendCommandToServer succeeds.')
+      .when('The action is dispatched.')
+      .then('reloadFromServer is NOT called.')
+      .and('State keeps the optimistic value.')
+      .note(
+          'The default shouldReload returns (error != null), so it skips reload on success.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    var action = SaveItemActionWithDefaultShouldReloadOnSuccess('new_item');
+    await store.dispatchAndWait(action);
+
+    expect(action.status.isCompletedOk, isTrue);
+    expect(action.reloadWasCalled, isFalse);
+
+    // State keeps the optimistic value.
+    expect(store.state.items, ['initial', 'new_item']);
+    expect(action.stateChangesLog.length, 1);
+    expect(action.stateChangesLog[0], ['initial', 'new_item']);
+  });
+
+  Bdd(feature)
+      .scenario('Default shouldReload: DOES reload on failure.')
+      .given('An action with OptimisticCommand using default shouldReload.')
+      .and('sendCommandToServer fails.')
+      .when('The action is dispatched.')
+      .then('reloadFromServer IS called.')
+      .and('State is reloaded after rollback.')
+      .note(
+          'The default shouldReload returns (error != null), so it reloads on failure.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    var action = SaveItemActionWithDefaultShouldReloadOnFailure('new_item');
+    await store.dispatchAndWait(action);
+
+    expect(action.status.isCompletedFailed, isTrue);
+    expect(action.reloadWasCalled, isTrue);
+
+    // State was reloaded after rollback.
+    expect(store.state.items, ['reloaded']);
+
+    // State changes: optimistic, rollback, reload.
+    expect(action.stateChangesLog.length, 3);
+    expect(action.stateChangesLog[0], ['initial', 'new_item']); // Optimistic
+    expect(action.stateChangesLog[1], ['initial']); // Rolled back
+    expect(action.stateChangesLog[2], ['reloaded']); // Reloaded
+  });
+
+  // ---------------------------------------------------------------------------
+  // Tests for sendCommandToServer returning a value (applyServerResponseToState)
+  // ---------------------------------------------------------------------------
+
+  Bdd(feature)
+      .scenario(
+          'sendCommandToServer returns value: applyServerResponseToState is called.')
+      .given('An action with OptimisticCommand.')
+      .and('sendCommandToServer returns a non-null value.')
+      .when('The action is dispatched.')
+      .then('applyServerResponseToState is called with the returned value.')
+      .and('The server response is applied to the state.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    var action = SaveItemActionWithServerResponse('new_item');
+    await store.dispatchAndWait(action);
+
+    expect(action.status.isCompletedOk, isTrue);
+    expect(action.serverResponseApplied, isTrue);
+    expect(action.receivedServerResponse,
+        ['initial', 'new_item', 'server_confirmed']);
+
+    // Final state should have the server-confirmed value.
+    expect(store.state.items, ['initial', 'new_item', 'server_confirmed']);
+  });
+
+  Bdd(feature)
+      .scenario(
+          'sendCommandToServer returns null: applyServerResponseToState is NOT called.')
+      .given('An action with OptimisticCommand.')
+      .and('sendCommandToServer returns null.')
+      .when('The action is dispatched.')
+      .then('applyServerResponseToState is NOT called.')
+      .and('State keeps the optimistic value.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    var action = SaveItemActionWithNullServerResponse('new_item');
+    await store.dispatchAndWait(action);
+
+    expect(action.status.isCompletedOk, isTrue);
+    expect(action.applyServerResponseCalled, isFalse);
+
+    // State keeps the optimistic value.
+    expect(store.state.items, ['initial', 'new_item']);
+  });
+
+  Bdd(feature)
+      .scenario(
+          'applyServerResponseToState returns null: server response is NOT applied.')
+      .given('An action with OptimisticCommand.')
+      .and('sendCommandToServer returns a value.')
+      .and('applyServerResponseToState returns null.')
+      .when('The action is dispatched.')
+      .then('The server response is received but NOT applied.')
+      .and('State keeps the optimistic value.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    var action = SaveItemActionWithServerResponseReturningNull('new_item');
+    await store.dispatchAndWait(action);
+
+    expect(action.status.isCompletedOk, isTrue);
+    expect(action.applyServerResponseCalled, isTrue);
+
+    // State keeps the optimistic value (server response was not applied).
+    expect(store.state.items, ['initial', 'new_item']);
+  });
+
+  Bdd(feature)
+      .scenario('Server response is applied before reload.')
+      .given('An action with OptimisticCommand.')
+      .and(
+          'Both sendCommandToServer returns a value and reloadFromServer is implemented.')
+      .when('The action is dispatched.')
+      .then('applyServerResponseToState is called first.')
+      .and('reloadFromServer is called second (if shouldReload returns true).')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    var action = SaveItemActionWithServerResponseAndReload('new_item');
+    await store.dispatchAndWait(action);
+
+    expect(action.status.isCompletedOk, isTrue);
+
+    // Verify the order: server response applied first, then reload.
+    expect(action.operationOrder, ['applyServerResponse', 'reload']);
+
+    // Final state should have the reloaded value (reload happens after server response).
+    expect(store.state.items, ['reloaded']);
+  });
+
+  Bdd(feature)
+      .scenario(
+          'sendCommandToServer fails: applyServerResponseToState is NOT called.')
+      .given('An action with OptimisticCommand.')
+      .and('sendCommandToServer throws an error.')
+      .when('The action is dispatched.')
+      .then(
+          'applyServerResponseToState is NOT called (no server response on error).')
+      .and('Rollback happens as usual.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    var action = SaveItemActionWithServerResponseThatFails('new_item');
+    await store.dispatchAndWait(action);
+
+    expect(action.status.isCompletedFailed, isTrue);
+    expect(action.applyServerResponseCalled, isFalse);
+
+    // State was rolled back.
+    expect(store.state.items, ['initial']);
+  });
+
+  Bdd(feature)
+      .scenario(
+          'OptimisticCommand + Retry: server response is applied after successful retry.')
+      .given('An action with OptimisticCommand and Retry mixins.')
+      .and(
+          'sendCommandToServer fails 2 times, then succeeds and returns a value.')
+      .when('The action is dispatched.')
+      .then(
+          'applyServerResponseToState is called with the value from the successful attempt.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    var action =
+        SaveItemActionWithRetryAndServerResponse('new_item', failCount: 2);
+    await store.dispatchAndWait(action);
+
+    expect(action.status.isCompletedOk, isTrue);
+    expect(action.serverResponseApplied, isTrue);
+
+    // Final state should have the server-confirmed value.
+    expect(store.state.items, ['initial', 'new_item', 'server_confirmed']);
+
+    // Only one state change for optimistic update (no flickering).
+    expect(action.stateChangesLog.length, 1);
+    expect(action.stateChangesLog[0], ['initial', 'new_item']);
+  });
+
+  Bdd(feature)
+      .scenario(
+          'Server response can be transformed in applyServerResponseToState.')
+      .given('An action with OptimisticCommand.')
+      .and('sendCommandToServer returns a complex object (map).')
+      .and('applyServerResponseToState transforms the response.')
+      .when('The action is dispatched.')
+      .then('The transformed response is applied to state.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    var action = SaveItemActionWithServerResponseTransformation('new_item');
+    await store.dispatchAndWait(action);
+
+    expect(action.status.isCompletedOk, isTrue);
+
+    // State should have the transformed server response.
+    expect(store.state.items, ['new_item (confirmed: 2024-01-01)']);
+  });
+
+  Bdd(feature)
+      .scenario(
+          'Default shouldReload with server response: only server response is applied on success.')
+      .given('An action with OptimisticCommand using default shouldReload.')
+      .and('sendCommandToServer succeeds and returns a value.')
+      .and('reloadFromServer is implemented.')
+      .when('The action is dispatched.')
+      .then('applyServerResponseToState is called.')
+      .and(
+          'reloadFromServer is NOT called (default shouldReload skips reload on success).')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(items: ['initial']));
+
+    var action =
+        SaveItemActionWithDefaultShouldReloadAndServerResponse('new_item');
+    await store.dispatchAndWait(action);
+
+    expect(action.status.isCompletedOk, isTrue);
+    expect(action.serverResponseApplied, isTrue);
+    expect(action.reloadWasCalled, isFalse);
+
+    // State should have the server-confirmed value (not reloaded).
+    expect(store.state.items, ['initial', 'new_item', 'server_confirmed']);
+  });
 }
 
 // -----------------------------------------------------------------------------
@@ -987,7 +1273,8 @@ class AppState {
 // -----------------------------------------------------------------------------
 
 /// Basic OptimisticCommand action that succeeds.
-class SaveItemAction extends ReduxAction<AppState> with OptimisticCommand<AppState> {
+class SaveItemAction extends ReduxAction<AppState>
+    with OptimisticCommand<AppState> {
   final String newItem;
   final List<List<String>> stateChanges = [];
 
@@ -1016,6 +1303,16 @@ class SaveItemAction extends ReduxAction<AppState> with OptimisticCommand<AppSta
     await Future.delayed(const Duration(milliseconds: 10));
     return ['reloaded'];
   }
+
+  @override
+  bool shouldReload({
+    required Object? currentValue,
+    required Object? lastAppliedValue,
+    required Object? optimisticValue,
+    required Object? rollbackValue,
+    required Object? error, // null on success
+  }) =>
+      true;
 }
 
 /// OptimisticCommand action that always fails sendCommandToServer.
@@ -1103,7 +1400,9 @@ class SaveItemActionThatFailsAfterStateChange extends ReduxAction<AppState>
   AppState applyValueToState(AppState state, Object? value) {
     final newItems = value as List<String>;
     // Track if this is a rollback (going back to initial).
-    if (stateChangesLog.isNotEmpty && newItems.length == 1 && newItems[0] == 'initial') {
+    if (stateChangesLog.isNotEmpty &&
+        newItems.length == 1 &&
+        newItems[0] == 'initial') {
       rollbackOccurred = true;
     }
     stateChangesLog.add(newItems);
@@ -1157,7 +1456,7 @@ class SaveItemActionWithoutReload extends ReduxAction<AppState>
     await Future.delayed(const Duration(milliseconds: 10));
   }
 
-  // reloadFromServer is intentionally NOT overridden - uses default that throws UnimplementedError.
+// reloadFromServer is intentionally NOT overridden - uses default that throws UnimplementedError.
 }
 
 /// OptimisticCommand action that does NOT implement reloadFromServer and fails.
@@ -1187,7 +1486,7 @@ class SaveItemActionWithoutReloadThatFails extends ReduxAction<AppState>
     throw const UserException('Save failed');
   }
 
-  // reloadFromServer is intentionally NOT overridden - uses default that throws UnimplementedError.
+// reloadFromServer is intentionally NOT overridden - uses default that throws UnimplementedError.
 }
 
 /// OptimisticCommand + Retry action without reloadFromServer implementation.
@@ -1228,7 +1527,7 @@ class SaveItemActionWithRetryNoReload extends ReduxAction<AppState>
     }
   }
 
-  // reloadFromServer is intentionally NOT overridden - uses default that throws UnimplementedError.
+// reloadFromServer is intentionally NOT overridden - uses default that throws UnimplementedError.
 }
 
 /// OptimisticCommand + Retry action that fails [failCount] times then succeeds.
@@ -1274,6 +1573,16 @@ class SaveItemActionWithRetry extends ReduxAction<AppState>
     await Future.delayed(const Duration(milliseconds: 5));
     return ['reloaded'];
   }
+
+  @override
+  bool shouldReload({
+    required Object? currentValue,
+    required Object? lastAppliedValue,
+    required Object? optimisticValue,
+    required Object? rollbackValue,
+    required Object? error, // null on success
+  }) =>
+      true;
 }
 
 /// OptimisticCommand + Retry action that always fails (tests rollback after exhausting retries).
@@ -1311,48 +1620,6 @@ class SaveItemActionWithRetryThatAlwaysFails extends ReduxAction<AppState>
 
   @override
   Future<Object?> reloadFromServer() async {
-    return ['reloaded'];
-  }
-}
-
-/// OptimisticCommand + UnlimitedRetries action.
-class SaveItemActionWithUnlimitedRetry extends ReduxAction<AppState>
-    with OptimisticCommand<AppState>, Retry<AppState>, UnlimitedRetries<AppState> {
-  final String newItem;
-  final int failCount;
-  int _saveAttemptCount = 0;
-  final List<List<String>> stateChangesLog = [];
-
-  SaveItemActionWithUnlimitedRetry(this.newItem, {required this.failCount});
-
-  @override
-  Duration get initialDelay => const Duration(milliseconds: 5);
-
-  @override
-  Object? optimisticValue() => [...state.items, newItem];
-
-  @override
-  Object? getValueFromState(AppState state) => state.items;
-
-  @override
-  AppState applyValueToState(AppState state, Object? value) {
-    final newItems = value as List<String>;
-    stateChangesLog.add(newItems);
-    return state.copy(items: newItems);
-  }
-
-  @override
-  Future<void> sendCommandToServer(Object? newValue) async {
-    _saveAttemptCount++;
-    await Future.delayed(const Duration(milliseconds: 5));
-    if (_saveAttemptCount <= failCount) {
-      throw UserException('Save failed: attempt $_saveAttemptCount');
-    }
-  }
-
-  @override
-  Future<Object?> reloadFromServer() async {
-    await Future.delayed(const Duration(milliseconds: 5));
     return ['reloaded'];
   }
 }
@@ -1398,11 +1665,12 @@ class SaveItemActionWithCustomRollback extends ReduxAction<AppState>
     capturedError = error;
     // Instead of restoring initial value, mark the item as failed.
     final items = optimisticValue as List<String>;
-    final markedItems = items.map((item) => item == newItem ? '$item (FAILED)' : item).toList();
+    final markedItems =
+        items.map((item) => item == newItem ? '$item (FAILED)' : item).toList();
     return state.copy(items: markedItems);
   }
 
-  // No reload to keep test simple.
+// No reload to keep test simple.
 }
 
 /// Action that overrides rollbackState to return null (skip rollback).
@@ -1442,7 +1710,7 @@ class SaveItemActionWithRollbackReturningNull extends ReduxAction<AppState>
     return null;
   }
 
-  // No reload to keep test simple.
+// No reload to keep test simple.
 }
 
 /// Action that overrides shouldRollback to always rollback (even if state changed).
@@ -1487,7 +1755,7 @@ class SaveItemActionWithAlwaysRollback extends ReduxAction<AppState>
     return true;
   }
 
-  // No reload to keep test simple.
+// No reload to keep test simple.
 }
 
 /// Action that overrides shouldRollback to never rollback.
@@ -1528,7 +1796,7 @@ class SaveItemActionWithNeverRollback extends ReduxAction<AppState>
     return false;
   }
 
-  // No reload to keep test simple.
+// No reload to keep test simple.
 }
 
 /// Action that overrides shouldRollback based on error type.
@@ -1538,7 +1806,8 @@ class SaveItemActionWithConditionalRollback extends ReduxAction<AppState>
   final bool throwNetworkError;
   final List<List<String>> stateChangesLog = [];
 
-  SaveItemActionWithConditionalRollback(this.newItem, {required this.throwNetworkError});
+  SaveItemActionWithConditionalRollback(this.newItem,
+      {required this.throwNetworkError});
 
   @override
   Object? optimisticValue() => [...state.items, newItem];
@@ -1577,7 +1846,7 @@ class SaveItemActionWithConditionalRollback extends ReduxAction<AppState>
     return true;
   }
 
-  // No reload to keep test simple.
+// No reload to keep test simple.
 }
 
 /// Action that overrides shouldReload to skip reload on success.
@@ -1682,6 +1951,16 @@ class SaveItemActionWithConditionalApplyReload extends ReduxAction<AppState>
     }
     return ['reloaded'];
   }
+
+  @override
+  bool shouldReload({
+    required Object? currentValue,
+    required Object? lastAppliedValue,
+    required Object? optimisticValue,
+    required Object? rollbackValue,
+    required Object? error, // null on success
+  }) =>
+      true;
 }
 
 /// Action that overrides applyReloadResultToState to transform reload result.
@@ -1713,7 +1992,10 @@ class SaveItemActionWithCustomApplyReload extends ReduxAction<AppState>
   @override
   Future<Object?> reloadFromServer() async {
     // Return a map instead of a list (different shape than expected by applyValueToState).
-    return {'items': ['server_item1', 'server_item2'], 'count': 2};
+    return {
+      'items': ['server_item1', 'server_item2'],
+      'count': 2
+    };
   }
 
   @override
@@ -1724,6 +2006,16 @@ class SaveItemActionWithCustomApplyReload extends ReduxAction<AppState>
     // Add a marker to show we transformed the data.
     return state.copy(items: [...items, 'TRANSFORMED']);
   }
+
+  @override
+  bool shouldReload({
+    required Object? currentValue,
+    required Object? lastAppliedValue,
+    required Object? optimisticValue,
+    required Object? rollbackValue,
+    required Object? error, // null on success
+  }) =>
+      true;
 }
 
 /// Action that overrides applyReloadResultToState to return null (skip applying).
@@ -1764,6 +2056,16 @@ class SaveItemActionWithApplyReloadReturningNull extends ReduxAction<AppState>
     // Return null to skip applying the reload result.
     return null;
   }
+
+  @override
+  bool shouldReload({
+    required Object? currentValue,
+    required Object? lastAppliedValue,
+    required Object? optimisticValue,
+    required Object? rollbackValue,
+    required Object? error, // null on success
+  }) =>
+      true;
 }
 
 // -----------------------------------------------------------------------------
@@ -1797,11 +2099,21 @@ class SaveItemActionWithReloadThatThrows extends ReduxAction<AppState>
   Future<Object?> reloadFromServer() async {
     throw const UserException('Reload failed');
   }
+
+  @override
+  bool shouldReload({
+    required Object? currentValue,
+    required Object? lastAppliedValue,
+    required Object? optimisticValue,
+    required Object? rollbackValue,
+    required Object? error, // null on success
+  }) =>
+      true;
 }
 
 /// Action where both sendCommandToServer and reloadFromServer throw.
-class SaveItemActionWithBothCommandAndReloadThatThrow extends ReduxAction<AppState>
-    with OptimisticCommand<AppState> {
+class SaveItemActionWithBothCommandAndReloadThatThrow
+    extends ReduxAction<AppState> with OptimisticCommand<AppState> {
   final String newItem;
 
   SaveItemActionWithBothCommandAndReloadThatThrow(this.newItem);
@@ -1872,8 +2184,8 @@ class SaveItemActionWithShouldReloadFalseOnError extends ReduxAction<AppState>
 }
 
 /// Action that overrides shouldApplyReload to return false when there's an error.
-class SaveItemActionWithShouldApplyReloadFalseOnError extends ReduxAction<AppState>
-    with OptimisticCommand<AppState> {
+class SaveItemActionWithShouldApplyReloadFalseOnError
+    extends ReduxAction<AppState> with OptimisticCommand<AppState> {
   final String newItem;
   bool reloadWasCalled = false;
 
@@ -2002,13 +2314,17 @@ class SaveItemActionCaptureLastAppliedOnSuccess extends ReduxAction<AppState>
 
 /// Action with Retry that counts optimisticValue and sendCommandToServer calls.
 class SaveItemActionWithOptimisticValueCounter extends ReduxAction<AppState>
-    with OptimisticCommand<AppState>, Retry<AppState> {
+    with
+        OptimisticCommand<AppState>,
+        // ignore: private_collision_in_mixin_application
+        Retry<AppState> {
   final String newItem;
   final int failCount;
   int optimisticValueCallCount = 0;
   int sendCommandCallCount = 0;
 
-  SaveItemActionWithOptimisticValueCounter(this.newItem, {required this.failCount});
+  SaveItemActionWithOptimisticValueCounter(this.newItem,
+      {required this.failCount});
 
   @override
   Duration get initialDelay => const Duration(milliseconds: 5);
@@ -2038,7 +2354,7 @@ class SaveItemActionWithOptimisticValueCounter extends ReduxAction<AppState>
     }
   }
 
-  // No reload to keep test simple.
+// No reload to keep test simple.
 }
 
 /// Action that checks identity of optimisticValue passed to sendCommandToServer.
@@ -2070,7 +2386,7 @@ class SaveItemActionCheckIdentity extends ReduxAction<AppState>
     await Future.delayed(const Duration(milliseconds: 10));
   }
 
-  // No reload to keep test simple.
+// No reload to keep test simple.
 }
 
 // -----------------------------------------------------------------------------
@@ -2100,7 +2416,7 @@ class OptimisticCommandSlowAction extends ReduxAction<AppState>
     await Future.delayed(Duration(milliseconds: delayMillis));
   }
 
-  // No reload to keep test simple.
+// No reload to keep test simple.
 }
 
 /// OptimisticCommand action that always fails (for testing key release on failure).
@@ -2122,7 +2438,7 @@ class OptimisticCommandFailingAction extends ReduxAction<AppState>
     throw const UserException('Intentional failure');
   }
 
-  // No reload to keep test simple.
+// No reload to keep test simple.
 }
 
 /// OptimisticCommand action that uses nonReentrantKeyParams to differentiate by itemId.
@@ -2132,7 +2448,8 @@ class OptimisticCommandWithParams extends ReduxAction<AppState>
   final String value;
   final int delayMillis;
 
-  OptimisticCommandWithParams(this.itemId, this.value, {required this.delayMillis});
+  OptimisticCommandWithParams(this.itemId, this.value,
+      {required this.delayMillis});
 
   @override
   Object? nonReentrantKeyParams() => itemId;
@@ -2152,7 +2469,7 @@ class OptimisticCommandWithParams extends ReduxAction<AppState>
     await Future.delayed(Duration(milliseconds: delayMillis));
   }
 
-  // No reload to keep test simple.
+// No reload to keep test simple.
 }
 
 /// OptimisticCommand action that uses nonReentrantKeyParams and always fails.
@@ -2181,7 +2498,7 @@ class OptimisticCommandWithParamsThatFails extends ReduxAction<AppState>
     throw const UserException('Intentional failure');
   }
 
-  // No reload to keep test simple.
+// No reload to keep test simple.
 }
 
 /// First OptimisticCommand action type that uses a shared non-reentrant key via computeNonReentrantKey.
@@ -2210,7 +2527,7 @@ class OptimisticCommandSharedKey1 extends ReduxAction<AppState>
     await Future.delayed(Duration(milliseconds: delayMillis));
   }
 
-  // No reload to keep test simple.
+// No reload to keep test simple.
 }
 
 /// Second OptimisticCommand action type that uses the same shared non-reentrant key.
@@ -2239,7 +2556,7 @@ class OptimisticCommandSharedKey2 extends ReduxAction<AppState>
     await Future.delayed(Duration(milliseconds: delayMillis));
   }
 
-  // No reload to keep test simple.
+// No reload to keep test simple.
 }
 
 /// OptimisticCommand action that also uses NonReentrant (should throw assertion error).
@@ -2306,7 +2623,427 @@ class OptimisticCommandWithFresh extends ReduxAction<AppState>
       state.copy(items: value as List<String>);
 
   @override
-  Future<void> sendCommandToServer(Object? newValue) async {
+  Future<Object?> sendCommandToServer(Object? newValue) async {
     await Future.delayed(const Duration(milliseconds: 10));
+    return null;
   }
+}
+
+// -----------------------------------------------------------------------------
+// Actions for testing DEFAULT shouldReload behavior (only reload on error)
+// -----------------------------------------------------------------------------
+
+/// Action that uses default shouldReload (only reload on error) - success case.
+/// reloadFromServer should NOT be called on success.
+class SaveItemActionWithDefaultShouldReloadOnSuccess
+    extends ReduxAction<AppState> with OptimisticCommand<AppState> {
+  final String newItem;
+  final List<List<String>> stateChangesLog = [];
+  bool reloadWasCalled = false;
+
+  SaveItemActionWithDefaultShouldReloadOnSuccess(this.newItem);
+
+  @override
+  Object? optimisticValue() => [...state.items, newItem];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) {
+    final newItems = value as List<String>;
+    stateChangesLog.add(newItems);
+    return state.copy(items: newItems);
+  }
+
+  @override
+  Future<Object?> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+    return null; // Success, no error
+  }
+
+  @override
+  Future<Object?> reloadFromServer() async {
+    reloadWasCalled = true;
+    return ['reloaded'];
+  }
+
+// NOTE: We do NOT override shouldReload - it uses the default (error != null)
+}
+
+/// Action that uses default shouldReload (only reload on error) - failure case.
+/// reloadFromServer SHOULD be called on failure.
+class SaveItemActionWithDefaultShouldReloadOnFailure
+    extends ReduxAction<AppState> with OptimisticCommand<AppState> {
+  final String newItem;
+  final List<List<String>> stateChangesLog = [];
+  bool reloadWasCalled = false;
+
+  SaveItemActionWithDefaultShouldReloadOnFailure(this.newItem);
+
+  @override
+  Object? optimisticValue() => [...state.items, newItem];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) {
+    final newItems = value as List<String>;
+    stateChangesLog.add(newItems);
+    return state.copy(items: newItems);
+  }
+
+  @override
+  Future<Object?> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+    throw const UserException('Save failed');
+  }
+
+  @override
+  Future<Object?> reloadFromServer() async {
+    reloadWasCalled = true;
+    return ['reloaded'];
+  }
+
+// NOTE: We do NOT override shouldReload - it uses the default (error != null)
+}
+
+// -----------------------------------------------------------------------------
+// Actions for testing sendCommandToServer returning a value
+// -----------------------------------------------------------------------------
+
+/// Action where sendCommandToServer returns a server response that is applied.
+class SaveItemActionWithServerResponse extends ReduxAction<AppState>
+    with OptimisticCommand<AppState> {
+  final String newItem;
+  final List<List<String>> stateChangesLog = [];
+  bool serverResponseApplied = false;
+  Object? receivedServerResponse;
+
+  SaveItemActionWithServerResponse(this.newItem);
+
+  @override
+  Object? optimisticValue() => [...state.items, newItem];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) {
+    final newItems = value as List<String>;
+    stateChangesLog.add(newItems);
+    return state.copy(items: newItems);
+  }
+
+  @override
+  Future<Object?> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+    // Server returns a confirmed response with additional data
+    return ['initial', newItem, 'server_confirmed'];
+  }
+
+  @override
+  AppState? applyServerResponseToState(AppState state, Object serverResponse) {
+    serverResponseApplied = true;
+    receivedServerResponse = serverResponse;
+    return state.copy(items: serverResponse as List<String>);
+  }
+
+// No reload - we just want to test server response
+}
+
+/// Action where sendCommandToServer returns null (no server response to apply).
+class SaveItemActionWithNullServerResponse extends ReduxAction<AppState>
+    with OptimisticCommand<AppState> {
+  final String newItem;
+  final List<List<String>> stateChangesLog = [];
+  bool applyServerResponseCalled = false;
+
+  SaveItemActionWithNullServerResponse(this.newItem);
+
+  @override
+  Object? optimisticValue() => [...state.items, newItem];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) {
+    final newItems = value as List<String>;
+    stateChangesLog.add(newItems);
+    return state.copy(items: newItems);
+  }
+
+  @override
+  Future<Object?> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+    return null; // No server response
+  }
+
+  @override
+  AppState? applyServerResponseToState(AppState state, Object serverResponse) {
+    applyServerResponseCalled = true;
+    return state.copy(items: serverResponse as List<String>);
+  }
+}
+
+/// Action where applyServerResponseToState returns null (skip applying).
+class SaveItemActionWithServerResponseReturningNull
+    extends ReduxAction<AppState> with OptimisticCommand<AppState> {
+  final String newItem;
+  final List<List<String>> stateChangesLog = [];
+  bool applyServerResponseCalled = false;
+
+  SaveItemActionWithServerResponseReturningNull(this.newItem);
+
+  @override
+  Object? optimisticValue() => [...state.items, newItem];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) {
+    final newItems = value as List<String>;
+    stateChangesLog.add(newItems);
+    return state.copy(items: newItems);
+  }
+
+  @override
+  Future<Object?> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+    return ['from_server']; // Server returns a value
+  }
+
+  @override
+  AppState? applyServerResponseToState(AppState state, Object serverResponse) {
+    applyServerResponseCalled = true;
+    return null; // Explicitly decide not to apply the server response
+  }
+}
+
+/// Action with both server response and reload to test ordering.
+class SaveItemActionWithServerResponseAndReload extends ReduxAction<AppState>
+    with OptimisticCommand<AppState> {
+  final String newItem;
+  final List<String> operationOrder = [];
+  final List<List<String>> stateChangesLog = [];
+
+  SaveItemActionWithServerResponseAndReload(this.newItem);
+
+  @override
+  Object? optimisticValue() => [...state.items, newItem];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) {
+    final newItems = value as List<String>;
+    stateChangesLog.add(newItems);
+    return state.copy(items: newItems);
+  }
+
+  @override
+  Future<Object?> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+    return ['server_response'];
+  }
+
+  @override
+  AppState? applyServerResponseToState(AppState state, Object serverResponse) {
+    operationOrder.add('applyServerResponse');
+    return state.copy(items: serverResponse as List<String>);
+  }
+
+  @override
+  Future<Object?> reloadFromServer() async {
+    operationOrder.add('reload');
+    return ['reloaded'];
+  }
+
+  @override
+  bool shouldReload({
+    required Object? currentValue,
+    required Object? lastAppliedValue,
+    required Object? optimisticValue,
+    required Object? rollbackValue,
+    required Object? error,
+  }) =>
+      true; // Always reload to test ordering
+}
+
+/// Action that fails in sendCommandToServer - server response should NOT be applied.
+class SaveItemActionWithServerResponseThatFails extends ReduxAction<AppState>
+    with OptimisticCommand<AppState> {
+  final String newItem;
+  final List<List<String>> stateChangesLog = [];
+  bool applyServerResponseCalled = false;
+
+  SaveItemActionWithServerResponseThatFails(this.newItem);
+
+  @override
+  Object? optimisticValue() => [...state.items, newItem];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) {
+    final newItems = value as List<String>;
+    stateChangesLog.add(newItems);
+    return state.copy(items: newItems);
+  }
+
+  @override
+  Future<Object?> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+    throw const UserException('Save failed');
+  }
+
+  @override
+  AppState? applyServerResponseToState(AppState state, Object serverResponse) {
+    applyServerResponseCalled = true;
+    return state.copy(items: serverResponse as List<String>);
+  }
+}
+
+/// Action with Retry that tests server response is applied after successful retry.
+class SaveItemActionWithRetryAndServerResponse extends ReduxAction<AppState>
+    with OptimisticCommand<AppState>, Retry<AppState> {
+  final String newItem;
+  final int failCount;
+  int _saveAttemptCount = 0;
+  final List<List<String>> stateChangesLog = [];
+  bool serverResponseApplied = false;
+
+  SaveItemActionWithRetryAndServerResponse(this.newItem,
+      {required this.failCount});
+
+  @override
+  Duration get initialDelay => const Duration(milliseconds: 5);
+
+  @override
+  int get maxRetries => 10;
+
+  @override
+  Object? optimisticValue() => [...state.items, newItem];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) {
+    final newItems = value as List<String>;
+    stateChangesLog.add(newItems);
+    return state.copy(items: newItems);
+  }
+
+  @override
+  Future<Object?> sendCommandToServer(Object? newValue) async {
+    _saveAttemptCount++;
+    await Future.delayed(const Duration(milliseconds: 5));
+    if (_saveAttemptCount <= failCount) {
+      throw UserException('Save failed: attempt $_saveAttemptCount');
+    }
+    // Return server response on success
+    return ['initial', newItem, 'server_confirmed'];
+  }
+
+  @override
+  AppState? applyServerResponseToState(AppState state, Object serverResponse) {
+    serverResponseApplied = true;
+    return state.copy(items: serverResponse as List<String>);
+  }
+}
+
+/// Action that tests server response transformation.
+class SaveItemActionWithServerResponseTransformation
+    extends ReduxAction<AppState> with OptimisticCommand<AppState> {
+  final String newItem;
+  final List<List<String>> stateChangesLog = [];
+
+  SaveItemActionWithServerResponseTransformation(this.newItem);
+
+  @override
+  Object? optimisticValue() => [...state.items, newItem];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) {
+    final newItems = value as List<String>;
+    stateChangesLog.add(newItems);
+    return state.copy(items: newItems);
+  }
+
+  @override
+  Future<Object?> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+    // Server returns a map with more complex data
+    return {
+      'items': [newItem],
+      'timestamp': '2024-01-01',
+      'confirmed': true,
+    };
+  }
+
+  @override
+  AppState? applyServerResponseToState(AppState state, Object serverResponse) {
+    final map = serverResponse as Map<String, dynamic>;
+    final items = (map['items'] as List).cast<String>();
+    // Transform: add confirmed items with timestamp
+    return state.copy(
+        items:
+            items.map((i) => '$i (confirmed: ${map['timestamp']})').toList());
+  }
+}
+
+/// Action that uses default shouldReload with server response.
+/// Tests that server response is applied but reload is skipped on success.
+class SaveItemActionWithDefaultShouldReloadAndServerResponse
+    extends ReduxAction<AppState> with OptimisticCommand<AppState> {
+  final String newItem;
+  final List<List<String>> stateChangesLog = [];
+  bool serverResponseApplied = false;
+  bool reloadWasCalled = false;
+
+  SaveItemActionWithDefaultShouldReloadAndServerResponse(this.newItem);
+
+  @override
+  Object? optimisticValue() => [...state.items, newItem];
+
+  @override
+  Object? getValueFromState(AppState state) => state.items;
+
+  @override
+  AppState applyValueToState(AppState state, Object? value) {
+    final newItems = value as List<String>;
+    stateChangesLog.add(newItems);
+    return state.copy(items: newItems);
+  }
+
+  @override
+  Future<Object?> sendCommandToServer(Object? newValue) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+    // Server returns a confirmed response
+    return ['initial', newItem, 'server_confirmed'];
+  }
+
+  @override
+  AppState? applyServerResponseToState(AppState state, Object serverResponse) {
+    serverResponseApplied = true;
+    return state.copy(items: serverResponse as List<String>);
+  }
+
+  @override
+  Future<Object?> reloadFromServer() async {
+    reloadWasCalled = true;
+    return ['reloaded'];
+  }
+
+// NOTE: We do NOT override shouldReload - it uses the default (error != null)
+// So reload will NOT happen on success, but server response will still be applied.
 }

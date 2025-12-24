@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
 import 'package:bdd_framework/bdd_framework.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide Retry;
 
 void main() {
   var feature = BddFeature('OptimisticSync mixin');
@@ -368,7 +368,8 @@ void main() {
 
   Bdd(feature)
       .scenario('computeOptimisticSyncKey can be overridden to share keys.')
-      .given('Two different action types with the same computeOptimisticSyncKey.')
+      .given(
+          'Two different action types with the same computeOptimisticSyncKey.')
       .when('Both are dispatched while the first is in flight.')
       .then('They share the same lock.')
       .run((_) async {
@@ -470,11 +471,12 @@ void main() {
     var store = Store<AppState>(initialState: AppState(liked: false));
 
     expect(
-      () => store.dispatch(OptimisticSyncWithUnlimitedRetryCheckInternetAction()),
+      () =>
+          store.dispatch(OptimisticSyncWithUnlimitedRetryCheckInternetAction()),
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
-        'The OptimisticSync mixin cannot be combined with the UnlimitedRetryCheckInternet mixin.',
+        'The UnlimitedRetryCheckInternet mixin cannot be combined with the OptimisticSync mixin.',
       )),
     );
   });
@@ -496,29 +498,7 @@ void main() {
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
-        'The OptimisticSync mixin cannot be combined with the UnlimitedRetries mixin.',
-      )),
-    );
-  });
-
-  // ==========================================================================
-  // Case 18: OptimisticSync cannot be combined with OptimisticCommand
-  // ==========================================================================
-
-  Bdd(feature)
-      .scenario('OptimisticSync cannot be combined with OptimisticCommand.')
-      .given('An action that combines OptimisticSync and OptimisticCommand.')
-      .when('The action is dispatched.')
-      .then('An assertion error is thrown.')
-      .run((_) async {
-    var store = Store<AppState>(initialState: AppState(liked: false));
-
-    expect(
-      () => store.dispatch(OptimisticSyncWithOptimisticCommandAction()),
-      throwsA(isA<AssertionError>().having(
-        (e) => e.message,
-        'message',
-        'The OptimisticSync mixin cannot be combined with the OptimisticCommand mixin.',
+        'The Retry mixin cannot be combined with the OptimisticSync mixin.',
       )),
     );
   });
@@ -528,7 +508,8 @@ void main() {
   // ==========================================================================
 
   Bdd(feature)
-      .scenario('OptimisticSync cannot be combined with OptimisticSyncWithPush.')
+      .scenario(
+          'OptimisticSync cannot be combined with OptimisticSyncWithPush.')
       .given(
           'An action that combines OptimisticSync and OptimisticSyncWithPush.')
       .when('The action is dispatched.')
@@ -541,55 +522,32 @@ void main() {
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
-        'The OptimisticSync mixin cannot be combined with the OptimisticSyncWithPush mixin.',
+        'The OptimisticSyncWithPush mixin cannot be combined with the OptimisticSync mixin.',
       )),
     );
   });
 
   // ==========================================================================
-  // Case 20: OptimisticSync cannot be combined with ServerPush
+  // Case 21: OptimisticSync cannot be combined with Debounce
   // ==========================================================================
 
   Bdd(feature)
-      .scenario('OptimisticSync cannot be combined with ServerPush.')
-      .given('An action that combines OptimisticSync and ServerPush.')
+      .scenario('OptimisticSync cannot be combined with Debounce.')
+      .given('An action that combines OptimisticSync and Debounce.')
       .when('The action is dispatched.')
       .then('An assertion error is thrown.')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(liked: false));
 
     expect(
-      () => store.dispatch(OptimisticSyncWithServerPushAction()),
+      () => store.dispatch(OptimisticSyncWithDebounceAction()),
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
-        'The OptimisticSync mixin cannot be combined with the ServerPush mixin.',
+        'The OptimisticSync mixin cannot be combined with the Debounce mixin.',
       )),
     );
   });
-
-  // TODO: IGNORE
-  // ==========================================================================
-  // Case 21: OptimisticSync cannot be combined with Debounce
-  // ==========================================================================
-  //
-  // Bdd(feature)
-  //     .scenario('OptimisticSync cannot be combined with Debounce.')
-  //     .given('An action that combines OptimisticSync and Debounce.')
-  //     .when('The action is dispatched.')
-  //     .then('An assertion error is thrown.')
-  //     .run((_) async {
-  //   var store = Store<AppState>(initialState: AppState(liked: false));
-  //
-  //   expect(
-  //     () => store.dispatch(OptimisticSyncWithDebounceAction()),
-  //     throwsA(isA<AssertionError>().having(
-  //       (e) => e.message,
-  //       'message',
-  //       'The OptimisticSync mixin cannot be combined with the Debounce mixin.',
-  //     )),
-  //   );
-  // });
 
   // ==========================================================================
   // Case 22: Server response is applied when non-null and state is stable
@@ -1183,6 +1141,8 @@ class OptimisticSyncWithUnlimitedRetriesAction extends ReduxAction<AppState>
     with
         OptimisticSync<AppState, bool>,
         // ignore: private_collision_in_mixin_application
+        Retry<AppState>,
+        // ignore: private_collision_in_mixin_application
         UnlimitedRetries<AppState> {
   @override
   bool valueToApply() => !state.liked;
@@ -1200,39 +1160,6 @@ class OptimisticSyncWithUnlimitedRetriesAction extends ReduxAction<AppState>
 
   @override
   Future<Object?> sendValueToServer(Object? value) async => null;
-}
-
-class OptimisticSyncWithOptimisticCommandAction extends ReduxAction<AppState>
-    with
-        OptimisticSync<AppState, bool>,
-        // ignore: private_collision_in_mixin_application
-        OptimisticCommand<AppState> {
-  @override
-  bool valueToApply() => !state.liked;
-
-  @override
-  bool getValueFromState(AppState state) => state.liked;
-
-  @override
-  AppState applyOptimisticValueToState(state, bool optimisticValueToApply) =>
-      state.copy(liked: optimisticValueToApply);
-
-  @override
-  AppState applyServerResponseToState(state, Object? serverResponse) =>
-      state.copy(liked: serverResponse as bool);
-
-  @override
-  Future<Object?> sendValueToServer(Object? value) async => null;
-
-  @override
-  Object? optimisticValue() => !state.liked;
-
-  @override
-  AppState applyValueToState(AppState state, Object? value) =>
-      state.copy(liked: value as bool);
-
-  @override
-  Future<void> sendCommandToServer(Object? optimisticValue) async {}
 }
 
 class OptimisticSyncWithOptimisticSyncWithPushAction
@@ -1259,51 +1186,7 @@ class OptimisticSyncWithOptimisticSyncWithPushAction
   Future<Object?> sendValueToServer(Object? value) async => null;
 
   @override
-  int getRevision(AppState state) => 0;
-
-  @override
-  bool hasNewRevision(AppState state) => false;
-
-  @override
   int? getServerRevisionFromState(Object? key) => null;
-}
-
-class OptimisticSyncWithServerPushAction extends ReduxAction<AppState>
-    with
-        OptimisticSync<AppState, bool>,
-        // ignore: private_collision_in_mixin_application
-        ServerPush<AppState> {
-  @override
-  bool valueToApply() => !state.liked;
-
-  @override
-  bool getValueFromState(AppState state) => state.liked;
-
-  @override
-  AppState applyOptimisticValueToState(state, bool optimisticValueToApply) =>
-      state.copy(liked: optimisticValueToApply);
-
-  @override
-  AppState applyServerResponseToState(state, Object? serverResponse) =>
-      state.copy(liked: serverResponse as bool);
-
-  @override
-  Future<Object?> sendValueToServer(Object? value) async => null;
-
-  @override
-  Object serverPushId() => 'test-push-id';
-
-  @override
-  int serverRevision() => 0;
-
-  @override
-  int? getServerRevisionFromState(Object? key) => null;
-
-  @override
-  AppState applyServerPushToState(AppState state, Object? data) => state;
-
-  @override
-  Type get associatedAction => OptimisticSyncWithServerPushAction;
 }
 
 // =============================================================================
