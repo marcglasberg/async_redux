@@ -38,6 +38,12 @@
 /// is called with the error. In this example, we reload from the database
 /// to restore the correct state.
 ///
+/// ### 7. Persistence
+/// Close and restart the app. The last known state is persisted using
+/// shared_preferences (see class [MyPersistor] below) and restored on startup.
+/// When using PUSH, we must persist the server revision as well to ensure
+/// correct operation across app restarts.
+///
 import 'dart:async';
 import 'dart:convert';
 
@@ -51,16 +57,27 @@ late Store<AppState> store;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load persisted state
-  final initialState = await loadAppState();
+  // Create the persistor.
+  var persistor = MyPersistor();
 
-  // Initialize server revision counter from persisted state.
-  // In production, this would come from the server on reconnect.
+  // Load persisted state.
+  var initialState = await persistor.readState();
+
+  // If no persisted state exists, create the default initial state and save it.
+  if (initialState == null) {
+    initialState = AppState(liked: false, serverRevision: 0);
+    await persistor.saveInitialState(initialState);
+  }
+
+  // Initialize the server SIMULATION, by setting the like and revision counter.
+  // In production, this would be the real server, using a database.
   server.revisionCounter = initialState.serverRevision;
+  server.databaseLiked = initialState.liked;
 
   store = Store<AppState>(
     initialState: initialState,
     actionObservers: [ConsoleActionObserver()],
+    persistor: persistor,
   );
   runApp(const MyApp());
 }
@@ -92,27 +109,43 @@ class AppState {
       'AppState(liked: $liked, serverRevision: $serverRevision)';
 }
 
-/// Saves AppState to shared_preferences.
-Future<void> saveAppState(AppState state) async {
-  final prefs = await SharedPreferences.getInstance();
-  final json = jsonEncode(state.toJson());
-  await prefs.setString('app_state', json);
-}
+/// Persistor that saves AppState to shared_preferences.
+class MyPersistor extends Persistor<AppState> {
+  static const _key = 'app_state';
 
-/// Loads AppState from shared_preferences.
-Future<AppState> loadAppState() async {
-  final prefs = await SharedPreferences.getInstance();
-  final jsonString = prefs.getString('app_state');
-  if (jsonString == null) {
-    return AppState(liked: false, serverRevision: 0);
+  @override
+  Future<AppState?> readState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_key);
+    if (jsonString == null) return null;
+    try {
+      final json = jsonDecode(jsonString) as Map<String, dynamic>;
+      print('Loaded AppState from prefs: $json');
+      return AppState.fromJson(json);
+    } catch (e) {
+      return null;
+    }
   }
-  try {
-    final json = jsonDecode(jsonString) as Map<String, dynamic>;
-    print('Loaded AppState from prefs: $json');
-    return AppState.fromJson(json);
-  } catch (e) {
-    return AppState(liked: false, serverRevision: 0);
+
+  @override
+  Future<void> deleteState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_key);
   }
+
+  @override
+  Future<void> persistDifference({
+    required AppState? lastPersistedState,
+    required AppState newState,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = jsonEncode(newState.toJson());
+    await prefs.setString(_key, json);
+  }
+
+  /// Short throttle for this demo to save changes quickly.
+  @override
+  Duration? get throttle => const Duration(milliseconds: 300);
 }
 
 /// Represents the server's response including the revision number.
@@ -143,10 +176,7 @@ class PushLikeUpdate extends AppAction with ServerPush<AppState> {
   @override
   AppState? applyServerPushToState(
       AppState state, Object? key, int serverRevision) {
-    final newState = state.copy(isLiked: liked, serverRevision: serverRevision);
-    // Persist the state asynchronously (fire and forget is OK for persistence).
-    saveAppState(newState);
-    return newState;
+    return state.copy(isLiked: liked, serverRevision: serverRevision);
   }
 
   /// Return the current server revision from state for this key.
@@ -178,13 +208,10 @@ class ToggleLike extends AppAction with OptimisticSyncWithPush<AppState, bool> {
   @override
   AppState? applyServerResponseToState(AppState state, Object? serverResponse) {
     // Apply both the liked value and the server revision.
-    final newState = state.copy(
+    return state.copy(
       isLiked: serverResponse as bool,
       serverRevision: _serverRevFromResponse,
     );
-    // Persist the state.
-    saveAppState(newState);
-    return newState;
   }
 
   @override
@@ -270,7 +297,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('OptimisticSync Mixin Demo')),
+      appBar: AppBar(title: const Text('OptimisticSyncWithPush Mixin Demo')),
       body: Column(
         children: [
           // Top half: Like button (Redux state)
