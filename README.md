@@ -311,9 +311,9 @@ class SellStockForPrice extends Action {
 
 &nbsp;
 
-# Add features to your actions
+# Add mixins to your actions
 
-You can use **mixins** in your actions, to accomplish common tasks.
+You can use **mixins** to accomplish common tasks.
 
 ## Check for Internet connectivity
 
