@@ -5,9 +5,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:meta/meta.dart';
 
-/// This mixin can be used to check if there is internet when you run some
-/// action that needs internet connection. Just add `with CheckInternet` to
-/// your action. For example:
+/// Mixin [CheckInternet] can be used to check if there is internet when you
+/// run some action that needs internet connection. Just add `with CheckInternet`
+/// to your action. For example:
 ///
 /// ```dart
 /// class LoadText extends ReduxAction<AppState> with CheckInternet {
@@ -113,7 +113,7 @@ mixin CheckInternet<St> on ReduxAction<St> {
   }
 }
 
-/// This mixin can only be applied on [CheckInternet]. Example:
+/// Mixin [NoDialog] can only be applied on [CheckInternet]. Example:
 ///
 /// ```dart
 /// class LoadText extends ReduxAction<AppState> with CheckInternet, NoDialog {
@@ -142,9 +142,9 @@ mixin NoDialog<St> on CheckInternet<St> {
   bool get ifOpenDialog => false;
 }
 
-/// This mixin can be used to check if there is internet when you run some
-/// action that needs it. If there is no internet, the action will abort
-/// silently, as if it had never been dispatched.
+/// Mixin [AbortWhenNoInternet] can be used to check if there is internet when
+/// you run some action that needs it. If there is no internet, the action will
+/// abort silently, as if it had never been dispatched.
 ///
 /// Just add `with AbortWhenNoInternet` to your action. For example:
 ///
@@ -223,7 +223,7 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
   }
 }
 
-/// The [NonReentrant] mixin can be used to abort the action in case the action
+/// Mixin [NonReentrant] can be used to abort the action in case the action
 /// is still running from a previous dispatch. Just add `with NonReentrant`
 /// to your action. For example:
 ///
@@ -352,7 +352,7 @@ mixin NonReentrant<St> on ReduxAction<St> {
   }
 }
 
-/// This mixin will retry the [reduce] method if it throws an error.
+/// Mixin [Retry] will retry the [reduce] method if it throws an error.
 /// Note: If the `before` method throws an error, the retry will NOT happen.
 ///
 /// You can override the following parameters:
@@ -494,7 +494,8 @@ mixin Retry<St> on ReduxAction<St> {
   }
 }
 
-/// Add [UnlimitedRetries] to the [Retry] mixin, to retry indefinitely:
+/// Mixin [UnlimitedRetries] can be added to the [Retry] mixin, to retry
+/// indefinitely:
 ///
 /// ```dart
 /// class MyAction extends ReduxAction<AppState> with Retry, UnlimitedRetries { ... }
@@ -510,7 +511,7 @@ mixin UnlimitedRetries<St> on Retry<St> {
   int get maxRetries => -1;
 }
 
-/// The [OptimisticCommand] mixin is for actions that represent a command.
+/// Mixin [OptimisticCommand] is for actions that represent a command.
 /// A command is something you want to run on the server once per dispatch.
 /// Typical examples are:
 ///
@@ -1229,7 +1230,7 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
   }
 }
 
-/// Throttling ensures the action will be dispatched at most once in the
+/// Mixin [Throttle] ensures the action will be dispatched at most once in the
 /// specified throttle period. It acts as a simple rate limit, so the action
 /// does not run too often.
 ///
@@ -1450,9 +1451,9 @@ mixin Throttle<St> on ReduxAction<St> {
   }
 }
 
-/// Debouncing delays the execution of a function until after a certain period
-/// of inactivity. Each time the debounced function is called, the period of
-/// inactivity (or wait time) is reset.
+/// Mixin [Debounce] delays the execution of a function until after a certain
+/// period of inactivity. Each time the debounced function is called,
+/// the period of inactivity (or wait time) is reset.
 ///
 /// The function will only execute after it stops being called for the duration
 /// of the wait time. Debouncing is useful in situations where you want to
@@ -1566,10 +1567,11 @@ mixin Debounce<St> on ReduxAction<St> {
   }
 }
 
-/// This mixin can be used to check if there is internet when you run some
-/// action that needs it. If there is no internet, the action will abort
-/// silently, and then retry the [reduce] method unlimited times, until there
-/// is internet. It will also retry if there is internet but the action failed.
+/// Mixin [UnlimitedRetryCheckInternet] can be used to check if there is
+/// internet when you run some action that needs it. If there is no internet,
+/// the action will abort silently, and then retry the [reduce] method
+/// unlimited times, until there is internet. It will also retry if there
+/// is internet but the action failed.
 ///
 /// Just add `with UnlimitedRetryCheckInternet` to your action.
 /// For example:
@@ -1776,7 +1778,7 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
   }
 }
 
-/// The [Fresh] mixin lets you treat the result of an action as fresh for a
+/// Mixin [Fresh] lets you treat the result of an action as fresh for a
 /// given time period. While the information is fresh, repeated dispatches of
 /// the same action (or other actions with the same "fresh-key") are skipped,
 /// because that information is assumed to still be valid in the state.
@@ -2218,7 +2220,7 @@ void _incompatible<T1, T2>(Object instance) {
   );
 }
 
-/// The [OptimisticSync] mixin is designed for actions where user interactions
+/// Mixin [OptimisticSync] is designed for actions where user interactions
 /// (like toggling a "like" button) should update the UI immediately and
 /// send the updated value to the server, making sure the server and the UI
 /// are eventually consistent.
@@ -2810,7 +2812,7 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
   }
 }
 
-/// The [OptimisticSyncWithPush] mixin is designed for actions where:
+/// Mixin [OptimisticSyncWithPush] is designed for actions where:
 ///
 /// 1. Your app receives server-pushed updates (like WebSockets, Server-Sent
 ///    Events (SSE), Firebase) that may modify the same state this action
@@ -3470,6 +3472,14 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
   }
 }
 
+/// Mixin [ServerPush] should be used by actions that put, in the store state,
+/// values that were received by server-push, via WebSockets, Server-Sent
+/// Events (SSE), Firebase, etc.
+////
+/// It works together with [OptimisticSyncWithPush] to ensure that out-of-order
+/// pushes do not corrupt the state, and that local optimistic updates are not
+/// overwritten by stale pushes.
+///
 mixin ServerPush<St> on ReduxAction<St> {
   /// Return the Type of the OptimisticSync/OptimisticSyncWithPush action that owns
   /// this value (so both compute the same stable-sync key).
