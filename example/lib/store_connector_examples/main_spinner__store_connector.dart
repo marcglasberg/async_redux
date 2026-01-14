@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 late Store<AppState> store;
 
 /// This example shows a counter and a button.
-/// When the button is tapped, the counter will increment synchronously.
+/// When the button is tapped, the counter will increment asynchronously.
 void main() {
   store = Store<AppState>(initialState: AppState(counter: 0, something: 0));
   runApp(MyApp());
@@ -144,7 +144,7 @@ class ViewModel extends Vm {
   }) : super(equals: [isWaiting1, isWaiting2, isWaiting3]);
 }
 
-/// This action waits for 2 seconds, then increments the counter by [amount]].
+/// This action waits for 2 seconds, then increments the counter by 1.
 class WaitAndIncrementAction extends ReduxAction<AppState> {
   @override
   Future<AppState?> reduce() async {
