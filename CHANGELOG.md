@@ -7,6 +7,10 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 26.2.1
+
+* Improved the `OptimisticSyncWithPush` mixin.
+
 ## 26.2.0
 
 * Added the `OptimisticCommand` mixin.
@@ -169,11 +173,10 @@ Sponsored by [MyText.ai](https://mytext.ai)
   (WebSockets, Server-Sent Events, Firebase, etc.) that may modify the same
   state your actions control.
 
-  Read the documentation in `OptimisticSync` and `ServerPush` to understand how
-  they work.
+  Read the documentation in their own code to understand how they work.
 
-  **Important:** If your app does NOT receive server-pushed updates, use the
-  simpler `OptimisticSync` mixin instead.
+  **Important:** If your app does NOT receive server-pushed updates, you should 
+  use the simpler `OptimisticSync` mixin instead.
 
   See file `example/lib/main_optimistic_sync_with_push.dart` for an example app
   demonstrating the use of `OptimisticSyncWithPush` in a like button.

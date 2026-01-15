@@ -506,26 +506,17 @@ void main() {
   // ==========================================================================
   // Case 19: OptimisticSync cannot be combined with OptimisticSyncWithPush
   // ==========================================================================
-
-  Bdd(feature)
-      .scenario(
-          'OptimisticSync cannot be combined with OptimisticSyncWithPush.')
-      .given(
-          'An action that combines OptimisticSync and OptimisticSyncWithPush.')
-      .when('The action is dispatched.')
-      .then('An assertion error is thrown.')
-      .run((_) async {
-    var store = Store<AppState>(initialState: AppState(liked: false));
-
-    expect(
-      () => store.dispatch(OptimisticSyncWithOptimisticSyncWithPushAction()),
-      throwsA(isA<AssertionError>().having(
-        (e) => e.message,
-        'message',
-        'The OptimisticSyncWithPush mixin cannot be combined with the OptimisticSync mixin.',
-      )),
-    );
-  });
+  // NOTE: This combination now causes a COMPILE-TIME error because the two
+  // mixins define sendValueToServer with different signatures:
+  // - OptimisticSync: sendValueToServer(Object? optimisticValue)
+  // - OptimisticSyncWithPush: sendValueToServer(Object? optimisticValue, int localRevision, int deviceId)
+  //
+  // This is actually BETTER than a runtime assertion error because it
+  // catches the incompatibility at compile time. The test below is skipped
+  // since we cannot even create such a class.
+  //
+  // To verify: try uncommenting OptimisticSyncWithOptimisticSyncWithPushAction
+  // in this file and you'll get a compilation error.
 
   // ==========================================================================
   // Case 21: OptimisticSync cannot be combined with Debounce
@@ -1162,32 +1153,40 @@ class OptimisticSyncWithUnlimitedRetriesAction extends ReduxAction<AppState>
   Future<Object?> sendValueToServer(Object? value) async => null;
 }
 
-class OptimisticSyncWithOptimisticSyncWithPushAction
-    extends ReduxAction<AppState>
-    with
-        OptimisticSync<AppState, bool>,
-        // ignore: private_collision_in_mixin_application
-        OptimisticSyncWithPush<AppState, bool> {
-  @override
-  bool valueToApply() => !state.liked;
-
-  @override
-  bool getValueFromState(AppState state) => state.liked;
-
-  @override
-  AppState applyOptimisticValueToState(state, bool optimisticValueToApply) =>
-      state.copy(liked: optimisticValueToApply);
-
-  @override
-  AppState applyServerResponseToState(state, Object? serverResponse) =>
-      state.copy(liked: serverResponse as bool);
-
-  @override
-  Future<Object?> sendValueToServer(Object? value) async => null;
-
-  @override
-  int? getServerRevisionFromState(Object? key) => null;
-}
+// This class is intentionally commented out because combining OptimisticSync
+// and OptimisticSyncWithPush causes a COMPILE-TIME error due to conflicting
+// sendValueToServer signatures. See Case 19 comment above.
+//
+// class OptimisticSyncWithOptimisticSyncWithPushAction
+//     extends ReduxAction<AppState>
+//     with
+//         OptimisticSync<AppState, bool>,
+//         OptimisticSyncWithPush<AppState, bool> {
+//   @override
+//   bool valueToApply() => !state.liked;
+//
+//   @override
+//   bool getValueFromState(AppState state) => state.liked;
+//
+//   @override
+//   AppState applyOptimisticValueToState(state, bool optimisticValueToApply) =>
+//       state.copy(liked: optimisticValueToApply);
+//
+//   @override
+//   AppState applyServerResponseToState(state, Object? serverResponse) =>
+//       state.copy(liked: serverResponse as bool);
+//
+//   @override
+//   Future<Object?> sendValueToServer(
+//     Object? optimisticValue,
+//     int localRevision,
+//     int deviceId,
+//   ) async =>
+//       null;
+//
+//   @override
+//   int getServerRevisionFromState(Object? key) => -1;
+// }
 
 // =============================================================================
 // Push simulation actions

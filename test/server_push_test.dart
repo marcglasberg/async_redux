@@ -372,12 +372,12 @@ void main() {
 
   Bdd(feature)
       .scenario(
-          'Push echo overwriting store during in-flight request does not break follow-up.')
+          'Self-echo push does not break follow-up and preserves optimistic state.')
       .given('A OptimisticSyncWithPush action has a request in flight.')
-      .when('User taps again and a push echo overwrites the store.')
-      .then('The follow-up still sends the latest local intent value.')
+      .when('User taps again and a self-echo push arrives.')
+      .then('The self-echo is ignored (not applied) and follow-up still sends latest local intent.')
       .note(
-          'Ensures local intent is preserved despite store being overwritten.')
+          'Self-echo is detected by matching deviceId and stale localRevision.')
       .run((_) async {
     final store = Store<AppState>(
       initialState: AppState(liked: false, serverRevision: 10),
@@ -398,10 +398,19 @@ void main() {
     await Future.delayed(const Duration(milliseconds: 10));
     expect(store.state.liked, false);
 
-    // Push echo arrives with the older serverRev=11 and overwrites store to true.
-    store.dispatch(PushLikeUpdate(liked: true, serverRev: 11));
+    // Self-echo push arrives (same deviceId, stale localRev=1).
+    // With the new ServerPush logic, self-echoes are NOT applied to state,
+    // preserving the optimistic value (false).
+    store.dispatch(PushLikeUpdate(
+      liked: true,
+      serverRev: 11,
+      pushLocalRevision: 1, // Stale: less than currentLocalRev=2
+      pushDeviceId: OptimisticSyncWithPush.deviceId(), // Same device = self-echo
+    ));
     await Future.delayed(const Duration(milliseconds: 10));
-    expect(store.state.liked, true);
+    // Self-echo is NOT applied, so state remains false (optimistic from tap 2).
+    expect(store.state.liked, false,
+        reason: 'Self-echo should not be applied to state');
 
     // Finish request 1, causing OptimisticSyncWithPush to detect localRev advanced
     // and send follow-up with the latest local intent (false).
@@ -517,9 +526,12 @@ class ToggleLikeStableAction extends ReduxAction<AppState>
   }
 
   @override
-  Future<Object?> sendValueToServer(Object? value) async {
-    final localRev = localRevision();
-    requestLog.add('sendValue($value, localRev=$localRev)');
+  Future<Object?> sendValueToServer(
+    Object? optimisticValue,
+    int localRevision,
+    int deviceId,
+  ) async {
+    requestLog.add('sendValue($optimisticValue, localRev=$localRevision)');
 
     if (requestCompleter != null) {
       await requestCompleter!.future;
@@ -529,7 +541,7 @@ class ToggleLikeStableAction extends ReduxAction<AppState>
     _serverRevFromResponse = nextServerRevision++;
     informServerRevision(_serverRevFromResponse);
 
-    return value;
+    return optimisticValue;
   }
 
   @override
@@ -539,22 +551,33 @@ class ToggleLikeStableAction extends ReduxAction<AppState>
   }
 
   @override
-  int? getServerRevisionFromState(Object? key) {
+  int getServerRevisionFromState(Object? key) {
     return state.serverRevision;
   }
 }
 
-class PushLikeUpdate extends ReduxAction<AppState> with ServerPush {
+class PushLikeUpdate extends ReduxAction<AppState> with ServerPush<AppState> {
   final bool liked;
   final int serverRev;
+  final int pushLocalRevision;
+  final int pushDeviceId;
 
-  PushLikeUpdate({required this.liked, required this.serverRev});
+  PushLikeUpdate({
+    required this.liked,
+    required this.serverRev,
+    this.pushLocalRevision = 0,
+    int? pushDeviceId,
+  }) : pushDeviceId = pushDeviceId ?? -999; // Default to a different deviceId
 
   @override
   Type associatedAction() => ToggleLikeStableAction;
 
   @override
-  int serverRevision() => serverRev;
+  PushMetadata pushMetadata() => (
+        serverRevision: serverRev,
+        localRevision: pushLocalRevision,
+        deviceId: pushDeviceId,
+      );
 
   @override
   AppState? applyServerPushToState(
@@ -563,7 +586,7 @@ class PushLikeUpdate extends ReduxAction<AppState> with ServerPush {
   }
 
   @override
-  int? getServerRevisionFromState(Object? key) {
+  int getServerRevisionFromState(Object? key) {
     return state.serverRevision;
   }
 }
@@ -600,9 +623,13 @@ class ToggleLikeItemStableAction extends ReduxAction<AppStateItems>
   }
 
   @override
-  Future<Object?> sendValueToServer(Object? value) async {
-    final localRev = localRevision();
-    requestLog.add('sendValue(item=$itemId, value=$value, localRev=$localRev)');
+  Future<Object?> sendValueToServer(
+    Object? optimisticValue,
+    int localRevision,
+    int deviceId,
+  ) async {
+    requestLog
+        .add('sendValue(item=$itemId, value=$optimisticValue, localRev=$localRevision)');
 
     final c = requestCompleterByItem[itemId];
     if (c != null) {
@@ -613,7 +640,7 @@ class ToggleLikeItemStableAction extends ReduxAction<AppStateItems>
     _serverRevFromResponse = nextServerRevision++;
     informServerRevision(_serverRevFromResponse);
 
-    return value;
+    return optimisticValue;
   }
 
   @override
@@ -623,8 +650,8 @@ class ToggleLikeItemStableAction extends ReduxAction<AppStateItems>
   }
 
   @override
-  int? getServerRevisionFromState(Object? key) {
-    return state.serverRevById[key];
+  int getServerRevisionFromState(Object? key) {
+    return state.serverRevById[key] ?? -1;
   }
 }
 
@@ -633,9 +660,16 @@ class PushItemLikeUpdate extends ReduxAction<AppStateItems>
   final String itemId;
   final bool liked;
   final int serverRev;
+  final int pushLocalRevision;
+  final int pushDeviceId;
 
-  PushItemLikeUpdate(
-      {required this.itemId, required this.liked, required this.serverRev});
+  PushItemLikeUpdate({
+    required this.itemId,
+    required this.liked,
+    required this.serverRev,
+    this.pushLocalRevision = 0,
+    int? pushDeviceId,
+  }) : pushDeviceId = pushDeviceId ?? -999; // Default to a different deviceId
 
   @override
   Type associatedAction() => ToggleLikeItemStableAction;
@@ -644,7 +678,11 @@ class PushItemLikeUpdate extends ReduxAction<AppStateItems>
   Object? optimisticSyncKeyParams() => itemId;
 
   @override
-  int serverRevision() => serverRev;
+  PushMetadata pushMetadata() => (
+        serverRevision: serverRev,
+        localRevision: pushLocalRevision,
+        deviceId: pushDeviceId,
+      );
 
   @override
   AppStateItems? applyServerPushToState(
@@ -653,7 +691,7 @@ class PushItemLikeUpdate extends ReduxAction<AppStateItems>
   }
 
   @override
-  int? getServerRevisionFromState(Object? key) {
-    return state.serverRevById[key];
+  int getServerRevisionFromState(Object? key) {
+    return state.serverRevById[key] ?? -1;
   }
 }

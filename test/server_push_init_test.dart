@@ -371,9 +371,11 @@ class ToggleLikeStableAction extends ReduxAction<AppState>
   }
 
   @override
-  Future<Object?> sendValueToServer(Object? value) async {
-    final localRev = localRevision();
-
+  Future<Object?> sendValueToServer(
+    Object? optimisticValue,
+    int localRevision,
+    int deviceId,
+  ) async {
     // Signal: request is now in-flight (it will block on requestCompleter).
     // Use isCompleted guard to handle follow-up requests safely.
     if (requestStarted != null && !requestStarted!.isCompleted) {
@@ -385,7 +387,8 @@ class ToggleLikeStableAction extends ReduxAction<AppState>
       requestCompleter = null;
     }
 
-    final response = backend.receiveValue(value as bool, localRev);
+    final response =
+        backend.receiveValue(optimisticValue as bool, localRevision);
     informServerRevision(response.serverRevision);
 
     return response;
@@ -401,20 +404,31 @@ class ToggleLikeStableAction extends ReduxAction<AppState>
   }
 
   @override
-  int? getServerRevisionFromState(Object? key) => state.serverRevision;
+  int getServerRevisionFromState(Object? key) => state.serverRevision;
 }
 
 class PushLikeUpdate extends ReduxAction<AppState> with ServerPush<AppState> {
   final bool liked;
   final int serverRev;
+  final int pushLocalRevision;
+  final int pushDeviceId;
 
-  PushLikeUpdate({required this.liked, required this.serverRev});
+  PushLikeUpdate({
+    required this.liked,
+    required this.serverRev,
+    this.pushLocalRevision = 0,
+    int? pushDeviceId,
+  }) : pushDeviceId = pushDeviceId ?? -999;
 
   @override
   Type associatedAction() => ToggleLikeStableAction;
 
   @override
-  int serverRevision() => serverRev;
+  PushMetadata pushMetadata() => (
+        serverRevision: serverRev,
+        localRevision: pushLocalRevision,
+        deviceId: pushDeviceId,
+      );
 
   @override
   AppState? applyServerPushToState(
@@ -423,7 +437,7 @@ class PushLikeUpdate extends ReduxAction<AppState> with ServerPush<AppState> {
   }
 
   @override
-  int? getServerRevisionFromState(Object? key) => state.serverRevision;
+  int getServerRevisionFromState(Object? key) => state.serverRevision;
 }
 
 /// Same as PushLikeUpdate but pretends it cannot read persisted revision from state.
@@ -432,14 +446,25 @@ class PushLikeUpdateNoStateRev extends ReduxAction<AppState>
     with ServerPush<AppState> {
   final bool liked;
   final int serverRev;
+  final int pushLocalRevision;
+  final int pushDeviceId;
 
-  PushLikeUpdateNoStateRev({required this.liked, required this.serverRev});
+  PushLikeUpdateNoStateRev({
+    required this.liked,
+    required this.serverRev,
+    this.pushLocalRevision = 0,
+    int? pushDeviceId,
+  }) : pushDeviceId = pushDeviceId ?? -999;
 
   @override
   Type associatedAction() => ToggleLikeStableAction;
 
   @override
-  int serverRevision() => serverRev;
+  PushMetadata pushMetadata() => (
+        serverRevision: serverRev,
+        localRevision: pushLocalRevision,
+        deviceId: pushDeviceId,
+      );
 
   @override
   AppState? applyServerPushToState(
@@ -448,7 +473,7 @@ class PushLikeUpdateNoStateRev extends ReduxAction<AppState>
   }
 
   @override
-  int? getServerRevisionFromState(Object? key) => null;
+  int getServerRevisionFromState(Object? key) => -1;
 }
 
 class ToggleLikeItemStableAction extends ReduxAction<AppStateItems>
@@ -483,9 +508,11 @@ class ToggleLikeItemStableAction extends ReduxAction<AppStateItems>
   }
 
   @override
-  Future<Object?> sendValueToServer(Object? value) async {
-    final localRev = localRevision();
-
+  Future<Object?> sendValueToServer(
+    Object? optimisticValue,
+    int localRevision,
+    int deviceId,
+  ) async {
     // Signal: request is now in-flight (it will block on requestCompleterByItem).
     // Use isCompleted guard to handle follow-up requests safely.
     final started = requestStartedByItem[itemId];
@@ -507,7 +534,8 @@ class ToggleLikeItemStableAction extends ReduxAction<AppStateItems>
         );
     backendByItem[itemId] = itemBackend;
 
-    final response = itemBackend.receiveValue(value as bool, localRev);
+    final response =
+        itemBackend.receiveValue(optimisticValue as bool, localRevision);
     informServerRevision(response.serverRevision);
 
     return response;
@@ -524,9 +552,9 @@ class ToggleLikeItemStableAction extends ReduxAction<AppStateItems>
   }
 
   @override
-  int? getServerRevisionFromState(Object? key) {
+  int getServerRevisionFromState(Object? key) {
     final k = key is String ? key : itemId;
-    return state.serverRevById[k];
+    return state.serverRevById[k] ?? -1;
   }
 }
 
@@ -535,9 +563,16 @@ class PushItemLikeUpdate extends ReduxAction<AppStateItems>
   final String itemId;
   final bool liked;
   final int serverRev;
+  final int pushLocalRevision;
+  final int pushDeviceId;
 
-  PushItemLikeUpdate(
-      {required this.itemId, required this.liked, required this.serverRev});
+  PushItemLikeUpdate({
+    required this.itemId,
+    required this.liked,
+    required this.serverRev,
+    this.pushLocalRevision = 0,
+    int? pushDeviceId,
+  }) : pushDeviceId = pushDeviceId ?? -999;
 
   @override
   Type associatedAction() => ToggleLikeItemStableAction;
@@ -546,7 +581,11 @@ class PushItemLikeUpdate extends ReduxAction<AppStateItems>
   Object? optimisticSyncKeyParams() => itemId;
 
   @override
-  int serverRevision() => serverRev;
+  PushMetadata pushMetadata() => (
+        serverRevision: serverRev,
+        localRevision: pushLocalRevision,
+        deviceId: pushDeviceId,
+      );
 
   @override
   AppStateItems? applyServerPushToState(
@@ -555,9 +594,9 @@ class PushItemLikeUpdate extends ReduxAction<AppStateItems>
   }
 
   @override
-  int? getServerRevisionFromState(Object? key) {
+  int getServerRevisionFromState(Object? key) {
     final k = key is String ? key : itemId;
-    return state.serverRevById[k];
+    return state.serverRevById[k] ?? -1;
   }
 }
 
@@ -566,9 +605,16 @@ class PushItemLikeUpdateNoStateRev extends ReduxAction<AppStateItems>
   final String itemId;
   final bool liked;
   final int serverRev;
+  final int pushLocalRevision;
+  final int pushDeviceId;
 
-  PushItemLikeUpdateNoStateRev(
-      {required this.itemId, required this.liked, required this.serverRev});
+  PushItemLikeUpdateNoStateRev({
+    required this.itemId,
+    required this.liked,
+    required this.serverRev,
+    this.pushLocalRevision = 0,
+    int? pushDeviceId,
+  }) : pushDeviceId = pushDeviceId ?? -999;
 
   @override
   Type associatedAction() => ToggleLikeItemStableAction;
@@ -577,7 +623,11 @@ class PushItemLikeUpdateNoStateRev extends ReduxAction<AppStateItems>
   Object? optimisticSyncKeyParams() => itemId;
 
   @override
-  int serverRevision() => serverRev;
+  PushMetadata pushMetadata() => (
+        serverRevision: serverRev,
+        localRevision: pushLocalRevision,
+        deviceId: pushDeviceId,
+      );
 
   @override
   AppStateItems? applyServerPushToState(
@@ -586,5 +636,5 @@ class PushItemLikeUpdateNoStateRev extends ReduxAction<AppStateItems>
   }
 
   @override
-  int? getServerRevisionFromState(Object? key) => null;
+  int getServerRevisionFromState(Object? key) => -1;
 }

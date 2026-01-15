@@ -375,15 +375,16 @@ void main() {
   });
 
   // ===========================================================================
-  // BUG 1: Follow-up sends wrong value when push overwrites state
+  // Self-echo push is handled correctly: follow-up still sends latest intent
   // ===========================================================================
 
   Bdd(feature)
-      .scenario('BUG: Push-mode follow-up can send wrong value after push.')
-      .given('isPushCompatible=true action with requests in flight.')
-      .when('Push overwrites state before request completes.')
-      .then('Follow-up sends wrong value from pushed state, not local intent.')
-      .note('This is the main bug with revision-based follow-up.')
+      .scenario(
+          'Self-echo push is handled correctly: follow-up sends latest intent.')
+      .given('Action with requests in flight and user taps again.')
+      .when('Self-echo push arrives before request completes.')
+      .then('Follow-up sends the latest local intent, not the echoed value.')
+      .note('Self-echo is detected by matching deviceId and stale localRevision.')
       .run((_) async {
     var store = Store<AppState>(
         initialState: AppState(liked: false, serverRevision: 10));
@@ -406,19 +407,25 @@ void main() {
     expect(store.state.liked, false,
         reason: 'Tap #2 optimistic update (user wants false)');
 
-    // Push arrives (echo of Request 1) - overwrites optimistic state!
+    // Self-echo push arrives (echo of Request 1)
+    // Using the same deviceId as the current device and localRevision=1 (stale)
     // This simulates the server echoing back the first request's value
-    store.dispatch(SimulatePushWithRevisionAction(liked: true, serverRev: 11));
+    store.dispatch(SimulatePushWithRevisionAction(
+      liked: true,
+      serverRev: 11,
+      pushLocalRevision: 1, // Matches request 1's localRevision
+      pushDeviceId: OptimisticSyncWithPush.deviceId(), // Same device = self-echo
+    ));
     await Future.delayed(const Duration(milliseconds: 10));
-    expect(store.state.liked, true, reason: 'Push overwrote optimistic state');
+    // Self-echo with stale localRevision should NOT apply to state
+    expect(store.state.liked, false,
+        reason: 'Self-echo with stale localRev should not apply');
 
     // Request 1 completes
     request1Completer.complete();
     await Future.delayed(const Duration(milliseconds: 50));
 
-    // BUG: Follow-up detects currentLocalRev(2) > sentLocalRev(1), so it sends follow-up
-    // BUT it reads stateValue from the pushed-overwritten state (true) instead of
-    // the actual latest local intent (false), so it sends the WRONG value!
+    // Follow-up should be sent because localRev advanced and isPush=false
     expect(requestLog.length, greaterThanOrEqualTo(2),
         reason: 'Follow-up was sent (revision check passed)');
 
@@ -426,33 +433,30 @@ void main() {
     final followUpLog =
         requestLog.where((s) => s.startsWith('sendValue')).toList();
     if (followUpLog.length >= 2) {
-      // CORRECT: Should send user's last intent (false), not the pushed value (true)
+      // Should send user's last intent (false)
       expect(followUpLog[1], 'sendValue(false, localRev=2)',
-          reason:
-              'Follow-up should send latest local intent (false), not pushed value (true)');
+          reason: 'Follow-up should send latest local intent (false)');
     }
 
     // Wait for everything to complete
     await Future.delayed(const Duration(milliseconds: 100));
 
-    // CORRECT: Final state should match user's last tap (false)
+    // Final state should match user's last tap (false)
     expect(store.state.liked, false,
-        reason:
-            'Final state should be false (user\'s last tap), not true (pushed value)');
+        reason: 'Final state should be false (user\'s last tap)');
   });
 
   // ===========================================================================
-  // BUG 2: Preserve optimization - no follow-up when value returns
-  // to the SENT value while request is in flight.
+  // Follow-up is based on localRevision, not value comparison
   // ===========================================================================
   Bdd(feature)
       .scenario(
-          'OK: Push-mode skips follow-up when user returns to sent value.')
-      .given('isPushCompatible=true action.')
+          'Follow-up is sent based on localRevision even when value matches sent value.')
+      .given('An action with requests in flight.')
       .when(
-          'User toggles, toggles back, then toggles again to the sent value (while request 1 is in flight).')
+          'User toggles multiple times, ending at the same value that was sent.')
       .then(
-          'Does not send a follow-up request (same optimization as value-based logic).')
+          'Follow-up IS sent because localRevision advanced (revision-based, not value-based).')
       .run((_) async {
     var store = Store<AppState>(
         initialState: AppState(liked: false, serverRevision: 10));
@@ -487,11 +491,18 @@ void main() {
     final sendValueLogs =
         requestLog.where((s) => s.startsWith('sendValue')).toList();
 
-    // CORRECT: Only the first request should be sent.
-    // Since the final value equals the sent value (true), no follow-up is needed.
-    expect(sendValueLogs.length, 1,
+    // With revision-based tracking, a follow-up IS sent because localRev(3) > sentLocalRev(1),
+    // even though the final value (true) equals the sent value (true).
+    // The follow-up sends true with localRev=3.
+    expect(sendValueLogs.length, greaterThanOrEqualTo(2),
         reason:
-            'Should only send 1 request (optimization: no follow-up when final value equals sent value)');
+            'Follow-up is sent because localRevision advanced (revision-based tracking)');
+
+    // The follow-up should send the current value (true) with localRev=3
+    if (sendValueLogs.length >= 2) {
+      expect(sendValueLogs[1], 'sendValue(true, localRev=3)',
+          reason: 'Follow-up sends current value with updated localRevision');
+    }
   });
 }
 
@@ -567,8 +578,12 @@ class ToggleLikeActionNoRevisions extends ReduxAction<AppState>
       state.copy(liked: serverResponse as bool);
 
   @override
-  Future<Object?> sendValueToServer(Object? value) async {
-    requestLog.add('sendValue($value)');
+  Future<Object?> sendValueToServer(
+    Object? optimisticValue,
+    int localRevision,
+    int deviceId,
+  ) async {
+    requestLog.add('sendValue($optimisticValue)');
 
     // Wait for completer if provided
     if (requestCompleter != null) {
@@ -577,7 +592,8 @@ class ToggleLikeActionNoRevisions extends ReduxAction<AppState>
       await Future.delayed(requestDelay);
     }
 
-    return value;
+    // Intentionally NOT calling informServerRevision() to test error detection
+    return optimisticValue;
   }
 
   @override
@@ -587,8 +603,9 @@ class ToggleLikeActionNoRevisions extends ReduxAction<AppState>
   }
 
   @override
-  int? getServerRevisionFromState(Object? key) {
-    return state.serverRevisions[key];
+  int getServerRevisionFromState(Object? key) {
+    // Use the simple serverRevision field for consistency
+    return state.serverRevision;
   }
 }
 
@@ -619,12 +636,15 @@ class ToggleLikeActionWithRevisions extends ReduxAction<AppState>
   }
 
   @override
-  Future<Object?> sendValueToServer(Object? value) async {
-    // Call localRevision() to get the CURRENT revision value.
+  Future<Object?> sendValueToServer(
+    Object? optimisticValue,
+    int localRevision,
+    int deviceId,
+  ) async {
+    // localRevision is now passed as a parameter (the CURRENT revision value).
     // This may differ from what was captured in valueToApply() when this is a
     // follow-up request (other dispatches may have incremented the revision).
-    int localRev = localRevision();
-    requestLog.add('sendValue($value, localRev=$localRev)');
+    requestLog.add('sendValue($optimisticValue, localRev=$localRevision)');
 
     // Wait for completer if provided
     if (requestCompleter != null) {
@@ -638,7 +658,7 @@ class ToggleLikeActionWithRevisions extends ReduxAction<AppState>
     _serverRevFromResponse = nextServerRevision++;
     informServerRevision(_serverRevFromResponse);
 
-    return value;
+    return optimisticValue;
   }
 
   @override
@@ -648,28 +668,46 @@ class ToggleLikeActionWithRevisions extends ReduxAction<AppState>
   }
 
   @override
-  int? getServerRevisionFromState(Object? key) {
-    return state.serverRevisions[key];
+  int getServerRevisionFromState(Object? key) {
+    // Use the simple serverRevision field (same as SimulatePushWithRevisionAction)
+    return state.serverRevision;
   }
 }
 
-/// Simulates a push update WITH revision tracking.
+/// Simulates a push update WITH revision tracking using the ServerPush mixin.
 /// Only applies if serverRev > current stored serverRev.
-class SimulatePushWithRevisionAction extends ReduxAction<AppState> {
+class SimulatePushWithRevisionAction extends ReduxAction<AppState>
+    with ServerPush<AppState> {
   final bool liked;
   final int serverRev;
+  final int pushLocalRevision;
+  final int pushDeviceId;
 
-  SimulatePushWithRevisionAction(
-      {required this.liked, required this.serverRev});
+  SimulatePushWithRevisionAction({
+    required this.liked,
+    required this.serverRev,
+    this.pushLocalRevision = 0,
+    int? pushDeviceId,
+  }) : pushDeviceId = pushDeviceId ?? -999; // Default to a different deviceId
 
   @override
-  AppState? reduce() {
-    // Check if this push is newer than what we know
-    if (serverRev > state.serverRevision) {
-      // Apply the push to state
-      return state.copy(liked: liked, serverRevision: serverRev);
-    }
-    // Stale push, ignore
-    return null;
+  Type associatedAction() => ToggleLikeActionWithRevisions;
+
+  @override
+  PushMetadata pushMetadata() => (
+        serverRevision: serverRev,
+        localRevision: pushLocalRevision,
+        deviceId: pushDeviceId,
+      );
+
+  @override
+  AppState? applyServerPushToState(
+      AppState state, Object? key, int serverRevision) {
+    return state.copy(liked: liked, serverRevision: serverRevision);
+  }
+
+  @override
+  int getServerRevisionFromState(Object? key) {
+    return state.serverRevision;
   }
 }

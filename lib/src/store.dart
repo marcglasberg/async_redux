@@ -2524,6 +2524,24 @@ class _Flag<T> {
   int get hashCode => 0;
 }
 
+typedef OptimisticSyncWithPushRevisionEntry = ({
+  /// Monotonic counter for *local intents* (dispatches) for this key.
+  /// Incremented once per dispatch of an [OptimisticSyncWithPush] action
+  /// for a given key. Used to decide if a follow-up request may be needed.
+  int localRevision,
+
+  /// Latest known server revision for this key.
+  /// This is updated by both [OptimisticSyncWithPush] and [ServerPush].
+  /// It only moves forward (never regresses) to guard against
+  /// out-of-order responses/pushes. Value `-1` means the app doesn't know
+  /// any server revision yet for this key.
+  int serverRevision,
+
+  /// True if the latest value in memory is from a server push.
+  /// False if it's from a local dispatch.
+  bool isPush,
+});
+
 /// Some properties used by the Mixins. These are scoped to the store, so they
 /// reset when the store is recreated, for example during tests.
 class _InternalMixinProps {
@@ -2535,22 +2553,18 @@ class _InternalMixinProps {
   /// Set for the [OptimisticSync] mixin. Tracks which keys are currently locked.
   final Set<Object?> optimisticSyncKeySet = {};
 
-  /// Map for the [OptimisticSync] mixin. Tracks the local AND server revisions for each key.
-  final Map<
-      Object?,
-      ({
-        int localRevision,
-        int? serverRevision,
-        int intentBaseServerRevision,
-        Object? localValue,
-      })> revisionMap = {};
+  /// Map used by the [OptimisticSyncWithPush] and [ServerPush] mixins.
+  final Map<Object?, OptimisticSyncWithPushRevisionEntry>
+      optimisticSyncWithPushRevisionMap = {};
 
-  /// Removes the locks for Throttle, Debounce, Fresh, NonReentrant, and OptimisticSync.
+  /// Removes the locks for Throttle, Debounce, Fresh, NonReentrant,
+  /// OptimisticSync, and OptimisticSyncWithPush.
   void clear() {
     throttleLockMap.clear();
     freshKeyMap.clear();
     debounceLockMap.clear();
     nonReentrantKeySet.clear();
     optimisticSyncKeySet.clear();
+    optimisticSyncWithPushRevisionMap.clear();
   }
 }

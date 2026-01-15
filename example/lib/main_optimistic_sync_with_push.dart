@@ -50,6 +50,7 @@
 ///
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:async_redux/async_redux.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
@@ -78,8 +79,7 @@ void main() async {
   // Initialize the server SIMULATION, by setting the like and revision counter.
   // In production, this would be the real server, using a database.
   // The key is (ToggleLike, null) as computed by computeOptimisticSyncKey().
-  server.revisionCounter =
-      initialState.getServerRevision((ToggleLike, null)) ?? 0;
+  server.revisionCounter = initialState.getServerRevision((ToggleLike, null));
   server.databaseLiked = initialState.liked;
 
   store = Store<AppState>(
@@ -113,12 +113,15 @@ class AppState {
   /// Returns a copy of the state with the server revision updated for the given key.
   @useResult
   AppState withServerRevision(Object? key, int revision) => copy(
-        serverRevisionMap: serverRevisionMap.add(_keyToString(key), revision),
+        serverRevisionMap: serverRevisionMap.add(
+          _keyToString(key),
+          revision,
+        ),
       );
 
-  /// Returns the server revision for the given key, or null if not found.
-  int? getServerRevision(Object? key) =>
-      serverRevisionMap.get(_keyToString(key));
+  /// Returns the server revision for the given key, or -1 if not found.
+  int getServerRevision(Object? key) =>
+      serverRevisionMap.get(_keyToString(key)) ?? -1;
 
   Map<String, dynamic> toJson() => {
         'liked': liked,
@@ -186,8 +189,15 @@ class MyPersistor extends Persistor<AppState> {
 class ServerResponse {
   final bool liked;
   final int serverRevision;
+  final int localRevision;
+  final int deviceId;
 
-  ServerResponse({required this.liked, required this.serverRevision});
+  ServerResponse({
+    required this.liked,
+    required this.serverRevision,
+    required this.localRevision,
+    required this.deviceId,
+  });
 }
 
 /// ServerPush action for handling WebSocket push updates.
@@ -195,29 +205,47 @@ class ServerResponse {
 class PushLikeUpdate extends AppAction with ServerPush {
   final bool liked;
   final int serverRev;
+  final int localRev;
+  final int deviceId;
 
-  PushLikeUpdate({required this.liked, required this.serverRev});
+  PushLikeUpdate({
+    required this.liked,
+    required this.serverRev,
+    required this.localRev,
+    required this.deviceId,
+  });
 
   /// Return the Type of the associated OptimisticSyncWithPush action.
   @override
   Type associatedAction() => ToggleLike;
 
-  /// Return the revision number that came with the push.
   @override
-  int serverRevision() => serverRev;
+  PushMetadata pushMetadata() {
+    print('Incoming metadata: ${(
+      serverRevision: serverRev,
+      localRevision: localRev,
+      deviceId: deviceId,
+    )}');
+
+    return (
+      serverRevision: serverRev,
+      localRevision: localRev,
+      deviceId: deviceId,
+    );
+  }
 
   /// Apply the pushed data to state and save the revision.
   @override
   AppState? applyServerPushToState(
-      AppState state, Object? key, int serverRevision) {
-    return state.copy(isLiked: liked).withServerRevision(key, serverRevision);
-  }
+    AppState state,
+    Object? key,
+    int serverRevision,
+  ) =>
+      state.copy(isLiked: liked).withServerRevision(key, serverRevision);
 
   /// Return the current server revision from state for this key.
   @override
-  int? getServerRevisionFromState(Object? key) {
-    return state.getServerRevision(key);
-  }
+  int getServerRevisionFromState(Object? key) => state.getServerRevision(key);
 
   @override
   String toString() =>
@@ -251,16 +279,21 @@ class ToggleLike extends AppAction with OptimisticSyncWithPush<AppState, bool> {
   }
 
   @override
-  Future<bool> sendValueToServer(Object? value) async {
-    // CRITICAL: Call localRevision() BEFORE any await!
-    // This captures the revision number before any async operations.
-    int localRev = localRevision();
-
+  Future<bool> sendValueToServer(
+    Object? optimisticValue,
+    int localRevision,
+    int deviceId,
+  ) async {
+    print('Sending to server: $optimisticValue');
     // Send to server and get response with revision.
-    final response = await server.saveLike(value as bool, localRev);
+    final response = await server.saveLike(
+      optimisticValue as bool,
+      localRevision,
+      deviceId,
+    );
 
     // Store the server revision for use in applyServerResponseToState.
-    _serverRevFromResponse = response.serverRevision;
+    print('Server response: $response');
 
     // Inform the mixin about the server revision.
     informServerRevision(response.serverRevision);
@@ -270,9 +303,7 @@ class ToggleLike extends AppAction with OptimisticSyncWithPush<AppState, bool> {
 
   /// Return the current server revision from state.
   @override
-  int? getServerRevisionFromState(Object? key) {
-    return state.getServerRevision(key);
-  }
+  int getServerRevisionFromState(Object? key) => state.getServerRevision(key);
 
   // If there was an error, revert the state to the database value.
   @override
@@ -622,11 +653,15 @@ class SimulatedServer {
 
   /// Simulates saving to the database.
   /// Returns a [ServerResponse] with the current liked value and server revision.
-  Future<ServerResponse> saveLike(bool flag, int clientLocalRev) async {
+  Future<ServerResponse> saveLike(
+    bool flag,
+    int localRevision,
+    int deviceId,
+  ) async {
     print('Save started');
     requestCount++;
     isRequestInProgress = true;
-    print('flag = $flag, clientLocalRev = $clientLocalRev');
+    print('flag = $flag, localRev = $localRevision, deviceId = $deviceId');
     await _interruptibleDelay(delayBeforeWrite);
 
     // Save flag and increment server revision (simulate server-side versioning).
@@ -634,8 +669,15 @@ class SimulatedServer {
     revisionCounter++;
     final currentServerRev = revisionCounter;
 
-    print('flag = $flag, serverRev = $currentServerRev');
-    if (websocketPushEnabled) push(isLiked: flag, serverRev: currentServerRev);
+    print(
+        'flag = $flag, serverRev = $currentServerRev, localRev = $localRevision, deviceId = $deviceId');
+    if (websocketPushEnabled)
+      push(
+        isLiked: flag,
+        serverRev: currentServerRev,
+        localRev: localRevision,
+        deviceId: deviceId,
+      );
 
     await _interruptibleDelay(delayAfterWrite);
     isRequestInProgress = false;
@@ -645,6 +687,8 @@ class SimulatedServer {
     return ServerResponse(
       liked: databaseLiked,
       serverRevision: currentServerRev,
+      localRevision: localRevision,
+      deviceId: deviceId,
     );
   }
 
@@ -655,9 +699,19 @@ class SimulatedServer {
   }
 
   /// Simulates a WebSocket push from the server to the client.
-  Future<void> push({required bool isLiked, required int serverRev}) async {
+  Future<void> push({
+    required bool isLiked,
+    required int serverRev,
+    required int localRev,
+    required int deviceId,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 50));
-    store.dispatch(PushLikeUpdate(liked: isLiked, serverRev: serverRev));
+    store.dispatch(PushLikeUpdate(
+      liked: isLiked,
+      serverRev: serverRev,
+      localRev: localRev,
+      deviceId: deviceId,
+    ));
   }
 
   /// Simulates an external change to the database (e.g., from another client).
@@ -665,7 +719,12 @@ class SimulatedServer {
     databaseLiked = liked;
     if (websocketPushEnabled) {
       revisionCounter++;
-      push(isLiked: databaseLiked, serverRev: revisionCounter);
+      push(
+        isLiked: databaseLiked,
+        serverRev: revisionCounter,
+        localRev: Random().nextInt(4294967296),
+        deviceId: Random().nextInt(4294967296),
+      );
     }
   }
 
