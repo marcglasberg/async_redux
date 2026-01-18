@@ -7,6 +7,12 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 26.2.2
+
+* Improved the `Fresh` mixin.
+
+* Improved mixin docs.
+
 ## 26.2.1
 
 * Improved the `OptimisticSyncWithPush` mixin.

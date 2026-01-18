@@ -1103,6 +1103,261 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+
+  // ==========================================================================
+  // Case 29: Rapid consecutive dispatches get different tokens (regression test)
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario('Rapid consecutive dispatches get different tokens')
+      .given('Two actions dispatched in rapid succession (same millisecond)')
+      .when('The first action fails after the second succeeds')
+      .then('The second action freshness should be preserved')
+      .note('This is a regression test for the DateTime equality bug')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    // Dispatch a slow action that will fail
+    var slowFuture = store.dispatchAndWait(
+      RapidTestActionSlow(shouldFail: true),
+    );
+
+    // Immediately dispatch another action with ignoreFresh
+    // This happens within the same millisecond
+    await store.dispatch(RapidTestActionFast());
+    expect(store.state.count, 1);
+
+    // Wait for the slow action to complete (and fail)
+    await slowFuture;
+
+    // The fast action's freshness should be preserved
+    // If it was incorrectly reverted, this action would run
+    await store.dispatch(RapidTestActionCheck());
+    expect(store.state.count, 1); // Should still be 1 (check was aborted)
+  });
+
+  // ==========================================================================
+  // Case 30: Triple nesting - innermost ignoreFresh failure removes key
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario('Triple nesting: A->B->C where A and C fail, B succeeds')
+      .given('Action A dispatches B, B dispatches C')
+      .and('B succeeds, but A and C both fail')
+      .when('All actions complete')
+      .then('Key is removed because C (last ignoreFresh writer) failed')
+      .note('C overwrote B entry, then C failed and removed key')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    try {
+      await store.dispatch(TripleNestOuterAction(
+        middleShouldFail: false,
+        innerShouldFail: true,
+        outerShouldFail: true,
+      ));
+      fail('Expected outer action to throw');
+    } catch (_) {}
+
+    // B succeeded and incremented count
+    expect(store.state.count, 1);
+
+    // C (ignoreFresh) failed and removed the key, so check action runs
+    await store.dispatch(TripleNestCheckAction());
+    expect(store.state.count, 2); // Runs because C's failure removed key
+  });
+
+  // ==========================================================================
+  // Case 31: Triple nesting - middle fails, outer and inner succeed
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario('Triple nesting: A->B->C where B fails, A and C succeed')
+      .given('Action A dispatches B, B dispatches C')
+      .and('C succeeds, B fails after dispatching C, A succeeds after B')
+      .when('All actions complete')
+      .then('C freshness should be preserved')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    // Note: A catches B's failure internally and succeeds
+    await store.dispatch(TripleNestOuterAction(
+      middleShouldFail: true,
+      innerShouldFail: false,
+      outerShouldFail: false,
+    ));
+
+    // C succeeded and incremented count, A succeeded and incremented count
+    // B failed so it didn't increment
+    expect(store.state.count, 2);
+
+    // Check if freshness is preserved from C
+    await store.dispatch(TripleNestCheckAction());
+    expect(store.state.count, 2); // Should still be 2
+  });
+
+  // ==========================================================================
+  // Case 32: Restore of stale entry still results in stale state
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario('Restored stale freshness allows subsequent actions')
+      .given('Action A sets freshness with short duration')
+      .and('Action B runs after A expires and sets new freshness')
+      .and('B fails and restores A previous (now stale) freshness')
+      .when('Action C is dispatched')
+      .then('C should run because restored freshness is stale')
+      .note('When B restores A expired entry, C still runs since its stale')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    // A runs and sets freshness with short duration (50ms)
+    await store.dispatch(RestoreTestActionA());
+    expect(store.state.count, 1);
+
+    // Wait for A's freshness to expire
+    await Future.delayed(const Duration(milliseconds: 60));
+
+    // B runs (A's freshness expired), sets new freshness, then fails
+    await store.dispatchAndWait(RestoreTestActionB());
+    // B failed, so count stays at 1
+    expect(store.state.count, 1);
+
+    // B restored A's old entry, but that entry is stale (expired)
+    // C should run because the restored freshness is already expired
+    await store.dispatch(RestoreTestActionC());
+    expect(store.state.count, 2); // C runs because restored entry is stale
+  });
+
+  // ==========================================================================
+  // Case 33: Sequential failures - each removes key, allowing next to run
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario('Sequential failures each remove key')
+      .given('Action A fails (removes key)')
+      .and('Action B runs and fails (removes key)')
+      .and('Action C runs and fails (removes key)')
+      .when('Action D is dispatched')
+      .then('D should run because key was removed')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    // A fails
+    await store.dispatchAndWait(SequentialFailAction(id: 'A'));
+    expect(store.state.count, 0);
+
+    // B runs (key was removed) and fails
+    await store.dispatchAndWait(SequentialFailAction(id: 'B'));
+    expect(store.state.count, 0);
+
+    // C runs (key was removed) and fails
+    await store.dispatchAndWait(SequentialFailAction(id: 'C'));
+    expect(store.state.count, 0);
+
+    // D runs (key was removed) and succeeds
+    await store.dispatch(SequentialSucceedAction());
+    expect(store.state.count, 1);
+  });
+
+  // ==========================================================================
+  // Case 34: Nested ignoreFresh failure removes key even if outer succeeds
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario('Nested ignoreFresh failure removes freshness key')
+      .given('Action A (normal) dispatches B (ignoreFresh=true)')
+      .and('B fails and removes its key entry')
+      .when('A succeeds')
+      .then('Key should be removed because ignoreFresh failure makes it stale')
+      .note('ignoreFresh with _current=null removes key on failure by design')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    // A dispatches B inside, B fails (removes key), A succeeds
+    await store.dispatch(OuterNormalInnerIgnoreFreshAction());
+    expect(store.state.count, 1); // Only A incremented
+
+    // Check freshness - B's failure removed the key, so this should run
+    await store.dispatch(OuterNormalCheckAction());
+    expect(store.state.count, 2); // Runs because key was removed by B's failure
+  });
+
+  // ==========================================================================
+  // Case 35: Concurrent ignoreFresh - last writer's failure removes key
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario('Concurrent ignoreFresh actions - last writer determines outcome')
+      .given('Three ignoreFresh actions start concurrently')
+      .and('First fails, second succeeds, third fails')
+      .when('All complete')
+      .then('Key is removed because last abortDispatch writer failed')
+      .note('With concurrent ignoreFresh, the last to call abortDispatch owns '
+          'the entry. If that action fails, the key is removed.')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    // Start three concurrent actions
+    // All call abortDispatch() at roughly the same time
+    // The last one to write to the map "owns" the entry
+    var future1 = store.dispatchAndWait(ConcurrentIgnoreFreshAction(
+      id: 1,
+      delayMs: 100,
+      shouldFail: true,
+    ));
+
+    var future2 = store.dispatchAndWait(ConcurrentIgnoreFreshAction(
+      id: 2,
+      delayMs: 50,
+      shouldFail: false,
+    ));
+
+    var future3 = store.dispatchAndWait(ConcurrentIgnoreFreshAction(
+      id: 3,
+      delayMs: 150,
+      shouldFail: true,
+    ));
+
+    await Future.wait([future1, future2, future3]);
+
+    // Only action 2 succeeded
+    expect(store.state.count, 1);
+
+    // Action 3 was likely the last to write (or one of the failing actions was)
+    // When the last writer fails, it removes the key because ignoreFresh
+    // sets _current = null, so failure removes the entry
+    await store.dispatch(ConcurrentIgnoreFreshCheck());
+    expect(store.state.count, 2); // Runs because key was removed
+  });
+
+  // ==========================================================================
+  // Case 36: Aborted action should not affect freshness on failure path
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario('Aborted action does not interfere with freshness')
+      .given('Action A sets freshness')
+      .and('Action B is aborted (key is fresh)')
+      .when('A check action runs')
+      .then('Freshness from A should still be valid')
+      .run((_) async {
+    var store = Store<AppState>(initialState: AppState(0));
+
+    // A runs and sets freshness
+    await store.dispatch(AbortTestActionA());
+    expect(store.state.count, 1);
+
+    // B is aborted (doesn't run)
+    await store.dispatch(AbortTestActionB());
+    expect(store.state.count, 1); // Still 1
+
+    // Freshness should still be valid
+    await store.dispatch(AbortTestActionCheck());
+    expect(store.state.count, 1); // Should abort
+  });
+
+  // ---------------------------------------------------------------------------
 }
 
 // =============================================================================
@@ -1491,6 +1746,389 @@ class AbortWhenNoInternetWithUnlimitedRetryAction extends ReduxAction<AppState>
         AbortWhenNoInternet,
         // ignore: private_collision_in_mixin_application
         UnlimitedRetryCheckInternet {
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// =============================================================================
+// Actions for Case 29: Rapid consecutive dispatches (regression test)
+// =============================================================================
+
+class RapidTestActionSlow extends ReduxAction<AppState> with Fresh {
+  final bool shouldFail;
+
+  RapidTestActionSlow({required this.shouldFail});
+
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'rapidKey';
+
+  @override
+  Future<AppState> reduce() async {
+    await Future.delayed(const Duration(milliseconds: 10));
+    if (shouldFail) {
+      throw const UserException('Slow action fails');
+    }
+    return state.copy(count: state.count + 1);
+  }
+}
+
+class RapidTestActionFast extends ReduxAction<AppState> with Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'rapidKey';
+
+  @override
+  bool get ignoreFresh => true;
+
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+class RapidTestActionCheck extends ReduxAction<AppState> with Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'rapidKey';
+
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// =============================================================================
+// Actions for Cases 30-31: Triple nesting tests
+// =============================================================================
+
+class TripleNestOuterAction extends ReduxAction<AppState> with Fresh {
+  final bool middleShouldFail;
+  final bool innerShouldFail;
+  final bool outerShouldFail;
+
+  TripleNestOuterAction({
+    required this.middleShouldFail,
+    required this.innerShouldFail,
+    required this.outerShouldFail,
+  });
+
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'tripleNestKey';
+
+  @override
+  Future<AppState?> reduce() async {
+    try {
+      await dispatch(TripleNestMiddleAction(
+        shouldFail: middleShouldFail,
+        innerShouldFail: innerShouldFail,
+      ));
+    } catch (_) {
+      // Middle failed, but outer continues
+    }
+
+    if (outerShouldFail) {
+      throw const UserException('Outer fails');
+    }
+    return state.copy(count: state.count + 1);
+  }
+}
+
+class TripleNestMiddleAction extends ReduxAction<AppState> with Fresh {
+  final bool shouldFail;
+  final bool innerShouldFail;
+
+  TripleNestMiddleAction({
+    required this.shouldFail,
+    required this.innerShouldFail,
+  });
+
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'tripleNestKey';
+
+  @override
+  bool get ignoreFresh => true;
+
+  @override
+  Future<AppState?> reduce() async {
+    try {
+      await dispatch(TripleNestInnerAction(shouldFail: innerShouldFail));
+    } catch (_) {
+      // Inner failed, but middle continues
+    }
+
+    if (shouldFail) {
+      throw const UserException('Middle fails');
+    }
+    return state.copy(count: state.count + 1);
+  }
+}
+
+class TripleNestInnerAction extends ReduxAction<AppState> with Fresh {
+  final bool shouldFail;
+
+  TripleNestInnerAction({required this.shouldFail});
+
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'tripleNestKey';
+
+  @override
+  bool get ignoreFresh => true;
+
+  @override
+  AppState reduce() {
+    if (shouldFail) {
+      throw const UserException('Inner fails');
+    }
+    return state.copy(count: state.count + 1);
+  }
+}
+
+class TripleNestCheckAction extends ReduxAction<AppState> with Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'tripleNestKey';
+
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// =============================================================================
+// Actions for Case 32: Restore preserves freshness
+// =============================================================================
+
+class RestoreTestActionA extends ReduxAction<AppState> with Fresh {
+  @override
+  int get freshFor => 50; // Short, so B can run after it expires
+
+  @override
+  Object computeFreshKey() => 'restoreKey';
+
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+class RestoreTestActionB extends ReduxAction<AppState> with Fresh {
+  @override
+  int get freshFor => 500; // Longer fresh period
+
+  @override
+  Object computeFreshKey() => 'restoreKey';
+
+  @override
+  AppState reduce() {
+    // This will set new freshness, then fail, which should restore A's
+    throw const UserException('B fails intentionally');
+  }
+}
+
+class RestoreTestActionC extends ReduxAction<AppState> with Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'restoreKey';
+
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// =============================================================================
+// Actions for Case 33: Sequential failures
+// =============================================================================
+
+class SequentialFailAction extends ReduxAction<AppState> with Fresh {
+  final String id;
+
+  SequentialFailAction({required this.id});
+
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'sequentialKey';
+
+  @override
+  AppState reduce() {
+    throw UserException('Action $id fails');
+  }
+}
+
+class SequentialSucceedAction extends ReduxAction<AppState> with Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'sequentialKey';
+
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// =============================================================================
+// Actions for Case 34: Nested ignoreFresh failure
+// =============================================================================
+
+class OuterNormalInnerIgnoreFreshAction extends ReduxAction<AppState>
+    with Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'outerNormalKey';
+
+  @override
+  Future<AppState?> reduce() async {
+    try {
+      await dispatch(InnerIgnoreFreshFailAction());
+    } catch (_) {
+      // Inner failed, outer continues
+    }
+    return state.copy(count: state.count + 1);
+  }
+}
+
+class InnerIgnoreFreshFailAction extends ReduxAction<AppState> with Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'outerNormalKey';
+
+  @override
+  bool get ignoreFresh => true;
+
+  @override
+  AppState reduce() {
+    throw const UserException('Inner ignoreFresh fails');
+  }
+}
+
+class OuterNormalCheckAction extends ReduxAction<AppState> with Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'outerNormalKey';
+
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// =============================================================================
+// Actions for Case 35: Multiple concurrent ignoreFresh
+// =============================================================================
+
+class ConcurrentIgnoreFreshAction extends ReduxAction<AppState> with Fresh {
+  final int id;
+  final int delayMs;
+  final bool shouldFail;
+
+  ConcurrentIgnoreFreshAction({
+    required this.id,
+    required this.delayMs,
+    required this.shouldFail,
+  });
+
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'concurrentIgnoreFreshKey';
+
+  @override
+  bool get ignoreFresh => true;
+
+  @override
+  Future<AppState> reduce() async {
+    await Future.delayed(Duration(milliseconds: delayMs));
+    if (shouldFail) {
+      throw UserException('Action $id fails');
+    }
+    return state.copy(count: state.count + 1);
+  }
+}
+
+class ConcurrentIgnoreFreshCheck extends ReduxAction<AppState> with Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'concurrentIgnoreFreshKey';
+
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// =============================================================================
+// Actions for Case 36: Aborted action doesn't interfere
+// =============================================================================
+
+class AbortTestActionA extends ReduxAction<AppState> with Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'abortTestKey';
+
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+class AbortTestActionB extends ReduxAction<AppState> with Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'abortTestKey';
+
+  // Will be aborted because A's key is fresh
+  @override
+  AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+class AbortTestActionCheck extends ReduxAction<AppState> with Fresh {
+  @override
+  int get freshFor => 1000;
+
+  @override
+  Object computeFreshKey() => 'abortTestKey';
+
   @override
   AppState reduce() {
     return state.copy(count: state.count + 1);

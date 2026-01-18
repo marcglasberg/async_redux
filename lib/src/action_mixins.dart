@@ -50,8 +50,8 @@ import 'package:meta/meta.dart';
 ///
 /// Notes:
 /// - This mixin can safely be combined with [NonReentrant] or [Throttle] (not both).
-/// - It should not be combined with other mixins that override [before].
-/// - It should not be combined with other mixins that check the internet connection.
+/// - It should not be combined with other mixins or classes that override [before].
+/// - It should not be combined with other mixins or classes that check the internet connection.
 /// - It should not be combined with [AbortWhenNoInternet] and [UnlimitedRetryCheckInternet].
 ///
 /// See also:
@@ -165,8 +165,8 @@ mixin NoDialog<St> on CheckInternet<St> {
 ///
 /// Notes:
 /// - This mixin can safely be combined with [NonReentrant] or [Throttle] (not both).
-/// - It should not be combined with other mixins that override [before].
-/// - It should not be combined with other mixins that check the internet connection.
+/// - It should not be combined with other mixins or classes that override [before].
+/// - It should not be combined with other mixins or classes that check the internet connection.
 /// - It should not be combined with [CheckInternet], [NoDialog], and [UnlimitedRetryCheckInternet].
 ///
 /// See also:
@@ -262,7 +262,7 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
 ///
 /// Notes:
 /// - This mixin can safely be combined with [CheckInternet], [NoDialog], and [AbortWhenNoInternet].
-/// - It should not be combined with other mixins that override [abortDispatch] or [after].
+/// - It should not be combined with other mixins or classes that override [abortDispatch] or [after].
 /// - It should not be combined with [Throttle], [UnlimitedRetryCheckInternet], or [Fresh].
 ///
 mixin NonReentrant<St> on ReduxAction<St> {
@@ -324,6 +324,48 @@ mixin NonReentrant<St> on ReduxAction<St> {
   @override
   bool abortDispatch() {
     _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet();
+
+    // This mixin should not be combined with other mixins or classes that
+    // set `abortDispatch`, but just in case, we call super first, and we
+    // only set the lock if `super.abortDispatch()` does not want to abort.
+    //
+    // In the code `class MyAction extends AppAction with NonReentrant, OtherMixin`
+    // the order of execution is:
+    //
+    // 1. MyAction.abortDispatch()
+    // 2. OtherMixin.abortDispatch()
+    // 3. NonReentrant.abortDispatch()
+    // 4. AppAction.abortDispatch()
+    //
+    // In other words, any mixin or base class that runs `abortDispatch`
+    // before `NonReentrant` (in the example `MyAction` and `OtherMixin`)
+    // should only call `NonReentrant`'s `abortDispatch` if it wants to proceed.
+    // If the mixin or base class wants to abort (return true), it should not
+    // call NonReentrant with `super.abortDispatch()`.
+    //
+    // For example, this is wrong for `MyAction` or `OtherMixin`:
+    // ```dart
+    // bool abortDispatch() {
+    //
+    //   // Wrong: Always calls NonReentrant's abortDispatch
+    //   if (super.abortDispatch()) return true;
+    //
+    //   bool otherConditions = ...
+    //   return otherConditions;
+    // }
+    // ```
+    // And this is right:
+    // ```dart
+    // bool abortDispatch() {
+    //
+    //   bool otherConditions = ...
+    //   if (otherConditions) return true;
+    //
+    //   // Last thing (NonReentrant's abortDispatch is conditionally called)
+    //   return super.abortDispatch();
+    // }
+    // ```
+    if (super.abortDispatch()) return true;
 
     _nonReentrantKey = computeNonReentrantKey();
 
@@ -1192,6 +1234,10 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
     _cannot_combine_mixins_OptimisticCommand();
     _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
 
+    // First, check the super class/mixin wants to abort.
+    // See the comment in [NonReentrant.abortDispatch].
+    if (super.abortDispatch()) return true;
+
     _nonReentrantCommandKey = computeNonReentrantKey();
 
     // If the key is already in the set, abort.
@@ -1371,7 +1417,7 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 /// Note: Expired locks are removed when expired, to prevent memory leaks.
 ///
 /// Notes:
-/// - It should not be combined with other mixins that override [abortDispatch] or [after].
+/// - It should not be combined with other mixins or classes that override [abortDispatch] or [after].
 /// - It should not be combined with [Fresh], [NonReentrant] or [UnlimitedRetryCheckInternet].
 ///
 mixin Throttle<St> on ReduxAction<St> {
@@ -1406,6 +1452,10 @@ mixin Throttle<St> on ReduxAction<St> {
   @override
   bool abortDispatch() {
     _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet();
+
+    // First, check the super class/mixin wants to abort.
+    // See the comment in [NonReentrant.abortDispatch].
+    if (super.abortDispatch()) return true;
 
     final lock = lockBuilder();
     final now = DateTime.now().toUtc();
@@ -1509,7 +1559,7 @@ mixin Throttle<St> on ReduxAction<St> {
 /// ```
 ///
 /// Notes:
-/// - It should not be combined with other mixins that override [wrapReduce].
+/// - It should not be combined with other mixins or classes that override [wrapReduce].
 /// - It should not be combined with [Retry], [UnlimitedRetries], or [UnlimitedRetryCheckInternet].
 ///
 mixin Debounce<St> on ReduxAction<St> {
@@ -1600,8 +1650,8 @@ mixin Debounce<St> on ReduxAction<St> {
 /// and the request still fails.
 ///
 /// Notes:
-/// - It should not be combined with other mixins that override [wrapReduce] or [abortDispatch].
-/// - It should not be combined with other mixins that check the internet connection.
+/// - It should not be combined with other mixins or classes that override [wrapReduce] or [abortDispatch].
+/// - It should not be combined with other mixins or classes that check the internet connection.
 /// - Make sure your `before` method does not throw an error, or the retry will NOT happen.
 /// - All retries will be printed to the console.
 ///
@@ -1613,6 +1663,10 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
     _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet();
     _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet();
     _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+
+    // First, check the super class/mixin wants to abort.
+    // See the comment in [NonReentrant.abortDispatch].
+    if (super.abortDispatch()) return true;
 
     return isWaiting(runtimeType);
   }
@@ -1984,7 +2038,7 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
 ///
 ///
 /// Notes:
-/// - It should not be combined with other mixins that override [abortDispatch] or [after].
+/// - It should not be combined with other mixins or classes that override [abortDispatch] or [after].
 /// - It should not be combined with [Throttle], [NonReentrant] or [UnlimitedRetryCheckInternet].
 ///
 mixin Fresh<St> on ReduxAction<St> {
@@ -2114,9 +2168,9 @@ mixin Fresh<St> on ReduxAction<St> {
   ///
   Object computeFreshKey() => (runtimeType, freshKeyParams());
 
-  /// Map that stores the expiry time for each key.
-  /// The value is the instant when the fresh period ends.
-  Map<Object?, DateTime> get _freshKeyMap =>
+  /// Map that stores the expiry time and a unique token for each key.
+  /// The value is a record of (expiry DateTime, unique token Object).
+  Map<Object?, (DateTime, Object)> get _freshKeyMap =>
       store.internalMixinProps.freshKeyMap;
 
   /// Removes the fresh-key used by this action, allowing an action using the
@@ -2139,14 +2193,18 @@ mixin Fresh<St> on ReduxAction<St> {
     _keysRemoved = true;
   }
 
-  DateTime? _current;
+  (DateTime, Object)? _current;
   Object? _freshKey;
   bool _keysRemoved = false;
-  DateTime? _newExpiry;
+  Object? _newToken;
 
   @override
   bool abortDispatch() {
     _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet();
+
+    // First, check the super class/mixin wants to abort.
+    // See the comment in [NonReentrant.abortDispatch].
+    if (super.abortDispatch()) return true;
 
     _keysRemoved = false; // good to reset here
     _freshKey = computeFreshKey();
@@ -2155,23 +2213,25 @@ mixin Fresh<St> on ReduxAction<St> {
 
     if (ignoreFresh) {
       final expiry = _expiringKeyFrom(now);
-      _freshKeyMap[_freshKey] = expiry;
-      _newExpiry = expiry;
+      final token = Object(); // Unique token for this action invocation.
+      _freshKeyMap[_freshKey] = (expiry, token);
+      _newToken = token;
       _current = null; // Make it stale if the action fails.
       return false;
     }
 
-    final expiresAt = _current;
+    final expiresAt = _current?.$1;
 
     if (expiresAt == null || !expiresAt.isAfter(now)) {
       final expiry = _expiringKeyFrom(now);
-      _freshKeyMap[_freshKey] = expiry;
-      _newExpiry = expiry;
+      final token = Object(); // Unique token for this action invocation.
+      _freshKeyMap[_freshKey] = (expiry, token);
+      _newToken = token;
       return false;
     }
 
     // Still fresh, abort.
-    _newExpiry = null;
+    _newToken = null;
     return true;
   }
 
@@ -2189,7 +2249,7 @@ mixin Fresh<St> on ReduxAction<St> {
   /// Remove keys whose expiry time is in the past or now.
   void _prune() {
     final now = DateTime.now().toUtc();
-    _freshKeyMap.removeWhere((_, expiresAt) => !expiresAt.isAfter(now));
+    _freshKeyMap.removeWhere((_, value) => !value.$1.isAfter(now));
   }
 
   @override
@@ -2197,13 +2257,15 @@ mixin Fresh<St> on ReduxAction<St> {
     if (!_keysRemoved && status.originalError != null && _freshKey != null) {
       final current = _freshKeyMap[_freshKey];
 
-      // Only rollback if the map still contains the expiry written by this action.
-      if (current == _newExpiry) {
+      // Only rollback if the map still contains the entry written by THIS action.
+      // Use identical() on the token to reliably detect ownership, since DateTime
+      // equality can match different actions that happen in the same millisecond.
+      if (current != null && identical(current.$2, _newToken)) {
         if (_current == null) {
           // No previous expiry: remove key (stale).
           _freshKeyMap.remove(_freshKey);
         } else {
-          // Restore previous expiry.
+          // Restore previous expiry with a new token (previous owner is gone).
           _freshKeyMap[_freshKey] = _current!;
         }
       }

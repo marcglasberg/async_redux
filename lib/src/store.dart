@@ -2546,7 +2546,7 @@ typedef OptimisticSyncWithPushRevisionEntry = ({
 /// reset when the store is recreated, for example during tests.
 class _InternalMixinProps {
   final Map<Object?, DateTime> throttleLockMap = {};
-  final Map<Object?, DateTime> freshKeyMap = {};
+  final Map<Object?, (DateTime, Object)> freshKeyMap = {};
   final Map<Object?, int> debounceLockMap = {};
   final Set<Object?> nonReentrantKeySet = {};
 
