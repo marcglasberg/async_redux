@@ -3670,13 +3670,6 @@ mixin ServerPush<St> on ReduxAction<St> {
 
     final bool isSelf = (deviceId == OptimisticSyncWithPush.deviceId());
 
-    print('\n------------------------------------------------------------');
-    print('isSelf = ${isSelf}');
-    print('localRevision = ${localRevision}');
-    print('currentLocalRev = ${currentLocalRev}');
-    print('deviceId = ${deviceId}');
-    print('------------------------------------------------------------');
-
     // Self-echo of an older request: treat as ACK only.
     // Do NOT apply and do NOT mark isPush=true (otherwise it cancels follow-ups).
     if (isSelf && (localRevision < currentLocalRev)) {

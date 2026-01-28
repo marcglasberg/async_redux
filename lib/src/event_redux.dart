@@ -109,12 +109,15 @@ typedef Evt<T> = Event<T>;
 ///
 /// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 ///
+/// Note: For `Event<bool>()` with no value provided, the value defaults to
+/// `true` (not `null`), so that `consume()` returns `true` as expected.
+///
 class Event<T> {
   bool _spent;
   final T? _evtInfo;
 
   Event([T? evtInfo])
-      : _evtInfo = evtInfo,
+      : _evtInfo = (T == bool && evtInfo == null) ? (true as T) : evtInfo,
         _spent = false;
 
   Event.spent()
@@ -416,6 +419,9 @@ class MappedEvent<V, T> extends Event<T> {
 /// means you can use it with more than one widget. Use [EvtState] when you need
 /// multiple widgets to react to the same trigger. Use [Event] when you need
 /// one-time consumption by a single widget.
+///
+/// Note: For `Evt<bool>()` with no value provided, the value defaults to
+/// `true` (not `null`), so that `consume()` returns `true` as expected.
 ///
 @immutable
 class EvtState<T> {
