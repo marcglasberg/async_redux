@@ -759,6 +759,8 @@ _stackoverflow.com/users/3411681/marcg_</a>
 
 *My Medium Articles:*
 
+* <a href="https://medium.com/@marcglasberg/bloc-superpowers-2ef9262ed962">
+  Bloc Superpowers: Flutter/Dart package for enhancing your Cubits</a>  
 * <a href="https://medium.com/flutter-community/https-medium-com-marcglasberg-async-redux-33ac5e27d5f6">
   AsyncRedux: Flutter’s non-boilerplate version of Redux</a> 
   (versions: <a href="https://medium.com/flutterando/async-redux-pt-brasil-e783ceb13c43">
