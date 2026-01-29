@@ -3,6 +3,8 @@
 // Uses code from package equatable by Felix Angelov.
 // For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
+import 'dart:io';
+
 import 'package:async_redux/async_redux.dart';
 
 abstract class ActionObserver<St> {
@@ -52,18 +54,34 @@ class ConsoleActionObserver<St> extends ActionObserver<St> {
   /// If [useAnsiColors] is `true`, the output will use ANSI escape codes for
   /// colored output. Defaults to `false`, because not all consoles support
   /// ANSI colors.
-  final bool useAnsiColors;
+  final bool? useAnsiColors;
 
-  ConsoleActionObserver({this.useAnsiColors = false});
+  ConsoleActionObserver({this.useAnsiColors});
 
   @override
   void observe(ReduxAction<St> action, int dispatchCount, {required bool ini}) {
     if (ini) {
-      if (useAnsiColors) {
-        print('${color(action)}|$italic $action$reset');
-      } else {
-        print('| $action');
-      }
+      bool _useAnsiColors;
+
+      // If useAnsiColors is explicitly true, use true.
+      if (useAnsiColors == true)
+        _useAnsiColors = true;
+      //
+      // If useAnsiColors is explicitly false, use false.
+      else if (useAnsiColors == false)
+        _useAnsiColors = false;
+      //
+      // If useAnsiColors is `null`, use ANSI colors on Windows only.
+      // This is because the IntelliJ console on Mac/Linux doesn't support ANSI
+      // colors. Note, ideally we should check if the console itself supports
+      // ANSI colors, but an Android emulator running on Windows doesn't know
+      // where it's running, so we just assume Windows when the target is Windows.
+      else
+        _useAnsiColors = Platform.isWindows;
+
+      print(_useAnsiColors
+          ? '${color(action)}|$italic $action$reset'
+          : '| $action');
     }
   }
 

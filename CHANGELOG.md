@@ -7,7 +7,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 26.3.2
+## 26.3.3
 
 * Added Claude Code **Skills** to help developers use `async_redux` with AI assistants.
   See: https://github.com/marcglasberg/async_redux/tree/master/.claude/skills

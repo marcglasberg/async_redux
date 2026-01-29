@@ -5,7 +5,9 @@ description: Create a custom base action class for your app. Covers adding gette
 
 # Creating a Custom Base Action Class
 
-Every AsyncRedux application should define an abstract base action class that all actions extend. This provides a central place for:
+Every AsyncRedux application should define an abstract base action class that all actions
+extend. This provides a central place for:
+
 - Convenient getter shortcuts to state parts
 - Selector methods for common queries
 - Shared error handling logic
@@ -14,7 +16,8 @@ Every AsyncRedux application should define an abstract base action class that al
 
 ## Basic Base Action Setup
 
-Create an abstract class extending `ReduxAction<AppState>`:
+Create an abstract class extending `ReduxAction<AppState>`.
+The recomended name is `AppAction`, in file `app_action.dart`:
 
 ```dart
 abstract class AppAction extends ReduxAction<AppState> {
@@ -106,7 +109,8 @@ class MarkItemComplete extends AppAction {
 
 ### Using a Separate Selector Class
 
-For larger applications, use a dedicated selector class to keep the base action clean:
+For most applications, it's better to use instead a dedicated selector class to keep the
+base action clean:
 
 ```dart
 class ActionSelect {
@@ -128,7 +132,7 @@ abstract class AppAction extends ReduxAction<AppState> {
 }
 ```
 
-This namespaces selectors under `select`, enabling IDE autocompletion:
+These namespaces selectors under `select`, enabling IDE autocompletion:
 
 ```dart
 class ProcessItem extends AppAction {
@@ -141,84 +145,6 @@ class ProcessItem extends AppAction {
     final item = select.findById(itemId);
     // ...
   }
-}
-```
-
-## Implementing Shared wrapError Logic
-
-Override `wrapError()` in your base action to provide consistent error handling:
-
-```dart
-abstract class AppAction extends ReduxAction<AppState> {
-
-  @override
-  Object? wrapError(Object error, StackTrace stackTrace) {
-    // Log all errors
-    print('Action ${runtimeType} failed: $error');
-
-    // Convert specific errors to user-friendly messages
-    if (error is SocketException) {
-      return UserException('Network error. Please check your connection.')
-          .addCause(error);
-    }
-
-    if (error is TimeoutException) {
-      return UserException('Request timed out. Please try again.')
-          .addCause(error);
-    }
-
-    // Pass through other errors unchanged
-    return error;
-  }
-}
-```
-
-Individual actions can still override `wrapError()` for action-specific handling:
-
-```dart
-class SubmitPayment extends AppAction {
-  @override
-  Future<AppState?> reduce() async {
-    await paymentService.process();
-    return state.copy(paymentComplete: true);
-  }
-
-  @override
-  Object? wrapError(Object error, StackTrace stackTrace) {
-    // Handle payment-specific errors
-    if (error is PaymentDeclinedException) {
-      return UserException('Payment was declined. Please try another card.')
-          .addCause(error);
-    }
-    // Fall back to base class handling
-    return super.wrapError(error, stackTrace);
-  }
-}
-```
-
-### Creating Error Handling Mixins
-
-For reusable error patterns, create mixins:
-
-```dart
-mixin ShowUserException on AppAction {
-  /// Override in actions to provide the error message
-  String getErrorMessage();
-
-  @override
-  Object? wrapError(Object error, StackTrace stackTrace) =>
-      UserException(getErrorMessage()).addCause(error);
-}
-
-class ConvertNumber extends AppAction with ShowUserException {
-  final String text;
-  ConvertNumber(this.text);
-
-  @override
-  String getErrorMessage() => 'Please enter a valid number.';
-
-  @override
-  AppState reduce() => state.copy(number: int.parse(text));
 }
 ```
 
@@ -263,88 +189,10 @@ class FetchUserProfile extends AppAction {
 }
 ```
 
-## Complete Base Action Example
-
-Here's a comprehensive base action class:
-
-```dart
-abstract class AppAction extends ReduxAction<AppState> {
-  // ========== Type-safe environment access ==========
-  @override
-  Environment get env => super.env as Environment;
-
-  ApiClient get api => env.api;
-  AuthService get auth => env.auth;
-
-  // ========== State part getters ==========
-  User get user => state.user;
-  Settings get settings => state.settings;
-  IList<Item> get items => state.items;
-
-  // ========== Selector methods ==========
-  Item? findItemById(String id) =>
-      items.firstWhereOrNull((item) => item.id == id);
-
-  bool get isLoggedIn => user.isAuthenticated;
-
-  // ========== Shared error handling ==========
-  @override
-  Object? wrapError(Object error, StackTrace stackTrace) {
-    // Log errors for debugging
-    print('[${runtimeType}] Error: $error');
-
-    // Convert network errors to user-friendly messages
-    if (error is SocketException) {
-      return UserException('Network error. Check your connection.')
-          .addCause(error);
-    }
-
-    if (error is TimeoutException) {
-      return UserException('Request timed out. Try again.')
-          .addCause(error);
-    }
-
-    return error;
-  }
-}
-```
-
-## Using the Base Action
-
-All actions in your app extend `AppAction`:
-
-```dart
-class LoadItems extends AppAction {
-  @override
-  Future<AppState?> reduce() async {
-    // Uses api from base action
-    final fetchedItems = await api.getItems();
-
-    return state.copy(items: fetchedItems.toIList());
-  }
-}
-
-class DeleteItem extends AppAction {
-  final String itemId;
-  DeleteItem(this.itemId);
-
-  @override
-  Future<AppState?> reduce() async {
-    // Uses findItemById selector from base action
-    final item = findItemById(itemId);
-    if (item == null) return null;
-
-    await api.deleteItem(itemId);
-    return state.copy(
-      items: items.removeWhere((i) => i.id == itemId),
-    );
-  }
-}
-```
-
 ## References
 
 URLs from the documentation:
+
 - https://asyncredux.com/flutter/advanced-actions/redux-action
 - https://asyncredux.com/flutter/advanced-actions/action-selectors
 - https://asyncredux.com/flutter/advanced-actions/errors-thrown-by-actions

@@ -116,8 +116,8 @@ void main() async {
   store = Store<AppState>(
     initialState: initialState,
     persistor: persistor,
-    globalWrapError: GlobalWrapErrorDummy<AppState>(),    
-    actionObservers: [ConsoleActionObserver<AppState>()],
+    globalWrapError: GlobalWrapErrorDummy(),    
+    actionObservers: [ConsoleActionObserver()],
   );
 
   runApp(...);
@@ -143,22 +143,66 @@ Widget build(context) {
 
 ## Required Context Extensions
 
-You must add this extension to your file containing `AppState` (this is required for state
-access in widgets):
+You **must** add this extension to your file containing `AppState` (this is required for
+easier state access in widgets):
 
 ```dart
 extension BuildContextExtension on BuildContext {
-  // State access
   AppState get state => getState<AppState>();
-  AppState read() => getRead<AppState>();
-  R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
-  R? event<R>(Evt<R> Function(AppState state) selector) => getEvent<AppState, R>(selector);
 
-  // Dispatching actions
-  void dispatch(ReduxAction<AppState> action) => getStore<AppState>().dispatch(action);
-  Future<ActionStatus> dispatchAndWait(ReduxAction<AppState> action) => getStore<AppState>().dispatchAndWait(action);
-  void dispatchAll(List<ReduxAction<AppState>> actions) => getStore<AppState>().dispatchAll(actions);
-  Future<void> dispatchAndWaitAll(List<ReduxAction<AppState>> actions) => getStore<AppState>().dispatchAndWaitAll(actions);
-  void dispatchSync(ReduxAction<AppState> action) => getStore<AppState>().dispatchSync(action);
+  AppState read() => getRead<AppState>();
+
+  R select<R>(R Function(AppState state) selector) =>
+      getSelect<AppState, R>(selector);
+
+  R? event<R>(Evt<R> Function(AppState state) selector) =>
+      getEvent<AppState, R>(selector);
 }
+```
+
+## Required base action
+
+Create file `app_action.dart` with this abstract class extending `ReduxAction<AppState>`:
+
+```dart
+/// All actions extend this class.
+abstract class AppAction extends ReduxAction<AppState> {
+
+ActionSelect get select => ActionSelect(state);
+}
+
+// Dedicated selector class to keep the base action clean.
+class ActionSelect {
+  final AppState state;
+  ActionSelect(this.state);
+}
+```
+
+## Update CLAUDE.md
+
+Add the following information to the project's `CLAUDE.md`, so that all actions extend
+this
+base action:
+
+```markdown
+## Base Action
+
+All actions should extend `AppAction` instead of `ReduxAction<AppState>`. 
+There is a dedicated selector class called `ActionSelect` to keep the base action clean,
+by namespacing selectors under `select` and enabling IDE autocompletion. Example:
+
+  ```dart
+  class ProcessItem extends AppAction {
+    final String itemId;
+    ProcessItem(this.itemId);
+    
+    @override
+    AppState reduce() {
+      // IDE autocomplete shows: select.findById, select.completed, etc.
+      final item = select.findById(itemId);
+      // ...
+    }
+  }
+  ```
+
 ```

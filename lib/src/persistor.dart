@@ -111,7 +111,7 @@ class PersistorPrinterDecorator<St> extends Persistor<St> {
 
 /// A dummy persistor.
 ///
-class PersistorDummy<T> extends Persistor<T?> {
+class PersistorDummy<T> extends Persistor<T> {
   @override
   Future<T?> readState() async => null;
 
@@ -119,10 +119,11 @@ class PersistorDummy<T> extends Persistor<T?> {
   Future<void> deleteState() async => null;
 
   @override
-  Future<void> persistDifference({lastPersistedState, newState}) async => null;
+  Future<void> persistDifference(
+      {required lastPersistedState, required newState}) async {}
 
   @override
-  Future<void> saveInitialState(state) async => null;
+  Future<void> saveInitialState(T state) async {}
 
   @override
   Duration? get throttle => null;

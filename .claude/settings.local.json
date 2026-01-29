@@ -9,7 +9,9 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:github.com)",
       "Bash(curl:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "mcp__dart__pub_dev_search",
+      "mcp__dart__pub"
     ],
     "deny": [],
     "ask": []
