@@ -1,8 +1,11 @@
 name: async_redux
 description: The modern version of Redux. State management that's simple to learn and easy to use; Powerful enough to handle complex applications with millions of users; Testable.
-version: 26.2.2
+version: 26.3.0
 # author: Marcelo Glasberg <marcglasberg@gmail.com>
-homepage: https://github.com/marcglasberg/async_redux
+repository: https://github.com/marcglasberg/async_redux
+issue_tracker: https://github.com/marcglasberg/async_redux/issues
+homepage: https://asyncredux.com
+documentation: https://asyncredux.com
 topics:
   - redux
   - state-management
