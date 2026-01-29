@@ -13,6 +13,10 @@
 [![Glasberg.dev on pub.dev](https://img.shields.io/pub/publisher/async_redux.svg)](https://pub.dev/publishers/glasberg.dev/packages)
 [![Platforms](https://badgen.net/pub/flutter-platform/async_redux)](https://pub.dev/packages/async_redux)
 
+#### Created by
+
+**[Marcelo Glasberg](https://glasberg.dev)** | [LinkedIn](https://linkedin.com/in/marcglasberg/) | [GitHub](https://github.com/marcglasberg/)
+
 #### Contributors
 
 <a href="https://github.com/marcglasberg/async_redux/graphs/contributors">
@@ -23,7 +27,7 @@
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-# Async Redux | *state management*
+# AsyncRedux | *state management*
 
 * Simple to learn, easy to use
 * Handles complex applications with millions of users
@@ -42,14 +46,21 @@ Created by [Marcelo Glasberg](https://github.com/marcglasberg)
 > There is also a version for React
 > [called Kiss State](https://kissforreact.org/)
 
-> Optionally use it with [Provider](https://pub.dev/packages/provider_for_redux)
+> If you use Bloc, check [Bloc Superpowers](https://pub.dev/packages/bloc_superpowers)
+
+> Optionally use AsyncRedux with [Provider](https://pub.dev/packages/provider_for_redux)
 > or [Flutter Hooks](https://pub.dev/packages/flutter_hooks_async_redux)
 
 # Documentation
 
-The complete docs are published at **https://asyncredux.com**
+### Complete docs → **https://asyncredux.com**
 
-Below is a quick overview.
+### Claude Code Skills → *
+*[On GitHub](https://github.com/marcglasberg/async_redux/tree/main/.claude/skills)**
+
+&nbsp;
+
+_Below is a quick overview._
 
 ***
 
@@ -675,44 +686,25 @@ class SelectItem extends Action {
 }
 ```         
 
-***
-
-To learn more, the complete Async Redux documentation is published
-at https://asyncredux.com
-
-***
+&nbsp;
 
 # Claude Code Skills
 
-This package includes **Claude Code Skills** that help you use `async_redux` with AI.
+This package includes **Skills** that help you use `async_redux` with
+Claude Code and other AI agents.
 
-Skills live in the `.claude/skills/` directory. To use them, copy the skills from this
-repository to your project:
+To use it, you have to copy the skills
+from [this repository](https://github.com/marcglasberg/async_redux/tree/master/.claude/skills)
+to your project.
+[Learn more](https://asyncredux.com/flutter/claude-code-skills).
 
-**Option 1: Project-level installation** (recommended for teams)
+---
 
-Copy the skills to your project so all team members can use them:
-
-```bash
-# From your project root
-mkdir -p .claude/skills
-# Copy or download from:
-# https://github.com/marcglasberg/async_redux/tree/main/.claude/skills
-```
-
-**Option 2: Personal installation** (available across all your projects)
-
-Copy the skills to your personal Claude directory:
-
-```bash
-# Copy to your home directory
-mkdir -p ~/.claude/skills
-# Copy or download the skills there
-```
+### Complete docs → **https://asyncredux.com**
 
 ***
 
-## By Marcelo Glasberg
+## Created by Marcelo Glasberg
 
 <a href="https://glasberg.dev">_glasberg.dev_</a>
 <br>
@@ -735,11 +727,12 @@ _stackoverflow.com/users/3411681/marcg_</a>
   Understanding
   constraints</a>
 
-*The Flutter packages I've authored:*
+*Flutter packages I've authored:*
 
+* <a href="https://pub.dev/packages/bloc_superpowers">bloc_superpowers</a>
+* <a href="https://pub.dev/packages/i18n_extension">i18n_extension</a>
 * <a href="https://pub.dev/packages/async_redux">async_redux</a>
 * <a href="https://pub.dev/packages/provider_for_redux">provider_for_redux</a>
-* <a href="https://pub.dev/packages/i18n_extension">i18n_extension</a>
 * <a href="https://pub.dev/packages/align_positioned">align_positioned</a>
 * <a href="https://pub.dev/packages/network_to_file_image">
   network_to_file_image</a>
@@ -760,14 +753,14 @@ _stackoverflow.com/users/3411681/marcg_</a>
 
 *The JavaScript/TypeScript packages I've authored:*
 
-* [Kiss State, for React](https://kissforreact.org/) (similar to Async Redux,
+* [Kiss State, for React](https://kissforreact.org/) (similar to AsyncRedux,
   but for React)
 * [Easy BDD Tool, for Jest](https://www.npmjs.com/package/easy-bdd-tool-jest)
 
 *My Medium Articles:*
 
 * <a href="https://medium.com/flutter-community/https-medium-com-marcglasberg-async-redux-33ac5e27d5f6">
-  Async Redux: Flutter’s non-boilerplate version of Redux</a> 
+  AsyncRedux: Flutter’s non-boilerplate version of Redux</a> 
   (versions: <a href="https://medium.com/flutterando/async-redux-pt-brasil-e783ceb13c43">
   Português</a>)
 * <a href="https://medium.com/flutter-community/i18n-extension-flutter-b966f4c65df9">

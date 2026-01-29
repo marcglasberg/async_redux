@@ -1,13 +1,13 @@
 _Visit
 the <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/MobileAppFlutterRedux/README.md">
-Async Redux App Example GitHub Repo</a> for a full-fledged example app
+AsyncRedux App Example GitHub Repo</a> for a full-fledged example app
 showcasing the fundamentals and best practices._
 
 Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 26.3.0
+## 26.3.1
 
 * Added Claude Code **Skills** to help developers use `async_redux` with AI assistants.
   See: https://github.com/marcglasberg/async_redux/tree/master/.claude/skills
@@ -748,12 +748,12 @@ Sponsored by [MyText.ai](https://mytext.ai)
   }
   ```
 
-* If your app uses Async Redux and your server
+* If your app uses AsyncRedux and your server
   uses [Serverpod](https://serverpod.dev/), you can add the Dart-only core
   package https://pub.dev/packages/async_redux_core to your server side.
   Now, if you throw a `UserException` in your backend code, that exception will
   automatically be thrown in the frontend. As long as the Serverpod cloud
-  function is called inside an action, Async Redux will display the
+  function is called inside an action, AsyncRedux will display the
   exception message to the user in a dialog (or other UI element that you can
   customize). Note: This can also be used
   with [package i18n_extension_core](https://pub.dartlang.org/packages/i18n_extension_core)
@@ -776,7 +776,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
       - package:async_redux_core/async_redux_core.dart:UserException
   ```  
 
-  Note: Async Redux also works with [Celest](https://celest.dev/) since 22.1.0.
+  Note: AsyncRedux also works with [Celest](https://celest.dev/) since 22.1.0.
 
 ## 25.0.0
 
@@ -985,9 +985,9 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 23.1.1
 
-* New: Async Redux website at https://asyncredux.com
+* New: AsyncRedux website at https://asyncredux.com
 
-* New: [Async Redux for React](https://www.npmjs.com/package/async-redux-react)
+* New: [AsyncRedux for React](https://www.npmjs.com/package/async-redux-react)
 
 ## 23.0.2
 

@@ -188,7 +188,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Text(
-                          'UI State (Async Redux)',
+                          'UI State (AsyncRedux)',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,

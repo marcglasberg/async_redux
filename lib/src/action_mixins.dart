@@ -2567,7 +2567,7 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
   /// Override [applyOptimisticValueToState] to return a new state where the
   /// given [optimisticValue] is applied to the current [state].
   ///
-  /// Note, Async Redux calculates [optimisticValue] by previously
+  /// Note, AsyncRedux calculates [optimisticValue] by previously
   /// calling [valueToApply].
   ///
   /// ```dart
@@ -2611,7 +2611,7 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
   /// Override [sendValueToServer] to send the given [optimisticValue] to the
   /// server, and optionally return the server's response.
   ///
-  /// Note, Async Redux calculates [optimisticValue] by previously
+  /// Note, AsyncRedux calculates [optimisticValue] by previously
   /// calling [valueToApply].
   ///
   /// If [sendValueToServer] returns a non-null value, that value will be
@@ -3114,7 +3114,7 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
   /// Override [applyOptimisticValueToState] to return a new state where the
   /// given [optimisticValue] is applied to the current [state].
   ///
-  /// Note, Async Redux calculates [optimisticValue] by previously
+  /// Note, AsyncRedux calculates [optimisticValue] by previously
   /// calling [valueToApply].
   ///
   /// ```dart
@@ -3169,7 +3169,7 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
   ///   call [informServerRevision]).
   ///
   /// Notes:
-  /// - Async Redux calculates [optimisticValue] by previously calling [valueToApply].
+  /// - AsyncRedux calculates [optimisticValue] by previously calling [valueToApply].
   /// - The server must return the server-revision in the response.
   /// - Server pushes must provide the 3 pieces of information: server-revision,
   ///   [deviceId], and [localRevision]. See [ServerPush] for details.

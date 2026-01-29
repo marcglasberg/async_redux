@@ -8,7 +8,7 @@ part of async_redux_store;
 /// All actions you create must extend this class `ReduxAction`.
 ///
 /// Important: Do NOT override operator == and hashCode. Actions must retain
-/// their default [Object] comparison by identity, for Async Redux to work.
+/// their default [Object] comparison by identity, for AsyncRedux to work.
 ///
 /// ---
 ///
