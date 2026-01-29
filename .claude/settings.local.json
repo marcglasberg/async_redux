@@ -3,7 +3,13 @@
     "allow": [
       "Bash(flutter test:*)",
       "Bash(flutter analyze:*)",
-      "Bash(dart test:*)"
+      "Bash(dart test:*)",
+      "WebFetch(domain:asyncredux.com)",
+      "WebFetch(domain:pub.dev)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(curl:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

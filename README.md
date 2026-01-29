@@ -682,6 +682,36 @@ at https://asyncredux.com
 
 ***
 
+# Claude Code Skills
+
+This package includes **Claude Code Skills** that help you use `async_redux` with AI.
+
+Skills live in the `.claude/skills/` directory. To use them, copy the skills from this
+repository to your project:
+
+**Option 1: Project-level installation** (recommended for teams)
+
+Copy the skills to your project so all team members can use them:
+
+```bash
+# From your project root
+mkdir -p .claude/skills
+# Copy or download from:
+# https://github.com/marcglasberg/async_redux/tree/main/.claude/skills
+```
+
+**Option 2: Personal installation** (available across all your projects)
+
+Copy the skills to your personal Claude directory:
+
+```bash
+# Copy to your home directory
+mkdir -p ~/.claude/skills
+# Copy or download the skills there
+```
+
+***
+
 ## By Marcelo Glasberg
 
 <a href="https://glasberg.dev">_glasberg.dev_</a>
