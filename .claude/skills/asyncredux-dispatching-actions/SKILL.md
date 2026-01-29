@@ -175,7 +175,7 @@ dispatch(MyAction(), notify: false);
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/basics/dispatching-actions
 - https://asyncredux.com/flutter/basics/using-the-store-state
 - https://asyncredux.com/flutter/basics/sync-actions

@@ -304,7 +304,7 @@ class DeleteAccountAction extends ReduxAction<AppState> {
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/miscellaneous/wait-condition
 - https://asyncredux.com/flutter/miscellaneous/advanced-waiting
 - https://asyncredux.com/flutter/advanced-actions/redux-action

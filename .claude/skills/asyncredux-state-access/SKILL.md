@@ -209,7 +209,7 @@ Model D:1 R:1 = Rebuild:true, Connector:MyWidgetConnector, Model:MyViewModel{cou
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/sitemap.xml
 - https://asyncredux.com/flutter/basics/using-the-store-state
 - https://asyncredux.com/flutter/miscellaneous/widget-selectors

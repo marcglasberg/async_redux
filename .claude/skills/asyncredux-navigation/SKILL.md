@@ -283,7 +283,7 @@ The `NavigateType` enum includes values for all navigation operations:
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/miscellaneous/navigation
 - https://asyncredux.com/flutter/testing/testing-navigation
 - https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_navigate.dart

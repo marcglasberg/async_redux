@@ -309,7 +309,7 @@ Future<AppState?> onFinish(Object? error) async {
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/sitemap.xml
 - https://asyncredux.com/flutter/advanced-actions/optimistic-mixins
 - https://asyncredux.com/flutter/advanced-actions/action-mixins

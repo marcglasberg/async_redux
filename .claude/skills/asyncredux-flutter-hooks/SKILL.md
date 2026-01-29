@@ -280,7 +280,7 @@ Both approaches work well with AsyncRedux - pick the one that fits your team's p
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/sitemap.xml
 - https://asyncredux.com/flutter/other-packages/using-flutter-hooks-package
 - https://pub.dev/packages/flutter_hooks_async_redux

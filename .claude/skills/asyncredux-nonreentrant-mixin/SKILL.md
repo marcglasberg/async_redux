@@ -111,7 +111,7 @@ class LoadDataAction extends AppAction with CheckInternet, NonReentrant {
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/sitemap.xml
 - https://asyncredux.com/flutter/advanced-actions/control-mixins
 - https://asyncredux.com/flutter/advanced-actions/action-mixins

@@ -286,7 +286,7 @@ var value = Event.consumeFrom([event1, event2, event3]);
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/basics/events
 - https://asyncredux.com/flutter/miscellaneous/advanced-events
 - https://asyncredux.com/flutter/basics/using-the-store-state

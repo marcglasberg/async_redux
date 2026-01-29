@@ -1,13 +1,16 @@
 ---
 name: asyncredux-abort-dispatch
-description: Prevent actions from running using `abortDispatch()`. Covers conditional dispatch prevention, creating base actions with common abort logic, and implementing authentication guards for protected actions.
+description: Stops an AsyncRedux (Flutter) action from dispatching. Use only when the user mentions abortDispatch(), or explicitly asks to abort or prevent dispatch under certain conditions.
 ---
 
 # AsyncRedux Aborting the Dispatch
 
 ## What is abortDispatch()?
 
-The `abortDispatch()` method is an optional method on `ReduxAction` that lets you conditionally prevent an action from executing. When this method returns `true`, the entire action is skipped—`before()`, `reduce()`, and `after()` will NOT run, and state remains unchanged.
+The `abortDispatch()` method is an optional method on `ReduxAction` that lets you
+conditionally prevent an action from executing. When this method returns `true`, the
+entire action is skipped—`before()`, `reduce()`, and `after()` will NOT run, and state
+remains unchanged.
 
 ```dart
 class MyAction extends ReduxAction<AppState> {
@@ -69,7 +72,8 @@ class MyAction extends ReduxAction<AppState> {
 }
 ```
 
-This differs from throwing an error in `before()`, which would still cause `after()` to run.
+This differs from throwing an error in `before()`, which would still cause `after()` to
+run.
 
 ## Authentication Guard Pattern
 
@@ -179,7 +183,8 @@ class UsePremiumFeature extends ReduxAction<AppState> {
 
 ## Built-in Mixin: AbortWhenNoInternet
 
-AsyncRedux provides `AbortWhenNoInternet`, a mixin that silently aborts actions when there's no internet connection:
+AsyncRedux provides `AbortWhenNoInternet`, a mixin that silently aborts actions when
+there's no internet connection:
 
 ```dart
 class FetchLatestNews extends AppAction with AbortWhenNoInternet {
@@ -193,6 +198,7 @@ class FetchLatestNews extends AppAction with AbortWhenNoInternet {
 ```
 
 Key characteristics of `AbortWhenNoInternet`:
+
 - No error dialogs are shown
 - No exceptions are thrown
 - The action is silently cancelled
@@ -204,10 +210,10 @@ Compare with `CheckInternet` which shows an error dialog instead of silently abo
 
 Choose the right approach for your use case:
 
-| Approach | `after()` runs? | Shows error? | Use when |
-|----------|-----------------|--------------|----------|
-| `abortDispatch()` returns true | No | No | Silently skip action |
-| Throw in `before()` | Yes | Yes (if UserException) | Show error to user |
+| Approach                       | `after()` runs? | Shows error?           | Use when             |
+|--------------------------------|-----------------|------------------------|----------------------|
+| `abortDispatch()` returns true | No              | No                     | Silently skip action |
+| Throw in `before()`            | Yes             | Yes (if UserException) | Show error to user   |
 
 ```dart
 // Silent abort - user doesn't know action was skipped
@@ -232,6 +238,7 @@ class ExplicitRefresh extends ReduxAction<AppState> {
 ## When to Use abortDispatch()
 
 **Good use cases:**
+
 - Authentication guards (action requires logged-in user)
 - Authorization checks (action requires specific role/permission)
 - Feature flags (action only for premium users)
@@ -240,6 +247,7 @@ class ExplicitRefresh extends ReduxAction<AppState> {
 - Idempotency (skip if action's effect already applied)
 
 **Consider alternatives when:**
+
 - You want the user to see an error message (throw `UserException` in `before()`)
 - You need cleanup code to run (use `before()` + `after()` pattern)
 - You're implementing rate limiting (use `Throttle` or `Debounce` mixins)
@@ -302,11 +310,13 @@ class BanUser extends AdminAction {
 - `abortDispatch()` is checked before `before()`, `reduce()`, and `after()`
 - When aborted, no state changes occur
 - The action is silently skipped—no errors are thrown or logged by default
-- Use this feature judiciously; the documentation warns it's "a powerful feature" that should only be used "if you are sure it is the right solution"
+- Use this feature judiciously; the documentation warns it's "a powerful feature" that
+  should only be used "if you are sure it is the right solution"
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
+
 - https://asyncredux.com/flutter/advanced-actions/aborting-the-dispatch
 - https://asyncredux.com/flutter/advanced-actions/redux-action
 - https://asyncredux.com/flutter/advanced-actions/before-and-after-the-reducer

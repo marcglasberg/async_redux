@@ -263,7 +263,7 @@ class ProductsScreen extends StatelessWidget {
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/basics/wait-fail-succeed
 - https://asyncredux.com/flutter/miscellaneous/advanced-waiting
 - https://asyncredux.com/flutter/advanced-actions/action-status

@@ -315,7 +315,7 @@ void main() {
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/miscellaneous/logging
 - https://asyncredux.com/flutter/miscellaneous/metrics
 - https://asyncredux.com/flutter/miscellaneous/observing-rebuilds

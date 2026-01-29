@@ -258,7 +258,7 @@ test('should collect multiple UserExceptions', () async {
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/sitemap.xml
 - https://asyncredux.com/flutter/advanced-actions/errors-thrown-by-actions
 - https://asyncredux.com/flutter/basics/failed-actions

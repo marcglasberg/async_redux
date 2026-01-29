@@ -1,13 +1,15 @@
 ---
 name: asyncredux-async-actions
-description: Create asynchronous actions for API calls, database operations, and other async work. Covers returning `Future<AppState?>` from reduce, proper use of `await`, avoiding completed futures, and using `assertUncompletedFuture()` for complex reducers.
+description: Creates AsyncRedux (Flutter) asynchronous actions for API calls, database operations, and other async work. 
 ---
 
 # AsyncRedux Async Actions
 
 ## Basic Async Action Structure
 
-An action becomes asynchronous when its `reduce()` method returns `Future<AppState?>` instead of `AppState?`. Use this for database access, API calls, file operations, or any work requiring `await`.
+An action becomes asynchronous when its `reduce()` method returns `Future<AppState?>`
+instead of `AppState?`. Use this for database access, API calls, file operations, or any
+work requiring `await`.
 
 ```dart
 class FetchUser extends ReduxAction<AppState> {
@@ -19,11 +21,14 @@ class FetchUser extends ReduxAction<AppState> {
 }
 ```
 
-Unlike traditional Redux requiring middleware, AsyncRedux makes it simple: return a `Future` and it works.
+Unlike traditional Redux requiring middleware, AsyncRedux makes it simple: return a
+`Future` and it works.
 
 ## Critical Rule: Every Path Must Have await
 
-The framework requires that **all execution paths contain at least one `await`**. Never declare `Future<AppState?>` if you don't actually await something.
+If the action is async (returns a Future) and changes the state (returns a non-null
+state), the framework requires that,  **all execution paths contain at least
+one `await`**. Never declare `Future<AppState?>` if you don't actually await something.
 
 ### Valid Patterns
 
@@ -45,7 +50,16 @@ Future<AppState?> reduce() async {
   if (state.needsRefresh) {
     return await fetchAndUpdate();
   }
-  return await validateCurrent();
+  else return await validateCurrent();
+}
+
+// Always returns null
+Future<AppState?> reduce() async {
+  if (state.needsRefresh) {
+    await fetchAndUpdate();
+  }  
+  
+  return null;
 }
 ```
 
@@ -74,7 +88,8 @@ Future<AppState?> reduce() async {
 
 ## Using assertUncompletedFuture()
 
-For complex reducers with multiple code paths, add `assertUncompletedFuture()` before the final return. This catches violations at runtime during development:
+For complex reducers with multiple code paths, add `assertUncompletedFuture()` before the
+final return. This catches violations at runtime during development:
 
 ```dart
 class ComplexAction extends ReduxAction<AppState> {
@@ -96,7 +111,8 @@ class ComplexAction extends ReduxAction<AppState> {
 
 ## State Changes During Async Operations
 
-The `state` getter can change after every `await` because other actions may modify state while yours is waiting:
+The `state` getter can change after every `await` because other actions may modify state
+while yours is waiting:
 
 ```dart
 class AsyncAction extends ReduxAction<AppState> {
@@ -117,7 +133,8 @@ class AsyncAction extends ReduxAction<AppState> {
 
 ### Using initialState for Comparison
 
-Use `initialState` to access the state as it was when the action was dispatched (never changes):
+Use `initialState` to access the state as it was when the action was dispatched (never
+changes):
 
 ```dart
 class SafeIncrement extends ReduxAction<AppState> {
@@ -175,10 +192,8 @@ Use `isWaiting()` to show spinners while async actions run:
 
 ```dart
 Widget build(BuildContext context) {
-  if (context.isWaiting(FetchUser)) {
-    return CircularProgressIndicator();
-  }
-  return Text('Hello, ${context.state.user.name}');
+  if (context.isWaiting(FetchUser)) return CircularProgressIndicator();  
+  else return Text('Hello, ${context.state.user.name}');
 }
 ```
 
@@ -192,13 +207,11 @@ class FetchUser extends ReduxAction<AppState> {
   Future<AppState?> reduce() async {
     final response = await api.fetchUser();
 
-    if (response.statusCode == 404) {
-      throw UserException('User not found.');
-    }
+    if (response.statusCode == 404) 
+      throw UserException('User not found.');    
 
-    if (response.statusCode != 200) {
-      throw UserException('Failed to load user. Please try again.');
-    }
+    if (response.statusCode != 200) 
+      throw UserException('Failed to load user. Please try again.');    
 
     return state.copy(user: response.data);
   }
@@ -264,7 +277,8 @@ Widget build(BuildContext context) {
 
 ## Return Type Warning
 
-Never return `FutureOr<AppState?>` directly. AsyncRedux must know if the action is sync or async:
+Never return `FutureOr<AppState?>` directly. AsyncRedux must know if the action is sync or
+async:
 
 ```dart
 // CORRECT
@@ -279,7 +293,8 @@ FutureOr<AppState?> reduce() { ... }
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
+
 - https://asyncredux.com/flutter/basics/async-actions
 - https://asyncredux.com/flutter/basics/actions-and-reducers
 - https://asyncredux.com/flutter/advanced-actions/redux-action

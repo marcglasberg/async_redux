@@ -53,6 +53,13 @@ abstract class GlobalWrapError<St> {
   );
 }
 
+/// A dummy global wrap error that does nothing.
+///
+class GlobalWrapErrorDummy<St> implements GlobalWrapError<St> {
+  @override
+  Object? wrap(error, stackTrace, action) => error;
+}
+
 /// [WrapError] is deprecated in favor of [GlobalWrapError].
 ///
 /// The reason for this deprecation is that the [GlobalWrapError] works in the

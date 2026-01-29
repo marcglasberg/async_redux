@@ -385,7 +385,7 @@ Connector tests focus on view-model logic - verifying properties are correctly d
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/testing/testing-the-view-model
 - https://asyncredux.com/flutter/testing/testing-oninit-ondispose
 - https://asyncredux.com/flutter/testing/dispatch-wait-and-expect

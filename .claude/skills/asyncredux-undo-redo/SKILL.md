@@ -363,7 +363,7 @@ void main() {
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/miscellaneous/undo-and-redo
 - https://asyncredux.com/flutter/basics/store
 - https://asyncredux.com/flutter/miscellaneous/logging

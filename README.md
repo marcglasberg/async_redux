@@ -15,7 +15,8 @@
 
 #### Created by
 
-**[Marcelo Glasberg](https://glasberg.dev)** | [LinkedIn](https://linkedin.com/in/marcglasberg/) | [GitHub](https://github.com/marcglasberg/)
+**[Marcelo Glasberg](https://glasberg.dev)
+** | [LinkedIn](https://linkedin.com/in/marcglasberg/) | [GitHub](https://github.com/marcglasberg/)
 
 #### Contributors
 
@@ -55,8 +56,7 @@ Created by [Marcelo Glasberg](https://github.com/marcglasberg)
 
 ### Complete docs → **https://asyncredux.com**
 
-### Claude Code Skills → *
-*[On GitHub](https://github.com/marcglasberg/async_redux/tree/main/.claude/skills)**
+### Claude Code Skills → [Copy from the repo on GitHub](https://github.com/marcglasberg/async_redux/tree/main/.claude/skills)
 
 &nbsp;
 

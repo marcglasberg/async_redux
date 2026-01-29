@@ -15,8 +15,7 @@ abstract class ActionObserver<St> {
   });
 }
 
-/// This action-observer will print all actions to the console, with color,
-/// like so:
+/// This action-observer will print all actions to the console like so:
 ///
 /// ```
 /// I/flutter (15304): | Action MyAction
@@ -50,9 +49,22 @@ abstract class ActionObserver<St> {
 /// ```
 ///
 class ConsoleActionObserver<St> extends ActionObserver<St> {
+  /// If [useAnsiColors] is `true`, the output will use ANSI escape codes for
+  /// colored output. Defaults to `false`, because not all consoles support
+  /// ANSI colors.
+  final bool useAnsiColors;
+
+  ConsoleActionObserver({this.useAnsiColors = false});
+
   @override
   void observe(ReduxAction<St> action, int dispatchCount, {required bool ini}) {
-    if (ini) print('${color(action)}|$italic $action$reset');
+    if (ini) {
+      if (useAnsiColors) {
+        print('${color(action)}|$italic $action$reset');
+      } else {
+        print('| $action');
+      }
+    }
   }
 
   /// Callback that chooses the color to print in the console.

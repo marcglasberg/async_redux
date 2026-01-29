@@ -267,7 +267,7 @@ Widget build(BuildContext context) {
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/sitemap.xml
 - https://asyncredux.com/flutter/miscellaneous/cached-selectors
 - https://asyncredux.com/flutter/miscellaneous/widget-selectors

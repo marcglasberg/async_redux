@@ -494,7 +494,7 @@ All observers will be notified in the order they are listed.
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/miscellaneous/logging
 - https://asyncredux.com/flutter/miscellaneous/metrics
 - https://asyncredux.com/flutter/miscellaneous/observing-rebuilds

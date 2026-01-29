@@ -1,6 +1,6 @@
 ---
 name: asyncredux-action-status
-description: Check action completion status using the ActionStatus object. Covers `isCompletedOk`, `isCompletedFailed`, `originalError`, `wrappedError`, `hasFinishedMethodBefore/Reduce/After`, and conditional navigation after action success.
+description: Checks an AsyncRedux (Flutter) action's completion status using ActionStatus right after the dispatch returns. Use only when you need to know whether an action completed, whether it failed with an error, what error it produced, or how to navigate based on success or failure.
 ---
 
 # ActionStatus in AsyncRedux
@@ -155,7 +155,7 @@ If `before()` throws an error, `reduce()` will not run, but `after()` will still
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/advanced-actions/action-status
 - https://asyncredux.com/flutter/basics/dispatching-actions
 - https://asyncredux.com/flutter/basics/failed-actions

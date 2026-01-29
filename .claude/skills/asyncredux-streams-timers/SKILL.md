@@ -352,7 +352,7 @@ Regular (non-disposable) props are kept unless you provide a predicate that matc
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/miscellaneous/streams-and-timers
 - https://asyncredux.com/flutter/basics/store
 - https://asyncredux.com/flutter/advanced-actions/redux-action

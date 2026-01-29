@@ -344,7 +344,7 @@ class DeleteItem extends AppAction {
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/advanced-actions/redux-action
 - https://asyncredux.com/flutter/advanced-actions/action-selectors
 - https://asyncredux.com/flutter/advanced-actions/errors-thrown-by-actions

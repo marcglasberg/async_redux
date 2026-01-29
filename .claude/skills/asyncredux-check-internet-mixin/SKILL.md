@@ -153,7 +153,7 @@ For server-specific connectivity checks, implement additional validation in your
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/advanced-actions/internet-mixins
 - https://asyncredux.com/flutter/advanced-actions/action-mixins
 - https://asyncredux.com/flutter/advanced-actions/aborting-the-dispatch

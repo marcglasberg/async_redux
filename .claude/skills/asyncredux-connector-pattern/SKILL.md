@@ -430,7 +430,7 @@ class CounterWidget extends StatelessWidget {
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/sitemap.xml
 - https://asyncredux.com/flutter/connector/connector-pattern
 - https://asyncredux.com/flutter/connector/store-connector

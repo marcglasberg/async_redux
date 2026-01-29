@@ -321,7 +321,7 @@ void main() {
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/basics/state
 - https://asyncredux.com/flutter/basics/sync-actions
 - https://asyncredux.com/flutter/basics/changing-state-is-optional

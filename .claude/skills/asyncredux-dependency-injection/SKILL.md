@@ -299,7 +299,7 @@ extension BuildContextExtension on BuildContext {
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/sitemap.xml
 - https://asyncredux.com/flutter/miscellaneous/dependency-injection
 - https://asyncredux.com/flutter/testing/mocking

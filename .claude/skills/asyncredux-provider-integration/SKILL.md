@@ -223,7 +223,7 @@ This allows you to migrate incrementally without rewriting your entire applicati
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/sitemap.xml
 - https://asyncredux.com/flutter/other-packages/using-the-provider-package
 - https://asyncredux.com/flutter/connector/store-connector

@@ -379,7 +379,7 @@ When using these mixins, be aware that they may already override `before()` or `
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
 - https://asyncredux.com/flutter/advanced-actions/before-and-after-the-reducer
 - https://asyncredux.com/flutter/advanced-actions/redux-action
 - https://asyncredux.com/flutter/advanced-actions/errors-thrown-by-actions

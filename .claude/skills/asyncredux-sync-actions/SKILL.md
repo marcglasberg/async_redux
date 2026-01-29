@@ -1,13 +1,14 @@
 ---
 name: asyncredux-sync-actions
-description: Create synchronous actions that modify state immediately. Covers extending ReduxAction, implementing the `reduce()` method to return a new state, accessing current state via `state` getter, and passing parameters to actions via constructor fields.
+description: Creates AsyncRedux (Flutter) synchronous actions that update state immediately by implementing reduce() to return a new state. 
 ---
 
 # AsyncRedux Sync Actions
 
 ## Basic Sync Action Structure
 
-A synchronous action returns `AppState?` from its `reduce()` method. The action completes immediately and state updates right away.
+A synchronous action returns `AppState?` from its `reduce()` method. The action completes
+immediately and state updates right away.
 
 ```dart
 class Increment extends ReduxAction<AppState> {
@@ -108,7 +109,11 @@ print(store.state.counter); // 5
 
 ### Guaranteed Sync with dispatchSync()
 
-Use `dispatchSync()` when you must ensure the action is synchronous. Throws `StoreException` if the action is async:
+The `dispatchSync()` throws `StoreException` if the action is async. Otherwise, it
+behaves exactly like `dispatch()`.
+
+Use `dispatchSync()` only in the rare cases when you must ensure the action is synchronous
+because you need the state to be applied right after the dispatch returns. 
 
 ```dart
 context.dispatchSync(Increment());
@@ -203,7 +208,8 @@ class UpdateEmail extends AppAction {
 
 ## Return Type Warning
 
-The `reduce()` method signature is `FutureOr<AppState?>`. For sync actions, always return `AppState?` directly:
+The `reduce()` method signature is `FutureOr<AppState?>`. For sync actions, always return
+`AppState?` directly:
 
 ```dart
 // CORRECT - Sync action
@@ -213,7 +219,8 @@ AppState? reduce() => state.copy(counter: state.counter + 1);
 FutureOr<AppState?> reduce() => state.copy(counter: state.counter + 1);
 ```
 
-If you return `FutureOr<AppState?>` directly, AsyncRedux cannot determine if the action is sync or async and will throw a `StoreException`.
+If you return `FutureOr<AppState?>` directly, AsyncRedux cannot determine if the action is
+sync or async and will throw a `StoreException`.
 
 ## Complete Example
 
@@ -277,7 +284,8 @@ ElevatedButton(
 
 ## References
 
-URLs read to create this skill:
+URLs from the documentation:
+
 - https://asyncredux.com/flutter/basics/sync-actions
 - https://asyncredux.com/flutter/basics/actions-and-reducers
 - https://asyncredux.com/flutter/advanced-actions/redux-action
