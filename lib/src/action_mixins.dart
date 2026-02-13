@@ -526,6 +526,7 @@ mixin Retry<St> on ReduxAction<St> {
   void _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet() {
     _incompatible<Retry, Debounce>(this);
     _incompatible<Retry, UnlimitedRetryCheckInternet>(this);
+    _incompatible<Retry, Polling>(this);
   }
 
   void
@@ -1266,6 +1267,7 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
     _incompatible<OptimisticCommand, Throttle>(this);
     _incompatible<OptimisticCommand, Debounce>(this);
     _incompatible<OptimisticCommand, UnlimitedRetries>(this);
+    _incompatible<OptimisticCommand, Polling>(this);
   }
 
   void
@@ -1615,6 +1617,7 @@ mixin Debounce<St> on ReduxAction<St> {
   void _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet() {
     _incompatible<Debounce, Retry>(this);
     _incompatible<Debounce, UnlimitedRetryCheckInternet>(this);
+    _incompatible<Debounce, Polling>(this);
   }
 }
 
@@ -1822,6 +1825,7 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
   void _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet() {
     _incompatible<UnlimitedRetryCheckInternet, Debounce>(this);
     _incompatible<UnlimitedRetryCheckInternet, Retry>(this);
+    _incompatible<UnlimitedRetryCheckInternet, Polling>(this);
   }
 
   void
@@ -2866,6 +2870,7 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
     _incompatible<OptimisticSync, Throttle>(this);
     _incompatible<OptimisticSync, Debounce>(this);
     _incompatible<OptimisticSync, UnlimitedRetries>(this);
+    _incompatible<OptimisticSync, Polling>(this);
   }
 
   void
@@ -3549,6 +3554,7 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
     _incompatible<OptimisticSyncWithPush, Throttle>(this);
     _incompatible<OptimisticSyncWithPush, Debounce>(this);
     _incompatible<OptimisticSyncWithPush, UnlimitedRetries>(this);
+    _incompatible<OptimisticSyncWithPush, Polling>(this);
   }
 
   void
@@ -3709,6 +3715,7 @@ mixin ServerPush<St> on ReduxAction<St> {
     _incompatible<ServerPush, Throttle>(this);
     _incompatible<ServerPush, Debounce>(this);
     _incompatible<ServerPush, UnlimitedRetries>(this);
+    _incompatible<ServerPush, Polling>(this);
   }
 
   void
@@ -3717,5 +3724,352 @@ mixin ServerPush<St> on ReduxAction<St> {
     _incompatible<ServerPush, OptimisticCommand>(this);
     _incompatible<ServerPush, OptimisticSync>(this);
     _incompatible<ServerPush, Retry>(this);
+  }
+}
+
+enum Poll {
+  /// Start polling.
+  /// If polling is already active, does nothing.
+  /// Otherwise, runs the action immediately and starts periodic polling.
+  start,
+
+  /// Stop polling (cancels the timer and does not run the action).
+  stop,
+
+  /// Run the action immediately and restart polling from now.
+  /// If polling is not active, behaves like [Poll.start].
+  runNowAndRestart,
+
+  /// Run the action once immediately.
+  /// Does not start, stop, cancel, or restart polling.
+  once,
+}
+
+/// Mixin [Polling] can be used to periodically dispatch an action at a fixed
+/// interval. Just add `with Polling` to your action. For example:
+///
+/// ```dart
+/// class PollPrices extends AppAction with Polling {
+///   @override final Poll poll;
+///   PollPrices({this.poll = Poll.start});
+///
+///   @override
+///   ReduxAction<AppState> createPollingAction() => PollPrices();
+///
+///   @override
+///   Future<AppState?> reduce() async {
+///     final prices = await api.getPrices();
+///     return state.copy(prices: prices);
+///   }
+/// }
+/// ```
+///
+/// This is useful when you need to keep data fresh by fetching it from a server
+/// at regular intervals, such as refreshing prices, checking for new messages,
+/// or monitoring wallet balances.
+///
+/// The [pollInterval] is the delay between polling ticks. The default is 10
+/// seconds. You can override it:
+///
+/// ```dart
+/// @override
+/// Duration get pollInterval => const Duration(minutes: 5);
+/// ```
+///
+/// To start polling, dispatch the action with [Poll.start].
+/// To stop, dispatch with [Poll.stop]:
+///
+/// ```dart
+/// // Start polling (also runs reduce immediately):
+/// dispatch(PollPrices());
+///
+/// // Stop polling:
+/// dispatch(PollPrices(poll: Poll.stop));
+/// ```
+///
+/// You can display loading states and errors in your widgets by tracking the
+/// action type that does the work:
+///
+/// ```dart
+/// if (context.isWaiting(PollPrices)) CircularProgressIndicator();
+/// if (context.isFailed(PollPrices)) Text('Failed to load prices');
+/// ```
+///
+/// If you use two separate action types (see Option 2 below), track the worker
+/// action instead of the polling controller.
+///
+/// There are two ways to use this mixin:
+///
+/// ## Option 1: Single action for everything
+///
+/// Use one action class that both controls polling and does the work.
+/// The [createPollingAction] returns the same action type with [Poll.once]
+/// (or with no poll field at all, since [Poll.once] is the default),
+/// so timer ticks run the action without restarting the timer:
+///
+/// ```dart
+/// class LoadBalanceAction extends AppAction with Polling {
+///   final WalletAddress address;
+///   @override final Poll poll;
+///
+///   LoadBalanceAction(this.address, {this.poll = Poll.once});
+///
+///   @override
+///   Duration get pollInterval => const Duration(minutes: 5);
+///
+///   @override
+///   ReduxAction<AppState> createPollingAction() => LoadBalanceAction(address);
+///
+///   @override
+///   Future<AppState?> reduce() async {
+///     final balance = await api.getBalance(address);
+///     return state.copy(balance: balance);
+///   }
+/// }
+///
+/// // Start polling
+/// dispatch(LoadBalanceAction(address, poll: Poll.start));
+///
+/// // Run immediately without affecting the timer
+/// dispatch(LoadBalanceAction(address));
+///
+/// // Stop polling
+/// dispatch(LoadBalanceAction(address, poll: Poll.stop));
+/// ```
+///
+/// ## Option 2: Separate action types
+///
+/// Use one action to control polling, and a different action to do the work.
+/// This is useful when you want `isWaiting` and `isFailed` to track a
+/// different type than the polling controller:
+///
+/// ```dart
+/// class PollBalance extends AppAction with Polling {
+///   final WalletAddress address;
+///   @override final Poll poll;
+///
+///   PollBalance(this.address, {this.poll = Poll.start});
+///
+///   @override
+///   Duration get pollInterval => const Duration(minutes: 5);
+///
+///   @override
+///   ReduxAction<AppState> createPollingAction() => LoadBalanceAction(address);
+///
+///   @override
+///   Future<AppState?> reduce() async =>
+///       (await dispatchAndWait(LoadBalanceAction(address))).state;
+/// }
+///
+/// class LoadBalanceAction extends AppAction {
+///   final WalletAddress address;
+///   LoadBalanceAction(this.address);
+///
+///   @override
+///   Future<AppState?> reduce() async {
+///     final balance = await api.getBalance(address);
+///     return state.copy(balance: balance);
+///   }
+/// }
+///
+/// // Start polling:
+/// dispatch(PollBalance(address));
+///
+/// // Check loading state of the worker action:
+/// isWaiting(LoadBalanceAction);
+///
+/// // Stop polling:
+/// dispatch(PollBalance(address, poll: Poll.stop));
+/// ```
+///
+/// ## Polling keys
+///
+/// By default, each action type gets its own independent polling timer,
+/// keyed by its [runtimeType]. This means all instances of the same action
+/// type share one timer.
+///
+/// ### Using [pollingKeyParams] to separate instances
+///
+/// If you need separate polling timers per id, address, or some other field,
+/// override [pollingKeyParams]. Actions of the same type but with different
+/// [pollingKeyParams] values get independent timers.
+///
+/// ```dart
+/// class PollBalance extends AppAction with Polling {
+///   final WalletAddress address;
+///   @override final Poll poll;
+///
+///   PollBalance(this.address, {this.poll = Poll.start});
+///
+///   // Each address gets its own independent polling timer.
+///   @override
+///   Object? pollingKeyParams() => address;
+///
+///   @override
+///   ReduxAction<AppState> createPollingAction() =>
+///       LoadBalanceAction(address);
+///
+///   @override
+///   Future<AppState?> reduce() async =>
+///       (await dispatchAndWait(LoadBalanceAction(address))).state;
+/// }
+///
+/// // These start two independent polling timers:
+/// dispatch(PollBalance(address1));
+/// dispatch(PollBalance(address2));
+///
+/// // Stop only address1:
+/// dispatch(PollBalance(address1, poll: Poll.stop));
+/// ```
+///
+/// You can also return more than one field by using a tuple:
+///
+/// ```dart
+/// // Each (userId, walletId) pair gets its own timer.
+/// Object? pollingKeyParams() => (userId, walletId);
+/// ```
+///
+/// ### Using [computePollingKey] to share timers across action types
+///
+/// If you want different action types to share the same polling timer,
+/// override [computePollingKey] and return any key you want:
+///
+/// ```dart
+/// class PollPrices extends AppAction with Polling {
+///   Object computePollingKey() => 'market-data';
+///   ...
+/// }
+///
+/// class PollVolumes extends AppAction with Polling {
+///   Object computePollingKey() => 'market-data'; // same key
+///   ...
+/// }
+/// ```
+///
+/// With this setup, starting `PollPrices` and then `PollVolumes` means
+/// `PollVolumes` is a no-op (the key is already active). Stopping either
+/// one cancels the shared timer.
+///
+/// ## Poll values
+///
+/// - [Poll.start]: Starts polling and runs [reduce] immediately.
+///   If polling is already active for this key, does nothing.
+///
+/// - [Poll.stop]: Cancels the polling for this key and skips [reduce].
+///
+/// - [Poll.runNowAndRestart]: Runs [reduce] immediately and restarts the polling timer
+///   from that moment. If polling is not active, behaves like [Poll.start].
+///
+/// - [Poll.once]: Runs [reduce] immediately, without affecting the polling
+///   (it does not start or stop the polling).
+///
+/// Instead of using a periodic timer, each run schedules the next one,
+/// so the polling interval is measured from the end of each run.
+///
+/// Notes:
+/// - This mixin can be combined with [CheckInternet], [AbortWhenNoInternet],
+///   [NonReentrant], [Throttle], and [Fresh].
+/// - It should not be combined with other mixins or classes that override [wrapReduce].
+/// - It should not be combined with [Retry], [UnlimitedRetries], [Debounce],
+///   [UnlimitedRetryCheckInternet], [OptimisticCommand], [OptimisticSync],
+///   [OptimisticSyncWithPush], or [ServerPush].
+///
+/// See also:
+/// * [Throttle] - If you want to limit how often an action runs, but don't need periodic repetition.
+/// * [Debounce] - If you want to wait for a pause in activity before running the action.
+/// * [NonReentrant] - If you want to prevent overlapping executions of the same action.
+///
+mixin Polling<St> on ReduxAction<St> {
+  Poll get poll;
+
+  Duration get pollInterval => const Duration(seconds: 10);
+
+  /// Must return a new action instance that the timer will dispatch on each
+  /// tick. This can be the same action type with [Poll.once], or a completely
+  /// different action type (see class docs for both patterns).
+  ReduxAction<St> createPollingAction();
+
+  /// By default, the polling key is based on the action [runtimeType].
+  /// All instances of the same action type share one polling timer.
+  ///
+  /// Override this to give each instance its own timer based on some field:
+  ///
+  /// ```dart
+  /// // Each address gets its own polling timer.
+  /// Object? pollingKeyParams() => address;
+  ///
+  /// // Each (userId, walletId) pair gets its own timer.
+  /// Object? pollingKeyParams() => (userId, walletId);
+  /// ```
+  ///
+  /// When [pollingKeyParams] returns `null` (the default), the key is
+  /// just the action type.
+  Object? pollingKeyParams() => null;
+
+  /// Returns the key used to identify this action's polling timer.
+  ///
+  /// The default combines [runtimeType] with [pollingKeyParams]:
+  /// ```dart
+  /// Object computePollingKey() => (runtimeType, pollingKeyParams());
+  /// ```
+  ///
+  /// Override this for full control, for example to share a timer
+  /// across different action types:
+  ///
+  /// ```dart
+  /// Object computePollingKey() => 'shared-market-data';
+  /// ```
+  Object computePollingKey() => (runtimeType, pollingKeyParams());
+
+  Map<Object?, Timer> get _pollingMap => store.internalMixinProps.pollingMap;
+
+  @override
+  Future<St?> wrapReduce(Reducer<St> reduce) async {
+    _cannot_combine_mixins_Polling();
+
+    final key = computePollingKey();
+
+    switch (poll) {
+      case Poll.start:
+      // If polling is already active, don't do anything.
+        if (_pollingMap.containsKey(key)) return null;
+        _scheduleNext(key);
+        return reduce();
+
+      case Poll.stop:
+        _pollingMap.remove(key)?.cancel();
+        return null;
+
+      case Poll.runNowAndRestart:
+        _pollingMap.remove(key)?.cancel();
+        _scheduleNext(key);
+        return reduce();
+
+      case Poll.once:
+        return reduce();
+    }
+  }
+
+  /// Schedules a one-shot timer that dispatches [createPollingAction] and
+  /// then schedules the next tick. The interval is measured from the moment
+  /// the previous tick completes.
+  void _scheduleNext(Object key) {
+    _pollingMap[key] = Timer(pollInterval, () {
+      if (_pollingMap.containsKey(key)) {
+        dispatch(createPollingAction());
+        _scheduleNext(key);
+      }
+    });
+  }
+
+  void _cannot_combine_mixins_Polling() {
+    _incompatible<Polling, Retry>(this);
+    _incompatible<Polling, UnlimitedRetries>(this);
+    _incompatible<Polling, Debounce>(this);
+    _incompatible<Polling, UnlimitedRetryCheckInternet>(this);
+    _incompatible<Polling, OptimisticCommand>(this);
+    _incompatible<Polling, OptimisticSync>(this);
+    _incompatible<Polling, OptimisticSyncWithPush>(this);
+    _incompatible<Polling, ServerPush>(this);
   }
 }

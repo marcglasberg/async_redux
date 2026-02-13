@@ -2557,8 +2557,11 @@ class _InternalMixinProps {
   final Map<Object?, OptimisticSyncWithPushRevisionEntry>
       optimisticSyncWithPushRevisionMap = {};
 
+  /// Map used by the [Polling] mixin. Stores one-shot timers keyed by action runtimeType.
+  final Map<Object?, Timer> pollingMap = {};
+
   /// Removes the locks for Throttle, Debounce, Fresh, NonReentrant,
-  /// OptimisticSync, and OptimisticSyncWithPush.
+  /// OptimisticSync, OptimisticSyncWithPush, and Polling.
   void clear() {
     throttleLockMap.clear();
     freshKeyMap.clear();
@@ -2566,5 +2569,7 @@ class _InternalMixinProps {
     nonReentrantKeySet.clear();
     optimisticSyncKeySet.clear();
     optimisticSyncWithPushRevisionMap.clear();
+    for (final timer in pollingMap.values) timer.cancel();
+    pollingMap.clear();
   }
 }

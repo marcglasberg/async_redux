@@ -15,8 +15,8 @@
 
 #### Created by
 
-**[Marcelo Glasberg](https://glasberg.dev)
-** | [LinkedIn](https://linkedin.com/in/marcglasberg/) | [GitHub](https://github.com/marcglasberg/)
+**[Marcelo Glasberg](https://glasberg.dev)**
+| [LinkedIn](https://linkedin.com/in/marcglasberg/) | [GitHub](https://github.com/marcglasberg/)
 
 #### Contributors
 

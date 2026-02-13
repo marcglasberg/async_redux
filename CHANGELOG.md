@@ -7,6 +7,50 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 26.4.0
+
+* Added the `Polling` mixin and `Poll` enum.
+
+  Use this mixin to periodically dispatch an action at a fixed interval,
+  keeping data fresh by fetching it from a server. This is useful for
+  refreshing prices, checking for new messages, or monitoring wallet balances.
+
+  Control polling with the `Poll` enum: `Poll.start` to begin polling
+  (also runs the action immediately), `Poll.stop` to cancel it,
+  `Poll.runNowAndRestart` to run immediately and restart the timer, and `Poll.once`
+  to run immediately without affecting the timer.
+
+  The default interval is 10 seconds, but you can override `pollInterval`.
+
+  ```dart
+  class PollPrices extends AppAction with Polling {
+    @override final Poll poll;
+    PollPrices({this.poll = Poll.start});
+
+    @override
+    ReduxAction<AppState> createPollingAction() => PollPrices();
+
+    @override
+    Future<AppState?> reduce() async {
+      final prices = await api.getPrices();
+      return state.copy(prices: prices);
+    }
+  }
+
+  // Start polling (also runs reduce immediately):
+  dispatch(PollPrices());
+
+  // Stop polling:
+  dispatch(PollPrices(poll: Poll.stop));
+  ```
+
+  ### Flexible architecture:
+
+  You can use a single action for both polling control and work, or separate them into two
+  action types. For example, you could have a `ControlPricePolling` action that only
+  starts/stops the polling, and a separate `FetchPrices` action that does the actual
+  fetching.
+
 ## 26.3.3
 
 * Added Claude Code **Skills** to help developers use `async_redux` with AI assistants.
@@ -36,7 +80,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
   It's blocking in the sense that the user cannot perform other operation
   in the same state until the command completes (success or failure).
- 
+
   See file `example/lib/main_optimistic_command.dart` for an example app
   demonstrating the use of `OptimisticCommand` in a like button.
 
@@ -102,7 +146,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
   This is ideal for toggle buttons (like/unlike, follow/unfollow), sliders,
   switches, or any control where the user might interact multiple times
   before the server responds.
-  
+
   See file `example/lib/main_optimistic_sync.dart` for an example app
   demonstrating the use of `OptimisticSync` in a like button.
 
@@ -186,7 +230,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
   Read the documentation in their own code to understand how they work.
 
-  **Important:** If your app does NOT receive server-pushed updates, you should 
+  **Important:** If your app does NOT receive server-pushed updates, you should
   use the simpler `OptimisticSync` mixin instead.
 
   See file `example/lib/main_optimistic_sync_with_push.dart` for an example app

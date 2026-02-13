@@ -11,7 +11,9 @@
       "Bash(curl:*)",
       "Bash(ls:*)",
       "mcp__dart__pub_dev_search",
-      "mcp__dart__pub"
+      "mcp__dart__pub",
+      "mcp__dart__analyze_files",
+      "mcp__dart__run_tests"
     ],
     "deny": [],
     "ask": []

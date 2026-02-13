@@ -20,25 +20,27 @@ This document describes the compatibility between AsyncRedux action mixins.
 | `Debounce`                    | Delays execution until after a period of inactivity                       | `wrapReduce`                  |
 | `UnlimitedRetryCheckInternet` | Combines internet check + unlimited retry + non-reentrant                 | `abortDispatch`, `wrapReduce` |
 | `Fresh`                       | Skips action if data is still fresh (not stale)                           | `abortDispatch`, `after`      |
+| `Polling`                     | Adds periodic polling to any action                                       | `wrapReduce`                  |
 
 ## Compatibility Matrix
 
-|                                 | CheckInternet | NoDialog | AbortWhenNoInternet | NonReentrant | Retry | UnlimitedRetries | UnlimitedRetryCheckInternet | Throttle | Debounce | Fresh | OptimisticCommand | OptimisticSync | OptimisticSyncWithPush | ServerPush |
-| ------------------------------- | :-----------: | :------: | :-----------------: | :----------: | :---: | :--------------: | :-------------------------: | :------: | :------: | :---: | :---------------: | :------------: | :--------------------: | :--------: |
-| **CheckInternet**               |       —       |     ✅    |          ❌          |       ✅      |   ✅️  |        ✅️        |              ❌              |     ✅    |     ✅    |   ✅   |         ✅         |        ✅       |            ✅           |      ❌     |
-| **NoDialog**                    |       ➡️      |     —    |          ❌          |       ✅      |   ✅️  |        ✅️        |              ❌              |     ✅    |     ✅    |   ✅   |         ✅         |        ✅       |            ✅           |      ❌     |
-| **AbortWhenNoInternet**         |       ❌       |     ❌    |          —          |       ✅      |   ✅️  |        ✅️        |              ❌              |     ✅    |     ✅    |   ✅   |         ✅         |        ✅       |            ✅           |      ❌     |
-| **NonReentrant**                |       ✅       |     ✅    |          ✅          |       —      |   ✅   |         ✅        |              ❌              |     ❌    |     ✅    |   ❌   |         ❌         |        ❌       |            ❌           |      ❌     |
-| **Retry**                       |       ✅️      |    ✅️    |          ✅️         |       ✅      |   —   |         ✅        |              ❌              |     ✅    |     ❌    |   ✅   |         ✅         |        ❌       |            ❌           |      ❌     |
-| **UnlimitedRetries**            |       ✅️      |    ✅️    |          ✅️         |       ✅      |   ➡️  |         —        |              ❌              |     ✅    |     ❌    |   ✅   |         ❌         |        ❌       |            ❌           |      ❌     |
-| **UnlimitedRetryCheckInternet** |       ❌       |     ❌    |          ❌          |       ❌      |   ❌   |         ❌        |              —              |     ❌    |     ❌    |   ❌   |         ❌         |        ❌       |            ❌           |      ❌     |
-| **Throttle**                    |       ✅       |     ✅    |          ✅          |       ❌      |   ✅   |         ✅        |              ❌              |     —    |     ✅    |   ❌   |         ❌         |        ❌       |            ❌           |      ❌     |
-| **Debounce**                    |       ✅       |     ✅    |          ✅          |       ✅      |   ❌   |         ❌        |              ❌              |     ✅    |     —    |   ✅   |         ❌         |        ❌       |            ❌           |      ❌     |
-| **Fresh**                       |       ✅       |     ✅    |          ✅          |       ❌      |   ✅   |         ✅        |              ❌              |     ❌    |     ✅    |   —   |         ❌         |        ❌       |            ❌           |      ❌     |
-| **OptimisticCommand**           |       ✅       |     ✅    |          ✅          |       ❌      |   ✅   |         ❌        |              ❌              |     ❌    |     ❌    |   ❌   |         —         |        ❌       |            ❌           |      ❌     |
-| **OptimisticSync**              |       ✅       |     ✅    |          ✅          |       ❌      |   ❌   |         ❌        |              ❌              |     ❌    |     ❌    |   ❌   |         ❌         |        —       |            ❌           |      ❌     |
-| **OptimisticSyncWithPush**      |       ✅       |     ✅    |          ✅          |       ❌      |   ❌   |         ❌        |              ❌              |     ❌    |     ❌    |   ❌   |         ❌         |        ❌       |            —           |      ❌     |
-| **ServerPush**                  |       ❌       |     ❌    |          ❌          |       ❌      |   ❌   |         ❌        |              ❌              |     ❌    |     ❌    |   ❌   |         ❌         |        ❌       |            ❌           |      —     |
+|                                 | CheckInternet | NoDialog | AbortWhenNoInternet | NonReentrant | Retry | UnlimitedRetries | UnlimitedRetryCheckInternet | Throttle | Debounce | Fresh | OptimisticCommand | OptimisticSync | OptimisticSyncWithPush | ServerPush | Polling |
+|---------------------------------|:-------------:|:--------:|:-------------------:|:------------:|:-----:|:----------------:|:---------------------------:|:--------:|:--------:|:-----:|:-----------------:|:--------------:|:----------------------:|:----------:|:-------:|
+| **CheckInternet**               |       —       |    ✅     |          ❌          |      ✅       |  ✅️   |        ✅️        |              ❌              |    ✅     |    ✅     |   ✅   |         ✅         |       ✅        |           ✅            |     ❌      |    ✅    |
+| **NoDialog**                    |      ➡️       |    —     |          ❌          |      ✅       |  ✅️   |        ✅️        |              ❌              |    ✅     |    ✅     |   ✅   |         ✅         |       ✅        |           ✅            |     ❌      |    ✅    |
+| **AbortWhenNoInternet**         |       ❌       |    ❌     |          —          |      ✅       |  ✅️   |        ✅️        |              ❌              |    ✅     |    ✅     |   ✅   |         ✅         |       ✅        |           ✅            |     ❌      |    ✅    |
+| **NonReentrant**                |       ✅       |    ✅     |          ✅          |      —       |   ✅   |        ✅         |              ❌              |    ❌     |    ✅     |   ❌   |         ❌         |       ❌        |           ❌            |     ❌      |    ✅    |
+| **Retry**                       |      ✅️       |    ✅️    |         ✅️          |      ✅       |   —   |        ✅         |              ❌              |    ✅     |    ❌     |   ✅   |         ✅         |       ❌        |           ❌            |     ❌      |    ❌    |
+| **UnlimitedRetries**            |      ✅️       |    ✅️    |         ✅️          |      ✅       |  ➡️   |        —         |              ❌              |    ✅     |    ❌     |   ✅   |         ❌         |       ❌        |           ❌            |     ❌      |    ❌    |
+| **UnlimitedRetryCheckInternet** |       ❌       |    ❌     |          ❌          |      ❌       |   ❌   |        ❌         |              —              |    ❌     |    ❌     |   ❌   |         ❌         |       ❌        |           ❌            |     ❌      |    ❌    |
+| **Throttle**                    |       ✅       |    ✅     |          ✅          |      ❌       |   ✅   |        ✅         |              ❌              |    —     |    ✅     |   ❌   |         ❌         |       ❌        |           ❌            |     ❌      |    ✅    |
+| **Debounce**                    |       ✅       |    ✅     |          ✅          |      ✅       |   ❌   |        ❌         |              ❌              |    ✅     |    —     |   ✅   |         ❌         |       ❌        |           ❌            |     ❌      |    ❌    |
+| **Fresh**                       |       ✅       |    ✅     |          ✅          |      ❌       |   ✅   |        ✅         |              ❌              |    ❌     |    ✅     |   —   |         ❌         |       ❌        |           ❌            |     ❌      |    ✅    |
+| **OptimisticCommand**           |       ✅       |    ✅     |          ✅          |      ❌       |   ✅   |        ❌         |              ❌              |    ❌     |    ❌     |   ❌   |         —         |       ❌        |           ❌            |     ❌      |    ❌    |
+| **OptimisticSync**              |       ✅       |    ✅     |          ✅          |      ❌       |   ❌   |        ❌         |              ❌              |    ❌     |    ❌     |   ❌   |         ❌         |       —        |           ❌            |     ❌      |    ❌    |
+| **OptimisticSyncWithPush**      |       ✅       |    ✅     |          ✅          |      ❌       |   ❌   |        ❌         |              ❌              |    ❌     |    ❌     |   ❌   |         ❌         |       ❌        |           —            |     ❌      |    ❌    |
+| **ServerPush**                  |       ❌       |    ❌     |          ❌          |      ❌       |   ❌   |        ❌         |              ❌              |    ❌     |    ❌     |   ❌   |         ❌         |       ❌        |           ❌            |     —      |    ❌    |
+| **Polling**                     |       ✅       |    ✅     |          ✅          |      ✅       |   ❌   |        ❌         |              ❌              |    ✅     |    ❌     |   ✅   |         ❌         |       ❌        |           ❌            |     ❌      |    —    |
 
 - ✅ = Compatible (can be combined)
 - ❌ = Incompatible (cannot be combined)
@@ -71,6 +73,7 @@ These mixins override `wrapReduce` and cannot be combined with each other:
 - `Retry` / `UnlimitedRetries`
 - `Debounce`
 - `UnlimitedRetryCheckInternet`
+- `Polling`
 
 ### Group 4: Optimistic Update Mixins
 
@@ -80,7 +83,8 @@ other:
 - `OptimisticCommand`
 - `OptimisticSync`
 - `OptimisticSyncWithPush`
-- `ServerPush` (used alongside `OptimisticSyncWithPush`, but not combined with it in the same action)
+- `ServerPush` (used alongside `OptimisticSyncWithPush`, but not combined with it in the
+  same action)
 
 ## Notes
 
@@ -111,8 +115,11 @@ class MyAction extends ReduxAction<AppState> with Retry, UnlimitedRetries { ... 
 
 ### Recommended Combinations
 
-- `Retry` + `NonReentrant`: Recommended to avoid multiple instances running simultaneously.
+- `Retry` + `NonReentrant`: Recommended to avoid multiple instances running
+  simultaneously.
 - `CheckInternet` + `NonReentrant`: Safe combination for internet-dependent actions.
-- `CheckInternet` + `Throttle`: Safe combination (but not with `NonReentrant` at the same time)
+- `CheckInternet` + `Throttle`: Safe combination (but not with `NonReentrant` at the same
+  time)
 - `AbortWhenNoInternet` + `NonReentrant`: Safe combination.
-- `AbortWhenNoInternet` + `Throttle`: Safe combination (but not with `NonReentrant` at the same time)
+- `AbortWhenNoInternet` + `Throttle`: Safe combination (but not with `NonReentrant` at the
+  same time)
