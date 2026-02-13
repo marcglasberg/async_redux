@@ -34,6 +34,5 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  fake_async: ^1.3.3
   bdd_framework: ^4.0.6
-
-flutter:
