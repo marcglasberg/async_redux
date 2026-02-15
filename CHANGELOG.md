@@ -7,7 +7,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 26.4.0
+## 26.4.1
 
 * Added the `Polling` mixin and `Poll` enum.
 

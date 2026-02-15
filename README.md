@@ -474,6 +474,42 @@ class SearchText extends Action with Debounce {
 
 &nbsp;
 
+## Polling
+
+Mixin `Polling` runs an action periodically.
+Use it to keep data fresh by repeatedly fetching from a server.
+
+```dart
+class GetStockPrice extends Action with Polling {
+  final Poll poll;
+  GetStockPrice([this.poll = Poll.once]);
+
+  Duration get pollInterval => const Duration(minutes: 1);
+
+  Action createPollingAction() => GetStockPrice();
+
+  Future<AppState> reduce() async {
+    var result = await loadJson('https://example.com/prices');
+    return state.copy(prices: result);
+  }
+}
+```
+
+The `poll` parameter controls the behavior.
+
+```dart
+// Run only once
+dispatch(GetStockPrice());
+
+// Start polling
+dispatch(GetStockPrice(Poll.start));
+
+// Stop polling
+dispatch(GetStockPrice(Poll.stop));
+```
+
+&nbsp;
+
 ## OptimisticCommand
 
 Mixin `OptimisticCommand` helps you provide instant feedback on **blocking**
