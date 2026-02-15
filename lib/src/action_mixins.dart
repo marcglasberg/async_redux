@@ -3751,7 +3751,7 @@ enum Poll {
 /// ```dart
 /// class PollPrices extends AppAction with Polling {
 ///   @override final Poll poll;
-///   PollPrices({this.poll = Poll.start});
+///   PollPrices([this.poll = Poll.once]);
 ///
 ///   @override
 ///   ReduxAction<AppState> createPollingAction() => PollPrices();
@@ -3781,10 +3781,10 @@ enum Poll {
 ///
 /// ```dart
 /// // Start polling (also runs reduce immediately):
-/// dispatch(PollPrices());
+/// dispatch(PollPrices(Poll.start));
 ///
 /// // Stop polling:
-/// dispatch(PollPrices(poll: Poll.stop));
+/// dispatch(PollPrices(Poll.stop));
 /// ```
 ///
 /// You can display loading states and errors in your widgets by tracking the
@@ -3827,11 +3827,11 @@ enum Poll {
 ///   }
 /// }
 ///
-/// // Start polling
-/// dispatch(LoadBalanceAction(address, poll: Poll.start));
-///
 /// // Run immediately without affecting the timer
 /// dispatch(LoadBalanceAction(address));
+///
+/// // Start polling
+/// dispatch(LoadBalanceAction(address, poll: Poll.start));
 ///
 /// // Stop polling
 /// dispatch(LoadBalanceAction(address, poll: Poll.stop));
@@ -3857,9 +3857,10 @@ enum Poll {
 ///   ReduxAction<AppState> createPollingAction() => LoadBalanceAction(address);
 ///
 ///   @override
-///   Future<AppState?> reduce() async =>
-///       (await dispatchAndWait(LoadBalanceAction(address))).state;
-/// }
+///   Future<AppState?> reduce() async {
+///     await dispatchAndWait(LoadBalanceAction(address));
+///     return null;
+///   }
 ///
 /// class LoadBalanceAction extends AppAction {
 ///   final WalletAddress address;
@@ -3873,7 +3874,7 @@ enum Poll {
 /// }
 ///
 /// // Start polling:
-/// dispatch(PollBalance(address));
+/// dispatch(PollBalance(address, poll: Poll.start));
 ///
 /// // Check loading state of the worker action:
 /// isWaiting(LoadBalanceAction);
@@ -3899,7 +3900,7 @@ enum Poll {
 ///   final WalletAddress address;
 ///   @override final Poll poll;
 ///
-///   PollBalance(this.address, {this.poll = Poll.start});
+///   PollBalance(this.address, {this.poll = Poll.once});
 ///
 ///   // Each address gets its own independent polling timer.
 ///   @override
@@ -3910,13 +3911,14 @@ enum Poll {
 ///       LoadBalanceAction(address);
 ///
 ///   @override
-///   Future<AppState?> reduce() async =>
-///       (await dispatchAndWait(LoadBalanceAction(address))).state;
-/// }
+///   Future<AppState?> reduce() async {
+///     await dispatchAndWait(LoadBalanceAction(address));
+///     return null;
+///   }
 ///
 /// // These start two independent polling timers:
-/// dispatch(PollBalance(address1));
-/// dispatch(PollBalance(address2));
+/// dispatch(PollBalance(address1, poll: Poll.start));
+/// dispatch(PollBalance(address2, poll: Poll.start));
 ///
 /// // Stop only address1:
 /// dispatch(PollBalance(address1, poll: Poll.stop));

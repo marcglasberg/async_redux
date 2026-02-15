@@ -171,7 +171,8 @@ class MyHomePage extends StatelessWidget {
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    const Text('Stock Price', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                    const Text('Stock Price',
+                        style: TextStyle(fontSize: 16, color: Colors.grey)),
                     const SizedBox(height: 8),
                     Text(
                       '\$${price.toStringAsFixed(2)}',
@@ -200,7 +201,8 @@ class MyHomePage extends StatelessWidget {
             ),
 
             const SizedBox(height: 24),
-            const Text('Poll values:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Poll values:',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
 
             // Poll.start
@@ -239,7 +241,8 @@ class MyHomePage extends StatelessWidget {
               icon: const Icon(Icons.refresh),
               label: const Text('Poll.runNowAndRestart'),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-              onPressed: () => dispatch(PollStockPriceAction(poll: Poll.runNowAndRestart)),
+              onPressed: () =>
+                  dispatch(PollStockPriceAction(poll: Poll.runNowAndRestart)),
             ),
             const Padding(
               padding: EdgeInsets.only(left: 16, bottom: 12, top: 4),
@@ -281,6 +284,5 @@ extension BuildContextExtension on BuildContext {
 
   AppState read() => getRead<AppState>();
 
-  R select<R>(R Function(AppState state) selector) =>
-      getSelect<AppState, R>(selector);
+  R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
 }
