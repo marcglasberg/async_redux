@@ -2081,7 +2081,12 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
       : StoreProvider.clearExceptionFor(this, actionOrTypeOrList);
 
   /// Given the BuildContext, provides easy access to the optional AsyncRedux
-  /// store "environment" that you may have defined.
+  /// store "environment" that you may have defined. The environment is considered
+  /// immutable and should not change during the app's lifecycle.
+  ///
+  /// This allows you to show different UI based on the environment (if the app is running
+  /// in production, staging, development, testing), for example showing a debug banner
+  /// in development environment but not in production.
   ///
   /// Note that accessing the environment does not trigger any widget rebuilds.
   ///
@@ -2097,13 +2102,80 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// Then use it like this:
   ///
   /// ```dart
-  /// var state = context.env;
+  /// var environment = context.env;
+  /// ```
+  ///
+  /// Or else you can directly create a boolean getter:
+  ///
+  /// ```dart
+  /// extension BuildContextExtension on BuildContext {
+  ///   Environment get _env => getEnvironment<AppState>() as Environment;
+  ///   bool get isProduction => _env.isProduction;
+  ///   bool get isStaging => _env.isStaging;
+  ///   bool get isDevelopment => _env.isDevelopment
+  ///   bool get isTesting => _env.isTesting;
+  /// }
+  /// ```
+  ///
+  /// Then use it like this:
+  ///
+  /// ```dart
+  /// if (context.isProduction) return Text('Welcome to the app!');
+  /// else return Text('Welcome to the development version of the app!');
   /// ```
   Object? getEnvironment<St>() {
-    if (_isMock) return _store.env;
+    if (_isMock) return _store.environment;
 
     Store<St> store = StoreProvider.backdoorInheritedWidget<St>(this);
-    return store.env;
+    return store.environment;
+  }
+
+  /// Given the BuildContext, provides easy access to the optional AsyncRedux
+  /// store "configuration" that you may have defined.
+  ///
+  /// This allows you to show different UI based on the configuration (if the app should
+  /// show certain features, or use certain API endpoints, etc.). The configuration is
+  /// considered immutable and should not change during the app's lifecycle.
+  ///
+  /// Note that accessing the configuration does not trigger any widget rebuilds.
+  ///
+  /// For convenience, given that you will have your own `Configuration` class,
+  /// it's recommended that you define this extension in your own code:
+  ///
+  /// ```dart
+  /// extension BuildContextExtension on BuildContext {
+  ///   Configuration get config => getConfiguration<AppState>() as Configuration;
+  /// }
+  /// ```
+  ///
+  /// Then use it like this:
+  ///
+  /// ```dart
+  /// var configuration = context.config;
+  /// ```
+  ///
+  /// Or else you can directly create a boolean getter:
+  ///
+  /// ```dart
+  /// extension BuildContextExtension on BuildContext {
+  ///   Configuration get _config => getConfiguration<AppState>() as Configuration;
+  ///   bool get isA => _config.abTesting.a;
+  ///   bool get isB => _config.abTesting.b;
+  ///   bool get showAdminFeatures => _config.showAdminFeatures;
+  /// }
+  /// ```
+  ///
+  /// Then use it like this:
+  ///
+  /// ```dart
+  /// if (context.isA) return Text('Welcome', style: TextStyle(color: Colors.blue));
+  /// else return Text('Welcome', style: TextStyle(color: Colors.red));
+  /// ```
+  Object? getConfiguration<St>() {
+    if (_isMock) return _store.configuration;
+
+    Store<St> store = StoreProvider.backdoorInheritedWidget<St>(this);
+    return store.configuration;
   }
 
   /// Allows [MockBuildContext] to be used for testing.

@@ -97,6 +97,8 @@ class Store<St> {
   Store({
     required St initialState,
     Object? environment,
+    Object? Function(Store<St>)? dependencies,
+    Object? Function(Store<St>)? configuration,
     Map<Object?, Object?> props = const {},
     bool syncStream = false,
     TestInfoPrinter? testInfoPrinter,
@@ -142,22 +144,69 @@ class Store<St> {
         _testInfoController = (testInfoPrinter == null)
             ? //
             null
-            : StreamController.broadcast(sync: syncStream);
+            : StreamController.broadcast(sync: syncStream) {
+    _dependencies = dependencies?.call(this);
+    _configuration = configuration?.call(this);
+  }
 
   St _state;
 
   final Object? _environment;
+  Object? _configuration;
+  Object? _dependencies;
 
   final Map<Object?, Object?> _props;
 
   /// Gets the store environment.
-  /// This can be used to create a global value, but scoped to the store.
-  /// For example, you could have a service locator, here, or a configuration value.
+  /// This can be used to specify if the app is running in production, staging,
+  /// development, test, etc, and to save other global values that are not expected to
+  /// change during the app execution.
   ///
-  /// This is also directly accessible in [ReduxAction] and in [VmFactory], as `env`.
+  /// If you use this, it's recommended that you make this directly accessible in your
+  /// base action that extends [ReduxAction].
   ///
-  /// See also: [prop] and [setProp].
-  Object? get env => _environment;
+  /// Note the environment is accessible in widgets through
+  /// [BuildContextExtensionForProviderAndConnector.getEnvironment], so that your widgets
+  /// can respond to different environments, if necessary.
+  ///
+  /// See also:
+  /// - [prop] and [setProp], for saving global values that may change during app execution.
+  /// - [dependencies], for injecting dependencies (like services, repositories, etc).
+  /// - [configuration], for setting configuration (like feature flags, etc).
+  ///
+  Object? get environment => _environment;
+
+  /// Gets the store dependencies.
+  /// This can be used to create a global value, but scoped to the store, serving
+  /// in practice as dependency injection.
+  ///
+  /// If you use this, it's recommended that you make this directly accessible in your
+  /// base action that extends [ReduxAction].
+  ///
+  /// Usually, this should not be accessible in widgets, as they should not be aware of
+  /// the dependencies.
+  ///
+  /// See also:
+  /// - [prop] and [setProp], for saving global values that may change during app execution.
+  /// - [env], for specifying if the app is running in production, staging, development, etc.
+  /// - [configuration], for setting configuration (like feature flags, etc).
+  ///
+  Object? get dependencies => _dependencies;
+
+  /// Gets the store configuration.
+  /// This can be used to create a global value, but scoped to the store, serving
+  /// in practice as configuration injection. For example, you could save feature flags
+  /// in the configuration.
+  ///
+  /// If you use this, it's recommended that you make this directly accessible in your
+  /// base action that extends [ReduxAction].
+  ///
+  /// See also:
+  /// - [prop] and [setProp], for saving global values that may change during app execution.
+  /// - [dependencies], for injecting dependencies (like services, repositories, etc).
+  /// - [env], for specifying if the app is running in production, staging, development, etc.
+  ///
+  Object? get configuration => _configuration;
 
   /// Gets the store properties.
   @visibleForTesting
@@ -470,8 +519,7 @@ class Store<St> {
   /// Asks the [Persistor] to read the state from the local persistence.
   /// Important: If you use this, you MUST put this state into the store.
   /// The Persistor will assume that's the case, and will not work properly otherwise.
-  Future<St?> readStateFromPersistence() async =>
-      _processPersistence?.readState();
+  Future<St?> readStateFromPersistence() async => _processPersistence?.readState();
 
   /// Asks the [CloudSync] to read the state from the cloud.
   /// Important: If you use this, you MUST put this state into the store.
@@ -479,19 +527,16 @@ class Store<St> {
   Future<St?> readStateFromCloudSync() async => _processCloudSync?.readState();
 
   /// Asks the [Persistor] to delete the saved state from the cloud.
-  Future<void> deleteStateFromPersistence() async =>
-      _processPersistence?.deleteState();
+  Future<void> deleteStateFromPersistence() async => _processPersistence?.deleteState();
 
   /// Asks the [CloudSync] to delete the saved state from the cloud.
   Future<void> deleteStateFromCloud() async => _processCloudSync?.deleteState();
 
   /// Gets, from the [Persistor], the last state that was saved to the local persistence.
-  St? getLastPersistedStateFromPersistor() =>
-      _processPersistence?.lastPersistedState;
+  St? getLastPersistedStateFromPersistor() => _processPersistence?.lastPersistedState;
 
   /// Gets, from the [CloudSync], the last state that was saved to the cloud.
-  St? getLastPersistedStateFromCloudSync() =>
-      _processCloudSync?.lastPersistedState;
+  St? getLastPersistedStateFromCloudSync() => _processCloudSync?.lastPersistedState;
 
   /// Turns on testing capabilities, if not already.
   void initTestInfoController() {
@@ -671,8 +716,7 @@ class Store<St> {
   // This map will hold the completers for each STATE condition checker function.
   // 1) The set key is the condition checker function.
   // 2) The value is the completer, that informs the action that triggered the condition.
-  final _stateConditionCompleters =
-      <bool Function(St), Completer<ReduxAction<St>?>>{};
+  final _stateConditionCompleters = <bool Function(St), Completer<ReduxAction<St>?>>{};
 
   /// Returns a future that completes when some actions meet the given [condition].
   ///
@@ -1027,8 +1071,7 @@ class Store<St> {
       timeoutMillis: timeoutMillis,
       //
       (actionsInProgress, triggerAction) {
-        return !actionsInProgress
-            .any((action) => action.runtimeType == actionType);
+        return !actionsInProgress.any((action) => action.runtimeType == actionType);
       },
     );
 
@@ -1137,8 +1180,8 @@ class Store<St> {
         //
         (actionsInProgress, triggerAction) {
           for (var actionType in actionTypes) {
-            if (actionsInProgress.any(
-                (action) => action.runtimeType == actionType)) return false;
+            if (actionsInProgress.any((action) => action.runtimeType == actionType))
+              return false;
           }
           return true;
         },
@@ -1246,8 +1289,7 @@ class Store<St> {
       (actionsInProgress, triggerAction) {
         //
         // If the triggerAction is one of the actionTypes,
-        if ((triggerAction != null) &&
-            actionTypes.contains(triggerAction.runtimeType)) {
+        if ((triggerAction != null) && actionTypes.contains(triggerAction.runtimeType)) {
           // If the actions in progress do not contain the triggerAction, then the triggerAction has finished.
           // Otherwise, the triggerAction has just been dispatched, which is not what we want.
           bool isFinished = !actionsInProgress.contains(triggerAction);
@@ -1326,8 +1368,7 @@ class Store<St> {
   /// - [dispatchAll] which dispatches all given actions in parallel.
   /// - [dispatchAndWaitAllActions] which dispatches an action then waits for all actions to finish.
   ///
-  FutureOr<ActionStatus> dispatch(ReduxAction<St> action,
-          {bool notify = true}) =>
+  FutureOr<ActionStatus> dispatch(ReduxAction<St> action, {bool notify = true}) =>
       _dispatch(action, notify: notify);
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
@@ -1389,8 +1430,7 @@ class Store<St> {
   /// - [dispatchAll] which dispatches all given actions in parallel.
   /// - [dispatchAndWaitAllActions] which dispatches an action then waits for all actions to finish.
   ///
-  Future<ActionStatus> dispatchAndWait(ReduxAction<St> action,
-          {bool notify = true}) =>
+  Future<ActionStatus> dispatchAndWait(ReduxAction<St> action, {bool notify = true}) =>
       Future.value(_dispatch(action, notify: notify));
 
   /// The [dispatchAndWaitAllActions] should be used in tests only.
@@ -1417,8 +1457,7 @@ class Store<St> {
   Future<ActionStatus> dispatchAndWaitAllActions(ReduxAction<St> action,
       {bool notify = true, int? timeoutMillis}) async {
     var actionStatus = await dispatchAndWait(action, notify: notify);
-    await waitAllActions([],
-        completeImmediately: true, timeoutMillis: timeoutMillis);
+    await waitAllActions([], completeImmediately: true, timeoutMillis: timeoutMillis);
     return actionStatus;
   }
 
@@ -1440,8 +1479,7 @@ class Store<St> {
   /// - [dispatchSync] which dispatches sync actions, and throws if the action is async.
   /// - [dispatchAndWaitAllActions] which dispatches an action then waits for all actions to finish.
   ///
-  List<ReduxAction<St>> dispatchAll(List<ReduxAction<St>> actions,
-      {bool notify = true}) {
+  List<ReduxAction<St>> dispatchAll(List<ReduxAction<St>> actions, {bool notify = true}) {
     for (var action in actions) {
       dispatch(action, notify: notify);
     }
@@ -1496,18 +1534,15 @@ class Store<St> {
   }
 
   @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
-  Future<ActionStatus> dispatchAsync(ReduxAction<St> action,
-          {bool notify = true}) =>
+  Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) =>
       dispatchAndWait(action, notify: notify);
 
-  FutureOr<ActionStatus> _dispatch(ReduxAction<St> action,
-      {required bool notify}) {
+  FutureOr<ActionStatus> _dispatch(ReduxAction<St> action, {required bool notify}) {
     //
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 
-    if (_shutdown || action.abortDispatch())
-      return ActionStatus(isDispatchAborted: true);
+    if (_shutdown || action.abortDispatch()) return ActionStatus(isDispatchAborted: true);
 
     _dispatchCount++;
 
@@ -1595,8 +1630,7 @@ class Store<St> {
 
     // Note: If the UI hasn't updated yet, AND
     // the action is awaitable (that is to say, we have already called `isWaiting` for this action),
-    if (!theUIHasAlreadyUpdated &&
-        _awaitableActions.contains(action.runtimeType)) {
+    if (!theUIHasAlreadyUpdated && _awaitableActions.contains(action.runtimeType)) {
       _changeController.add(state);
     }
   }
@@ -1605,8 +1639,7 @@ class Store<St> {
   /// of [_actionsInProgress] that triggered the check.
   ///
   void _checkAllActionConditions(ReduxAction<St> triggerAction) {
-    List<bool Function(Set<ReduxAction<St>>, ReduxAction<St>?)> keysToRemove =
-        [];
+    List<bool Function(Set<ReduxAction<St>>, ReduxAction<St>?)> keysToRemove = [];
 
     _actionConditionCompleters.forEach((condition, completer) {
       if (condition(actionsInProgress(), triggerAction)) {
@@ -1674,8 +1707,7 @@ class Store<St> {
     // 1) If a type was passed:
     if (actionOrTypeOrList is Type) {
       _awaitableActions.add(actionOrTypeOrList);
-      return _actionsInProgress
-          .any((action) => action.runtimeType == actionOrTypeOrList);
+      return _actionsInProgress.any((action) => action.runtimeType == actionOrTypeOrList);
     }
     //
     // 2) If an action was passed:
@@ -1696,8 +1728,8 @@ class Store<St> {
 
           // 3.2.1) Is waiting if any of the actions in progress has that exact type.
           if (!isWaiting)
-            isWaiting = _actionsInProgress
-                .any((action) => action.runtimeType == actionOrType);
+            isWaiting =
+                _actionsInProgress.any((action) => action.runtimeType == actionOrType);
         }
         //
         // 3.3) If it's an action.
@@ -1726,8 +1758,7 @@ class Store<St> {
     // async gap, so we don't interrupt the code. But we return false (not waiting).
     else {
       Future.microtask(() {
-        throw StoreException(
-            "You can't do isWaiting(${actionOrTypeOrList.runtimeType}), "
+        throw StoreException("You can't do isWaiting(${actionOrTypeOrList.runtimeType}), "
             "Use only actions, action types, or a list of them.");
       });
 
@@ -1737,8 +1768,7 @@ class Store<St> {
 
   /// Returns true if an [actionOrTypeOrList] failed with an [UserException].
   /// Note: This method uses the EXACT type in [actionOrTypeOrList]. Subtypes are not considered.
-  bool isFailed(Object actionOrTypeOrList) =>
-      exceptionFor(actionOrTypeOrList) != null;
+  bool isFailed(Object actionOrTypeOrList) => exceptionFor(actionOrTypeOrList) != null;
 
   /// Returns the [UserException] of the [actionTypeOrList] that failed.
   ///
@@ -1940,8 +1970,7 @@ class Store<St> {
   static const _beforeTypeErrorMsg =
       "Before should return `void` or `Future<void>`. Do not return `FutureOr`.";
 
-  static const _reducerTypeErrorMsg =
-      "Reducer should return `St?` or `Future<St?>`. ";
+  static const _reducerTypeErrorMsg = "Reducer should return `St?` or `Future<St?>`. ";
 
   void _checkReducerType(FutureOr<St?> Function() reduce) {
     //
@@ -1956,13 +1985,11 @@ class Store<St> {
     }
     //
     else if (reduce is Future<St>? Function()) {
-      throw StoreException(
-          _reducerTypeErrorMsg + "Do not return `Future<St>?`.");
+      throw StoreException(_reducerTypeErrorMsg + "Do not return `Future<St>?`.");
     }
     //
     else if (reduce is Future<St?>? Function()) {
-      throw StoreException(
-          _reducerTypeErrorMsg + "Do not return `Future<St?>?`.");
+      throw StoreException(_reducerTypeErrorMsg + "Do not return `Future<St?>?`.");
     }
     //
     // ignore: unnecessary_type_check
@@ -1989,8 +2016,7 @@ class Store<St> {
     }
   }
 
-  FutureOr<void> _applyReduceAndWrapReduce(ReduxAction<St> action,
-      {bool notify = true}) {
+  FutureOr<void> _applyReduceAndWrapReduce(ReduxAction<St> action, {bool notify = true}) {
     //
     assert(action.ifWrapReduceOverridden());
 
@@ -2125,15 +2151,13 @@ class Store<St> {
         observer.observe(action, prevState, newState, null, dispatchCount);
       }
 
-    if (_processPersistence != null)
-      _processPersistence.process(action, newState);
+    if (_processPersistence != null) _processPersistence.process(action, newState);
     if (_processCloudSync != null) _processCloudSync.process(action, newState);
   }
 
   /// The actions that are currently being processed.
   /// Use [isWaiting] to know if an action is currently being processed.
-  final Set<ReduxAction<St>> _actionsInProgress =
-      HashSet<ReduxAction<St>>.identity();
+  final Set<ReduxAction<St>> _actionsInProgress = HashSet<ReduxAction<St>>.identity();
 
   /// Returns an unmodifiable set of the actions on progress.
   Set<ReduxAction<St>> actionsInProgress() {
@@ -2149,8 +2173,7 @@ class Store<St> {
     if (set.length != _actionsInProgress.length) {
       return false;
     }
-    return set.containsAll(_actionsInProgress) &&
-        _actionsInProgress.containsAll(set);
+    return set.containsAll(_actionsInProgress) && _actionsInProgress.containsAll(set);
   }
 
   /// Actions that we may put into [_actionsInProgress].
@@ -2167,8 +2190,7 @@ class Store<St> {
   /// as a message in the UI. If you don't want to show the dialog you can use the `noDialog`
   /// getter in the error message: `throw UserException('Invalid input').noDialog`.
   ///
-  final Map<Type, ReduxAction<St>> _failedActions =
-      HashMap<Type, ReduxAction<St>>();
+  final Map<Type, ReduxAction<St>> _failedActions = HashMap<Type, ReduxAction<St>>();
 
   /// Async actions that we may put into [_failedActions].
   /// This helps to know when to rebuild to make [isWaiting] work.
@@ -2200,8 +2222,7 @@ class Store<St> {
 
     if (_wrapError != null && errorOrNull != null) {
       try {
-        errorOrNull =
-            _wrapError.wrap(errorOrNull, stackTrace, action) ?? errorOrNull;
+        errorOrNull = _wrapError.wrap(errorOrNull, stackTrace, action) ?? errorOrNull;
       } catch (_error) {
         // Errors thrown by the global wrapError.
         // WrapError should never throw. It should return an error.
@@ -2242,8 +2263,8 @@ class Store<St> {
     // If an errorObserver was NOT defined, return (to throw) all errors which are
     // not UserException or AbortDispatchException.
     if (_errorObserver == null) {
-      if ((errorOrNull is! UserException) &&
-          (errorOrNull is! AbortDispatchException)) return errorOrNull;
+      if ((errorOrNull is! UserException) && (errorOrNull is! AbortDispatchException))
+        return errorOrNull;
     }
     // If an errorObserver was defined, observe the error.
     // Then, if the observer returns true, return the error to be thrown.
@@ -2280,8 +2301,7 @@ class Store<St> {
 
     // If we'll not be notifying, it's possible we need to trigger the change controller, when the
     // action is awaitable (that is to say, when we have already called `isWaiting` for this action).
-    if (_awaitableActions.contains(action.runtimeType) &&
-        ((error != null) || !notify)) {
+    if (_awaitableActions.contains(action.runtimeType) && ((error != null) || !notify)) {
       _changeController.add(state);
     }
 
@@ -2345,8 +2365,7 @@ class Store<St> {
   /// expect(action.someValue, 123);
   /// ```
   ///
-  ConnectorTester<St, Model> getConnectorTester<Model>(
-          StatelessWidget widgetConnector) =>
+  ConnectorTester<St, Model> getConnectorTester<Model>(StatelessWidget widgetConnector) =>
       ConnectorTester<St, Model>(this, widgetConnector);
 
   /// Throws the error after an asynchronous gap.
@@ -2466,12 +2485,9 @@ class ActionStatus {
   }) =>
       ActionStatus(
         isDispatched: isDispatched ?? this.isDispatched,
-        hasFinishedMethodBefore:
-            hasFinishedMethodBefore ?? this.hasFinishedMethodBefore,
-        hasFinishedMethodReduce:
-            hasFinishedMethodReduce ?? this.hasFinishedMethodReduce,
-        hasFinishedMethodAfter:
-            hasFinishedMethodAfter ?? this.hasFinishedMethodAfter,
+        hasFinishedMethodBefore: hasFinishedMethodBefore ?? this.hasFinishedMethodBefore,
+        hasFinishedMethodReduce: hasFinishedMethodReduce ?? this.hasFinishedMethodReduce,
+        hasFinishedMethodAfter: hasFinishedMethodAfter ?? this.hasFinishedMethodAfter,
         isDispatchAborted: isDispatchAborted ?? this.isDispatchAborted,
         originalError: originalError ?? this.originalError,
         wrappedError: wrappedError ?? this.wrappedError,

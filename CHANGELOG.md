@@ -7,6 +7,106 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 27.0.0
+
+* **BREAKING:** This version is only a breaking change if you are using the `enviroment`
+  parameter of the `Store` constructor to do dependency injection.
+
+  The `Store` constructor now accepts `dependencies` and `configuration` parameters,
+  in addition to `environment`. See file `main_dependency_injection.dart` in the `example`
+  directory for an example.
+
+  This provides for very granular
+  dependency injection, for all app needs:
+
+    - `environment`: Specifies if the app is running in production, staging, development,
+      testing, etc. Should be immutable and not change during app execution. Example:
+
+      ```dart
+      enum Environment {
+        production, staging, testing;        
+        bool get isProduction => this == Environment.production;
+        bool get isStaging => this == Environment.staging;
+        bool get isTesting => this == Environment.testing;
+      }
+      ```
+
+        - `dependencies`: A container for injected dependencies (like services,
+          repositories, APIs, etc.), created via a factory that receives the `Store`,
+          so it can vary based on the environment and/or the configuration. Example:
+
+          ```dart
+          abstract class Dependencies {
+        
+            factory Dependencies(Store store) {
+              if (store.environment == Environment.production) {
+                return DependenciesProduction();
+              } else if (store.environment == Environment.staging) {
+                return DependenciesStaging();
+              } else {
+                return DependenciesTesting();
+              }
+            }
+          }
+          ```
+
+    - `configuration`: For feature flags and other configuration values.
+
+      ```dart
+      class Config {
+         // Add whatever configuration values you need here, if any.
+         bool isABtestingOn = false;         
+         bool showAdminConsole = false;
+         ...
+      }  
+      ```
+
+    - `configuration`: For feature flags and other configuration values.
+
+This is how you create a store with these three parameters:
+
+  ```dart
+  store = Store<AppState>(
+    initialState: AppState.initial(),
+    environment: Environment.production,
+    dependencies: (store) => Dependencies(store),
+    configuration: (store) => Configuration(store),
+  );
+  ```
+
+* **BREAKING:** `Store.env` has been renamed to `Store.environment`.
+
+* **BREAKING:** Removed `ReduxAction.env`. Access it through `store.environment` instead.
+  It's recommended to define a typed getter in your base action class:
+
+  ```dart
+  abstract class Action extends ReduxAction<AppState> {
+    Dependencies get dependencies => super.store.dependencies as Dependencies;
+    Environment get environment => super.store.environment as Environment;
+    Config get config => super.store.configuration as Config;
+  }
+  ```
+
+* **BREAKING:** Removed `VmFactory.env`. Access dependencies through `store.dependencies`
+  instead. Define a typed getter in your base factory class:
+
+  ```dart
+  abstract class AppFactory<T extends Widget?, Model extends Vm>
+      extends VmFactory<AppState, T, Model> {
+    AppFactory([T? connector]) : super(connector);
+  
+    Dependencies get dependencies => store.dependencies as Dependencies;
+    Environment get environment => store.environment as Environment;
+    Config get config => store.configuration as Config;
+  }
+  ```  
+
+* **Final thoughts**: Why is AsyncRedux now providing dependency injection features?
+  The reason is testing. When you create a store in a test, you provide the environment,
+  dependencies, and configuration as parameters. As soon as the test ends, and the store
+  is disposed, the environment, dependencies and configuration are disposed with it.
+  This makes tests less verbose and less prone to memory leaks.
+
 ## 26.4.2
 
 * Added the `Polling` mixin and `Poll` enum.
@@ -398,7 +498,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 26.0.0
 
-* BREAKING CHANGE: This version requires newer Android tooling (Android Gradle
+* **BREAKING**: This version requires newer Android tooling (Android Gradle
   Plugin 8.12.1 or higher, Gradle 8.13 or higher, and Kotlin 2.2.0). Projects
   using older Android setups must update their environment before upgrading to
   this release. Workaround: If you want to keep using older Gradle plugins,
@@ -721,7 +821,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
       concrete implementations.
 
   See
-  the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_environment.dart">
+  the: <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_dependency_injection.dart">
   Environment Example</a>.
 
 ## 25.4.0
@@ -824,7 +924,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 25.0.0
 
-* BREAKING CHANGE: The action's `wrapReduce` method now returns `FutureOr<St?>`
+* **BREAKING**: The action's `wrapReduce` method now returns `FutureOr<St?>`
   instead of returning `FutureOr<St?> Function()`
   This breaking change is unlikely to affect you in any way, because the
   `wrapReduce` is an advanced feature mostly used to implement action mixins,
@@ -1235,17 +1335,17 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 22.0.0
 
-* BREAKING CHANGE: `StoreConnector.model` was removed, after being deprecated
+* **BREAKING**: `StoreConnector.model` was removed, after being deprecated
   for a long time. Please, use the `vm` parameter instead. See classes
   `VmFactory` and `Vm`.
 
-* BREAKING CHANGE: `ReduxAction.reduceWithState()` was removed, after being
+* **BREAKING**: `ReduxAction.reduceWithState()` was removed, after being
   deprecated for a long time.
 
-* BREAKING CHANGE: `StoreProvider.of` was removed. See `context.state` and
+* **BREAKING**: `StoreProvider.of` was removed. See `context.state` and
   `context.dispatch` etc, in version 22.1.0 above.
 
-* BREAKING CHANGE: The `UserException` class was modified so that it was
+* **BREAKING**: The `UserException` class was modified so that it was
   possible to move it to the `async_redux_core`. If your use of `UserException`
   was limited to specifying the error message, then you don't need to change
   anything:
@@ -1501,7 +1601,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 * Flutter 3.7.5, Dart 2.19.2, fast_immutable_collections: 9.0.0.
 
-* BREAKING CHANGE: The `Action.wrapError(error, stackTrace)` method now also
+* **BREAKING**: The `Action.wrapError(error, stackTrace)` method now also
   gets the
   stacktrace
   instead of just the error. If your code breaks, just add the extra parameter,
@@ -1511,7 +1611,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 <br>
 
-* BREAKING CHANGE: When a `Persistor` is provided to the Store, it now considers
+* **BREAKING**: When a `Persistor` is provided to the Store, it now considers
   the
   `initialState` is already persisted. Before this change, it considered nothing
   was
@@ -1540,7 +1640,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 <br>
 
-* BREAKING CHANGE: The factory declaration used to have two type parameters, but
+* **BREAKING**: The factory declaration used to have two type parameters, but
   now it
   has three:
   `class Factory extends VmFactory<AppState, MyConnector, MyViewModel>`
@@ -1621,7 +1721,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 16.0.0
 
-* BREAKING CHANGE: Async `reduce()` methods (those that return Futures) are now
+* **BREAKING**: Async `reduce()` methods (those that return Futures) are now
   called
   synchronously (in the same microtask of their dispatch), just like a regular
   async
@@ -1671,7 +1771,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 <br>
 
-* BREAKING CHANGE: When your reducer is async (i.e., returns `Future<AppState>`)
+* **BREAKING**: When your reducer is async (i.e., returns `Future<AppState>`)
   you must
   make sure
   you **do not return a completed future**, meaning all execution paths of the
@@ -1807,7 +1907,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
   persistor to
   delete the state from disk.
 
-* BREAKING CHANGE: This is a very minor change, unlikely to affect you. The
+* **BREAKING**: This is a very minor change, unlikely to affect you. The
   signature for
   the `Action.wrapError` method has changed from `Object? wrapError(error)`
   to `Object? wrapError(Object error)`. If you get an error when you upgrade,
@@ -1815,7 +1915,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
   it by
   changing the method that broke into `Object? wrapError(dynamic error)`.
 
-* BREAKING CHANGE: Context is now nullable for these StoreConnector methods:
+* **BREAKING**: Context is now nullable for these StoreConnector methods:
   ```
   void onInitialBuildCallback(BuildContext? context, Store<St> store, Model viewModel);
   void onDidChangeCallback(BuildContext? context, Store<St> store, Model viewModel);
@@ -1981,13 +2081,9 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 12.0.0
 
-* BREAKING CHANGE: Improved state typing for some `Store` parameters. You will
-  now have to
-  use
-  `Persistor<AppState>` instead of `Persistor`, and `WrapError<AppState>`
-  instead of
-  `WrapError`
-  etc.
+* **BREAKING**: Improved state typing for some `Store` parameters. You will
+  now have to use `Persistor<AppState>` instead of `Persistor`, and `WrapError<AppState>`
+  instead of `WrapError` etc.
 
 * Global `Store(wrapReduce: ...)`. You may now globally wrap the reducer to
   allow for some
@@ -2019,16 +2115,15 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 11.0.0
 
-* BREAKING CHANGE: The `dispatchFuture` function is not necessary anymore. Just
+* **BREAKING**: The `dispatchFuture` function is not necessary anymore. Just
   rename it
   to `dispatch`, since now the `dispatch` function always returns a future, and
   you can
   await it or
   not, as desired.
 
-* BREAKING CHANGE: `ReduxAction.hasFinished()` has been deprecated. It should be
-  renamed
-  to `isFinished`.
+* **BREAKING**: `ReduxAction.hasFinished()` has been deprecated. It should be
+  renamed to `isFinished`.
 
 * The `dispatch` function now returns an `ActionStatus`. Usually you will
   discard this
@@ -2060,23 +2155,15 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 10.0.1
 
-* BREAKING CHANGE: The new `UserExceptionDialog.useLocalContext` parameter now
-  allows
-  the `UserExceptionDialog` to be put in the `builder` parameter of the
-  `MaterialApp`
-  widget. Even
-  if you use this dialog, it is unlikely this will be a breaking change for you.
-  But if it
-  is, and
-  your error dialog now has problems, simply make `useLocalContext: true` to
-  return to the
-  old
-  behavior.
+* **BREAKING**: The new `UserExceptionDialog.useLocalContext` parameter now
+  allows the `UserExceptionDialog` to be put in the `builder` parameter of the
+  `MaterialApp` widget. Even if you use this dialog, it is unlikely this will be a
+  breaking change for you. But if it is, and your error dialog now has problems, simply
+  make `useLocalContext: true` to return to the old behavior.
 
-* BREAKING CHANGE: `StoreConnector` parameters `onInitialBuild`, `onDidChange`
+* **BREAKING**: `StoreConnector` parameters `onInitialBuild`, `onDidChange`
   and `onWillChange` now also get the context and the store. For example, where
-  you
-  previously
+  you previously
   had `onInitialBuild(vm) {...}` now you have
   `onInitialBuild(context, store, vm) {...}`.
 
@@ -2105,8 +2192,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 * Uses nullsafe dependencies (it's not yet itself nullsafe).
 
-* BREAKING CHANGE: Cache functions (for memoization) have been renamed and
-  extended.
+* **BREAKING**: Cache functions (for memoization) have been renamed and extended.
 
 ## 7.0.2
 
@@ -2114,7 +2200,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 7.0.1
 
-* BREAKING CHANGE:
+* **BREAKING**:
 
   Now the `vm` parameter in the `StoreConnector` is a function that creates a
   `VmFactory` (instead

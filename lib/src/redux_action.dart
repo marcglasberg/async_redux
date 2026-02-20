@@ -97,13 +97,6 @@ abstract class ReduxAction<St> {
 
   ActionStatus get status => _status;
 
-  /// Gets the store environment.
-  /// This can be used to create a global value, but scoped to the store.
-  /// For example, you could have a service locator, here, or a configuration value.
-  ///
-  /// See also: [prop] and [setProp].
-  Object? get env => _store.env;
-
   /// Gets a property from the store.
   /// This can be used to save global values, but scoped to the store.
   /// For example, you could save timers, streams or futures used by actions.
@@ -291,12 +284,12 @@ abstract class ReduxAction<St> {
   /// store.dispatch(DoThisSecondAction());
   /// ```
   ///
-  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
-  /// of this action, even if it changes the state.
+  /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild
+  /// because of this action, even if it changes the state.
   ///
-  /// Note: While the state change from the action's reducer will have been applied when the
-  /// Future resolves, other independent processes that the action may have started may still
-  /// be in progress.
+  /// Note: While the state change from the action's reducer will have been applied when
+  /// the Future resolves, other independent processes that the action may have started
+  /// may still be in progress.
   ///
   /// Method [dispatchAndWait] is of type [DispatchAndWait]. It returns `Future<ActionStatus>`,
   /// which means you can also get the final status of the action after you `await` it:

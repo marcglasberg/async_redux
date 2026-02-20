@@ -12,32 +12,32 @@ late Store<int> store;
 /// with dependency injection. The environment is a container for the
 /// injected services. You can have many environment implementations, one
 /// for production, others for tests etc. In this case, we're using the
-/// [EnvironmentImpl].
+/// [DependenciesImpl].
 ///
-/// You should extend [ReduxAction] to provide typed access to the [Environment]
+/// You should extend [ReduxAction] to provide typed access to the [Dependencies]
 /// inside your actions.
 ///
 /// In case you use [StoreConnector], you should also extend [VmFactory] to
-/// provide typed access to the [Environment] inside your factories.
+/// provide typed access to the [Dependencies] inside your factories.
 ///
 void main() {
   store = Store<int>(
     initialState: 0,
-    environment: EnvironmentImpl(),
+    dependencies: (store) => DependenciesImpl(),
   );
   runApp(MyApp());
 }
 
 /// The environment is a container for the injected services.
-abstract class Environment {
+abstract class Dependencies {
   int incrementer(int value, int amount);
 
   int limit(int value);
 }
 
 /// We can have many environment implementations, one for production, others for
-/// staging, tests etc. In this case, we're using the [EnvironmentImpl].
-class EnvironmentImpl implements Environment {
+/// staging, tests etc. In this case, we're using the [DependenciesImpl].
+class DependenciesImpl implements Dependencies {
   @override
   int incrementer(int value, int amount) => value + amount;
 
@@ -46,20 +46,18 @@ class EnvironmentImpl implements Environment {
   int limit(int value) => min(value, 5);
 }
 
-/// Extend [ReduxAction] to provide typed access to the [Environment].
+/// Extend [ReduxAction] to provide typed access to the [Dependencies].
 abstract class Action extends ReduxAction<int> {
-  @override
-  Environment get env => super.env as Environment;
+  Dependencies get dependencies => super.store.dependencies as Dependencies;
 }
 
-/// Extend [VmFactory] to provide typed access to the [Environment] when
+/// Extend [VmFactory] to provide typed access to the [Dependencies] when
 /// using [StoreConnector].
 abstract class AppFactory<T extends Widget?, Model extends Vm>
     extends VmFactory<int, T, Model> {
   AppFactory([T? connector]) : super(connector);
 
-  @override
-  Environment get env => super.env as Environment;
+  Dependencies get dependencies => store.dependencies as Dependencies;
 }
 
 class MyApp extends StatelessWidget {
@@ -78,7 +76,7 @@ class IncrementAction extends Action {
   IncrementAction({required this.amount});
 
   @override
-  int reduce() => env.incrementer(state, amount);
+  int reduce() => dependencies.incrementer(state, amount);
 }
 
 /// This widget is a connector. It uses a [StoreConnector] to connect the store
@@ -109,7 +107,7 @@ class Factory extends AppFactory<MyHomePageConnector, ViewModel> {
 
   @override
   ViewModel fromStore() => ViewModel(
-        counter: env.limit(state),
+        counter: dependencies.limit(state),
         onIncrement: () => dispatch(IncrementAction(amount: 1)),
       );
 }
