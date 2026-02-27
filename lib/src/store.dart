@@ -1315,6 +1315,55 @@ class Store<St> {
           ? null
           : _errors.removeFirst();
 
+  /// Remove an error from the error queue, if it's in the queue.
+  /// Pass it a [source]:
+  /// - A [UserException] object, to remove that error from the queue.
+  /// - An [ActionStatus] object, to remove the error that caused the action to fail.
+  /// - An action ([ReduxAction]), to remove the error that caused the action to fail.
+  ///
+  /// Do nothing if:
+  /// - The error that caused the action to fail is not in the queue.
+  /// - The action did not fail.
+  /// - The status has no [ActionStatus.wrappedError].
+  /// - The [source] is not a [UserException], [ActionStatus], or [ReduxAction].
+  ///
+  /// This is sometimes useful in tests. For example:
+  ///
+  /// ```dart
+  /// // Dispatch some action
+  /// var status = await store.dispatchAndWait(SomeAction());
+  ///
+  /// // Check the action failed as expected
+  /// expect(status.originalError, isError<CloudException>('Insufficient balance.'));
+  ///
+  /// // Make sure there are no more errors
+  /// store.removeError(status);
+  /// expect(store.errors, isEmpty);
+  /// ```
+  ///
+  /// You can also use the action to remove the error:
+  ///
+  /// ```dart
+  /// // Dispatch some action
+  /// var action = SomeAction();
+  /// var status = await store.dispatchAndWait(action);
+  /// store.removeError(action);
+  /// ```
+  ///
+  void removeError(Object source) {
+    Object error;
+    if (source is UserException)
+      error = source;
+    else if (source is ActionStatus && source.wrappedError != null)
+      error = source.wrappedError!;
+    else if (source is ReduxAction && source.status.wrappedError != null)
+      error = source.status.wrappedError!;
+    else
+      return;
+
+    _errors.removeWhere((queuedError) => queuedError == error);
+  }
+
   /// Call this method to shut down the store.
   /// It won't accept dispatches or change the state anymore.
   ///

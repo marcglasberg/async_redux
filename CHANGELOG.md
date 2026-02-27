@@ -7,6 +7,24 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 27.1.0
+
+* Added `store.removeError(source)` to remove `UserException` errors from the error queue.
+  You can pass it a `UserException`, an `ActionStatus`, or a `ReduxAction`. 
+  This is sometimes useful in tests. For example:
+
+  ```dart                       
+  // Dispatch some action
+  var status = await store.dispatchAndWait(SomeAction());
+  
+  // Check the action failed as expected    
+  expect(status.originalError, isError<CloudException>('Insufficient balance.'));  
+    
+  // Make sure there are no more errors
+  store.removeError(status);  
+  expect(store.errors, isEmpty);
+  ```
+
 ## 27.0.0
 
 * **BREAKING:** This version is only a breaking change if you are using the `enviroment`
