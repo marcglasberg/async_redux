@@ -1591,7 +1591,8 @@ class Store<St> {
     // The action may access the store/state/dispatch as fields.
     action.setStore(this);
 
-    if (_shutdown || action.abortDispatch()) return ActionStatus(isDispatchAborted: true);
+    if (_shutdown || action.abortDispatch())
+      return ActionStatus(isDispatchAborted: true, context: (action, this));
 
     _dispatchCount++;
 
@@ -2440,6 +2441,7 @@ class ActionStatus {
     this.isDispatchAborted = false,
     this.originalError,
     this.wrappedError,
+    required this.context,
   });
 
   /// Returns true if the action was already dispatched. An action cannot be dispatched
@@ -2480,6 +2482,9 @@ class ActionStatus {
   /// cancelled by the action's `wrapError` and the `globalWrapError`. This is the final error
   /// after all these wraps.
   final Object? wrappedError;
+
+  /// The action and store related to this status.
+  final (ReduxAction, Store)? context;
 
   @Deprecated("Use `hasFinishedMethodBefore` instead. This will be removed.")
   bool get isBeforeDone => hasFinishedMethodBefore;
@@ -2531,6 +2536,7 @@ class ActionStatus {
     bool? isDispatchAborted,
     Object? originalError,
     Object? wrappedError,
+    (ReduxAction, Store)? context,
   }) =>
       ActionStatus(
         isDispatched: isDispatched ?? this.isDispatched,
@@ -2540,6 +2546,7 @@ class ActionStatus {
         isDispatchAborted: isDispatchAborted ?? this.isDispatchAborted,
         originalError: originalError ?? this.originalError,
         wrappedError: wrappedError ?? this.wrappedError,
+        context: context ?? this.context,
       );
 
   @override
@@ -2564,17 +2571,19 @@ class ActionStatus {
           hasFinishedMethodAfter == other.hasFinishedMethodAfter &&
           isDispatchAborted == other.isDispatchAborted &&
           originalError == other.originalError &&
-          wrappedError == other.wrappedError;
+          wrappedError == other.wrappedError &&
+          context == other.context;
 
   @override
-  int get hashCode =>
-      isDispatched.hashCode ^
-      hasFinishedMethodBefore.hashCode ^
-      hasFinishedMethodReduce.hashCode ^
-      hasFinishedMethodAfter.hashCode ^
-      isDispatchAborted.hashCode ^
-      originalError.hashCode ^
-      wrappedError.hashCode;
+  int get hashCode => Object.hash(
+      isDispatched,
+      hasFinishedMethodBefore,
+      hasFinishedMethodReduce,
+      hasFinishedMethodAfter,
+      isDispatchAborted,
+      originalError,
+      wrappedError,
+      context);
 }
 
 class _Flag<T> {

@@ -73,12 +73,13 @@ part of async_redux_store;
 abstract class ReduxAction<St> {
   late Store<St> _store;
   late St _initialState;
-  ActionStatus _status = ActionStatus();
+  ActionStatus _status = ActionStatus(context: null);
   bool _completedFuture = false;
 
   @protected
   void setStore(Store<St> store) {
     _store = store;
+    _status = _status.copy(context: (this, store));
     _initialState = _store.state;
   }
 

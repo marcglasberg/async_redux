@@ -7,7 +7,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 27.1.0
+## 27.1.1
 
 * Added `store.removeError(source)` to remove `UserException` errors from the error queue.
   You can pass it a `UserException`, an `ActionStatus`, or a `ReduxAction`. 
@@ -23,7 +23,9 @@ Sponsored by [MyText.ai](https://mytext.ai)
   // Make sure there are no more errors
   store.removeError(status);  
   expect(store.errors, isEmpty);
-  ```
+  ```   
+  
+* `ActionStatus.context` now has a reference to the action and the store. 
 
 ## 27.0.0
 

@@ -181,7 +181,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ),
-        if (waiting) ModalBarrier(color: Colors.red.withOpacity(0.4)),
+        if (waiting) ModalBarrier(color: Colors.red.withAlpha((255.0 * 0.4).round())),
       ],
     );
   }
@@ -192,8 +192,7 @@ extension BuildContextExtension on BuildContext {
 
   AppState read() => getRead<AppState>();
 
-  R select<R>(R Function(AppState state) selector) =>
-      getSelect<AppState, R>(selector);
+  R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
 
   R? event<R>(Evt<R> Function(AppState state) selector) =>
       getEvent<AppState, R>(selector);

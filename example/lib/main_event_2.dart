@@ -195,7 +195,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ),
-        if (waiting) ModalBarrier(color: Colors.red.withOpacity(0.4)),
+        if (waiting) ModalBarrier(color: Colors.red.withAlpha((255.0 * 0.4).round())),
       ],
     );
   }

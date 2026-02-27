@@ -159,7 +159,7 @@ class MyHomePage extends StatelessWidget {
             child: const Icon(Icons.add),
           ),
         ),
-        if (waiting) ModalBarrier(color: Colors.red.withOpacity(0.4)),
+        if (waiting) ModalBarrier(color: Colors.red.withAlpha((255.0 * 0.4).round())),
       ],
     );
   }

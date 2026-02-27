@@ -100,8 +100,7 @@ mixin WithWaitState implements ReduxAction<AppState> {
   void after() => dispatch(WaitAction.remove(this));
 }
 
-class IncrementAndGetDescriptionAction extends ReduxAction<AppState>
-    with WithWaitState {
+class IncrementAndGetDescriptionAction extends ReduxAction<AppState> with WithWaitState {
   @override
   Future<AppState> reduce() async {
     dispatch(IncrementAction(amount: 1));
@@ -155,8 +154,7 @@ class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
 
         /// While action `IncrementAndGetDescriptionAction` is running,
         /// [isWaiting] will be true.
-        isWaiting:
-            state.wait.isWaitingForType<IncrementAndGetDescriptionAction>(),
+        isWaiting: state.wait.isWaitingForType<IncrementAndGetDescriptionAction>(),
 
         onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
       );
@@ -204,8 +202,7 @@ class MyHomePage extends StatelessWidget {
                 const Text('You have pushed the button this many times:'),
                 Text('$counter', style: const TextStyle(fontSize: 30)),
                 Text(description,
-                    style: const TextStyle(fontSize: 15),
-                    textAlign: TextAlign.center),
+                    style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
               ],
             ),
           ),
@@ -214,7 +211,7 @@ class MyHomePage extends StatelessWidget {
             child: const Icon(Icons.add),
           ),
         ),
-        if (isWaiting) ModalBarrier(color: Colors.red.withOpacity(0.4)),
+        if (isWaiting) ModalBarrier(color: Colors.red.withAlpha((255.0 * 0.4).round())),
       ],
     );
   }

@@ -173,6 +173,65 @@ void main() {
     expect(actionA.status.originalError, isNull);
     expect(actionA.status.wrappedError, isNull);
   });
+
+  test('The status.context contains the action and store after a successful dispatch.', () async {
+    //
+    info = [];
+    Store<String> store = Store<String>(initialState: "");
+
+    var actionA = MyAction(whenToThrow: null);
+    store.dispatch(actionA);
+
+    expect(actionA.status.context, isNotNull);
+    var (action, ctxStore) = actionA.status.context!;
+    expect(action, same(actionA));
+    expect(ctxStore, same(store));
+  });
+
+  test('The status.context contains the action and store when the action threw an error.', () async {
+    //
+    info = [];
+    Store<String> store = Store<String>(initialState: "");
+
+    var actionA = MyAction(whenToThrow: When.before);
+    store.dispatch(actionA);
+    expect(actionA.status.isCompletedFailed, true);
+
+    expect(actionA.status.context, isNotNull);
+    var (action1, store1) = actionA.status.context!;
+    expect(action1, same(actionA));
+    expect(store1, same(store));
+
+    var actionB = MyAction(whenToThrow: When.reduce);
+    store.dispatch(actionB);
+    expect(actionB.status.isCompletedFailed, true);
+
+    expect(actionB.status.context, isNotNull);
+    var (action2, store2) = actionB.status.context!;
+    expect(action2, same(actionB));
+    expect(store2, same(store));
+  });
+
+  test('The status.context contains the action and store when dispatch is aborted.', () async {
+    //
+    info = [];
+    Store<String> store = Store<String>(initialState: "");
+
+    var actionA = MyAbortAction();
+    ActionStatus returnedStatus = await store.dispatchAndWait(actionA);
+    expect(returnedStatus.isDispatchAborted, true);
+
+    expect(returnedStatus.context, isNotNull);
+    var (action, ctxStore) = returnedStatus.context!;
+    expect(action, same(actionA));
+    expect(ctxStore, same(store));
+  });
+
+  test('The status.context is null before the action is dispatched.', () async {
+    //
+    var actionA = MyAction(whenToThrow: null);
+    expect(actionA.status.context, isNull);
+  });
 }
 
 class MyAction extends ReduxAction<String> {
@@ -226,6 +285,14 @@ class MyActionWithWrapError extends ReduxAction<String> {
 
   @override
   Object? wrapError(Object error, StackTrace stackTrace) => 'wrapped error in action: $error';
+}
+
+class MyAbortAction extends ReduxAction<String> {
+  @override
+  bool abortDispatch() => true;
+
+  @override
+  String reduce() => state;
 }
 
 class MyGlobalWrapError<St> implements GlobalWrapError<St> {

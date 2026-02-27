@@ -104,7 +104,7 @@ class MockStore<St> extends Store<St> {
     ReduxAction<St>? _action = _getMockedAction(action);
 
     return (_action == null) //
-        ? Future.value(ActionStatus())
+        ? Future.value(ActionStatus(context: (action, this)))
         : super.dispatch(_action, notify: notify);
   }
 
@@ -144,7 +144,7 @@ class MockStore<St> extends Store<St> {
     ReduxAction<St>? _action = _getMockedAction(action);
 
     return (_action == null) //
-        ? Future.value(ActionStatus())
+        ? Future.value(ActionStatus(context: (action, this)))
         : super.dispatchAndWait(_action, notify: notify);
   }
 
@@ -161,7 +161,7 @@ class MockStore<St> extends Store<St> {
     ReduxAction<St>? _action = _getMockedAction(action);
 
     return (_action == null) //
-        ? ActionStatus()
+        ? ActionStatus(context: (action, this))
         : super.dispatchSync(_action, notify: notify);
   }
 
