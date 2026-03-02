@@ -84,12 +84,12 @@ typedef DispatchAndWait<St> = Future<ActionStatus> Function(
 /// • ActionObserver observes the dispatching of actions,
 ///   and may be used to print or log the dispatching of actions.
 ///
-/// • StateObservers receive the action, prevState (state right before the new State is applied),
-///   newState (state that was applied), and are used to track metrics and more.
+/// • StateObservers receive the action, prevState (state right before the new State is
+///   applied), newState (state that was applied), and are used to track metrics and more.
 ///
-/// • ErrorObservers may be used to observe or process errors thrown by actions.
-///
-/// • GlobalWrapError may be used to wrap action errors globally.
+/// • GlobalErrorObserver may be used to observe, modify, and swallow action errors
+///   globally, as well as log them to monitoring services like Sentry and Firebase
+///   Crashlytics.
 ///
 /// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 ///
@@ -107,11 +107,10 @@ class Store<St> {
     Persistor<St>? persistor,
     Persistor<St>? cloudSync,
     ModelObserver? modelObserver,
-    ErrorObserver<St>? errorObserver,
     WrapReduce<St>? wrapReduce,
-    @Deprecated("Use `globalWrapError` instead. This will be removed.")
-    WrapError<St>? wrapError,
+    GlobalErrorObserver<St> Function()? globalErrorObserver,
     GlobalWrapError<St>? globalWrapError,
+    ErrorObserver<St>? errorObserver,
     bool? defaultDistinct,
     CompareBy? immutableCollectionEquality,
     int? maxErrorsQueued,
@@ -129,9 +128,12 @@ class Store<St> {
             ? null //
             : ProcessPersistence(cloudSync, initialState),
         _modelObserver = modelObserver,
+        _globalErrorObserver = globalErrorObserver,
+        //
+        // Deprecated (will be removed): Use globalErrorObserver instead.
         _errorObserver = errorObserver,
-        _wrapError = wrapError,
         _globalWrapError = globalWrapError,
+        //
         _wrapReduce = wrapReduce,
         _defaultDistinct = defaultDistinct ?? true,
         _immutableCollectionEquality = immutableCollectionEquality,
@@ -379,10 +381,9 @@ class Store<St> {
 
   final ErrorObserver<St>? _errorObserver;
 
-  @Deprecated("Use `_globalWrapError` instead. This will be removed.")
-  final WrapError<St>? _wrapError;
-
   final GlobalWrapError<St>? _globalWrapError;
+
+  final GlobalErrorObserver<St> Function()? _globalErrorObserver;
 
   final WrapReduce<St>? _wrapReduce;
 
@@ -2270,17 +2271,28 @@ class Store<St> {
       errorOrNull = _error;
     }
 
-    if (_wrapError != null && errorOrNull != null) {
-      try {
-        errorOrNull = _wrapError.wrap(errorOrNull, stackTrace, action) ?? errorOrNull;
-      } catch (_error) {
-        // Errors thrown by the global wrapError.
-        // WrapError should never throw. It should return an error.
-        _throws("Method 'WrapError.wrap()' has thrown an error:\n '$_error'.",
-            errorOrNull, stackTrace);
+    if (errorOrNull != null) {
+      var globalErrorObserver = _globalErrorObserver?.call();
+      if (globalErrorObserver != null) {
+        try {
+          globalErrorObserver._init(
+            error: errorOrNull,
+            originalError: action.status.originalError,
+            stackTrace: stackTrace,
+            action: action,
+            store: this,
+          );
+          errorOrNull = globalErrorObserver.observe();
+        } catch (_error) {
+          // If the GlobalErrorObserver throws an error, it will be used instead
+          // of the original error (but the recommended way is returning the error).
+          errorOrNull = _error;
+        }
       }
     }
 
+    // This is DEPRECATED and will be removed in the future.
+    // The recommended way is using a GlobalErrorObserver.
     if (_globalWrapError != null && errorOrNull != null) {
       try {
         errorOrNull = _globalWrapError.wrap(errorOrNull, stackTrace, action);
@@ -2466,37 +2478,25 @@ class ActionStatus {
 
   /// Is true if the action was:
   /// - Aborted with the [ReduxAction.abortDispatch] method,
-  /// - If an [AbortDispatchException] was thrown by the action's `before` or `reduce` methods
-  ///   (and survived the `wrapError` and `globalWrapError`). Or,
+  /// - If an [AbortDispatchException] was thrown by the action's `before` or `reduce`
+  ///   methods (and survived the `wrapError` and `globalErrorObserver`). Or,
   /// - If the store was being shut down with the [Store.shutdown] method.
   final bool isDispatchAborted;
 
   /// Holds the error thrown by the action's before/reduce methods, if any.
   /// This may or may not be equal to the error thrown by the action, because the original error
-  /// will still be processed by the action's `wrapError` and the `globalWrapError`. However,
+  /// will still be processed by the action's `wrapError` and the `globalErrorObserver`. However,
   /// if `originalError` is non-null, it means the reducer did not finish running.
   final Object? originalError;
 
   /// Holds the error thrown by the action. This may or may not be the same as `originalError`,
-  /// because any errors thrown by the action's before/reduce methods may still be changed or
-  /// cancelled by the action's `wrapError` and the `globalWrapError`. This is the final error
-  /// after all these wraps.
+  /// because any errors thrown by the action's before/reduce methods may still be changed
+  /// or cancelled by the action's `wrapError` and the `globalErrorObserver`. This is the
+  /// final error after all these wraps.
   final Object? wrappedError;
 
   /// The action and store related to this status.
   final (ReduxAction, Store)? context;
-
-  @Deprecated("Use `hasFinishedMethodBefore` instead. This will be removed.")
-  bool get isBeforeDone => hasFinishedMethodBefore;
-
-  @Deprecated("Use `hasFinishedMethodReduce` instead. This will be removed.")
-  bool get isReduceDone => hasFinishedMethodReduce;
-
-  @Deprecated("Use `hasFinishedMethodAfter` instead. This will be removed.")
-  bool get isAfterDone => hasFinishedMethodAfter;
-
-  @Deprecated("Use `isCompletedOk` instead. This will be removed.")
-  bool get isFinished => isBeforeDone && isReduceDone && isAfterDone;
 
   /// Returns true only if the action has completed, and none of the 'before' or 'reduce'
   /// methods have thrown an error. This indicates that the 'reduce' method completed and
@@ -2646,4 +2646,163 @@ class _InternalMixinProps {
     for (final timer in pollingMap.values) timer.cancel();
     pollingMap.clear();
   }
+}
+
+/// You may subclass [GlobalErrorObserver] and pass it to the store constructor,
+/// if you want to have a global observer for errors thrown in your actions:
+///
+/// ```dart
+/// var store = Store<AppState>(
+///   initialState: AppState(),
+///   globalErrorObserver: () => AppGlobalErrorObserver(),
+/// }
+///
+/// class MyGlobalErrorObserver extends GlobalErrorObserver {
+///   @override
+///   void wrap() {
+///     // Do something.
+///   }
+/// }
+/// ```
+///
+/// Your observer error object will be given all errors thrown in your actions
+/// (including those of type `UserException`). Then:
+/// * If it returns the same [error] unaltered, this original error will be used.
+/// * If it returns something else, that it will be used instead of [error].
+/// * If it returns `null`, [error] will be disabled (swallowed).
+///
+/// IMPORTANT: If instead of RETURNING an error you THROW an error inside the `observe`
+/// method, AsyncRedux will catch this error and use it instead of [error].
+/// In other words, returning an error or throwing an error has the same effect. However,
+/// it is still recommended to return the error rather than throwing it.
+///
+/// Note this observer is called AFTER the action's [ReduxAction.wrapError].
+///
+/// # Use cases
+///
+/// 1. Use this to set up your app to use 3rd-party services like Sentry or Firebase
+/// Crashlytics to monitor your app for errors in production, and print them to the
+/// console in development and testing. Since you are setting it up in a centralized way,
+/// you don't have to "pollute" your code with logging calls.
+///
+/// 2. Use this to have a global place to convert some exceptions into [UserException]s.
+/// For example, Firebase may throw some `PlatformException`s in response to a bad
+/// connection to the server. In this case, you may want to show the user a dialog
+/// explaining that the connection is bad, which you can do by converting it to
+/// a [UserException]. Note, this could also be done in the [ReduxAction.wrapError],
+/// but then you'd have to add it to all actions that use Firebase.
+///
+/// # Parameters you can access in the `observe` method:
+///
+/// - `error`: The error thrown by the action, AFTER `wrapError`.
+/// - `originalError`: The action error BEFORE `wrapError`.
+/// - `stackTrace`: The stack trace associated with the error.
+/// - `action`: The action that triggered the error.
+/// - `store`: Use it to read `store.environment` or `store.configuration`.
+///    Do **not** use it to dispatch new actions.
+///
+abstract class GlobalErrorObserver<St> {
+  //
+  /// The error thrown by the action, AFTER being processed by the action's `wrapError`.
+  late final Object error;
+
+  /// The error thrown by the action, BEFORE being processed by the action's `wrapError`.
+  late final Object originalError;
+
+  /// The stack trace of the error.
+  late final StackTrace stackTrace;
+
+  /// The action that threw the error.
+  late final ReduxAction<St> action;
+
+  /// You can access the store, but do NOT use it to dispatch actions,
+  /// because the store is still processing the current action, and dispatching another
+  /// action may cause unexpected behavior. You can use it to read the environment,
+  /// configuration, and state, if they are relevant to the error you want to return.
+  /// Example:
+  ///
+  /// ```dart
+  /// Environment get environment => store.environment;
+  /// Config get configuration => store.configuration;
+  /// AppState get state => store.state;
+  /// ```
+  ///
+  late Store<St> store;
+
+  GlobalErrorObserver();
+
+  /// Override this method to return the error you want to be used
+  /// instead of the original error. Or, if you want to keep the original error,
+  /// return it unaltered. If you want to disable the error, return `null`.
+  Object? observe();
+
+  void _init({
+    required Object error,
+    required Object? originalError,
+    required StackTrace stackTrace,
+    required ReduxAction<St> action,
+    required Store<St> store,
+  }) {
+    this.error = error;
+    this.originalError = originalError ?? '';
+    this.stackTrace = stackTrace;
+    this.action = action;
+  }
+}
+
+/// A dummy global error observer that does nothing (same as not providing it).
+///
+/// See also: [GlobalErrorObserverForDevelopment] and [SwallowGlobalErrorObserver].
+///
+class GlobalErrorObserverDummy<St> extends GlobalErrorObserver<St> {
+  @override
+  Object? observe() => error;
+}
+
+/// During development you may use this global error observer if you want all errors
+/// to be shown to the user in a dialog, not only [UserException]s.
+///
+/// In more detail:
+///
+/// - Wraps all errors into [UserException]s, and put them all into the error queue.
+/// - Errors which are NOT originally [UserException]s will still be thrown.
+///
+/// Use it in the store like this:
+///
+/// ```dart
+/// var store = Store(
+///    globalErrorObserver: () => GlobalErrorObserverForDevelopment()
+/// );
+/// ```
+///
+/// See also: [GlobalErrorObserverDummy] and [SwallowGlobalErrorObserver].
+///
+class GlobalErrorObserverForDevelopment<St> extends GlobalErrorObserver<St> {
+  @override
+  Object? observe() {
+    if (error is! UserException) {
+      Future.microtask(() => store.dispatch(
+            UserExceptionAction(error.toString(), cause: error),
+          ));
+    }
+
+    return error;
+  }
+}
+
+/// Swallows all errors (not recommended).
+///
+/// Use it in the store like this:
+///
+/// ```dart
+/// var store = Store(
+///    globalErrorObserver: () => SwallowGlobalErrorObserver()
+/// );
+/// ```
+/// 
+/// See also: [GlobalErrorObserverDummy] and [GlobalErrorObserverForDevelopment].
+///
+class SwallowGlobalErrorObserver<St> extends GlobalErrorObserver<St> {
+  @override
+  Object? observe() => null;
 }

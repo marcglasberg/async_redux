@@ -5,7 +5,9 @@
 
 import 'package:async_redux/async_redux.dart';
 
-/// This wrapper will be given all errors thrown in your actions (including those of type
+/// This is DEPRECATED. Use [GlobalErrorObserver] instead.
+///
+/// This will be given all errors thrown in your actions (including those of type
 /// `UserException`). Then:
 /// * If it returns the same [error] unaltered, this original error will be used.
 /// * If it returns something else, that it will be used instead of the original [error].
@@ -27,7 +29,7 @@ import 'package:async_redux/async_redux.dart';
 /// Note, this could also be done in the [ReduxAction.wrapError], but then
 /// you'd have to add it to all actions that use Firebase.
 ///
-/// Another use case is when you want to throw the [UserException.cause]
+/// Another use case is when you want to throw the [AdvancedUserException.hardCause]
 /// which is not itself an [UserException], and you still want to show
 /// the original [UserException] in a dialog to the user:
 /// ```
@@ -44,7 +46,7 @@ import 'package:async_redux/async_redux.dart';
 ///
 /// You should not use [GlobalWrapError] to log errors, as the preferred place for
 /// doing that is in the [ErrorObserver].
-///
+@Deprecated('Use GlobalErrorObserver instead. Check the documentation for more details.')
 abstract class GlobalWrapError<St> {
   Object? wrap(
     Object error,
@@ -54,75 +56,8 @@ abstract class GlobalWrapError<St> {
 }
 
 /// A dummy global wrap error that does nothing.
-///
+@Deprecated('Use GlobalErrorObserver instead. This will be removed.')
 class GlobalWrapErrorDummy<St> implements GlobalWrapError<St> {
   @override
   Object? wrap(error, stackTrace, action) => error;
-}
-
-/// [WrapError] is deprecated in favor of [GlobalWrapError].
-///
-/// The reason for this deprecation is that the [GlobalWrapError] works in the
-/// same way as the action's [ReduxAction.wrapError], while [WrapError] does not.
-///
-/// The difference is that when [WrapError] returns `null`, the original error is
-/// not modified, while with [GlobalWrapError] returning `null` will disable the
-/// error (just like [ReduxAction.wrapError] does).
-///
-/// In other words, where your old [WrapError] returned null, your new [GlobalWrapError]
-/// should return the original error:
-///
-/// ```
-/// // WrapError (deprecated):
-/// Object? wrap(error, stackTrace, action) {
-///    if (error is MyException) return null; // Keep the error unaltered.
-///    else return processError(error); // May change the error, but not disable it.
-/// }
-///
-/// // GlobalWrapError:
-/// Object? wrap(error, stackTrace, action) {
-///    if (error is MyException) return error; // Keep the error unaltered.
-///    else return processError(error); // May change or disable the error.
-/// }
-/// ```
-///
-@Deprecated('Use GlobalWrapError instead. '
-    'However, where WrapError returned `null`, GlobalWrapError should return the original error. '
-    'Check the documentation for more details.')
-abstract class WrapError<St> {
-  //
-
-  /// This method is deprecated in favor of [GlobalWrapError.wrap].
-  ///
-  /// The reason for this deprecation is that the [GlobalWrapError] works in the
-  /// same way as the action's [ReduxAction.wrapError], while [WrapError] does not.
-  ///
-  /// The difference is that when [WrapError] returns `null`, the original error is
-  /// not modified, while with [GlobalWrapError] returning `null` will instead
-  /// disable the error.
-  ///
-  /// In other words, where your old [WrapError] returned `null`, your new [GlobalWrapError]
-  /// should return the original `error`:
-  ///
-  /// ```
-  /// // WrapError (deprecated):
-  /// Object? wrap(error, stackTrace, action) {
-  ///    if (error is MyException) return null; // Keep the error unaltered.
-  ///    else return processError(error);
-  /// }
-  ///
-  /// // GlobalWrapError:
-  /// Object? wrap(error, stackTrace, action) {
-  ///    if (error is MyException) return error; // Keep the error unaltered.
-  ///    else return processError(error);
-  /// }
-  /// ```
-  /// Also note, [GlobalWrapError] is more powerful because it can disable the error,
-  /// whereas [WrapError] cannot.
-  ///
-  Object? wrap(
-    Object error,
-    StackTrace stackTrace,
-    ReduxAction<St> action,
-  );
 }

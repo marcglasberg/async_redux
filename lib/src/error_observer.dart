@@ -5,6 +5,8 @@
 
 import 'package:async_redux/async_redux.dart';
 
+/// This is DEPRECATED. Use [GlobalErrorObserver] instead.
+///
 /// The [observe] method of the [ErrorObserver] will be given all errors.
 /// It's called after the action's [ReduxAction.wrapError] and the [GlobalWrapError]
 /// have both been called.
@@ -18,6 +20,7 @@ import 'package:async_redux/async_redux.dart';
 /// Important: Don't use the `store` you get in the [observe] method to dispatch any actions,
 /// as this may have unpredictable results. Also, make sure your errorObserver never throws an
 /// error.
+@Deprecated('Use GlobalErrorObserver instead. This will be removed.')
 abstract class ErrorObserver<St> {
   //
 
@@ -42,7 +45,7 @@ abstract class ErrorObserver<St> {
   );
 }
 
-/// During development, use this error observer if you want all errors to be
+/// During development you may use this error observer if you want all errors to be
 /// shown to the user in a dialog, not only [UserException]s. In more detail:
 /// This will wrap all errors into [UserException]s, and put them all into the
 /// error queue. Note that errors which are NOT originally [UserException]s will
@@ -51,7 +54,7 @@ abstract class ErrorObserver<St> {
 /// Passe it to the store like this:
 ///
 /// `var store = Store(errorObserver:DevelopmentErrorObserver());`
-///
+@Deprecated('Use GlobalErrorObserverForDevelopment instead. This will be removed.')
 class DevelopmentErrorObserver<St> implements ErrorObserver<St> {
   @override
   bool observe(
@@ -75,9 +78,9 @@ class DevelopmentErrorObserver<St> implements ErrorObserver<St> {
 }
 
 /// Swallows all errors (not recommended). Passe it to the store like this:
+/// `var store = Store(errorObserver: SwallowErrorObserver());`
 ///
-/// `var store = Store(errorObserver:SwallowErrorObserver());`
-///
+@Deprecated('Use SwallowGlobalErrorObserver instead. This will be removed.')
 class SwallowErrorObserver<St> implements ErrorObserver<St> {
   @override
   bool observe(

@@ -7,10 +7,61 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 28.0.0-dev.1
+
+* **DEPRECATION WARNING:** `Store.globalWrapError` and `Store.errorObserver`
+  are now deprecated. Use the new `globalErrorObserver` instead. 
+
+* You can now provide a _global error observer_ using the `globalWrapError` parameter in
+  the `Store` constructor:
+
+  ```dart
+  var store = Store<AppState>(
+    initialState: AppState(),
+    globalErrorObserver: () => MyGlobalErrorObserver(),
+  }   
+  
+  class MyGlobalErrorObserver extends GlobalErrorObserver {
+  
+    @override
+    void wrap() {  
+      // Here you can use:
+      // `error` -> Thrown by the action, AFTER being processed by the action's `wrapError`. 
+      // `originalError` -> Error BEFORE being processed by the action's `wrapError`. 
+      // `stackTrace` -> The stack trace of the error. 
+      // `action` -> The action that threw the error.
+      // `store` -> Use it to read the `store.environment` or `store.configuration`.  
+    }
+  }
+  ```     
+
+  # Use cases
+
+    1. Use this to set up your app to use 3rd-party services like Sentry or Firebase
+       Crashlytics to monitor your app for errors in production, and print them to the
+       console in development and testing. Since you are setting it up in a centralized
+       way, you don't have to "pollute" your code with logging calls.
+
+    2. Use this to have a global place to convert some exceptions into `UserException`s.
+       For example, Firebase may throw some `PlatformException`s in response to a bad
+       connection to the server. In this case, you may want to show the user a dialog
+       explaining that the connection is bad, which you can do by converting it to
+       a `UserException`. Note, this could also be done in the `ReduxAction.wrapError`,
+       but then you'd have to add it to all actions that use Firebase.
+
+* **BREAKING:** Removed the deprecated `Store.wrapError`.
+  Use the new `globalErrorObserver` instead.
+
+* **BREAKING:** Removed the deprecated:
+    - `ActionStatus.isBeforeDone` (replace with `hasFinishedMethodBefore`)
+    - `isReduceDone` (replace with `hasFinishedMethodReduce`)
+    - `isAfterDone` (replace with `hasFinishedMethodAfter`)
+    - `isFinished` (replace with `isBeforeDone && isReduceDone && isAfterDone`)
+
 ## 27.1.1
 
 * Added `store.removeError(source)` to remove `UserException` errors from the error queue.
-  You can pass it a `UserException`, an `ActionStatus`, or a `ReduxAction`. 
+  You can pass it a `UserException`, an `ActionStatus`, or a `ReduxAction`.
   This is sometimes useful in tests. For example:
 
   ```dart                       
@@ -24,8 +75,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
   store.removeError(status);  
   expect(store.errors, isEmpty);
   ```   
-  
-* `ActionStatus.context` now has a reference to the action and the store. 
+
+* `ActionStatus.context` now has a reference to the action and the store.
 
 ## 27.0.0
 

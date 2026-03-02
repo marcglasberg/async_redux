@@ -21,10 +21,6 @@ void main() {
 
     var actionA = MyAction(whenToThrow: When.before);
     store.dispatch(actionA);
-    expect(actionA.status.isBeforeDone, false);
-    expect(actionA.status.isReduceDone, false);
-    expect(actionA.status.isAfterDone, true);
-    expect(actionA.isFinished, false);
 
     expect(actionA.status.hasFinishedMethodBefore, false);
     expect(actionA.status.hasFinishedMethodReduce, false);
@@ -43,10 +39,6 @@ void main() {
 
     var actionA = MyAction(whenToThrow: When.reduce);
     store.dispatch(actionA);
-    expect(actionA.status.isBeforeDone, true);
-    expect(actionA.status.isReduceDone, false);
-    expect(actionA.status.isAfterDone, true);
-    expect(actionA.isFinished, false);
 
     expect(actionA.status.hasFinishedMethodBefore, true);
     expect(actionA.status.hasFinishedMethodReduce, false);
@@ -69,10 +61,6 @@ void main() {
     } catch (e) {
       // This is expected.
     }
-    expect(actionA.status.isBeforeDone, true);
-    expect(actionA.status.isReduceDone, false);
-    expect(actionA.status.isAfterDone, true);
-    expect(actionA.isFinished, false);
 
     expect(actionA.status.hasFinishedMethodBefore, true);
     expect(actionA.status.hasFinishedMethodReduce, false);
@@ -98,10 +86,6 @@ void main() {
     } catch (e) {
       // This is expected.
     }
-    expect(actionA.status.isBeforeDone, true);
-    expect(actionA.status.isReduceDone, false);
-    expect(actionA.status.isAfterDone, true);
-    expect(actionA.isFinished, false);
 
     expect(actionA.status.hasFinishedMethodBefore, true);
     expect(actionA.status.hasFinishedMethodReduce, false);
@@ -125,10 +109,6 @@ void main() {
     runZonedGuarded(() {
       var actionA = MyAction(whenToThrow: When.after);
       store.dispatch(actionA);
-      expect(actionA.status.isBeforeDone, true);
-      expect(actionA.status.isReduceDone, true);
-      expect(actionA.status.isAfterDone, true);
-      expect(actionA.isFinished, true);
 
       expect(actionA.status.hasFinishedMethodBefore, true);
       expect(actionA.status.hasFinishedMethodReduce, true);
@@ -159,10 +139,6 @@ void main() {
 
     var actionA = MyAction(whenToThrow: null);
     store.dispatch(actionA);
-    expect(actionA.status.isBeforeDone, true);
-    expect(actionA.status.isReduceDone, true);
-    expect(actionA.status.isAfterDone, true);
-    expect(actionA.isFinished, true);
 
     expect(actionA.status.hasFinishedMethodBefore, true);
     expect(actionA.status.hasFinishedMethodReduce, true);
