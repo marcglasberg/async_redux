@@ -108,7 +108,7 @@ class Store<St> {
     Persistor<St>? cloudSync,
     ModelObserver? modelObserver,
     WrapReduce<St>? wrapReduce,
-    GlobalErrorObserver<St> Function()? globalErrorObserver,
+    GlobalErrorObserver<St> Function(Store<St>)? globalErrorObserver,
     GlobalWrapError<St>? globalWrapError,
     ErrorObserver<St>? errorObserver,
     bool? defaultDistinct,
@@ -383,7 +383,7 @@ class Store<St> {
 
   final GlobalWrapError<St>? _globalWrapError;
 
-  final GlobalErrorObserver<St> Function()? _globalErrorObserver;
+  final GlobalErrorObserver<St> Function(Store<St>)? _globalErrorObserver;
 
   final WrapReduce<St>? _wrapReduce;
 
@@ -2272,7 +2272,7 @@ class Store<St> {
     }
 
     if (errorOrNull != null) {
-      var globalErrorObserver = _globalErrorObserver?.call();
+      var globalErrorObserver = _globalErrorObserver?.call(this);
       if (globalErrorObserver != null) {
         try {
           globalErrorObserver._init(
@@ -2654,7 +2654,7 @@ class _InternalMixinProps {
 /// ```dart
 /// var store = Store<AppState>(
 ///   initialState: AppState(),
-///   globalErrorObserver: () => AppGlobalErrorObserver(),
+///   globalErrorObserver: (store) => AppGlobalErrorObserver(),
 /// }
 ///
 /// class MyGlobalErrorObserver extends GlobalErrorObserver {
@@ -2771,7 +2771,7 @@ class GlobalErrorObserverDummy<St> extends GlobalErrorObserver<St> {
 ///
 /// ```dart
 /// var store = Store(
-///    globalErrorObserver: () => GlobalErrorObserverForDevelopment()
+///    globalErrorObserver: (store) => GlobalErrorObserverForDevelopment()
 /// );
 /// ```
 ///
@@ -2796,7 +2796,7 @@ class GlobalErrorObserverForDevelopment<St> extends GlobalErrorObserver<St> {
 ///
 /// ```dart
 /// var store = Store(
-///    globalErrorObserver: () => SwallowGlobalErrorObserver()
+///    globalErrorObserver: (store) => SwallowGlobalErrorObserver()
 /// );
 /// ```
 /// 

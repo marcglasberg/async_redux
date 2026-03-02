@@ -7,7 +7,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 28.0.0-dev.1
+## 28.0.0-dev.2
 
 * **DEPRECATION WARNING:** `Store.globalWrapError` and `Store.errorObserver`
   are now deprecated. Use the new `globalErrorObserver` instead. 
@@ -18,7 +18,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
   ```dart
   var store = Store<AppState>(
     initialState: AppState(),
-    globalErrorObserver: () => MyGlobalErrorObserver(),
+    globalErrorObserver: (store) => MyGlobalErrorObserver(),
   }   
   
   class MyGlobalErrorObserver extends GlobalErrorObserver {

@@ -27,7 +27,7 @@ class MockStore<St> extends Store<St> {
     ModelObserver? modelObserver,
     ErrorObserver<St>? errorObserver,
     WrapReduce<St>? wrapReduce,
-    GlobalErrorObserver<St> Function()? globalErrorObserver,
+    GlobalErrorObserver<St> Function(Store<St>)? globalErrorObserver,
     //
     @Deprecated("Use `globalErrorObserver` instead. This will be removed.")
     GlobalWrapError<St>? globalWrapError,
