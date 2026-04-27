@@ -7,7 +7,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 28.0.0-dev.2
+## 28.0.0-dev.3
 
 * **DEPRECATION WARNING:** `Store.globalWrapError` and `Store.errorObserver`
   are now deprecated. Use the new `globalErrorObserver` instead. 

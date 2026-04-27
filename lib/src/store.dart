@@ -147,8 +147,11 @@ class Store<St> {
             ? //
             null
             : StreamController.broadcast(sync: syncStream) {
-    _dependencies = dependencies?.call(this);
+    // Init the config first, so that it can be used by the dependencies.
     _configuration = configuration?.call(this);
+    
+    // Dependencies can use `store` and `store.configuration`, if necessary.
+    _dependencies = dependencies?.call(this);
   }
 
   St _state;

@@ -375,6 +375,13 @@ abstract class ReduxAction<St> {
   /// can't throw errors. It may be synchronous only.
   /// Note this method will always be called,
   /// even if errors were thrown by `before` or `reduce`.
+  ///
+  /// Note: For both synchronous and asynchronous actions, when after runs the store
+  /// already contains the new state returned by reduce, so accessing [state] in [after]
+  /// will return the new state.
+  ///
+  /// Note: Accessing [initialState] in [after] always returns the state as it was when
+  /// the action was dispatched, regardless of when after runs.
   @protected
   void after() {}
 
