@@ -2750,6 +2750,7 @@ abstract class GlobalErrorObserver<St> {
     this.originalError = originalError ?? '';
     this.stackTrace = stackTrace;
     this.action = action;
+    this.store = store;
   }
 }
 
