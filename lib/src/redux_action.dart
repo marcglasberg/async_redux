@@ -162,8 +162,8 @@ abstract class ReduxAction<St> {
   /// disposeProps(({Object? key, Object? value}) => value is Timer);
   /// ```
   ///
-  /// Note: The provided mixins, like [Throttle] and [Debounce] also use some
-  /// props that you can dispose by doing `store.internalMixinProps.clear()`;
+  /// Note: The provided mixins, like [Polling], [Throttle], [Debounce] etc, also use
+  /// some props that you can dispose by doing `store.internalMixinProps.clear()`;
   ///
   /// See also: [disposeProp], to dispose a single property by its key.
   ///

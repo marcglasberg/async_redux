@@ -260,6 +260,10 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
 /// to share the same non-reentrant key. Check the documentation of that method
 /// for more information.
 ///
+/// To release all non-reentrant keys at once (for example, on logout or store
+/// shutdown), call `store.internalMixinProps.clear()`. Note this also resets
+/// the internal state of all other mixins.
+///
 /// Notes:
 /// - This mixin can safely be combined with [CheckInternet], [NoDialog], and [AbortWhenNoInternet].
 /// - It should not be combined with other mixins or classes that override [abortDispatch] or [after].
@@ -801,6 +805,10 @@ mixin UnlimitedRetries<St> on Retry<St> {
 /// * No lock is acquired
 /// * No server call is attempted
 /// * The action fails and your dialog shows (for [CheckInternet])
+///
+/// To release all in-flight locks at once (for example, on logout or store
+/// shutdown), call `store.internalMixinProps.clear()`. Note this also resets
+/// the internal state of all other mixins.
 ///
 ///
 /// Notes:
@@ -1418,6 +1426,10 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 ///
 /// Note: Expired locks are removed when expired, to prevent memory leaks.
 ///
+/// To remove all throttle locks at once, call [removeAllLocks]. Alternatively,
+/// `store.internalMixinProps.clear()` clears them together with the internal
+/// state of all other mixins.
+///
 /// Notes:
 /// - It should not be combined with other mixins or classes that override [abortDispatch] or [after].
 /// - It should not be combined with [Fresh], [NonReentrant] or [UnlimitedRetryCheckInternet].
@@ -1560,6 +1572,10 @@ mixin Throttle<St> on ReduxAction<St> {
 /// }
 /// ```
 ///
+/// To remove all debounce locks at once, call [removeAllLocks]. Alternatively,
+/// `store.internalMixinProps.clear()` clears them together with the internal
+/// state of all other mixins.
+///
 /// Notes:
 /// - It should not be combined with other mixins or classes that override [wrapReduce].
 /// - It should not be combined with [Retry], [UnlimitedRetries], or [UnlimitedRetryCheckInternet].
@@ -1646,6 +1662,12 @@ mixin Debounce<St> on ReduxAction<St> {
 /// will not retry when there is no internet. It will only retry if there IS
 /// internet but the action fails for some other reason. To retry indefinitely
 /// until internet is available, then you should use [UnlimitedRetryCheckInternet].
+///
+/// This mixin is non-reentrant with itself: while an action of this type is
+/// running, dispatching another one of the same type is aborted silently.
+/// Since it keeps retrying until it succeeds, this non-reentrant period lasts
+/// the whole time from when the action is dispatched until it succeeds,
+/// including the waits between retries.
 ///
 /// IMPORTANT: It only checks if the internet is on or off on the device,
 /// not if the internet provider is really providing the service or if the
@@ -2003,7 +2025,9 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
 ///   for that key can run immediately.
 /// * Call [removeAllKeys] from your action to clear all keys and let all
 ///   actions run again as if nothing was fresh. This is probably useful
-///   during logout or similar scenarios.
+///   during logout or similar scenarios. Alternatively,
+///   `store.internalMixinProps.clear()` clears them together with the internal
+///   state of all other mixins.
 ///
 /// Expired keys are cleaned automatically over time, so you usually do not
 /// need to worry about old entries.
@@ -2042,8 +2066,10 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
 ///
 ///
 /// Notes:
-/// - It should not be combined with other mixins or classes that override [abortDispatch] or [after].
-/// - It should not be combined with [Throttle], [NonReentrant] or [UnlimitedRetryCheckInternet].
+/// - It should not be combined with other mixins or classes that override
+///   [abortDispatch] or [after].
+/// - It should not be combined with [Throttle], [NonReentrant],
+///   [UnlimitedRetryCheckInternet] or [OptimisticCommand].
 ///
 mixin Fresh<St> on ReduxAction<St> {
   //
@@ -2204,7 +2230,7 @@ mixin Fresh<St> on ReduxAction<St> {
 
   @override
   bool abortDispatch() {
-    _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet();
+    _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet_OptimisticCommand();
 
     // First, check the super class/mixin wants to abort.
     // See the comment in [NonReentrant.abortDispatch].
@@ -2240,7 +2266,7 @@ mixin Fresh<St> on ReduxAction<St> {
   }
 
   void
-      _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet() {
+      _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet_OptimisticCommand() {
     _incompatible<Fresh, Throttle>(this);
     _incompatible<Fresh, NonReentrant>(this);
     _incompatible<Fresh, UnlimitedRetryCheckInternet>(this);
@@ -2503,6 +2529,10 @@ void _incompatible<T1, T2>(Object instance) {
 ///   }
 /// }
 /// ```
+///
+/// To release all in-flight locks at once (for example, on logout or store
+/// shutdown), call `store.internalMixinProps.clear()`. Note this also resets
+/// the internal state of all other mixins.
 ///
 /// Notes:
 /// - It can be combined with [CheckInternet] and [AbortWhenNoInternet].
@@ -3061,6 +3091,10 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
 /// }
 /// ```
 ///
+/// To reset all in-flight locks and revision tracking at once (for example, on
+/// logout or store shutdown), call `store.internalMixinProps.clear()`. Note
+/// this also resets the internal state of all other mixins.
+///
 /// Notes:
 /// - It can be combined with [CheckInternet] and [AbortWhenNoInternet].
 /// - It should not be combined with [NonReentrant], [Retry], [Throttle],
@@ -3581,6 +3615,11 @@ typedef PushMetadata = ({
 /// pushes do not corrupt the state, and that local optimistic updates are not
 /// overwritten by stale pushes.
 ///
+/// To reset the revision tracking shared with [OptimisticSyncWithPush] at once
+/// (for example, on logout or store shutdown), call
+/// `store.internalMixinProps.clear()`. Note this also resets the internal state
+/// of all other mixins.
+///
 mixin ServerPush<St> on ReduxAction<St> {
   /// You must override this to return the type of the action that uses the
   /// corresponding [OptimisticSyncWithPush] that owns this value (so both
@@ -3786,6 +3825,11 @@ enum Poll {
 /// // Stop polling:
 /// dispatch(PollPrices(Poll.stop));
 /// ```
+///
+/// To stop all polling at once (for example, on logout or store shutdown),
+/// without dispatching [Poll.stop] for each key, call
+/// `store.internalMixinProps.clear()`. This cancels every polling timer. Note
+/// it also resets the internal state of all other mixins.
 ///
 /// You can display loading states and errors in your widgets by tracking the
 /// action type that does the work:
