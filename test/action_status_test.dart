@@ -208,6 +208,118 @@ void main() {
     var actionA = MyAction(whenToThrow: null);
     expect(actionA.status.context, isNull);
   });
+
+  test('thenIfCompletedOk runs the callback only when the action succeeds.', () async {
+    //
+    info = [];
+    Store<String> store = Store<String>(initialState: "");
+
+    // Action succeeds: the callback runs, and gets the status.
+    ActionStatus? okStatus;
+    var status = await store
+        .dispatchAndWait(MyAction(whenToThrow: null))
+        .thenIfCompletedOk((status) => okStatus = status);
+
+    expect(okStatus, isNotNull);
+    expect(okStatus!.isCompletedOk, true);
+
+    // The returned future completes with the same status.
+    expect(status, same(okStatus));
+
+    // Action fails: the callback does NOT run.
+    okStatus = null;
+    status = await store
+        .dispatchAndWait(MyAction(whenToThrow: When.reduce))
+        .thenIfCompletedOk((status) => okStatus = status);
+
+    expect(okStatus, isNull);
+    expect(status.isCompletedFailed, true);
+  });
+
+  test('thenIfCompletedFailed runs the callback only when the action fails.', () async {
+    //
+    info = [];
+    Store<String> store = Store<String>(initialState: "");
+
+    // Action fails: the callback runs, and gets the status with the error.
+    ActionStatus? failedStatus;
+    var status = await store
+        .dispatchAndWait(MyAction(whenToThrow: When.reduce))
+        .thenIfCompletedFailed((status) => failedStatus = status);
+
+    expect(failedStatus, isNotNull);
+    expect(failedStatus!.isCompletedFailed, true);
+    expect(failedStatus!.wrappedError, const UserException('During reduce'));
+
+    // The returned future completes with the same status.
+    expect(status, same(failedStatus));
+
+    // Action succeeds: the callback does NOT run.
+    failedStatus = null;
+    status = await store
+        .dispatchAndWait(MyAction(whenToThrow: null))
+        .thenIfCompletedFailed((status) => failedStatus = status);
+
+    expect(failedStatus, isNull);
+    expect(status.isCompletedOk, true);
+  });
+
+  test('thenIfCompletedOk and thenIfCompletedFailed can be chained together.', () async {
+    //
+    info = [];
+    Store<String> store = Store<String>(initialState: "");
+
+    var result = <String>[];
+
+    await store
+        .dispatchAndWait(MyAction(whenToThrow: null))
+        .thenIfCompletedOk((_) => result.add('ok'))
+        .thenIfCompletedFailed((_) => result.add('failed'));
+
+    expect(result, ['ok']);
+
+    result = [];
+
+    await store
+        .dispatchAndWait(MyAction(whenToThrow: When.before))
+        .thenIfCompletedOk((_) => result.add('ok'))
+        .thenIfCompletedFailed((_) => result.add('failed'));
+
+    expect(result, ['failed']);
+  });
+
+  test('thenIfCompletedOk awaits async callbacks before completing.', () async {
+    //
+    info = [];
+    Store<String> store = Store<String>(initialState: "");
+
+    var result = <String>[];
+
+    await store.dispatchAndWait(MyAction(whenToThrow: null)).thenIfCompletedOk((_) async {
+      await Future.delayed(const Duration(milliseconds: 10));
+      result.add('callback');
+    });
+    result.add('after await');
+
+    expect(result, ['callback', 'after await']);
+  });
+
+  test('Neither thenIfCompletedOk nor thenIfCompletedFailed run when dispatch is aborted.',
+      () async {
+    //
+    info = [];
+    Store<String> store = Store<String>(initialState: "");
+
+    var result = <String>[];
+
+    var status = await store
+        .dispatchAndWait(MyAbortAction())
+        .thenIfCompletedOk((_) => result.add('ok'))
+        .thenIfCompletedFailed((_) => result.add('failed'));
+
+    expect(status.isDispatchAborted, true);
+    expect(result, isEmpty);
+  });
 }
 
 class MyAction extends ReduxAction<String> {

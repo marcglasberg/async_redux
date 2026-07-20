@@ -7,6 +7,27 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 28.1.0
+
+* New extension methods `thenIfCompletedOk` and `thenIfCompletedFailed`
+  on `Future<ActionStatus>`, which is the type returned by `dispatchAndWait`.
+  They let you chain code that should run only if the action completed OK,
+  or only if it failed. This is important because `dispatchAndWait` completes
+  with an `ActionStatus` even when the action fails, so a plain `.then()`
+  would run regardless of success or failure:
+
+  ```dart
+  // The `PollBlockNumber` action will be dispatched only
+  // if `InitializeWeb3` succeeds:
+  dispatchAndWait(InitializeWeb3())
+      .thenIfCompletedOk((_) => dispatch(PollBlockNumber()));
+
+  // You can chain both, to handle success and failure:
+  dispatchAndWait(InitializeWeb3())
+      .thenIfCompletedOk((_) => dispatch(PollBlockNumber()))
+      .thenIfCompletedFailed((status) => log(status.wrappedError));
+  ```
+
 ## 28.0.0
 
 * **DEPRECATION WARNING:** `Store.globalWrapError` and `Store.errorObserver`

@@ -2589,6 +2589,91 @@ class ActionStatus {
       context);
 }
 
+/// Extension methods on `Future<ActionStatus>`, which is the type returned by
+/// [Store.dispatchAndWait]. They let you chain code that should run only if the
+/// action completed OK, or only if it failed, without having to `await` and
+/// check the status manually.
+extension FutureActionStatusExtension on Future<ActionStatus> {
+  //
+  /// Runs the given [callback] only if the action completed OK, meaning
+  /// [ActionStatus.isCompletedOk] is true: the action finished, and its
+  /// 'before' and 'reduce' methods did not throw any errors.
+  ///
+  /// This is important because `dispatchAndWait` completes with an [ActionStatus]
+  /// even when the action fails, so a plain `.then()` would run regardless of
+  /// success or failure:
+  ///
+  /// ```dart
+  /// // The `PollBlockNumber` action will be dispatched only
+  /// // if `InitializeWeb3` succeeds:
+  /// dispatchAndWait(InitializeWeb3())
+  ///     .thenIfCompletedOk((_) => dispatch(PollBlockNumber()));
+  /// ```
+  ///
+  /// It returns a future that completes with the same [ActionStatus], after the
+  /// callback finishes (if it ran). This means you can chain it with
+  /// [thenIfCompletedFailed], to handle both cases:
+  ///
+  /// ```dart
+  /// dispatchAndWait(InitializeWeb3())
+  ///     .thenIfCompletedOk((_) => dispatch(PollBlockNumber()))
+  ///     .thenIfCompletedFailed((status) => log(status.wrappedError));
+  /// ```
+  ///
+  /// If the callback throws, the returned future completes with that error,
+  /// just like a regular `.then()`.
+  ///
+  /// See also:
+  /// - [thenIfCompletedFailed] which runs the callback only if the action failed.
+  ///
+  Future<ActionStatus> thenIfCompletedOk(
+    FutureOr<void> Function(ActionStatus status) callback,
+  ) =>
+      then((status) async {
+        if (status.isCompletedOk) await callback(status);
+        return status;
+      });
+
+  /// Runs the given [callback] only if the action failed, meaning
+  /// [ActionStatus.isCompletedFailed] is true: the action finished, but its
+  /// 'before' or 'reduce' methods threw an error, and the reducer could not
+  /// return a value to change the state.
+  ///
+  /// The callback gets the [ActionStatus], from which you can read the error:
+  /// [ActionStatus.originalError] is the error originally thrown by the action,
+  /// and [ActionStatus.wrappedError] is the final error, after being processed
+  /// by the action's `wrapError` and the `globalWrapError`.
+  ///
+  /// ```dart
+  /// dispatchAndWait(InitializeWeb3())
+  ///     .thenIfCompletedFailed((status) => log(status.wrappedError));
+  /// ```
+  ///
+  /// It returns a future that completes with the same [ActionStatus], after the
+  /// callback finishes (if it ran). This means you can chain it with
+  /// [thenIfCompletedOk], to handle both cases:
+  ///
+  /// ```dart
+  /// dispatchAndWait(InitializeWeb3())
+  ///     .thenIfCompletedOk((_) => dispatch(PollBlockNumber()))
+  ///     .thenIfCompletedFailed((status) => log(status.wrappedError));
+  /// ```
+  ///
+  /// If the callback throws, the returned future completes with that error,
+  /// just like a regular `.then()`.
+  ///
+  /// See also:
+  /// - [thenIfCompletedOk] which runs the callback only if the action succeeded.
+  ///
+  Future<ActionStatus> thenIfCompletedFailed(
+    FutureOr<void> Function(ActionStatus status) callback,
+  ) =>
+      then((status) async {
+        if (status.isCompletedFailed) await callback(status);
+        return status;
+      });
+}
+
 class _Flag<T> {
   T value;
 
