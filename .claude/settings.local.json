@@ -13,7 +13,9 @@
       "mcp__dart__pub_dev_search",
       "mcp__dart__pub",
       "mcp__dart__analyze_files",
-      "mcp__dart__run_tests"
+      "mcp__dart__run_tests",
+      "PowerShell(flutter test *)",
+      "PowerShell(dart analyze *)"
     ],
     "deny": [],
     "ask": []

@@ -7,6 +7,19 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 28.2.0
+
+* You can now use `waitActionType` and `waitActionTypes` inside the reducer of an action,
+  to wait for a specific action type or multiple action types to complete:
+
+  ```dart
+  // Wait for any instance of LoadUserProfile to complete
+  await waitActionType(LoadUserProfile);
+
+  // Wait for either LoadUserProfile or LoadUserSettings to complete
+  await waitActionTypes([LoadUserProfile, LoadUserSettings]);
+  ```
+
 ## 28.1.0
 
 * New extension methods `thenIfCompletedOk` and `thenIfCompletedFailed`

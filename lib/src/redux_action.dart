@@ -594,6 +594,87 @@ abstract class ReduxAction<St> {
     return _store.waitAllActions(actions, completeImmediately: completeImmediately);
   }
 
+  /// Returns a future that completes when an action of the given type in NOT in progress
+  /// (it's not being dispatched):
+  ///
+  /// - If NO action of the given type is currently in progress when the method is called,
+  ///   and [completeImmediately] is `false` (the default), this method will throw an error.
+  ///
+  /// - If NO action of the given type is currently in progress when the method is called,
+  ///   and [completeImmediately] is `true`, the future completes immediately, returns `null`,
+  ///   and throws no error.
+  ///
+  /// - If an action of the given type is in progress, the future completes when the action
+  ///   finishes, and returns the action. You can use the returned action to check its `status`:
+  ///
+  ///   ```dart
+  ///   var action = await waitActionType(MyAction);
+  ///   ```
+  ///
+  /// You may also provide a [timeoutMillis], which by default is 10 minutes.
+  /// To disable the timeout, make it -1.
+  ///
+  /// Note: To control how the current action interacts with another action that
+  /// may be running:
+  ///
+  /// * To **abort** the current action if `Action1` is running,
+  ///   add this to the current action:
+  ///   `void abortDispatch() => isWaiting([Action1]);`
+  ///
+  /// * To just **wait** for `Action1` to finish (in case it's already running),
+  ///   instead of aborting, add this as the first line of your reducer:
+  ///   `await waitActionType(Action1);`
+  ///
+  /// See also:
+  /// [waitCondition] - Waits until the state is in a given condition.
+  /// [waitAllActions] - Waits until the given actions are NOT in progress, or no actions are in progress.
+  /// [waitAllActionTypes] - Waits until all actions of the given type are NOT in progress.
+  ///
+  Future<ReduxAction<St>?> waitActionType(
+    Type actionType, {
+    bool completeImmediately = false,
+    int? timeoutMillis,
+  }) async {
+    return _store.waitActionType(actionType,
+        completeImmediately: completeImmediately, timeoutMillis: timeoutMillis);
+  }
+
+  /// Returns a future that completes when ALL actions of the given types are NOT in
+  /// progress (none of them are being dispatched):
+  ///
+  /// - If NO action of the given types is currently in progress when the method is called,
+  ///   and [completeImmediately] is `false` (the default), this method will throw an error.
+  ///
+  /// - If NO action of the given type is currently in progress when the method is called,
+  ///   and [completeImmediately] is `true`, the future completes immediately and throws
+  ///   no error.
+  ///
+  /// - If any action of the given types is in progress, the future completes only when
+  ///   no action of the given types is in progress anymore.
+  ///
+  /// You may also provide a [timeoutMillis], which by default is 10 minutes.
+  /// To disable the timeout, make it -1.
+  ///
+  /// Note: To control how the current action interacts with other actions that
+  /// may be running:
+  ///
+  /// * To **abort** the current action if `Action1` or `Action2` are running,
+  ///   add this to the current action:
+  ///   `void abortDispatch() => isWaiting([Action1, Action2]);`
+  ///
+  /// * To just **wait** for `Action1` and `Action2` to finish (in case any of them are
+  ///   running), instead of aborting, add this as the first line of your reducer:
+  ///   `await waitAllActionTypes([Action1, Action2]);`
+  ///
+  Future<void> waitAllActionTypes(
+    List<Type> actionTypes, {
+    bool completeImmediately = false,
+    int? timeoutMillis,
+  }) async {
+    return _store.waitAllActionTypes(actionTypes,
+        completeImmediately: completeImmediately, timeoutMillis: timeoutMillis);
+  }
+
   /// An async reducer (one that returns Future<AppState?>) must never complete without at least
   /// one await, because this may result in state changes being lost. It's up to you to make sure
   /// all code paths in the reducer pass through at least one `await`.

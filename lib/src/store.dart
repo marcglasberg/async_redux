@@ -149,7 +149,7 @@ class Store<St> {
             : StreamController.broadcast(sync: syncStream) {
     // Init the config first, so that it can be used by the dependencies.
     _configuration = configuration?.call(this);
-    
+
     // Dependencies can use `store` and `store.configuration`, if necessary.
     _dependencies = dependencies?.call(this);
   }
@@ -1062,7 +1062,10 @@ class Store<St> {
   /// [waitAllActionTypes] - Waits until all actions of the given type are NOT in progress.
   /// [waitAnyActionTypeFinishes] - Waits until ANY action of the given types finish dispatching.
   ///
-  /// You should only use this method in tests.
+  /// You should only use this method in tests. However, there is an equivalent
+  /// [ReduxAction.waitActionType] method that can be used in production code,
+  /// inside action reducers.
+  ///
   @visibleForTesting
   Future<ReduxAction<St>?> waitActionType(
     Type actionType, {
@@ -1162,7 +1165,10 @@ class Store<St> {
   /// [waitAllActionTypes] - Waits until all actions of the given type are NOT in progress.
   /// [waitAnyActionTypeFinishes] - Waits until ANY action of the given types finish dispatching.
   ///
-  /// You should only use this method in tests.
+  /// You should only use this method in tests. However, there is an equivalent
+  /// [ReduxAction.waitAllActionTypes] method that can be used in production code,
+  /// inside action reducers.
+  ///
   @visibleForTesting
   Future<void> waitAllActionTypes(
     List<Type> actionTypes, {
@@ -2888,7 +2894,7 @@ class GlobalErrorObserverForDevelopment<St> extends GlobalErrorObserver<St> {
 ///    globalErrorObserver: (store) => SwallowGlobalErrorObserver()
 /// );
 /// ```
-/// 
+///
 /// See also: [GlobalErrorObserverDummy] and [GlobalErrorObserverForDevelopment].
 ///
 class SwallowGlobalErrorObserver<St> extends GlobalErrorObserver<St> {
