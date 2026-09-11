@@ -100,7 +100,7 @@ mixin CheckInternet<St> on ReduxAction<St> {
   Future<void> before() async {
     _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet();
 
-    super.before();
+    await super.before();
     var result = await checkConnectivity();
 
     if (result.contains(ConnectivityResult.none))
@@ -211,7 +211,7 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
   Future<void> before() async {
     _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet();
 
-    super.before();
+    await super.before();
     var result = await checkConnectivity();
     if (result.contains(ConnectivityResult.none))
       throw AbortDispatchException();
@@ -266,7 +266,9 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
 ///
 /// Notes:
 /// - This mixin can safely be combined with [CheckInternet], [NoDialog], and [AbortWhenNoInternet].
-/// - It should not be combined with other mixins or classes that override [abortDispatch] or [after].
+/// - Other mixins or classes that override [after] must call `super.after()`.
+/// - Other mixins or classes that override [abortDispatch] should call
+///   `super.abortDispatch()` only as their last step, when they don't want to abort.
 /// - It should not be combined with [Throttle], [UnlimitedRetryCheckInternet], or [Fresh].
 ///
 mixin NonReentrant<St> on ReduxAction<St> {
@@ -384,10 +386,15 @@ mixin NonReentrant<St> on ReduxAction<St> {
     }
   }
 
+  @mustCallSuper
   @override
   void after() {
-    // Remove the key when the action finishes (success or failure).
-    _nonReentrantKeySet.remove(_nonReentrantKey);
+    try {
+      super.after();
+    } finally {
+      // Remove the key when the action finishes (success or failure).
+      _nonReentrantKeySet.remove(_nonReentrantKey);
+    }
   }
 
   void
@@ -1260,10 +1267,15 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
     }
   }
 
+  @mustCallSuper
   @override
   void after() {
-    // Remove the key when the action finishes (success or failure).
-    _nonReentrantCommandKeySet.remove(_nonReentrantCommandKey);
+    try {
+      super.after();
+    } finally {
+      // Remove the key when the action finishes (success or failure).
+      _nonReentrantCommandKeySet.remove(_nonReentrantCommandKey);
+    }
   }
 
   /// Only [Retry], [CheckInternet] and [AbortWhenNoInternet] can be combined
@@ -1383,12 +1395,17 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 ///
 /// Now, if the action fails, it will remove the lock and allow the action to
 /// be dispatched again right away. Note, this currently implemented in the
-/// [after] method, which means you can override it to customize this behavior:
+/// [after] method, which means you can override it to customize this behavior
+/// (just remember to call `super.after()`):
 ///
 /// ```dart
 /// @override
 /// void after() {
-///   if (removeLockOnError && (status.originalError != null)) removeLock();
+///   try {
+///     if (status.originalError is SomeSpecificError) removeLock();
+///   } finally {
+///     super.after();
+///   }
 /// }
 /// ```
 ///
@@ -1431,7 +1448,9 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 /// state of all other mixins.
 ///
 /// Notes:
-/// - It should not be combined with other mixins or classes that override [abortDispatch] or [after].
+/// - Other mixins or classes that override [after] must call `super.after()`.
+/// - Other mixins or classes that override [abortDispatch] should call
+///   `super.abortDispatch()` only as their last step, when they don't want to abort.
 /// - It should not be combined with [Fresh], [NonReentrant] or [UnlimitedRetryCheckInternet].
 ///
 mixin Throttle<St> on ReduxAction<St> {
@@ -1501,10 +1520,15 @@ mixin Throttle<St> on ReduxAction<St> {
     _throttleLockMap.removeWhere((_, expiresAt) => !expiresAt.isAfter(now));
   }
 
+  @mustCallSuper
   @override
   void after() {
-    if (removeLockOnError && (status.originalError != null)) removeLock();
-    _prune();
+    try {
+      super.after();
+    } finally {
+      if (removeLockOnError && (status.originalError != null)) removeLock();
+      _prune();
+    }
   }
 
   void
@@ -2066,8 +2090,9 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
 ///
 ///
 /// Notes:
-/// - It should not be combined with other mixins or classes that override
-///   [abortDispatch] or [after].
+/// - Other mixins or classes that override [after] must call `super.after()`.
+/// - Other mixins or classes that override [abortDispatch] should call
+///   `super.abortDispatch()` only as their last step, when they don't want to abort.
 /// - It should not be combined with [Throttle], [NonReentrant],
 ///   [UnlimitedRetryCheckInternet] or [OptimisticCommand].
 ///
@@ -2282,8 +2307,18 @@ mixin Fresh<St> on ReduxAction<St> {
     _freshKeyMap.removeWhere((_, value) => !value.$1.isAfter(now));
   }
 
+  @mustCallSuper
   @override
   void after() {
+    try {
+      super.after();
+    } finally {
+      _rollbackFreshKeyOnError();
+      _prune();
+    }
+  }
+
+  void _rollbackFreshKeyOnError() {
     if (!_keysRemoved && status.originalError != null && _freshKey != null) {
       final current = _freshKeyMap[_freshKey];
 
@@ -2300,8 +2335,6 @@ mixin Fresh<St> on ReduxAction<St> {
         }
       }
     }
-
-    _prune();
   }
 }
 
@@ -4117,5 +4150,351 @@ mixin Polling<St> on ReduxAction<St> {
     _incompatible<Polling, OptimisticSync>(this);
     _incompatible<Polling, OptimisticSyncWithPush>(this);
     _incompatible<Polling, ServerPush>(this);
+  }
+}
+
+/// Mixin [Sequential] makes actions run one at a time, in the exact
+/// order they were dispatched. Just add `with Sequential` to your
+/// actions. For example:
+///
+/// ```dart
+/// class SaveItem extends ReduxAction<AppState> with Sequential {
+///   final Item item;
+///   SaveItem(this.item);
+///
+///   Future<AppState?> reduce() async {
+///     await http.put('http://myapi.com/items', body: item.toJson());
+///     return null;
+///   }
+/// }
+/// ```
+///
+/// All actions that use this mixin share a single FIFO queue (first in, first
+/// out). When an action is dispatched, it takes its place at the end of the
+/// queue, and then waits until every action dispatched before it has finished.
+/// Only then does it run its `before`, `reduce` and `after` methods.
+///
+/// This works across all participating action types: if `SaveItem` and
+/// `DeleteItem` both use the mixin, they wait for each other. Two actions of
+/// the same type also enter the queue and run one after the other.
+///
+/// The queue position is reserved synchronously, at the moment `dispatch` is
+/// called, before any asynchronous gap. This guarantees the run order is the
+/// dispatch order, even if the actions are dispatched from different places
+/// or in quick succession.
+///
+/// When an action finishes, the next action in the queue is released. This
+/// happens regardless of how the action finished:
+///
+/// - It completed successfully.
+/// - It threw an error (from `before` or `reduce`).
+/// - It was aborted by throwing an [AbortDispatchException] in `before`.
+///
+/// Note that when [abortDispatch] returns `true`, the action never enters the
+/// queue, since none of its lifecycle methods run.
+///
+/// # Keys: multiple independent queues
+///
+/// By default, all actions that use this mixin share ONE queue, whose key is
+/// `null`. If you want independent queues, override [sequentialKeyParams]
+/// to return any object. Actions with the same key wait for each other, while
+/// actions with different keys run in parallel. For example, here each user
+/// has its own queue, so the actions of different users don't block each other:
+///
+/// ```dart
+/// class SaveUser extends ReduxAction<AppState> with Sequential {
+///   final String userId;
+///   SaveUser(this.userId);
+///
+///   Object? sequentialKeyParams() => userId;
+///   ...
+/// }
+///
+/// class DeleteUser extends ReduxAction<AppState> with Sequential {
+///   final String userId;
+///   DeleteUser(this.userId);
+///
+///   Object? sequentialKeyParams() => userId;
+///   ...
+/// }
+/// ```
+///
+/// With this setup, `SaveUser('A')` and `DeleteUser('A')` run one after the
+/// other, but `SaveUser('A')` and `SaveUser('B')` may run at the same time.
+///
+/// Keys are removed from memory as soon as their queue becomes empty.
+///
+/// # Discarding the queue when an action fails
+///
+/// Actions are often queued because each one depends on the previous ones.
+/// For example, an action that creates an item, followed by one that updates
+/// it. In that case, if the first action fails, running the rest makes no
+/// sense. Override [discardQueueOnError] to return `true` when you want a
+/// failure to abort all the actions that are waiting behind the failed one:
+///
+/// ```dart
+/// class SaveItem extends ReduxAction<AppState> with Sequential {
+///   bool discardQueueOnError(Object error) => error is! AbortDispatchException;
+///   ...
+/// }
+/// ```
+///
+/// The discarded actions are aborted: they don't run their `reduce` method,
+/// and they finish with an [AbortDispatchException] (which the store treats
+/// silently, without showing any error dialog). You can check
+/// [wasDiscardedFromSequentialQueue] on those actions, if you need to know.
+/// Actions dispatched after the failure are not affected, and start a fresh
+/// queue. The default is `false`, which means the queue simply continues.
+///
+/// # IMPORTANT: Do not wait for an action in the same queue
+///
+/// An action that is running (and therefore holds the queue) must NOT wait for
+/// another action that uses the same queue. If it does, both actions will wait
+/// for each other forever (a deadlock):
+///
+/// ```dart
+/// class Parent extends ReduxAction<AppState> with Sequential {
+///   Future<AppState?> reduce() async {
+///     // WRONG: `Child` enters the queue behind `Parent`, and waits for
+///     // `Parent` to finish. But `Parent` waits for `Child` here. Deadlock!
+///     await dispatchAndWait(Child());
+///     return null;
+///   }
+/// }
+///
+/// class Child extends ReduxAction<AppState> with Sequential { ... }
+/// ```
+///
+/// The same applies to any other way of waiting for a queued action, such as
+/// `waitActionType(Child)`, `waitAllActions`, or a `waitCondition` that only
+/// becomes true after `Child` runs.
+///
+/// If you need to dispatch another action of the same queue from inside a
+/// running action, you have these options:
+///
+/// - Dispatch it without waiting for it: `dispatch(Child())`. The child is
+///   queued and will run right after the parent finishes.
+/// - Give the child a different key, so it uses a different queue.
+/// - Don't use the mixin in the child.
+///
+/// # Overriding `before` and `after`
+///
+/// This mixin holds the action in the [before] method until it's the action's
+/// turn to run, and releases the queue in the [after] method. If you override
+/// these methods, you must call `super`:
+///
+/// - In [before], call `await super.before()` as the FIRST statement. Your code
+///   after that will run when it's the action's turn. If you put code before
+///   `super.before()`, it will run immediately when the action is dispatched,
+///   which is usually not what you want. Never `await` anything before calling
+///   `super.before()`, because that would delay the queue reservation and the
+///   action could lose its position in the order.
+///
+/// - In [after], call `super.after()`, preferably in a `finally` block, so the
+///   queue is released even if your own code throws.
+///
+/// ```dart
+/// class MyAction extends ReduxAction<AppState> with Sequential {
+///
+///   Future<void> before() async {
+///     await super.before(); // Waits for its turn.
+///     doSomething(); // Runs when it's the action's turn.
+///   }
+///
+///   void after() {
+///     try {
+///       doSomethingElse();
+///     } finally {
+///       super.after(); // Releases the queue.
+///     }
+///   }
+///   ...
+/// }
+/// ```
+///
+/// # Other notes
+///
+/// - Actions using this mixin are always asynchronous, even if their `reduce`
+///   method is synchronous. This means you can't use `dispatchSync` with them.
+///
+/// - While an action is waiting in the queue, it counts as being "in progress",
+///   so `isWaiting(MyAction)` returns `true` for it. This is usually what you
+///   want, as it lets you show a spinner as soon as the action is dispatched.
+///   You can also check [isWaitingInSequentialQueue] on the action itself.
+///
+/// - Calling `store.internalMixinProps.clear()` (or `store.shutdown()`) resets
+///   the queues. Actions that are already waiting will still run in order, but
+///   actions dispatched after the reset start a new queue and won't wait for
+///   the old ones. Note this also resets the internal state of all other mixins.
+///
+/// - This mixin can safely be combined with [Retry], [UnlimitedRetries],
+///   [CheckInternet], [NoDialog] and [AbortWhenNoInternet]. Retries happen
+///   while the action holds the queue, and the internet check happens when
+///   the action gets its turn, regardless of the mixin order.
+///
+/// - It can also be combined with [NonReentrant], [Throttle], [Fresh] and
+///   [OptimisticCommand], in any mixin order. For example, `NonReentrant` with
+///   a per-type key plus `Sequential` means duplicates are dropped
+///   while the original is queued or running, and the ones that get through
+///   still run one at a time.
+///
+/// - It should not be combined with [Debounce], because the debounce period
+///   would only start when the action gets its turn in the queue, which
+///   defeats the purpose of debouncing.
+///
+mixin Sequential<St> on ReduxAction<St> {
+  //
+  /// By default, all actions that use this mixin share a single queue, whose
+  /// key is `null`. Override this method to return a different key, so that
+  /// only actions with the same key wait for each other. The returned value
+  /// is used as the queue key itself.
+  ///
+  /// For example, here each user has its own queue:
+  ///
+  /// ```dart
+  /// class SaveUser extends ReduxAction<AppState> with Sequential {
+  ///   final String userId;
+  ///   SaveUser(this.userId);
+  ///
+  ///   Object? sequentialKeyParams() => userId;
+  ///   ...
+  /// }
+  /// ```
+  ///
+  /// You may also return the [runtimeType], so that only actions of the same
+  /// type wait for each other:
+  ///
+  /// ```dart
+  /// Object? sequentialKeyParams() => runtimeType;
+  /// ```
+  ///
+  Object? sequentialKeyParams() => null;
+
+  /// Called when this action finishes with an error, with that error. Return
+  /// `true` to abort all the actions that are currently waiting in the same
+  /// queue, behind this one. They will not run their `reduce` method, and will
+  /// finish with an [AbortDispatchException]. Actions dispatched after this
+  /// action finished are not affected.
+  ///
+  /// The default is `false`: the queue continues with the next action.
+  ///
+  /// Note the [error] may be an [AbortDispatchException], if this action was
+  /// aborted in its `before` method (for example, by [AbortWhenNoInternet]).
+  /// You may want to keep the queue in that case:
+  ///
+  /// ```dart
+  /// bool discardQueueOnError(Object error) => error is! AbortDispatchException;
+  /// ```
+  ///
+  bool discardQueueOnError(Object error) => false;
+
+  /// Map from each queue key to the list of completers of the actions in that
+  /// queue, in the order they will run. The first completer belongs to the
+  /// action that is currently running. Each waiting action awaits its own
+  /// completer, which is completed by the action that runs before it (with
+  /// `false`), or by a failed action that discards the queue (with `true`).
+  Map<Object?, List<Completer<bool>>> get _sequentialQueueMap =>
+      store.internalMixinProps.sequentialQueueMap;
+
+  Object? _sequentialKey;
+  List<Completer<bool>>? _sequentialQueue;
+  Completer<bool>? _sequentialCompleter;
+
+  /// Returns `true` while this action is waiting for previous actions in
+  /// its queue to finish. Returns `false` before the action is dispatched,
+  /// once it gets its turn, and after it finishes.
+  bool get isWaitingInSequentialQueue => _isWaitingInSequentialQueue;
+  bool _isWaitingInSequentialQueue = false;
+
+  /// Returns `true` if this action was aborted because a previous action in
+  /// the same queue failed and returned `true` from [discardQueueOnError].
+  bool get wasDiscardedFromSequentialQueue => _wasDiscardedFromSequentialQueue;
+  bool _wasDiscardedFromSequentialQueue = false;
+
+  @mustCallSuper
+  @override
+  Future<void> before() async {
+    _cannot_combine_Sequential_Debounce();
+
+    // Reserve the position in the queue. This part of the method runs
+    // synchronously when the action is dispatched (there is no `await` before
+    // it), which is what preserves the dispatch order.
+    final key = sequentialKeyParams();
+    final queue = _sequentialQueueMap.putIfAbsent(key, () => []);
+    final completer = Completer<bool>();
+    final mustWait = queue.isNotEmpty;
+    queue.add(completer);
+    _sequentialKey = key;
+    _sequentialQueue = queue;
+    _sequentialCompleter = completer;
+
+    // Wait until the previous action in the queue releases this one.
+    if (mustWait) {
+      _isWaitingInSequentialQueue = true;
+      bool discarded;
+      try {
+        discarded = await completer.future;
+      } finally {
+        _isWaitingInSequentialQueue = false;
+      }
+
+      if (discarded) {
+        _wasDiscardedFromSequentialQueue = true;
+        throw AbortDispatchException();
+      }
+    }
+
+    // It's now this action's turn.
+    await super.before();
+  }
+
+  @mustCallSuper
+  @override
+  void after() {
+    try {
+      super.after();
+    } finally {
+      _releaseSequentialQueue();
+    }
+  }
+
+  /// Removes this action from the queue and lets the next one run, or
+  /// discards the whole queue if this action failed and wants that.
+  void _releaseSequentialQueue() {
+    final queue = _sequentialQueue;
+    final completer = _sequentialCompleter;
+    if (queue == null || completer == null) return;
+    _sequentialCompleter = null;
+
+    // A discarded action was already removed from the queue by the action
+    // that discarded it, and must not release anyone.
+    if (_wasDiscardedFromSequentialQueue) return;
+
+    bool discard = false;
+    try {
+      final error = status.originalError;
+      if (error != null) discard = discardQueueOnError(error);
+    } finally {
+      queue.remove(completer);
+
+      if (discard) {
+        final discarded = List.of(queue);
+        queue.clear();
+        for (final other in discarded) other.complete(true);
+      } else if (queue.isNotEmpty) {
+        queue.first.complete(false);
+      }
+
+      // If the queue is now empty, remove the key to prevent memory leaks.
+      // If the store was reset in the meantime (`internalMixinProps.clear()`),
+      // the map no longer holds this queue, and we leave the map alone.
+      final map = _sequentialQueueMap;
+      if (queue.isEmpty && identical(map[_sequentialKey], queue))
+        map.remove(_sequentialKey);
+    }
+  }
+
+  void _cannot_combine_Sequential_Debounce() {
+    _incompatible<Sequential, Debounce>(this);
   }
 }

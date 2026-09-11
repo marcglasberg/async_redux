@@ -568,111 +568,245 @@ abstract class ReduxAction<St> {
       _store.waitCondition(condition, timeoutMillis: timeoutMillis);
 
   /// Returns a future that completes when ALL given [actions] finished dispatching.
-  /// You MUST provide at list one action, or an error will be thrown.
+  /// You MUST provide at least one action, or a [StoreException] will be thrown.
   ///
-  /// If [completeImmediately] is `false` (the default), this method will throw [StoreException]
-  /// if none of the given actions are in progress when the method is called. Otherwise, the future
-  /// will complete immediately and throw no error.
+  /// If [completeImmediately] is `false` (the default), this method throws a [StoreException]
+  /// if none of the given actions is in progress when the method is called (for example,
+  /// because they already finished). If it's `true`, the future completes immediately
+  /// and throws no error.
+  ///
+  /// This method never times out. It waits for as long as it takes for the given actions
+  /// to finish. If you need a deadline, apply it to the awaited actions themselves, or use
+  /// Dart's `Future.timeout`.
   ///
   /// Example:
   ///
-  /// ```ts
+  /// ```dart
   /// // Dispatching two actions in PARALLEL and waiting for both to finish.
   /// var action1 = ChangeNameAction('Bill');
   /// var action2 = ChangeAgeAction(42);
+  /// dispatch(action1);
+  /// dispatch(action2);
   /// await waitAllActions([action1, action2]);
   ///
   /// // Compare this to dispatching the actions in SERIES:
   /// await dispatchAndWait(action1);
   /// await dispatchAndWait(action2);
   /// ```
+  ///
+  /// The current action itself is ignored if present in [actions]. The current action is
+  /// in progress while its reducer runs, so waiting for it would never complete (a deadlock).
+  /// If [actions] contains only the current action, there is nothing else to wait for, and
+  /// the future completes immediately.
+  ///
+  /// WARNING: The current action stays in progress while it waits, and the wait never times
+  /// out, so waiting for an action that, directly or indirectly, waits for the current action
+  /// is a deadlock: both hang forever. Only wait for actions that never wait for you. See
+  /// [waitActionType] for a detailed description of the cases to avoid, and note that this
+  /// method is not a way to make actions run one at a time. For that, use the [Sequential]
+  /// mixin.
   @protected
   Future<void> waitAllActions(List<ReduxAction<St>> actions,
       {bool completeImmediately = false}) {
     if (actions.isEmpty)
       throw StoreException('You have to provide a non-empty list of actions.');
-    return _store.waitAllActions(actions, completeImmediately: completeImmediately);
+
+    // The current action is in progress, so waiting for it would deadlock.
+    var otherActions = actions.where((action) => !identical(action, this)).toList();
+
+    // Nothing else to wait for.
+    if (otherActions.isEmpty) return Future.value();
+
+    return _store.waitAllActions(otherActions,
+        completeImmediately: completeImmediately, timeoutMillis: -1);
   }
 
-  /// Returns a future that completes when an action of the given type in NOT in progress
-  /// (it's not being dispatched):
+  /// Returns a future that completes when NO action of the given type is in progress
+  /// (none is being dispatched):
   ///
-  /// - If NO action of the given type is currently in progress when the method is called,
-  ///   and [completeImmediately] is `false` (the default), this method will throw an error.
+  /// - If NO action of the given type is in progress when the method is called,
+  ///   the future completes immediately and returns `null`.
   ///
-  /// - If NO action of the given type is currently in progress when the method is called,
-  ///   and [completeImmediately] is `true`, the future completes immediately, returns `null`,
-  ///   and throws no error.
+  /// - If an action of the given type is in progress, the future completes when the last
+  ///   action of that type finishes, and returns that action. You can use the returned
+  ///   action to check its `status`.
   ///
-  /// - If an action of the given type is in progress, the future completes when the action
-  ///   finishes, and returns the action. You can use the returned action to check its `status`:
+  /// This method never throws because nothing was in progress, and it never times out.
+  /// It waits for as long as it takes for the awaited type to finish. If you need a
+  /// deadline, apply it to the awaited action itself, or use Dart's `Future.timeout`.
   ///
-  ///   ```dart
-  ///   var action = await waitActionType(MyAction);
-  ///   ```
+  /// # Intended use
   ///
-  /// You may also provide a [timeoutMillis], which by default is 10 minutes.
-  /// To disable the timeout, make it -1.
+  /// This method is for one-directional dependencies: the current action needs data that
+  /// another action may be producing right now. For example, if a `LoadUser` action may be
+  /// running, wait for it to finish before reading the user from the state:
   ///
-  /// Note: To control how the current action interacts with another action that
-  /// may be running:
+  /// ```dart
+  /// class ShowGreeting extends ReduxAction<AppState> {
+  ///   Future<AppState?> reduce() async {
+  ///     // If LoadUser is running, let it finish first. If not, continue at once.
+  ///     await waitActionType(LoadUser);
+  ///     return state.copy(greeting: 'Hello, ${state.user.name}');
+  ///   }
+  /// }
+  /// ```
   ///
-  /// * To **abort** the current action if `Action1` is running,
-  ///   add this to the current action:
-  ///   `void abortDispatch() => isWaiting([Action1]);`
+  /// # WARNING: Do NOT use this method to run actions one at a time
   ///
-  /// * To just **wait** for `Action1` to finish (in case it's already running),
-  ///   instead of aborting, add this as the first line of your reducer:
-  ///   `await waitActionType(Action1);`
+  /// This method is NOT a lock or a queue, and it CANNOT make actions run sequentially:
+  ///
+  /// - It gives no exclusivity. When the awaited type becomes idle, ALL actions waiting for
+  ///   it resume at the same time, and a new action of that type may start right after.
+  ///
+  /// - It gives no ordering. Waiting actions resume in no particular order.
+  ///
+  /// - It may starve. It completes only at an instant when NO action of the type is in
+  ///   progress. If actions of that type are dispatched often enough that they overlap, that
+  ///   instant may never come, and the current action never completes.
+  ///
+  /// If your goal is to make actions run one at a time, in order, use the [Sequential] mixin
+  /// instead. To simply drop an action while another of the same type is running, use the
+  /// [NonReentrant] mixin.
+  ///
+  /// # WARNING: Deadlocks
+  ///
+  /// The current action stays in progress while it waits, and the wait never times out.
+  /// Any wait that, directly or indirectly, depends on the current action finishing is a
+  /// deadlock: all involved actions hang forever, showing as waiting (spinners stay on) and
+  /// never completing or failing. Cases to avoid:
+  ///
+  /// - **Waiting for your own type.** Since this can never complete, it throws a
+  ///   [StoreException] right away instead of hanging.
+  ///
+  /// - **Circular waits.** `ActionA` waits for `ActionB` while `ActionB` waits for `ActionA`.
+  ///   Cycles may be longer (`A` waits for `B`, `B` waits for `C`, `C` waits for `A`), and
+  ///   may pass through dispatch: `A` waits for type `B` while `B` does
+  ///   `await dispatchAndWait(A())`, since the new `A` also waits for `B`. The rule is: only
+  ///   wait for actions that never wait for you, directly or indirectly. Your wait
+  ///   dependencies must form no cycles.
+  ///
+  /// - **Waiting for an action queued behind you.** If the current action uses the
+  ///   [Sequential] mixin, do not wait for the type of an action that may be in the same
+  ///   queue. Queued actions count as in progress while they wait for their turn, and they
+  ///   cannot start until the current action finishes.
+  ///
+  /// - **Waiting for an action that waits for the state you produce.** This is a circular
+  ///   wait through [waitCondition]: don't wait for an action whose reducer awaits a state
+  ///   change that only the current action makes.
+  ///
+  /// # Aborting instead of waiting
+  ///
+  /// If, instead of waiting for `Action1` to finish, you want to abort the current action
+  /// while `Action1` is running, add this to the current action:
+  ///
+  /// ```dart
+  /// bool abortDispatch() => isWaiting(Action1);
+  /// ```
   ///
   /// See also:
   /// [waitCondition] - Waits until the state is in a given condition.
-  /// [waitAllActions] - Waits until the given actions are NOT in progress, or no actions are in progress.
-  /// [waitAllActionTypes] - Waits until all actions of the given type are NOT in progress.
+  /// [waitAllActions] - Waits until the given actions are NOT in progress.
+  /// [waitAllActionTypes] - Waits until no action of the given types is in progress.
   ///
-  Future<ReduxAction<St>?> waitActionType(
-    Type actionType, {
-    bool completeImmediately = false,
-    int? timeoutMillis,
-  }) async {
-    return _store.waitActionType(actionType,
-        completeImmediately: completeImmediately, timeoutMillis: timeoutMillis);
+  Future<ReduxAction<St>?> waitActionType(Type actionType) {
+    if (actionType == runtimeType)
+      throw StoreException('Action $runtimeType cannot wait for its own type '
+          'with waitActionType($runtimeType), because it would wait forever for itself '
+          'to finish. To run actions of the same type one at a time, '
+          'use the Sequential mixin instead.');
+
+    return _store.waitActionType(actionType, completeImmediately: true, timeoutMillis: -1);
   }
 
-  /// Returns a future that completes when ALL actions of the given types are NOT in
-  /// progress (none of them are being dispatched):
+  /// Returns a future that completes when NO action of the given types is in progress
+  /// (none of them is being dispatched):
   ///
-  /// - If NO action of the given types is currently in progress when the method is called,
-  ///   and [completeImmediately] is `false` (the default), this method will throw an error.
-  ///
-  /// - If NO action of the given type is currently in progress when the method is called,
-  ///   and [completeImmediately] is `true`, the future completes immediately and throws
-  ///   no error.
+  /// - If NO action of the given types is in progress when the method is called,
+  ///   the future completes immediately.
   ///
   /// - If any action of the given types is in progress, the future completes only when
   ///   no action of the given types is in progress anymore.
   ///
-  /// You may also provide a [timeoutMillis], which by default is 10 minutes.
-  /// To disable the timeout, make it -1.
+  /// This method never throws because nothing was in progress, and it never times out.
+  /// It waits for as long as it takes for the awaited types to finish. If you need a
+  /// deadline, apply it to the awaited actions themselves, or use Dart's `Future.timeout`.
   ///
-  /// Note: To control how the current action interacts with other actions that
-  /// may be running:
+  /// You MUST provide at least one action type, or a [StoreException] will be thrown.
   ///
-  /// * To **abort** the current action if `Action1` or `Action2` are running,
-  ///   add this to the current action:
-  ///   `void abortDispatch() => isWaiting([Action1, Action2]);`
+  /// The type of the current action itself is ignored if present in [actionTypes], since
+  /// the current action is in progress while its reducer runs, and waiting for its own type
+  /// would never complete. If [actionTypes] contains only the current action's own type,
+  /// there is nothing else to wait for, and the future completes immediately.
   ///
-  /// * To just **wait** for `Action1` and `Action2` to finish (in case any of them are
-  ///   running), instead of aborting, add this as the first line of your reducer:
-  ///   `await waitAllActionTypes([Action1, Action2]);`
+  /// # Intended use
   ///
-  Future<void> waitAllActionTypes(
-    List<Type> actionTypes, {
-    bool completeImmediately = false,
-    int? timeoutMillis,
-  }) async {
-    return _store.waitAllActionTypes(actionTypes,
-        completeImmediately: completeImmediately, timeoutMillis: timeoutMillis);
+  /// This method is for one-directional dependencies: the current action needs data that
+  /// other actions may be producing right now. For example, if `LoadUser` and
+  /// `LoadSettings` may be running, wait for both to finish before reading the state:
+  ///
+  /// ```dart
+  /// class ShowGreeting extends ReduxAction<AppState> {
+  ///   Future<AppState?> reduce() async {
+  ///     // If any of these is running, let them finish first. If not, continue at once.
+  ///     await waitAllActionTypes([LoadUser, LoadSettings]);
+  ///     return state.copy(greeting: '${state.settings.salutation}, ${state.user.name}');
+  ///   }
+  /// }
+  /// ```
+  ///
+  /// # WARNING: Do NOT use this method to run actions one at a time
+  ///
+  /// This method is NOT a lock or a queue, and it CANNOT make actions run sequentially. It
+  /// gives no exclusivity (all actions waiting for the same types resume at the same time,
+  /// and new actions of those types may start right after), it gives no ordering, and it may
+  /// starve if actions of the given types are dispatched often enough that they overlap.
+  /// In particular, having `ActionA`, `ActionB` and `ActionC` each wait for
+  /// `[ActionA, ActionB, ActionC]` does NOT make them run one at a time. It deadlocks
+  /// as soon as two of them run at the same time, because each waits for the other.
+  ///
+  /// If your goal is to make actions run one at a time, in order, use the [Sequential] mixin
+  /// instead. To simply drop an action while another of the same type is running, use the
+  /// [NonReentrant] mixin.
+  ///
+  /// # WARNING: Deadlocks
+  ///
+  /// The current action stays in progress while it waits, and the wait never times out.
+  /// Any wait that, directly or indirectly, depends on the current action finishing is a
+  /// deadlock: all involved actions hang forever, showing as waiting (spinners stay on) and
+  /// never completing or failing. Avoid circular waits (`A` waits for `B` while `B` waits
+  /// for `A`, including longer cycles and cycles that pass through `dispatchAndWait` or
+  /// [waitCondition]), and avoid waiting for an action that may be queued behind the current
+  /// one in a [Sequential] queue. The rule is: only wait for actions that never wait for
+  /// you, directly or indirectly.
+  ///
+  /// See the documentation of [waitActionType] for a detailed description of each of these
+  /// cases.
+  ///
+  /// # Aborting instead of waiting
+  ///
+  /// If, instead of waiting for `Action1` and `Action2` to finish, you want to abort the
+  /// current action while any of them is running, add this to the current action:
+  ///
+  /// ```dart
+  /// bool abortDispatch() => isWaiting([Action1, Action2]);
+  /// ```
+  ///
+  /// See also:
+  /// [waitCondition] - Waits until the state is in a given condition.
+  /// [waitAllActions] - Waits until the given actions are NOT in progress.
+  /// [waitActionType] - Waits until no action of the given type is in progress.
+  ///
+  Future<void> waitAllActionTypes(List<Type> actionTypes) {
+    if (actionTypes.isEmpty)
+      throw StoreException('You have to provide a non-empty list of action types.');
+
+    // The current action is in progress, so waiting for its own type would deadlock.
+    var otherTypes = actionTypes.where((type) => type != runtimeType).toList();
+
+    // Nothing else to wait for.
+    if (otherTypes.isEmpty) return Future.value();
+
+    return _store.waitAllActionTypes(otherTypes, completeImmediately: true, timeoutMillis: -1);
   }
 
   /// An async reducer (one that returns Future<AppState?>) must never complete without at least

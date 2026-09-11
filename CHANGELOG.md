@@ -7,18 +7,55 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 28.2.0
+## 28.3.0
 
-* You can now use `waitActionType` and `waitActionTypes` inside the reducer of an action,
-  to wait for a specific action type or multiple action types to complete:
+* New `Sequential` mixin. Actions that use it enter a shared FIFO queue and run
+  one at a time, in the exact order they were dispatched, across all participating action
+  types. The queue position is reserved synchronously at dispatch time, and the next
+  action is released when the previous one completes, fails, or is aborted. Override
+  `sequentialDispatchKeyParams` to have independent queues (the default key is `null`, a
+  single global queue), and override boolean `discardQueueOnError` to abort the queue
+  when an action fails:
 
   ```dart
-  // Wait for any instance of LoadUserProfile to complete
+  class SaveItem extends ReduxAction<AppState> with Sequential {
+    Future<AppState?> reduce() async { ... }
+  }
+  ```
+
+  Important: an action that holds the queue must not `await dispatchAndWait(...)` another
+  action of the same queue, because that would deadlock. Use `dispatch(...)` without
+  awaiting instead.
+
+* You can now use `waitActionType` and `waitAllActionTypes` inside the reducer of an
+  action, to wait for actions of the given types that may be running right now, before
+  continuing. If no action of the given types is running, they complete at once.
+
+  ```dart
+  // If a LoadUserProfile is running, wait for it to finish. Otherwise, continue at once.
   await waitActionType(LoadUserProfile);
 
-  // Wait for either LoadUserProfile or LoadUserSettings to complete
-  await waitActionTypes([LoadUserProfile, LoadUserSettings]);
+  // Same, but wait for all LoadUserProfile and LoadUserSettings actions.
+  await waitAllActionTypes([LoadUserProfile, LoadUserSettings]);
   ```
+
+  IMPORTANT: These methods are meant for one-directional dependencies, such as waiting for
+  data that another action may be loading right now. They are NOT locks or queues, and
+  must NOT be used to make actions run one at a time. Use the `Sequential` mixin for that.
+  Circular waits deadlock: if `ActionA` waits for `ActionB` while `ActionB` waits for
+  `ActionA`, both hang forever. Only wait for actions that never wait for you, directly or
+  indirectly. The docs of these methods lists all the cases to avoid.
+
+  Waiting for the type of the current action itself would also deadlock, so
+  `waitActionType` throws a `StoreException` if given the current action's own type, while
+  `waitAllActionTypes` simply ignores it. Likewise, `waitAllActions` now ignores the
+  current action instance if present in its list.
+
+* `ReduxAction.waitAllActions` no longer times out (it used to fail with a
+  `TimeoutException` after 10 minutes). Like `waitActionType` and `waitAllActionTypes`
+  above, it now waits for as long as it takes for the given actions to finish. Its
+  `completeImmediately` parameter is unchanged, and the `Store.waitAllActions` method used
+  in tests is also unchanged.
 
 ## 28.1.0
 
@@ -44,7 +81,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 ## 28.0.0
 
 * **DEPRECATION WARNING:** `Store.globalWrapError` and `Store.errorObserver`
-  are now deprecated. Use the new `globalErrorObserver` instead. 
+  are now deprecated. Use the new `globalErrorObserver` instead.
 
 * You can now provide a _global error observer_ using the `globalWrapError` parameter in
   the `Store` constructor:
@@ -220,8 +257,8 @@ This is how you create a store with these three parameters:
   keeping data fresh by fetching it from a server. This is useful for
   refreshing prices, checking for new messages, or monitoring wallet balances.
 
-  Control polling with the `Poll` enum: `Poll.start` to begin polling
-  (also runs the action immediately), `Poll.stop` to cancel it,
+  Control polling with the `Poll` enum: `Poll.start` to begin polling (also runs the
+  action immediately), `Poll.stop` to cancel it,
   `Poll.runNowAndRestart` to run immediately and restart the timer, and `Poll.once`
   to run immediately without affecting the timer.
 
@@ -429,8 +466,8 @@ This is how you create a store with these three parameters:
 
 * Added the `OptimisticSyncWithPush` and `ServerPush` mixins.
 
-  Use these mixins together when your app receives server-pushed updates
-  (WebSockets, Server-Sent Events, Firebase, etc.) that may modify the same
+  Use these mixins together when your app receives server-pushed updates (WebSockets,
+  Server-Sent Events, Firebase, etc.) that may modify the same
   state your actions control.
 
   Read the documentation in their own code to understand how they work.
@@ -1384,8 +1421,8 @@ This is how you create a store with these three parameters:
 * You can now access the store inside of widgets, and have your widgets rebuild
   when the state changes, by using `context.state` and `context.dispatch` etc.
   This is only useful when you want to access the store state, and dispatch
-  actions directly inside your widgets, instead of using the `StoreConnector` (
-  dumb widget / smart widget pattern). For example:
+  actions directly inside your widgets, instead of using the `StoreConnector` (dumb
+  widget / smart widget pattern). For example:
 
   ```dart
   // Read state (will rebuild when the state changes) 
@@ -1647,8 +1684,7 @@ This is how you create a store with these three parameters:
   whereas `WrapError` cannot.
 
 * Throwing an error in the action's `wrapError` or in the `GlobalWrapError` was
-  disallowed
-  (you needed to make sure it never happened). Now, it's allowed. If instead of
+  disallowed (you needed to make sure it never happened). Now, it's allowed. If instead of
   RETURNING
   an error
   you THROW an error inside these wrappers, AsyncRedux will catch it and use it
@@ -1866,8 +1902,7 @@ This is how you create a store with these three parameters:
   microtask. Please
   note, the
   async `reduce()` methods continue to return and apply the state in a later
-  microtask (
-  this did
+  microtask (this did
   not change).
 
   The above breaking change is unlikely to affect you in any way, but if you
@@ -2111,8 +2146,7 @@ This is how you create a store with these three parameters:
   exactly the same as `dispatch(action)`. However, if your action is ASYNC,
   `dispatchSync`
   will
-  throw an error. Use this only when you need to make sure an action is sync (
-  meaning it
+  throw an error. Use this only when you need to make sure an action is sync (meaning it
   impacts the
   store state immediately when it returns). This is not very common. Important:
   An action
@@ -2348,11 +2382,11 @@ This is how you create a store with these three parameters:
 
 ## 6.0.3
 
-* StoreTester.dispatchState().
+* StoreTester.dispatchState ().
 
 ## 6.0.2
 
-* VmFactory.getAndRemoveFirstError().
+* VmFactory.getAndRemoveFirstError ().
 
 ## 6.0.1
 
