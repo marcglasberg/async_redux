@@ -21,29 +21,32 @@ This document describes the compatibility between AsyncRedux action mixins.
 | `UnlimitedRetryCheckInternet` | Combines internet check + unlimited retry + non-reentrant                 | `abortDispatch`, `wrapReduce` |
 | `Fresh`                       | Skips action if data is still fresh (not stale)                           | `abortDispatch`, `after`      |
 | `Polling`                     | Adds periodic polling to any action                                       | `wrapReduce`                  |
+| `Sequential`                  | Makes actions run one at a time, in dispatch order                        | `before`, `after`             |
 
 ## Compatibility Matrix
 
-|                                 | CheckInternet | NoDialog | AbortWhenNoInternet | NonReentrant | Retry | UnlimitedRetries | UnlimitedRetryCheckInternet | Throttle | Debounce | Fresh | OptimisticCommand | OptimisticSync | OptimisticSyncWithPush | ServerPush | Polling |
-|---------------------------------|:-------------:|:--------:|:-------------------:|:------------:|:-----:|:----------------:|:---------------------------:|:--------:|:--------:|:-----:|:-----------------:|:--------------:|:----------------------:|:----------:|:-------:|
-| **CheckInternet**               |       —       |    ✅     |          ❌          |      ✅       |  ✅️   |        ✅️        |              ❌              |    ✅     |    ✅     |   ✅   |         ✅         |       ✅        |           ✅            |     ❌      |    ✅    |
-| **NoDialog**                    |      ➡️       |    —     |          ❌          |      ✅       |  ✅️   |        ✅️        |              ❌              |    ✅     |    ✅     |   ✅   |         ✅         |       ✅        |           ✅            |     ❌      |    ✅    |
-| **AbortWhenNoInternet**         |       ❌       |    ❌     |          —          |      ✅       |  ✅️   |        ✅️        |              ❌              |    ✅     |    ✅     |   ✅   |         ✅         |       ✅        |           ✅            |     ❌      |    ✅    |
-| **NonReentrant**                |       ✅       |    ✅     |          ✅          |      —       |   ✅   |        ✅         |              ❌              |    ❌     |    ✅     |   ❌   |         ❌         |       ❌        |           ❌            |     ❌      |    ✅    |
-| **Retry**                       |      ✅️       |    ✅️    |         ✅️          |      ✅       |   —   |        ✅         |              ❌              |    ✅     |    ❌     |   ✅   |         ✅         |       ❌        |           ❌            |     ❌      |    ❌    |
-| **UnlimitedRetries**            |      ✅️       |    ✅️    |         ✅️          |      ✅       |  ➡️   |        —         |              ❌              |    ✅     |    ❌     |   ✅   |         ❌         |       ❌        |           ❌            |     ❌      |    ❌    |
-| **UnlimitedRetryCheckInternet** |       ❌       |    ❌     |          ❌          |      ❌       |   ❌   |        ❌         |              —              |    ❌     |    ❌     |   ❌   |         ❌         |       ❌        |           ❌            |     ❌      |    ❌    |
-| **Throttle**                    |       ✅       |    ✅     |          ✅          |      ❌       |   ✅   |        ✅         |              ❌              |    —     |    ✅     |   ❌   |         ❌         |       ❌        |           ❌            |     ❌      |    ✅    |
-| **Debounce**                    |       ✅       |    ✅     |          ✅          |      ✅       |   ❌   |        ❌         |              ❌              |    ✅     |    —     |   ✅   |         ❌         |       ❌        |           ❌            |     ❌      |    ❌    |
-| **Fresh**                       |       ✅       |    ✅     |          ✅          |      ❌       |   ✅   |        ✅         |              ❌              |    ❌     |    ✅     |   —   |         ❌         |       ❌        |           ❌            |     ❌      |    ✅    |
-| **OptimisticCommand**           |       ✅       |    ✅     |          ✅          |      ❌       |   ✅   |        ❌         |              ❌              |    ❌     |    ❌     |   ❌   |         —         |       ❌        |           ❌            |     ❌      |    ❌    |
-| **OptimisticSync**              |       ✅       |    ✅     |          ✅          |      ❌       |   ❌   |        ❌         |              ❌              |    ❌     |    ❌     |   ❌   |         ❌         |       —        |           ❌            |     ❌      |    ❌    |
-| **OptimisticSyncWithPush**      |       ✅       |    ✅     |          ✅          |      ❌       |   ❌   |        ❌         |              ❌              |    ❌     |    ❌     |   ❌   |         ❌         |       ❌        |           —            |     ❌      |    ❌    |
-| **ServerPush**                  |       ❌       |    ❌     |          ❌          |      ❌       |   ❌   |        ❌         |              ❌              |    ❌     |    ❌     |   ❌   |         ❌         |       ❌        |           ❌            |     —      |    ❌    |
-| **Polling**                     |       ✅       |    ✅     |          ✅          |      ✅       |   ❌   |        ❌         |              ❌              |    ✅     |    ❌     |   ✅   |         ❌         |       ❌        |           ❌            |     ❌      |    —    |
+|                                 | CheckInternet | NoDialog | AbortWhenNoInternet | NonReentrant | Retry | UnlimitedRetries | UnlimitedRetryCheckInternet | Throttle | Debounce | Fresh | OptimisticCommand | OptimisticSync | OptimisticSyncWithPush | ServerPush | Polling | Sequential |
+|---------------------------------|:-------------:|:--------:|:-------------------:|:------------:|:-----:|:----------------:|:---------------------------:|:--------:|:--------:|:-----:|:-----------------:|:--------------:|:----------------------:|:----------:|:-------:|:----------:|
+| **CheckInternet**               |       —       |    ✅     |          ❌          |      ✅       |  ✅️   |        ✅️        |              ❌              |    ✅     |    ✅     |   ✅   |         ✅         |       ✅        |           ✅            |     ❌      |    ✅    | ✅ |
+| **NoDialog**                    |      ➡️       |    —     |          ❌          |      ✅       |  ✅️   |        ✅️        |              ❌              |    ✅     |    ✅     |   ✅   |         ✅         |       ✅        |           ✅            |     ❌      |    ✅    | ✅ |
+| **AbortWhenNoInternet**         |       ❌       |    ❌     |          —          |      ✅       |  ✅️   |        ✅️        |              ❌              |    ✅     |    ✅     |   ✅   |         ✅         |       ✅        |           ✅            |     ❌      |    ✅    | ✅ |
+| **NonReentrant**                |       ✅       |    ✅     |          ✅          |      —       |   ✅   |        ✅         |              ❌              |    ❌     |    ✅     |   ❌   |         ❌         |       ❌        |           ❌            |     ❌      |    ✅    | ✅ |
+| **Retry**                       |      ✅️       |    ✅️    |         ✅️          |      ✅       |   —   |        ✅         |              ❌              |    ✅     |    ❌     |   ✅   |         ✅         |       ❌        |           ❌            |     ❌      |    ❌    | ✅ |
+| **UnlimitedRetries**            |      ✅️       |    ✅️    |         ✅️          |      ✅       |  ➡️   |        —         |              ❌              |    ✅     |    ❌     |   ✅   |         ❌         |       ❌        |           ❌            |     ❌      |    ❌    | ✅ |
+| **UnlimitedRetryCheckInternet** |       ❌       |    ❌     |          ❌          |      ❌       |   ❌   |        ❌         |              —              |    ❌     |    ❌     |   ❌   |         ❌         |       ❌        |           ❌            |     ❌      |    ❌    | ❌ |
+| **Throttle**                    |       ✅       |    ✅     |          ✅          |      ❌       |   ✅   |        ✅         |              ❌              |    —     |    ✅     |   ❌   |         ❌         |       ❌        |           ❌            |     ❌      |    ✅    | ✅ |
+| **Debounce**                    |       ✅       |    ✅     |          ✅          |      ✅       |   ❌   |        ❌         |              ❌              |    ✅     |    —     |   ✅   |         ❌         |       ❌        |           ❌            |     ❌      |    ❌    | ❌ |
+| **Fresh**                       |       ✅       |    ✅     |          ✅          |      ❌       |   ✅   |        ✅         |              ❌              |    ❌     |    ✅     |   —   |         ❌         |       ❌        |           ❌            |     ❌      |    ✅    | ✅ |
+| **OptimisticCommand**           |       ✅       |    ✅     |          ✅          |      ❌       |   ✅   |        ❌         |              ❌              |    ❌     |    ❌     |   ❌   |         —         |       ❌        |           ❌            |     ❌      |    ❌    | ✅ |
+| **OptimisticSync**              |       ✅       |    ✅     |          ✅          |      ❌       |   ❌   |        ❌         |              ❌              |    ❌     |    ❌     |   ❌   |         ❌         |       —        |           ❌            |     ❌      |    ❌    | ❌ |
+| **OptimisticSyncWithPush**      |       ✅       |    ✅     |          ✅          |      ❌       |   ❌   |        ❌         |              ❌              |    ❌     |    ❌     |   ❌   |         ❌         |       ❌        |           —            |     ❌      |    ❌    | ❌ |
+| **ServerPush**                  |       ❌       |    ❌     |          ❌          |      ❌       |   ❌   |        ❌         |              ❌              |    ❌     |    ❌     |   ❌   |         ❌         |       ❌        |           ❌            |     —      |    ❌    | ❌ |
+| **Polling**                     |       ✅       |    ✅     |          ✅          |      ✅       |   ❌   |        ❌         |              ❌              |    ✅     |    ❌     |   ✅   |         ❌         |       ❌        |           ❌            |     ❌      |    —    | ⚠️ |
+| **Sequential**                  |       ✅       |    ✅     |          ✅          |      ✅       |   ✅   |        ✅         |             ❌              |    ✅     |    ❌     |   ✅   |         ✅         |       ❌        |           ❌            |     ❌      |   ⚠️    |     —      |
 
 - ✅ = Compatible (can be combined)
 - ❌ = Incompatible (cannot be combined)
+- ⚠️ = Allowed, but with caveats (see the notes below)
 - ➡️ = Requires (must be used together)
 
 ## Incompatibility Groups
@@ -86,6 +89,19 @@ other:
 - `ServerPush` (used alongside `OptimisticSyncWithPush`, but not combined with it in the
   same action)
 
+### Group 5: Sequential
+
+`Sequential` holds the action until its turn in the queue. It cannot be
+combined with:
+
+- `Debounce`, `OptimisticSync`, `OptimisticSyncWithPush` and `ServerPush`,
+  which all need the action (or its optimistic state change) to happen as soon
+  as it is dispatched, and not when it gets its turn.
+- `UnlimitedRetryCheckInternet`, which drops a dispatch while another action of
+  the same type is in progress. Since a queued action does count as being in
+  progress, actions of the same type would be silently dropped instead of being
+  ordered.
+
 ## Notes
 
 ### CheckInternet / AbortWhenNoInternet + Retry
@@ -112,6 +128,68 @@ used alone:
 ```dart
 class MyAction extends ReduxAction<AppState> with Retry, UnlimitedRetries { ... }
 ```
+
+### Sequential
+
+`Sequential` makes actions run one at a time, in the exact order they were
+dispatched. It only overrides `before` and `after`, so it composes with most
+other mixins, in any mixin order.
+
+Safe combinations:
+
+- `Sequential` + `CheckInternet` / `NoDialog` / `AbortWhenNoInternet`: the
+  internet check happens when the action gets its turn in the queue.
+- `Sequential` + `Retry` / `UnlimitedRetries`: the retries happen while the
+  action holds the queue, which delays the actions waiting behind it.
+- `Sequential` + `NonReentrant`: duplicates are dropped while the original
+  action is queued or running, and the ones that get through still run one at
+  a time.
+- `Sequential` + `Throttle` / `Fresh`: note that both the throttle period and
+  the fresh period start when the action finishes, so they start counting
+  after the action's turn in the queue, and not from the dispatch.
+- `Sequential` + `OptimisticCommand`: note the optimistic value is applied
+  when the action gets its turn, and not as soon as it is dispatched.
+
+Combinations with caveats:
+
+- `Sequential` + `Polling`: usually you should add `Sequential` to the action
+  returned by `createPollingAction`, and not to the action that starts and
+  stops the polling. Otherwise a `Poll.stop` dispatch would also have to wait
+  for its turn, and you could be unable to stop the polling while the queue is
+  busy. If a tick can take longer than the polling interval, also add
+  `NonReentrant` or `Throttle` to the tick action, so that ticks don't pile up
+  in the queue.
+
+Incompatible combinations (they throw an assertion error in debug mode):
+
+- `Sequential` + `Debounce`: the debounce period would only start when the
+  action got its turn in the queue, which defeats the purpose of debouncing.
+- `Sequential` + `UnlimitedRetryCheckInternet`: that mixin aborts the dispatch
+  while another action of the same type is in progress, and an action waiting
+  in the queue does count as being in progress. This means two actions of the
+  SAME type never queue behind each other: the later ones are silently dropped
+  instead of being ordered, which is the opposite of what `Sequential` is for.
+  On top of that, it retries forever while holding the queue, so a single
+  action can block every action behind it for as long as the internet is down.
+  To keep the ordering and still retry, use `Retry` with a limited number of
+  attempts, possibly with `Sequential.discardQueueOnError`.
+- `Sequential` + `OptimisticSync` / `OptimisticSyncWithPush`: those mixins need
+  dispatches to overlap. They apply the optimistic value as soon as the action
+  is dispatched, and coalesce the dispatches that happen while a request is in
+  flight into a single follow-up request. Under `Sequential` the UI would stop
+  giving immediate feedback, and nothing would ever be coalesced: each dispatch
+  would send its own request. Note those mixins already guarantee a single
+  in-flight request per key, so `Sequential` is not needed to serialize them.
+- `Sequential` + `ServerPush`: pushed values must be applied to the state as
+  soon as they arrive, and `Sequential` would delay them behind unrelated
+  queued actions. Worse, a push is what tells an in-flight
+  `OptimisticSyncWithPush` request that no follow-up is needed, and that signal
+  would arrive too late.
+
+Also note that an action holding the queue must never wait for another action
+in the same queue (`dispatchAndWait`, `waitActionType`, `waitAllActions`, or a
+`waitCondition` that only becomes true after the other action runs), or both
+will wait for each other forever.
 
 ### Recommended Combinations
 

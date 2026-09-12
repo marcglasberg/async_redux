@@ -596,6 +596,104 @@ void main() {
     expect(store.state.count, 2);
     expect(store.internalMixinProps.sequentialQueueMap, isEmpty);
   });
+
+  // ==========================================================================
+  // Sequential cannot be combined with Debounce, OptimisticSync,
+  // OptimisticSyncWithPush or ServerPush.
+  // ==========================================================================
+
+  Bdd(feature)
+      .scenario('Sequential cannot be combined with Debounce.')
+      .given('An action that combines Sequential and Debounce.')
+      .when('The action is dispatched.')
+      .then('It fails with an AssertionError.')
+      .run((_) async {
+    var store = Store<State>(initialState: State(0));
+
+    await expectLater(
+      store.dispatchAndWait(SequentialWithDebounceAction()),
+      throwsA(isA<AssertionError>().having(
+        (error) => error.message,
+        'message',
+        'The Sequential mixin cannot be combined with the Debounce mixin.',
+      )),
+    );
+  });
+
+  Bdd(feature)
+      .scenario('Sequential cannot be combined with UnlimitedRetryCheckInternet.')
+      .given('An action that combines Sequential and UnlimitedRetryCheckInternet.')
+      .when('The action is dispatched.')
+      .then('It fails with an AssertionError.')
+      .run((_) async {
+    var store = Store<State>(initialState: State(0));
+
+    expect(
+      () => store.dispatchAndWait(SequentialWithUnlimitedRetryCheckInternetAction()),
+      throwsA(isA<AssertionError>().having(
+        (error) => error.message,
+        'message',
+        'The UnlimitedRetryCheckInternet mixin cannot be combined '
+            'with the Sequential mixin.',
+      )),
+    );
+  });
+
+  Bdd(feature)
+      .scenario('Sequential cannot be combined with OptimisticSync.')
+      .given('An action that combines Sequential and OptimisticSync.')
+      .when('The action is dispatched.')
+      .then('It fails with an AssertionError.')
+      .run((_) async {
+    var store = Store<State>(initialState: State(0));
+
+    await expectLater(
+      store.dispatchAndWait(SequentialWithOptimisticSyncAction()),
+      throwsA(isA<AssertionError>().having(
+        (error) => error.message,
+        'message',
+        'The Sequential mixin cannot be combined '
+            'with the OptimisticSync mixin.',
+      )),
+    );
+  });
+
+  Bdd(feature)
+      .scenario('Sequential cannot be combined with OptimisticSyncWithPush.')
+      .given('An action that combines Sequential and OptimisticSyncWithPush.')
+      .when('The action is dispatched.')
+      .then('It fails with an AssertionError.')
+      .run((_) async {
+    var store = Store<State>(initialState: State(0));
+
+    await expectLater(
+      store.dispatchAndWait(SequentialWithOptimisticSyncWithPushAction()),
+      throwsA(isA<AssertionError>().having(
+        (error) => error.message,
+        'message',
+        'The Sequential mixin cannot be combined '
+            'with the OptimisticSyncWithPush mixin.',
+      )),
+    );
+  });
+
+  Bdd(feature)
+      .scenario('Sequential cannot be combined with ServerPush.')
+      .given('An action that combines Sequential and ServerPush.')
+      .when('The action is dispatched.')
+      .then('It fails with an AssertionError.')
+      .run((_) async {
+    var store = Store<State>(initialState: State(0));
+
+    await expectLater(
+      store.dispatchAndWait(SequentialWithServerPushAction()),
+      throwsA(isA<AssertionError>().having(
+        (error) => error.message,
+        'message',
+        'The Sequential mixin cannot be combined with the ServerPush mixin.',
+      )),
+    );
+  });
 }
 
 
@@ -936,4 +1034,84 @@ class DiscardingAbortInBeforeAction extends ReduxAction<State> with Sequential {
     log.add('$name reduce'); // Should never happen.
     return null;
   }
+}
+
+/// Combines Sequential and Debounce (not allowed).
+class SequentialWithDebounceAction extends ReduxAction<State>
+    with Sequential, Debounce {
+  @override
+  State? reduce() => null;
+}
+
+/// Combines Sequential and UnlimitedRetryCheckInternet (not allowed).
+class SequentialWithUnlimitedRetryCheckInternetAction extends ReduxAction<State>
+    with Sequential, UnlimitedRetryCheckInternet {
+  @override
+  State? reduce() => null;
+}
+
+/// Combines Sequential and OptimisticSync (not allowed).
+class SequentialWithOptimisticSyncAction extends ReduxAction<State>
+    with Sequential, OptimisticSync<State, int> {
+  @override
+  int valueToApply() => 1;
+
+  @override
+  State applyOptimisticValueToState(State state, int optimisticValue) =>
+      State(optimisticValue);
+
+  @override
+  State? applyServerResponseToState(State state, Object serverResponse) => null;
+
+  @override
+  int getValueFromState(State state) => state.count;
+
+  @override
+  Future<Object?> sendValueToServer(Object? optimisticValue) async => null;
+}
+
+/// Combines Sequential and OptimisticSyncWithPush (not allowed).
+class SequentialWithOptimisticSyncWithPushAction extends ReduxAction<State>
+    with Sequential, OptimisticSyncWithPush<State, int> {
+  @override
+  int valueToApply() => 1;
+
+  @override
+  State applyOptimisticValueToState(State state, int optimisticValue) =>
+      State(optimisticValue);
+
+  @override
+  State? applyServerResponseToState(State state, Object serverResponse) => null;
+
+  @override
+  int getValueFromState(State state) => state.count;
+
+  @override
+  int getServerRevisionFromState(Object? key) => -1;
+
+  @override
+  Future<Object?> sendValueToServer(
+    Object? optimisticValue,
+    int localRevision,
+    int deviceId,
+  ) async =>
+      null;
+}
+
+/// Combines Sequential and ServerPush (not allowed).
+class SequentialWithServerPushAction extends ReduxAction<State>
+    with Sequential, ServerPush {
+  @override
+  Type associatedAction() => SequentialWithOptimisticSyncWithPushAction;
+
+  @override
+  PushMetadata pushMetadata() =>
+      (serverRevision: 1, localRevision: 1, deviceId: 1);
+
+  @override
+  State? applyServerPushToState(State state, Object? key, int serverRevision) =>
+      null;
+
+  @override
+  int getServerRevisionFromState(Object? key) => -1;
 }

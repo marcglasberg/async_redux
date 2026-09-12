@@ -7,13 +7,13 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 28.3.0
+## 28.3.1
 
 * New `Sequential` mixin. Actions that use it enter a shared FIFO queue and run
   one at a time, in the exact order they were dispatched, across all participating action
   types. The queue position is reserved synchronously at dispatch time, and the next
   action is released when the previous one completes, fails, or is aborted. Override
-  `sequentialDispatchKeyParams` to have independent queues (the default key is `null`, a
+  `sequentialKeyParams` to have independent queues (the default key is `null`, a
   single global queue), and override boolean `discardQueueOnError` to abort the queue
   when an action fails:
 
@@ -26,6 +26,21 @@ Sponsored by [MyText.ai](https://mytext.ai)
   Important: an action that holds the queue must not `await dispatchAndWait(...)` another
   action of the same queue, because that would deadlock. Use `dispatch(...)` without
   awaiting instead.
+
+  The `Sequential` mixin can be combined with `CheckInternet`, `NoDialog`,
+  `AbortWhenNoInternet`, `NonReentrant`, `Retry`, `UnlimitedRetries`, `Throttle`, `Fresh`
+  and `OptimisticCommand`. It can also be combined with `Polling`, but preferably on the
+  action returned by `createPollingAction`, and not on the action that starts and stops
+  the polling.
+
+  It cannot be combined with `Debounce`, `OptimisticSync`, `OptimisticSyncWithPush` or
+  `ServerPush`, which all need the action (or its optimistic state change) to happen as
+  soon as it is dispatched, and not when it gets its turn in the queue. It also cannot be
+  combined with `UnlimitedRetryCheckInternet`, which drops a dispatch while another action
+  of the same type is in progress; since a queued action does count as being in progress,
+  actions of the same type would be silently dropped instead of being ordered. All these
+  combinations now throw an assertion error in debug mode. See the `Sequential`
+  documentation, and `mixin_compatibility.md`, for the details.
 
 * You can now use `waitActionType` and `waitAllActionTypes` inside the reducer of an
   action, to wait for actions of the given types that may be running right now, before

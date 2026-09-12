@@ -53,6 +53,8 @@ import 'package:meta/meta.dart';
 /// - It should not be combined with other mixins or classes that override [before].
 /// - It should not be combined with other mixins or classes that check the internet connection.
 /// - It should not be combined with [AbortWhenNoInternet] and [UnlimitedRetryCheckInternet].
+/// - It can be combined with [Sequential]. The internet check then happens
+///   when the action gets its turn in the queue.
 ///
 /// See also:
 /// * [NoDialog] - To just show a message in your widget, and not open a dialog.
@@ -168,6 +170,9 @@ mixin NoDialog<St> on CheckInternet<St> {
 /// - It should not be combined with other mixins or classes that override [before].
 /// - It should not be combined with other mixins or classes that check the internet connection.
 /// - It should not be combined with [CheckInternet], [NoDialog], and [UnlimitedRetryCheckInternet].
+/// - It can be combined with [Sequential]. The internet check then happens
+///   when the action gets its turn in the queue. Note that aborting the action
+///   releases the queue, so the next action runs normally.
 ///
 /// See also:
 /// * [CheckInternet] - If you want to show a dialog to the user when there is no internet.
@@ -270,6 +275,9 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
 /// - Other mixins or classes that override [abortDispatch] should call
 ///   `super.abortDispatch()` only as their last step, when they don't want to abort.
 /// - It should not be combined with [Throttle], [UnlimitedRetryCheckInternet], or [Fresh].
+/// - It can be combined with [Sequential]. Duplicates are then dropped while
+///   the original action is waiting in the queue or running, and the actions
+///   that do get through still run one at a time.
 ///
 mixin NonReentrant<St> on ReduxAction<St> {
   //
@@ -452,6 +460,8 @@ mixin NonReentrant<St> on ReduxAction<St> {
 ///   internet but the action fails for some other reason. To retry indefinitely
 ///   until internet is available, use [UnlimitedRetryCheckInternet] instead.
 /// - It should not be combined with [Debounce], [UnlimitedRetryCheckInternet].
+/// - It can be combined with [Sequential]. The retries then happen while the
+///   action holds the queue, which delays the actions waiting behind it.
 /// - When combined with [OptimisticCommand], the retry logic is handled by
 ///   [OptimisticCommand] to avoid UI flickering. Only the
 ///   [OptimisticCommand.sendCommandToServer] call is retried, keeping the
@@ -825,6 +835,9 @@ mixin UnlimitedRetries<St> on Retry<St> {
 /// - It should not be combined with [NonReentrant], [Throttle], [Debounce],
 ///   [Fresh], [UnlimitedRetryCheckInternet], [UnlimitedRetries],
 ///   [OptimisticSync], [OptimisticSyncWithPush], or [ServerPush].
+/// - It can be combined with [Sequential]. Note the optimistic value is then
+///   only applied to the state when the action gets its turn in the queue,
+///   and not as soon as the action is dispatched.
 ///
 /// See also:
 /// * [OptimisticSync] and [OptimisticSyncWithPush] for save operations.
@@ -1452,6 +1465,9 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 /// - Other mixins or classes that override [abortDispatch] should call
 ///   `super.abortDispatch()` only as their last step, when they don't want to abort.
 /// - It should not be combined with [Fresh], [NonReentrant] or [UnlimitedRetryCheckInternet].
+/// - It can be combined with [Sequential]. Note the throttle period is
+///   measured from when the action finishes, so it starts counting after the
+///   action's turn in the queue, and not from the dispatch.
 ///
 mixin Throttle<St> on ReduxAction<St> {
   //
@@ -1603,6 +1619,9 @@ mixin Throttle<St> on ReduxAction<St> {
 /// Notes:
 /// - It should not be combined with other mixins or classes that override [wrapReduce].
 /// - It should not be combined with [Retry], [UnlimitedRetries], or [UnlimitedRetryCheckInternet].
+/// - It should not be combined with [Sequential], because the debounce period
+///   would only start when the action gets its turn in the queue, which
+///   defeats the purpose of debouncing.
 ///
 mixin Debounce<St> on ReduxAction<St> {
   //
@@ -1703,6 +1722,11 @@ mixin Debounce<St> on ReduxAction<St> {
 /// - It should not be combined with other mixins or classes that check the internet connection.
 /// - Make sure your `before` method does not throw an error, or the retry will NOT happen.
 /// - All retries will be printed to the console.
+/// - It should not be combined with [Sequential]. This mixin aborts the
+///   dispatch while another action of the same type is in progress (and a
+///   queued action does count as in progress), so two actions of the same type
+///   would never queue behind each other. It also retries forever while
+///   holding the queue. See [Sequential] for more details.
 ///
 mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
   //
@@ -1872,6 +1896,7 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
     _incompatible<UnlimitedRetryCheckInternet, Debounce>(this);
     _incompatible<UnlimitedRetryCheckInternet, Retry>(this);
     _incompatible<UnlimitedRetryCheckInternet, Polling>(this);
+    _incompatible<UnlimitedRetryCheckInternet, Sequential>(this);
   }
 
   void
@@ -2095,6 +2120,9 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
 ///   `super.abortDispatch()` only as their last step, when they don't want to abort.
 /// - It should not be combined with [Throttle], [NonReentrant],
 ///   [UnlimitedRetryCheckInternet] or [OptimisticCommand].
+/// - It can be combined with [Sequential]. Note the fresh period starts when
+///   the action finishes, so it starts counting after the action's turn in
+///   the queue, and not from the dispatch.
 ///
 mixin Fresh<St> on ReduxAction<St> {
   //
@@ -2572,6 +2600,13 @@ void _incompatible<T1, T2>(Object instance) {
 /// - It should not be combined with [NonReentrant], [Throttle], [Debounce],
 ///   [Fresh], [UnlimitedRetryCheckInternet], [UnlimitedRetries],
 ///   [OptimisticCommand], [OptimisticSyncWithPush], or [ServerPush].
+/// - It should not be combined with [Sequential]. This mixin needs dispatches
+///   to overlap: it applies the optimistic value as soon as the action is
+///   dispatched, and coalesces the dispatches that happen while a request is
+///   in flight into a single follow-up request. Under [Sequential] the UI
+///   would stop responding immediately, and nothing would ever be coalesced.
+///   Note this mixin already guarantees a single in-flight request per key,
+///   so you don't need [Sequential] to serialize the requests.
 ///
 mixin OptimisticSync<St, T> on ReduxAction<St> {
   //
@@ -3133,6 +3168,9 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
 /// - It should not be combined with [NonReentrant], [Retry], [Throttle],
 ///   [Debounce], [Fresh], [UnlimitedRetryCheckInternet], [UnlimitedRetries],
 ///   [OptimisticCommand], [OptimisticSync].
+/// - It should not be combined with [Sequential], for the same reasons given
+///   in [OptimisticSync], and also because the revision tracking assumes the
+///   server pushes can be applied to the state while a request is in flight.
 /// - Do not combine with [ServerPush] in the same action. Use [ServerPush] in
 ///   a separate action that only handles server pushes.
 ///
@@ -3653,6 +3691,16 @@ typedef PushMetadata = ({
 /// `store.internalMixinProps.clear()`. Note this also resets the internal state
 /// of all other mixins.
 ///
+/// Notes:
+/// - This mixin should be used alone. It should not be combined with any other
+///   mixin, including [OptimisticSyncWithPush] itself, which must be used in a
+///   separate action.
+/// - In particular, it should not be combined with [Sequential]. Pushed values
+///   must be applied to the state as soon as they arrive, and [Sequential]
+///   would delay them behind unrelated queued actions. Worse, a push is also
+///   what tells an in-flight [OptimisticSyncWithPush] request that no
+///   follow-up is needed, and that signal would arrive too late.
+///
 mixin ServerPush<St> on ReduxAction<St> {
   /// You must override this to return the type of the action that uses the
   /// corresponding [OptimisticSyncWithPush] that owns this value (so both
@@ -4052,6 +4100,13 @@ enum Poll {
 /// - It should not be combined with [Retry], [UnlimitedRetries], [Debounce],
 ///   [UnlimitedRetryCheckInternet], [OptimisticCommand], [OptimisticSync],
 ///   [OptimisticSyncWithPush], or [ServerPush].
+/// - It can be combined with [Sequential], but usually you should add
+///   [Sequential] to the action returned by [createPollingAction], and not to
+///   the action that starts and stops the polling. Otherwise a `Poll.stop`
+///   dispatch would also have to wait for its turn in the queue, and you could
+///   be unable to stop the polling while the queue is busy. If a tick can take
+///   longer than [pollInterval], also add [NonReentrant] or [Throttle] to the
+///   tick action, so that ticks don't pile up in the queue.
 ///
 /// See also:
 /// * [Throttle] - If you want to limit how often an action runs, but don't need periodic repetition.
@@ -4327,10 +4382,12 @@ mixin Polling<St> on ReduxAction<St> {
 ///   actions dispatched after the reset start a new queue and won't wait for
 ///   the old ones. Note this also resets the internal state of all other mixins.
 ///
+/// # Combining with other mixins
+///
 /// - This mixin can safely be combined with [Retry], [UnlimitedRetries],
-///   [CheckInternet], [NoDialog] and [AbortWhenNoInternet]. Retries happen
-///   while the action holds the queue, and the internet check happens when
-///   the action gets its turn, regardless of the mixin order.
+///   [CheckInternet], [NoDialog] and [AbortWhenNoInternet], in any mixin
+///   order. Retries happen while the action holds the queue, and the internet
+///   check happens when the action gets its turn.
 ///
 /// - It can also be combined with [NonReentrant], [Throttle], [Fresh] and
 ///   [OptimisticCommand], in any mixin order. For example, `NonReentrant` with
@@ -4338,9 +4395,52 @@ mixin Polling<St> on ReduxAction<St> {
 ///   while the original is queued or running, and the ones that get through
 ///   still run one at a time.
 ///
-/// - It should not be combined with [Debounce], because the debounce period
+/// - It can be combined with [Polling], but usually you should NOT add it to
+///   the action that starts and stops the polling, because then a `Poll.stop`
+///   dispatch would also have to wait for its turn, and you could be unable to
+///   stop the polling while the queue is busy. Prefer adding `Sequential` to
+///   the action returned by `createPollingAction`, so that each tick runs in
+///   order with your other actions. In that case, if a tick can take longer
+///   than the polling interval, also add [NonReentrant] or [Throttle] to the
+///   tick action, so that ticks don't pile up in the queue.
+///
+/// - It should NOT be combined with [Debounce], because the debounce period
 ///   would only start when the action gets its turn in the queue, which
 ///   defeats the purpose of debouncing.
+///
+/// - It should NOT be combined with [UnlimitedRetryCheckInternet]. That mixin
+///   aborts the dispatch when another action of the same type is in progress,
+///   and an action waiting in the queue does count as being in progress. This
+///   means two actions of the SAME type never queue behind each other: the
+///   later ones are silently dropped instead of being ordered, which is the
+///   opposite of what `Sequential` is for. On top of that, it retries forever
+///   while holding the queue, so a single action can block every action behind
+///   it for as long as the internet is down. To keep the ordering and still
+///   retry, use [Retry] with a limited number of attempts, possibly together
+///   with [discardQueueOnError].
+///
+/// - It should NOT be combined with [OptimisticSync] or
+///   [OptimisticSyncWithPush]. Those mixins apply the optimistic value to the
+///   state as soon as the action is dispatched, and coalesce all dispatches
+///   that happen while a request is in flight into a single follow-up request.
+///   Both of those features need the dispatches to be able to overlap. Under
+///   `Sequential`, the optimistic update would only be applied when the action
+///   got its turn, so the UI would no longer give immediate feedback; and
+///   since queued actions never overlap, nothing would ever be coalesced, so
+///   each dispatch would send its own request. Note those mixins already
+///   guarantee a single in-flight request per key, so you don't need
+///   `Sequential` to serialize them.
+///
+/// - It should NOT be combined with [ServerPush]. Pushed values must be
+///   applied to the state as soon as they arrive, and `Sequential` would delay
+///   them behind unrelated queued actions. Worse, a push is also what tells an
+///   in-flight [OptimisticSyncWithPush] request that no follow-up is needed.
+///   If the push is stuck in a queue behind that very request, that signal
+///   arrives too late.
+///
+/// The incompatible combinations above ([Debounce],
+/// [UnlimitedRetryCheckInternet], [OptimisticSync], [OptimisticSyncWithPush]
+/// and [ServerPush]) throw an assertion error in debug mode.
 ///
 mixin Sequential<St> on ReduxAction<St> {
   //
@@ -4414,7 +4514,7 @@ mixin Sequential<St> on ReduxAction<St> {
   @mustCallSuper
   @override
   Future<void> before() async {
-    _cannot_combine_Sequential_Debounce();
+    _cannot_combine_mixins_Sequential();
 
     // Reserve the position in the queue. This part of the method runs
     // synchronously when the action is dispatched (there is no `await` before
@@ -4494,7 +4594,11 @@ mixin Sequential<St> on ReduxAction<St> {
     }
   }
 
-  void _cannot_combine_Sequential_Debounce() {
+  void _cannot_combine_mixins_Sequential() {
     _incompatible<Sequential, Debounce>(this);
+    _incompatible<Sequential, UnlimitedRetryCheckInternet>(this);
+    _incompatible<Sequential, OptimisticSync>(this);
+    _incompatible<Sequential, OptimisticSyncWithPush>(this);
+    _incompatible<Sequential, ServerPush>(this);
   }
 }
