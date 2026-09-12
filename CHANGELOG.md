@@ -105,18 +105,13 @@ Sponsored by [MyText.ai](https://mytext.ai)
   var store = Store<AppState>(
     initialState: AppState(),
     globalErrorObserver: (store) => MyGlobalErrorObserver(),
-  }   
+  );   
   
   class MyGlobalErrorObserver extends GlobalErrorObserver {
   
     @override
-    void wrap() {  
-      // Here you can use:
-      // `error` -> Thrown by the action, AFTER being processed by the action's `wrapError`. 
-      // `originalError` -> Error BEFORE being processed by the action's `wrapError`. 
-      // `stackTrace` -> The stack trace of the error. 
-      // `action` -> The action that threw the error.
-      // `store` -> Use it to read the `store.environment` or `store.configuration`.  
+    Object? observe() {  
+      // ...  
     }
   }
   ```     
