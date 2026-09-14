@@ -152,13 +152,24 @@ Safe combinations:
 
 Combinations with caveats:
 
-- `Sequential` + `Polling`: usually you should add `Sequential` to the action
-  returned by `createPollingAction`, and not to the action that starts and
-  stops the polling. Otherwise a `Poll.stop` dispatch would also have to wait
-  for its turn, and you could be unable to stop the polling while the queue is
-  busy. If a tick can take longer than the polling interval, also add
-  `NonReentrant` or `Throttle` to the tick action, so that ticks don't pile up
-  in the queue.
+- `Polling` + `CheckInternet` / `AbortWhenNoInternet` / `NonReentrant` /
+  `Throttle` / `Fresh` / `Sequential`: add these to the action returned by
+  `createPollingAction`, and NOT to the action that starts and stops the
+  polling. All of them can abort or fail a dispatch, and they can't tell a
+  `Poll.stop` apart from a regular tick. So, on the polling controller, they may
+  block the `Poll.stop` itself, and you'd be unable to stop the polling:
+
+  - `Throttle`: a `Poll.stop` inside the throttle period is silently ignored.
+  - `NonReentrant`: a `Poll.stop` while a run is in progress is silently ignored.
+  - `Fresh`: a `Poll.stop` while the data is fresh is silently ignored.
+  - `CheckInternet`: a `Poll.stop` with no internet fails in `before`.
+  - `AbortWhenNoInternet`: a `Poll.stop` with no internet is silently aborted.
+  - `Sequential`: a `Poll.stop` has to wait for its turn in the queue.
+
+  Note that with the default `pollWaitsForRun` of `true` ticks can't pile up,
+  since a tick is only scheduled after the previous one finishes. Adding
+  `NonReentrant`, `Throttle` or `Sequential` to the tick action only matters
+  when `pollWaitsForRun` is `false`.
 
 Incompatible combinations (they throw an assertion error in debug mode):
 

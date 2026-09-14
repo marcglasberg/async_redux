@@ -12,6 +12,7 @@ import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/src/process_persistence.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
+import 'package:meta/meta.dart';
 
 import 'connector_tester.dart';
 
@@ -1385,6 +1386,7 @@ class Store<St> {
 
   /// Properties used internally by the provided mixins.
   /// You should not use this directly.
+  @internal
   final internalMixinProps = _InternalMixinProps();
 
   /// If you are running tests, you can change [forceInternetOnOffSimulation] to
@@ -2725,8 +2727,18 @@ class _InternalMixinProps {
   final Map<Object?, OptimisticSyncWithPushRevisionEntry>
       optimisticSyncWithPushRevisionMap = {};
 
-  /// Map used by the [Polling] mixin. Stores one-shot timers keyed by action runtimeType.
-  final Map<Object?, Timer> pollingMap = {};
+  /// Map used by the [Polling] mixin. Stores the currently active polling
+  /// cycle for each polling key.
+  ///
+  /// Each cycle is identified by the object identity of its `id`. A new `id`
+  /// is created each time polling starts or restarts for a given polling key,
+  /// so that timers and pending runs belonging to an old cycle can detect that
+  /// they are stale, and stop.
+  ///
+  /// While a tick is running (when [Polling.pollWaitsForRun] is `true`) the
+  /// `timer` is `null`, but the entry is still present in the map, meaning
+  /// polling is active.
+  final Map<Object?, ({Object id, Timer? timer})> pollingMap = {};
 
   /// Map used by the [Sequential] mixin. For each queue key, stores
   /// the completers of the queued actions, in the order they will run.
@@ -2741,7 +2753,7 @@ class _InternalMixinProps {
     nonReentrantKeySet.clear();
     optimisticSyncKeySet.clear();
     optimisticSyncWithPushRevisionMap.clear();
-    for (final timer in pollingMap.values) timer.cancel();
+    for (final cycle in pollingMap.values) cycle.timer?.cancel();
     pollingMap.clear();
     sequentialQueueMap.clear();
   }

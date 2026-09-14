@@ -7,6 +7,40 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 28.4.0
+
+* Bug fix: The `Polling` mixin now really waits for each run to finish before
+  scheduling the next tick, as documented. Note: While the documented behavior is
+  unchanged, the actual behavior is. If your code depended on ticks happening at a fixed
+  rate, see the new `pollWaitsForRun` param below.
+
+* Bug fix: Improved `Poll.start`, `Poll.stop` and `Poll.runNowAndRestart`.
+
+* New feature: The `Polling` mixin now has a `pollWaitsForRun` getter, to choose between
+  the two behaviors. It defaults to `true`, meaning runs never overlap, as described
+  above. Make it return `false` to get ticks at a fixed rate, measured from the start of
+  each run. In that case runs may overlap, so consider adding `NonReentrant`, `Throttle`
+  or `Sequential` to the action returned by `createPollingAction`.
+
+  ```dart
+  class PollPrices extends AppAction with Polling {
+    @override
+    bool get pollWaitsForRun => false;
+    ...
+  }
+  ```
+
+* Documentation: When combining `Polling` with `CheckInternet`,
+  `AbortWhenNoInternet`, `NonReentrant`, `Throttle`, `Fresh` or `Sequential`, add
+  those mixins to the action returned by `createPollingAction`, and NOT to the
+  action that starts and stops the polling. All of them can abort or fail a
+  dispatch, and they can't tell a `Poll.stop` apart from a regular tick. So, on
+  the polling controller, they may block the `Poll.stop` itself, leaving you
+  unable to stop the polling. For example, a `Poll.stop` dispatched inside a
+  `Throttle` period is silently ignored, and a `Poll.stop` dispatched with
+  `CheckInternet` and no internet fails in `before`, so it never reaches
+  `wrapReduce`.
+
 ## 28.3.1
 
 * New `Sequential` mixin. Actions that use it enter a shared FIFO queue and run

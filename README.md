@@ -508,6 +508,28 @@ dispatch(GetStockPrice(Poll.start));
 dispatch(GetStockPrice(Poll.stop));
 ```
 
+By default, polling runs never overlap: each tick waits for the previous run to
+finish, and only then does `pollInterval` start counting for the next tick.
+In other words, the interval is measured from the END of each run.
+
+If you'd rather have ticks at a fixed rate, measured from the START of each run,
+override `pollWaitsForRun`:
+
+```dart
+bool get pollWaitsForRun => false;
+```
+
+In that case, runs may overlap when they take longer than `pollInterval`, so
+consider adding `NonReentrant`, `Throttle` or `Sequential` to the action
+returned by `createPollingAction`.
+
+Note: When combining `Polling` with `CheckInternet`, `AbortWhenNoInternet`,
+`NonReentrant`, `Throttle`, `Fresh` or `Sequential`, add those to the action
+returned by `createPollingAction`, and not to the action that starts and stops
+the polling. All of them can abort or fail a dispatch, and they can't tell a
+`Poll.stop` apart from a regular tick, so on the controller they may block the
+`Poll.stop` itself and leave you unable to stop the polling.
+
 &nbsp;
 
 ## OptimisticCommand

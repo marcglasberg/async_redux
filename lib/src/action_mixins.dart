@@ -218,8 +218,7 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
 
     await super.before();
     var result = await checkConnectivity();
-    if (result.contains(ConnectivityResult.none))
-      throw AbortDispatchException();
+    if (result.contains(ConnectivityResult.none)) throw AbortDispatchException();
   }
 
   void
@@ -330,8 +329,7 @@ mixin NonReentrant<St> on ReduxAction<St> {
   Object computeNonReentrantKey() => (runtimeType, nonReentrantKeyParams());
 
   /// The set of keys that are currently running.
-  Set<Object?> get _nonReentrantKeySet =>
-      store.internalMixinProps.nonReentrantKeySet;
+  Set<Object?> get _nonReentrantKeySet => store.internalMixinProps.nonReentrantKeySet;
 
   Object? _nonReentrantKey;
 
@@ -405,8 +403,7 @@ mixin NonReentrant<St> on ReduxAction<St> {
     }
   }
 
-  void
-      _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet() {
+  void _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet() {
     _incompatible<NonReentrant, Fresh>(this);
     _incompatible<NonReentrant, Throttle>(this);
     _incompatible<NonReentrant, UnlimitedRetryCheckInternet>(this);
@@ -980,8 +977,7 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
     required Object error,
   }) {
     // Default: rollback only if we are still seeing our own optimistic value.
-    if (currentValue is ImmutableCollection &&
-        optimisticValue is ImmutableCollection) {
+    if (currentValue is ImmutableCollection && optimisticValue is ImmutableCollection) {
       return currentValue.same(optimisticValue);
     } else {
       return currentValue == optimisticValue;
@@ -1221,8 +1217,7 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 
   /// When combined with Retry, this method retries only the [sendCommandToServer]
   /// call, keeping the optimistic update in place and avoiding UI flickering.
-  Future<Object?> _sendCommandWithRetryIfNeeded(
-      Object? _optimisticValue) async {
+  Future<Object?> _sendCommandWithRetryIfNeeded(Object? _optimisticValue) async {
     // If this action doesn't use the Retry mixin,
     // just call sendCommandToServer directly.
     if (this is! Retry) {
@@ -1487,8 +1482,7 @@ mixin Throttle<St> on ReduxAction<St> {
 
   /// Map that stores the expiry time for each lock.
   /// The value is the instant when the throttle period ends.
-  Map<Object?, DateTime> get _throttleLockMap =>
-      store.internalMixinProps.throttleLockMap;
+  Map<Object?, DateTime> get _throttleLockMap => store.internalMixinProps.throttleLockMap;
 
   /// Removes the lock, allowing an action of the same type to be dispatched
   /// again right away. You generally do not need to call this method.
@@ -1527,8 +1521,7 @@ mixin Throttle<St> on ReduxAction<St> {
     return true;
   }
 
-  DateTime _expiringLockFrom(DateTime now) =>
-      now.add(Duration(milliseconds: throttle));
+  DateTime _expiringLockFrom(DateTime now) => now.add(Duration(milliseconds: throttle));
 
   /// Remove locks whose expiry time is in the past or now.
   void _prune() {
@@ -1547,8 +1540,7 @@ mixin Throttle<St> on ReduxAction<St> {
     }
   }
 
-  void
-      _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet() {
+  void _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet() {
     _incompatible<Throttle, Fresh>(this);
     _incompatible<Throttle, NonReentrant>(this);
     _incompatible<Throttle, UnlimitedRetryCheckInternet>(this);
@@ -1635,8 +1627,7 @@ mixin Debounce<St> on ReduxAction<St> {
   Object? lockBuilder() => runtimeType;
 
   /// Map that stores the run-number for actions with a specific lock.
-  Map<Object?, int> get _debounceLockMap =>
-      store.internalMixinProps.debounceLockMap;
+  Map<Object?, int> get _debounceLockMap => store.internalMixinProps.debounceLockMap;
 
   // A large number that JavaScript can still represent.
   // In theory, it could be between -9007199254740991 and 9007199254740991.
@@ -1841,8 +1832,7 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
     if (hasInternet) {
       if (_currentDelay! > maxDelay) _currentDelay = maxDelay;
     } else {
-      if (_currentDelay! > maxDelayNoInternet)
-        _currentDelay = maxDelayNoInternet;
+      if (_currentDelay! > maxDelayNoInternet) _currentDelay = maxDelayNoInternet;
     }
 
     return _currentDelay!;
@@ -1879,8 +1869,7 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
     return await (Connectivity().checkConnectivity());
   }
 
-  void
-      _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet() {
+  void _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet() {
     _incompatible<UnlimitedRetryCheckInternet, Fresh>(this);
     _incompatible<UnlimitedRetryCheckInternet, Throttle>(this);
     _incompatible<UnlimitedRetryCheckInternet, NonReentrant>(this);
@@ -2326,8 +2315,7 @@ mixin Fresh<St> on ReduxAction<St> {
     _incompatible<Fresh, OptimisticCommand>(this);
   }
 
-  DateTime _expiringKeyFrom(DateTime now) =>
-      now.add(Duration(milliseconds: freshFor));
+  DateTime _expiringKeyFrom(DateTime now) => now.add(Duration(milliseconds: freshFor));
 
   /// Remove keys whose expiry time is in the past or now.
   void _prune() {
@@ -2852,8 +2840,7 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
   }
 
   /// Set that tracks which keys are currently locked (requests in flight).
-  Set<Object?> get _optimisticSyncKeySet =>
-      store.internalMixinProps.optimisticSyncKeySet;
+  Set<Object?> get _optimisticSyncKeySet => store.internalMixinProps.optimisticSyncKeySet;
 
   /// Sends the request and handles follow-up requests if the state changed
   /// (by comparing the value returned by [getValueFromState] with [sentValue])
@@ -2949,8 +2936,7 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
           'in action $runtimeType (> $maxFollowUpRequests).');
     }
 
-    return (stateValue is ImmutableCollection &&
-            sentValue is ImmutableCollection)
+    return (stateValue is ImmutableCollection && sentValue is ImmutableCollection)
         ? !stateValue.same(sentValue)
         : stateValue != sentValue;
   }
@@ -3263,8 +3249,7 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
   /// The default is to use a random integer generated once per app run,
   /// but you can override this to return a persistent unique ID per device.
   static int Function() deviceId = () {
-    _deviceId ??=
-        Random().nextInt(4294967296) + (Random().nextInt(10000) * 10000000000);
+    _deviceId ??= Random().nextInt(4294967296) + (Random().nextInt(10000) * 10000000000);
     return _deviceId!;
   };
 
@@ -3437,8 +3422,7 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
     final entry = _optimisticSyncWithPushRevisionMap[key];
 
     final int fromMap = entry?.serverRevision ?? -1;
-    final int fromState =
-        getServerRevisionFromState(key); // should return -1 if unknown
+    final int fromState = getServerRevisionFromState(key); // should return -1 if unknown
     final int currentServerRev = max(fromMap, fromState);
 
     // Only move forward, but keep local intent info.
@@ -3600,8 +3584,7 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
                 isPush: false,
               );
 
-              final newState =
-                  applyServerResponseToState(state, serverResponse);
+              final newState = applyServerResponseToState(state, serverResponse);
               if (newState != null) dispatchState(newState);
             }
           }
@@ -3630,8 +3613,7 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
   }
 
   /// Set that tracks which keys are currently locked (requests in flight).
-  Set<Object?> get _optimisticSyncKeySet =>
-      store.internalMixinProps.optimisticSyncKeySet;
+  Set<Object?> get _optimisticSyncKeySet => store.internalMixinProps.optimisticSyncKeySet;
 
   /// Map used by the [OptimisticSyncWithPush] and [ServerPush] mixins.
   Map<Object?, OptimisticSyncWithPushRevisionEntry>
@@ -3713,8 +3695,7 @@ mixin ServerPush<St> on ReduxAction<St> {
 
   /// Must match the [OptimisticSyncWithPush] action key computation.
   /// Default: (associatedActionType, optimisticSyncKeyParams)
-  Object computeOptimisticSyncKey() =>
-      (associatedAction(), optimisticSyncKeyParams());
+  Object computeOptimisticSyncKey() => (associatedAction(), optimisticSyncKeyParams());
 
   /// You must override this to provide the [PushMetadata] that came with the
   /// push, including:
@@ -3773,8 +3754,7 @@ mixin ServerPush<St> on ReduxAction<St> {
 
     // Determine the current known server revision for this key.
     // This is the max of what we have in the map versus what is in the state.
-    final currentServerRev =
-        max(serverRevision_FromMap, serverRevision_FromState);
+    final currentServerRev = max(serverRevision_FromMap, serverRevision_FromState);
 
     // Seed the map from persisted state, if needed.
     // This is important even when we ignore the push as stale.
@@ -3895,6 +3875,10 @@ enum Poll {
 /// @override
 /// Duration get pollInterval => const Duration(minutes: 5);
 /// ```
+///
+/// By default, polling runs never overlap: each tick waits for the previous run
+/// to finish before the [pollInterval] starts counting for the next tick.
+/// See [pollWaitsForRun] if you want ticks at a fixed rate instead.
 ///
 /// To start polling, dispatch the action with [Poll.start].
 /// To stop, dispatch with [Poll.stop]:
@@ -4090,23 +4074,79 @@ enum Poll {
 /// - [Poll.once]: Runs [reduce] immediately, without affecting the polling
 ///   (it does not start or stop the polling).
 ///
-/// Instead of using a periodic timer, each run schedules the next one,
-/// so the polling interval is measured from the end of each run.
+/// ## Overlapping runs
+///
+/// Instead of using a periodic timer, each run schedules the next one.
+///
+/// By default ([pollWaitsForRun] is `true`), the action returned by
+/// [createPollingAction] is dispatched with `dispatchAndWait`, and the next
+/// tick is only scheduled when it finishes. This means the polling interval is
+/// measured from the END of each run, runs never overlap, and the actual period
+/// is `runDuration + pollInterval`. If a run takes longer than the interval,
+/// ticks simply happen less often, instead of piling up.
+///
+/// If you want ticks at a fixed rate instead, make [pollWaitsForRun] return
+/// `false`. Then the action is dispatched with `dispatch`, the next tick is
+/// scheduled immediately, and the interval is measured from the START of each
+/// run. In this case runs may overlap when they take longer than the interval,
+/// so consider adding [NonReentrant], [Throttle] or [Sequential] to the action
+/// returned by [createPollingAction]:
+///
+/// ```dart
+/// @override
+/// bool get pollWaitsForRun => false;
+/// ```
+///
+/// ## Add the other mixins to the TICK action, not to the controller
+///
+/// IMPORTANT: The [Polling] mixin can be combined with [CheckInternet],
+/// [AbortWhenNoInternet], [NonReentrant], [Throttle], [Fresh] and [Sequential],
+/// but you should add those to the action returned by [createPollingAction],
+/// and NOT to the action that starts and stops the polling.
+///
+/// The reason is that all of those mixins can abort or fail a dispatch, and
+/// they can't tell a `Poll.stop` apart from a regular tick. So, if you add them
+/// to the polling controller, a `Poll.stop` dispatch may itself be aborted or
+/// fail, and you'd be unable to stop the polling. For example:
+///
+/// - With [Throttle], a `Poll.stop` dispatched inside the throttle period is
+///   silently ignored, and the polling keeps going.
+///
+/// - With [NonReentrant], a `Poll.stop` dispatched while a run is still in
+///   progress is silently ignored.
+///
+/// - With [CheckInternet], a `Poll.stop` dispatched while there is no internet
+///   fails in `before`, so it never reaches [wrapReduce].
+///
+/// - With [Sequential], a `Poll.stop` has to wait for its turn in the queue,
+///   so you could be unable to stop the polling while the queue is busy.
+///
+/// Adding them to the tick action instead is both safe and more useful:
+///
+/// ```dart
+/// class PollBalance extends AppAction with Polling {
+///   @override final Poll poll;
+///   PollBalance({this.poll = Poll.once});
+///
+///   // The tick action is the one that checks the internet.
+///   @override
+///   ReduxAction<AppState> createPollingAction() => LoadBalanceAction();
+/// }
+///
+/// class LoadBalanceAction extends AppAction with AbortWhenNoInternet {
+///   ...
+/// }
+/// ```
 ///
 /// Notes:
-/// - This mixin can be combined with [CheckInternet], [AbortWhenNoInternet],
-///   [NonReentrant], [Throttle], and [Fresh].
 /// - It should not be combined with other mixins or classes that override [wrapReduce].
 /// - It should not be combined with [Retry], [UnlimitedRetries], [Debounce],
 ///   [UnlimitedRetryCheckInternet], [OptimisticCommand], [OptimisticSync],
 ///   [OptimisticSyncWithPush], or [ServerPush].
-/// - It can be combined with [Sequential], but usually you should add
-///   [Sequential] to the action returned by [createPollingAction], and not to
-///   the action that starts and stops the polling. Otherwise a `Poll.stop`
-///   dispatch would also have to wait for its turn in the queue, and you could
-///   be unable to stop the polling while the queue is busy. If a tick can take
-///   longer than [pollInterval], also add [NonReentrant] or [Throttle] to the
-///   tick action, so that ticks don't pile up in the queue.
+/// - With the default [pollWaitsForRun] of `true`, ticks can't pile up, since a
+///   tick is only scheduled after the previous one finishes. Adding
+///   [NonReentrant], [Throttle] or [Sequential] to the tick action only matters
+///   when [pollWaitsForRun] is `false`.
 ///
 /// See also:
 /// * [Throttle] - If you want to limit how often an action runs, but don't need periodic repetition.
@@ -4116,7 +4156,40 @@ enum Poll {
 mixin Polling<St> on ReduxAction<St> {
   Poll get poll;
 
+  /// The delay between polling ticks. The default is 10 seconds.
+  ///
+  /// How this delay is measured depends on [pollWaitsForRun]:
+  ///
+  /// * When [pollWaitsForRun] is `true` (the default), the delay is measured
+  ///   from the moment the previous run FINISHES.
+  ///
+  /// * When [pollWaitsForRun] is `false`, the delay is measured from the moment
+  ///   the previous run STARTS.
   Duration get pollInterval => const Duration(seconds: 10);
+
+  /// Whether each polling tick must wait for the previous run to finish,
+  /// before the next tick is scheduled. The default is `true`.
+  ///
+  /// * When `true` (the default), runs never overlap. The action returned by
+  ///   [createPollingAction] is dispatched with `dispatchAndWait`, and only
+  ///   when it finishes does the [pollInterval] start counting for the next
+  ///   tick. In other words, the interval is measured from the END of each run,
+  ///   and the actual period is `runDuration + pollInterval`. This is what you
+  ///   usually want, as it prevents piling up requests when the server is slow.
+  ///
+  /// * When `false`, the next tick is scheduled as soon as the current one is
+  ///   dispatched, without waiting for it to finish. The action is dispatched
+  ///   with `dispatch`, the interval is measured from the START of each run,
+  ///   and the period is a fixed [pollInterval]. Use this only when you want
+  ///   ticks at a fixed rate, and you are fine with runs overlapping when they
+  ///   take longer than [pollInterval]. Consider adding [NonReentrant],
+  ///   [Throttle] or [Sequential] to the action returned by
+  ///   [createPollingAction], to control what happens when runs overlap.
+  ///
+  /// Note this also applies to the immediate run done by [Poll.start] and
+  /// [Poll.runNowAndRestart]: when `true`, the first tick is only scheduled
+  /// after that immediate run finishes.
+  bool get pollWaitsForRun => true;
 
   /// Must return a new action instance that the timer will dispatch on each
   /// tick. This can be the same action type with [Poll.once], or a completely
@@ -4155,7 +4228,8 @@ mixin Polling<St> on ReduxAction<St> {
   /// ```
   Object computePollingKey() => (runtimeType, pollingKeyParams());
 
-  Map<Object?, Timer> get _pollingMap => store.internalMixinProps.pollingMap;
+  Map<Object?, ({Object id, Timer? timer})> get _pollingMap =>
+      store.internalMixinProps.pollingMap;
 
   @override
   Future<St?> wrapReduce(Reducer<St> reduce) async {
@@ -4165,35 +4239,79 @@ mixin Polling<St> on ReduxAction<St> {
 
     switch (poll) {
       case Poll.start:
-      // If polling is already active, don't do anything.
+        // If polling is already active, don't do anything.
         if (_pollingMap.containsKey(key)) return null;
-        _scheduleNext(key);
-        return reduce();
+        return _runNowAndStartCycle(key, reduce);
 
       case Poll.stop:
-        _pollingMap.remove(key)?.cancel();
+        _pollingMap.remove(key)?.timer?.cancel();
         return null;
 
       case Poll.runNowAndRestart:
-        _pollingMap.remove(key)?.cancel();
-        _scheduleNext(key);
-        return reduce();
+        _pollingMap.remove(key)?.timer?.cancel();
+        return _runNowAndStartCycle(key, reduce);
 
       case Poll.once:
         return reduce();
     }
   }
 
-  /// Schedules a one-shot timer that dispatches [createPollingAction] and
-  /// then schedules the next tick. The interval is measured from the moment
-  /// the previous tick completes.
-  void _scheduleNext(Object key) {
-    _pollingMap[key] = Timer(pollInterval, () {
-      if (_pollingMap.containsKey(key)) {
+  /// Starts a new polling cycle for the given [key], and runs [reduce] once,
+  /// immediately.
+  ///
+  /// When [pollWaitsForRun] is `true`, the first tick is only scheduled after
+  /// that immediate run finishes (even if it fails). When it's `false`, the
+  /// first tick is scheduled right away.
+  Future<St?> _runNowAndStartCycle(Object key, Reducer<St> reduce) async {
+    final id = Object();
+    _pollingMap[key] = (id: id, timer: null);
+
+    if (!pollWaitsForRun) {
+      _scheduleNext(key, id);
+      return reduce();
+    } else {
+      try {
+        return await reduce();
+      } finally {
+        _scheduleNext(key, id);
+      }
+    }
+  }
+
+  /// Schedules a one-shot timer that dispatches [createPollingAction] and then
+  /// schedules the next tick. If [pollWaitsForRun] is `true`, the next tick is
+  /// only scheduled when the dispatched action finishes; otherwise it's
+  /// scheduled as soon as the action is dispatched.
+  ///
+  /// The given [id] identifies the polling cycle this tick belongs to. If
+  /// the cycle is no longer the active one for the [key] (because polling was
+  /// stopped or restarted in the meantime) the tick is abandoned.
+  void _scheduleNext(Object key, Object id) {
+    if (!identical(_pollingMap[key]?.id, id)) return;
+
+    var timer = Timer(pollInterval, () {
+      if (!identical(_pollingMap[key]?.id, id)) return;
+
+      // While the tick runs there is no timer, but the cycle is still active.
+      _pollingMap[key] = (id: id, timer: null);
+
+      if (!pollWaitsForRun) {
         dispatch(createPollingAction());
-        _scheduleNext(key);
+        _scheduleNext(key, id);
+      } else {
+        _dispatchTickAndScheduleNext(key, id);
       }
     });
+
+    _pollingMap[key] = (id: id, timer: timer);
+  }
+
+  Future<void> _dispatchTickAndScheduleNext(Object key, Object id) async {
+    try {
+      await dispatchAndWait(createPollingAction());
+    } finally {
+      _scheduleNext(key, id);
+    }
   }
 
   void _cannot_combine_mixins_Polling() {
