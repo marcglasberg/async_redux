@@ -169,11 +169,11 @@ class _MyHomePageState extends State<MyHomePage> {
                   // Show loading spinner at the end
                   if (index == numTrivia.length) {
                     return Padding(
-                      padding: EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.all(8.0),
                       child: Center(
                         child: isLoading
-                            ? CircularProgressIndicator()
-                            : SizedBox(height: 30),
+                            ? const CircularProgressIndicator()
+                            : const SizedBox(height: 30),
                       ),
                     );
                   } else {

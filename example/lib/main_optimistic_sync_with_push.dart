@@ -72,7 +72,7 @@ void main() async {
 
   // If no persisted state exists, create the default initial state and save it.
   if (initialState == null) {
-    initialState = AppState(liked: false);
+    initialState = AppState(isLiked: false);
     await persistor.saveInitialState(initialState);
   }
 
@@ -80,7 +80,7 @@ void main() async {
   // In production, this would be the real server, using a database.
   // The key is (ToggleLike, null) as computed by computeOptimisticSyncKey().
   server.revisionCounter = initialState.getServerRevision((ToggleLike, null));
-  server.databaseLiked = initialState.liked;
+  server.databaseLiked = initialState.isLiked;
 
   store = Store<AppState>(
     initialState: initialState,
@@ -91,7 +91,7 @@ void main() async {
 }
 
 class AppState {
-  final bool liked;
+  final bool isLiked;
 
   /// Stores the last known server revision for each [OptimisticSyncWithPush]
   /// action. Keys are stringified versions of action keys (e.g.,
@@ -100,13 +100,12 @@ class AppState {
   /// detect stale push updates and ensure eventual consistency.
   final IMap<String, int> serverRevisionMap;
 
-  AppState({required this.liked, IMap<String, int>? serverRevisionMap})
+  AppState({required this.isLiked, IMap<String, int>? serverRevisionMap})
       : serverRevisionMap = serverRevisionMap ?? const IMapConst({});
 
   @useResult
-  AppState copy({bool? isLiked, IMap<String, int>? serverRevisionMap}) =>
-      AppState(
-        liked: isLiked ?? this.liked,
+  AppState copy({bool? isLiked, IMap<String, int>? serverRevisionMap}) => AppState(
+        isLiked: isLiked ?? this.isLiked,
         serverRevisionMap: serverRevisionMap ?? this.serverRevisionMap,
       );
 
@@ -120,16 +119,15 @@ class AppState {
       );
 
   /// Returns the server revision for the given key, or -1 if not found.
-  int getServerRevision(Object? key) =>
-      serverRevisionMap.get(_keyToString(key)) ?? -1;
+  int getServerRevision(Object? key) => serverRevisionMap.get(_keyToString(key)) ?? -1;
 
   Map<String, dynamic> toJson() => {
-        'liked': liked,
+        'liked': isLiked,
         'serverRevisionMap': serverRevisionMap.unlock,
       };
 
   factory AppState.fromJson(Map<String, dynamic> json) => AppState(
-        liked: json['liked'] as bool? ?? false,
+        isLiked: json['liked'] as bool? ?? false,
         serverRevisionMap: IMap<String, int>.fromEntries(
           (json['serverRevisionMap'] as Map<String, dynamic>? ?? {})
               .entries
@@ -138,8 +136,7 @@ class AppState {
       );
 
   @override
-  String toString() =>
-      'AppState(liked: $liked, serverRevisionMap: $serverRevisionMap)';
+  String toString() => 'AppState(liked: $isLiked, serverRevisionMap: $serverRevisionMap)';
 }
 
 /// Converts an action key to a String for persistence.
@@ -248,19 +245,18 @@ class PushLikeUpdate extends AppAction with ServerPush {
   int getServerRevisionFromState(Object? key) => state.getServerRevision(key);
 
   @override
-  String toString() =>
-      '${super.toString()}(liked: $liked, serverRev: $serverRev)';
+  String toString() => '${super.toString()}(liked: $liked, serverRev: $serverRev)';
 }
 
 class ToggleLike extends AppAction with OptimisticSyncWithPush<AppState, bool> {
   // Store the server revision from the response.
-  int _serverRevFromResponse = 0;
+  final int _serverRevFromResponse = 0;
 
   @override
-  bool valueToApply() => !state.liked;
+  bool valueToApply() => !state.isLiked;
 
   @override
-  bool getValueFromState(AppState state) => state.liked;
+  bool getValueFromState(AppState state) => state.isLiked;
 
   @override
   AppState applyOptimisticValueToState(
@@ -316,7 +312,7 @@ class ToggleLike extends AppAction with OptimisticSyncWithPush<AppState, bool> {
   }
 
   @override
-  String toString() => '${super.toString()}(${!state.liked})';
+  String toString() => '${super.toString()}(${!state.isLiked})';
 }
 
 /// Resets all state: deletes persisted state and resets server simulation.
@@ -330,7 +326,7 @@ class ResetAllState extends AppAction {
     server.reset();
 
     // Return fresh initial state.
-    return AppState(liked: false);
+    return AppState(isLiked: false);
   }
 }
 
@@ -397,7 +393,7 @@ class _MyHomePageState extends State<MyHomePage> {
               color: Colors.blue.shade50,
               child: Center(
                 child: StoreConnector<AppState, bool>(
-                  converter: (store) => store.state.liked,
+                  converter: (store) => store.state.isLiked,
                   builder: (context, liked) {
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -462,9 +458,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     const SizedBox(height: 20),
                     Icon(
-                      server.databaseLiked
-                          ? Icons.favorite
-                          : Icons.favorite_border,
+                      server.databaseLiked ? Icons.favorite : Icons.favorite_border,
                       size: 80,
                       color: server.databaseLiked ? Colors.red : Colors.grey,
                     ),
@@ -483,9 +477,8 @@ class _MyHomePageState extends State<MyHomePage> {
                               : 'Idle',
                           style: TextStyle(
                             fontSize: 16,
-                            color: server.isRequestInProgress
-                                ? Colors.orange
-                                : Colors.grey,
+                            color:
+                                server.isRequestInProgress ? Colors.orange : Colors.grey,
                             fontWeight: server.isRequestInProgress
                                 ? FontWeight.bold
                                 : FontWeight.normal,
@@ -506,18 +499,12 @@ class _MyHomePageState extends State<MyHomePage> {
                     const SizedBox(height: 10),
                     Text(
                       'Updates after server round-trip (${(server.delayBeforeWrite + server.delayAfterWrite) / 1000}s)',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       'Number of requests received: ${server.requestCount}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                     const SizedBox(height: 30),
                     Container(
@@ -537,8 +524,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               ElevatedButton.icon(
-                                onPressed: () =>
-                                    server.simulateExternalChange(true),
+                                onPressed: () => server.simulateExternalChange(true),
                                 icon: const Icon(Icons.favorite, size: 16),
                                 label: const Text('Liked'),
                                 style: ElevatedButton.styleFrom(
@@ -548,10 +534,8 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                               const SizedBox(width: 16),
                               ElevatedButton.icon(
-                                onPressed: () =>
-                                    server.simulateExternalChange(false),
-                                icon:
-                                    const Icon(Icons.favorite_border, size: 16),
+                                onPressed: () => server.simulateExternalChange(false),
+                                icon: const Icon(Icons.favorite_border, size: 16),
                                 label: const Text('Not Liked'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.grey.shade200,

@@ -41,22 +41,22 @@ late Store<AppState> store;
 
 void main() {
   store = Store<AppState>(
-    initialState: AppState(liked: false),
+    initialState: AppState(isLiked: false),
     actionObservers: [ConsoleActionObserver()],
   );
   runApp(const MyApp());
 }
 
 class AppState {
-  final bool liked;
+  final bool isLiked;
 
-  AppState({required this.liked});
+  AppState({required this.isLiked});
 
   @useResult
-  AppState copy({bool? isLiked}) => AppState(liked: isLiked ?? this.liked);
+  AppState copy({bool? isLiked}) => AppState(isLiked: isLiked ?? this.isLiked);
 
   @override
-  String toString() => 'AppState(liked: $liked)';
+  String toString() => 'AppState(liked: $isLiked)';
 }
 
 class SetLike extends AppAction {
@@ -73,10 +73,10 @@ class SetLike extends AppAction {
 
 class ToggleLike extends AppAction with OptimisticCommand<AppState> {
   @override
-  Object? optimisticValue() => !state.liked;
+  Object? optimisticValue() => !state.isLiked;
 
   @override
-  bool getValueFromState(AppState state) => state.liked;
+  bool getValueFromState(AppState state) => state.isLiked;
 
   @override
   AppState applyValueToState(AppState state, Object? value) =>
@@ -89,15 +89,14 @@ class ToggleLike extends AppAction with OptimisticCommand<AppState> {
   }
 
   @override
-  Future<Object?> sendCommandToServer(Object? value) =>
-      server.saveLike(value as bool);
+  Future<Object?> sendCommandToServer(Object? value) => server.saveLike(value as bool);
 
   // If there was an error, reload the value from the database.
   @override
   Future<Object?> reloadFromServer() => server.reload();
 
   @override
-  String toString() => '${super.toString()}(${!state.liked})';
+  String toString() => '${super.toString()}(${!state.isLiked})';
 }
 
 class MyApp extends StatelessWidget {
@@ -156,7 +155,7 @@ class _MyHomePageState extends State<MyHomePage> {
               color: Colors.blue.shade50,
               child: Center(
                 child: StoreConnector<AppState, bool>(
-                  converter: (store) => store.state.liked,
+                  converter: (store) => store.state.isLiked,
                   builder: (context, liked) {
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -190,15 +189,13 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                         const SizedBox(height: 20),
                         Text(
-                          context.isWaiting(ToggleLike)
-                              ? 'Saving...'
-                              : '',
+                          context.isWaiting(ToggleLike) ? 'Saving...' : '',
                           style: const TextStyle(
                             fontSize: 14,
                             color: Colors.grey,
                           ),
                         ),
-                        Text(
+                        const Text(
                           'Button action is aborted while saving',
                           style: const TextStyle(
                             fontSize: 14,
@@ -234,9 +231,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     const SizedBox(height: 20),
                     Icon(
-                      server.databaseLiked
-                          ? Icons.favorite
-                          : Icons.favorite_border,
+                      server.databaseLiked ? Icons.favorite : Icons.favorite_border,
                       size: 80,
                       color: server.databaseLiked ? Colors.red : Colors.grey,
                     ),
@@ -255,9 +250,8 @@ class _MyHomePageState extends State<MyHomePage> {
                               : 'Idle',
                           style: TextStyle(
                             fontSize: 16,
-                            color: server.isRequestInProgress
-                                ? Colors.orange
-                                : Colors.grey,
+                            color:
+                                server.isRequestInProgress ? Colors.orange : Colors.grey,
                             fontWeight: server.isRequestInProgress
                                 ? FontWeight.bold
                                 : FontWeight.normal,
@@ -278,18 +272,12 @@ class _MyHomePageState extends State<MyHomePage> {
                     const SizedBox(height: 10),
                     Text(
                       'Updates after server round-trip (${(server.delayBeforeWrite + server.delayAfterWrite) / 1000}s)',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       'Number of requests received: ${server.requestCount}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                     const SizedBox(height: 30),
                     Container(
@@ -302,9 +290,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         children: [
                           const Text(
                             'Simulate external change to the database:'
-                                '\n'
-                                '(there is no push)'
-                                '\n',
+                            '\n'
+                            '(there is no push)'
+                            '\n',
                             style: TextStyle(fontSize: 14, color: Colors.grey),
                             textAlign: TextAlign.center,
                           ),
@@ -313,8 +301,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               ElevatedButton.icon(
-                                onPressed: () =>
-                                    server.simulateExternalChange(true),
+                                onPressed: () => server.simulateExternalChange(true),
                                 icon: const Icon(Icons.favorite, size: 16),
                                 label: const Text('Liked'),
                                 style: ElevatedButton.styleFrom(
@@ -324,10 +311,8 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                               const SizedBox(width: 16),
                               ElevatedButton.icon(
-                                onPressed: () =>
-                                    server.simulateExternalChange(false),
-                                icon:
-                                    const Icon(Icons.favorite_border, size: 16),
+                                onPressed: () => server.simulateExternalChange(false),
+                                icon: const Icon(Icons.favorite_border, size: 16),
                                 label: const Text('Not Liked'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.grey.shade200,

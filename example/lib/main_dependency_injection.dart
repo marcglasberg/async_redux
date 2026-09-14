@@ -127,7 +127,7 @@ class MyHomePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // We can use the environment to change the UI as well.
-            Text('Running in ${env}.', textAlign: TextAlign.center),
+            Text('Running in $env.', textAlign: TextAlign.center),
             //
             const Text(
               'You have pushed the button this many times:\n'

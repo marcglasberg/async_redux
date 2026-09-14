@@ -290,7 +290,7 @@ class LocalPersist {
       return 0;
     else {
       try {
-        return file.length();
+        return await file.length();
       } catch (error) {
         if ((error is FileSystemException) && //
             error.message.contains("No such file or directory")) return 0;
