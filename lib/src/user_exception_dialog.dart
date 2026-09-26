@@ -67,6 +67,7 @@ class UserExceptionDialog<St> extends StatelessWidget {
           errorEvent,
           onShowUserExceptionDialog,
           useLocalContext,
+          () => StoreProvider.backdoorInheritedWidget<St>(context).getAndRemoveFirstError(),
         );
       },
     );
@@ -79,11 +80,15 @@ class _UserExceptionDialogWidget extends StatefulWidget {
   final ShowUserExceptionDialog onShowUserExceptionDialog;
   final bool useLocalContext;
 
+  /// Removes and returns the first error in the store's error queue.
+  final UserException? Function() getAndRemoveFirstError;
+
   _UserExceptionDialogWidget(
     this.child,
     this.errorEvent,
     ShowUserExceptionDialog? onShowUserExceptionDialog,
     this.useLocalContext,
+    this.getAndRemoveFirstError,
   ) : onShowUserExceptionDialog = //
             onShowUserExceptionDialog ?? _defaultUserExceptionDialog;
 
@@ -181,6 +186,32 @@ class _UserExceptionDialogWidget extends StatefulWidget {
 }
 
 class _UserExceptionDialogState extends State<_UserExceptionDialogWidget> {
+  //
+  /// Errors may have been added to the error queue before this widget was mounted
+  /// (for example, errors added by the Persistor while reading the state, or errors
+  /// thrown by actions dispatched before the app started). The first one is already
+  /// in [_UserExceptionDialogWidget.errorEvent], and the others are still in the queue.
+  /// Since the store may not change again soon, we show them all now.
+  @override
+  void initState() {
+    super.initState();
+
+    var userExceptions = <UserException>[];
+
+    UserException? userException = widget.errorEvent?.consume();
+    while (userException != null) {
+      userExceptions.add(userException);
+      userException = widget.getAndRemoveFirstError();
+    }
+
+    if (userExceptions.isNotEmpty)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        for (var userException in userExceptions)
+          widget.onShowUserExceptionDialog(
+              context, userException, widget.useLocalContext);
+      });
+  }
+
   @override
   void didUpdateWidget(_UserExceptionDialogWidget oldWidget) {
     super.didUpdateWidget(oldWidget);

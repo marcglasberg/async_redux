@@ -89,14 +89,41 @@ Sponsored by [MyText.ai](https://mytext.ai)
   - In any case, the store keeps working, and the persistor will keep persisting the
     state in the future.
 
-* Breaking change: Since `Persistor` has the new `wrapError` method (see above), if you
-  have a class that `implements Persistor` (instead of `extends Persistor`), you now have
-  to implement it. To keep the previous behavior, just return the error unaltered:
+* New feature: The `Persistor` now has an `addError` method, to report errors even
+  before the store is created. This is useful in `readState`, which is usually called
+  when the app starts, before the store exists, so it can't show errors to the user by
+  throwing them. For example, if the saved data is in the format of an old version of
+  the app, and can't be read, you may delete it and let the user know:
 
   ```dart
-  @override
-  Object? wrapError(Object error, StackTrace stackTrace) => error;
+  Future<AppState?> readState() async {
+    try {
+      return await _read();
+    } on FormatException catch (error) {
+      await deleteState();
+      addError(UserException('Could not read your data, so it was reset.').addCause(error));
+      return null;
+    }
+  }
   ```
+
+  The errors are kept by the persistor until the store gets them with
+  `Persistor.getAndRemoveFirstError`, which happens when the store is created, and then
+  again after each persistence operation (reading, deleting or saving the state). Each
+  error is given to the `GlobalErrorObserver` (with a `null` action). Then, if the
+  resulting error is a `UserException`, it goes to the store's error queue, so that it's
+  shown to the user. Other errors are thrown as unhandled async errors. Note these errors
+  are not given to `Persistor.wrapError`, since you are adding them on purpose.
+
+* Breaking change: A `Persistor` must now be created with `extends Persistor`, and not with
+  `implements Persistor`, since it now keeps its own private error queue.
+
+* Bug fix: The `UserExceptionDialog` now shows the errors that were already in the store's
+  error queue when it was mounted. Before, those errors were lost. This is important
+  for the errors added with `Persistor.addError` in `readState` (see above), but also for
+  actions that fail before the app starts.
+
+* Bug fix: The `PersistorPrinterDecorator` now prints the new state correctly.
 
 * Bug fix: When `Persistor.persistDifference` failed, the new state was still considered
   persisted, and the next call to `persistDifference` would receive it as its

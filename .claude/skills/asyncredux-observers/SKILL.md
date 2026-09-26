@@ -251,11 +251,13 @@ class MyGlobalErrorObserver extends GlobalErrorObserver<AppState> {
       return UserException('Check your internet connection').addCause(error);
     }
 
-    // Log unexpected errors and send them to a crash reporting service
+    // Log unexpected errors and send them to a crash reporting service.
+    // Note `action` is null when the error came from the Persistor.
     if (error is! UserException) {
-      print('Error in ${action.runtimeType}: $error');
+      var source = action?.runtimeType.toString() ?? 'persistence';
+      print('Error in $source: $error');
       print(stackTrace);
-      crashReporter.recordError(error, stackTrace, reason: action.runtimeType.toString());
+      crashReporter.recordError(error, stackTrace, reason: source);
     }
 
     // Return the error to keep it, or null to suppress it

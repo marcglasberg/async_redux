@@ -1,6 +1,6 @@
 ---
 name: asyncredux-error-handling
-description: Implement comprehensive error handling for actions. Covers the `wrapError()` method for action-level error wrapping, GlobalErrorObserver for app-wide error transformation and logging/monitoring, and the error handling flow (before → reduce → after).
+description: Implement comprehensive error handling for actions. Covers the `wrapError()` method for action-level error wrapping, GlobalErrorObserver for app-wide error transformation and logging/monitoring (including Persistor errors, where the action is null), and the error handling flow (before → reduce → after).
 ---
 
 # Error Handling in AsyncRedux
@@ -150,9 +150,10 @@ class MyGlobalErrorObserver extends GlobalErrorObserver<AppState> {
       return UserException('Service temporarily unavailable').addCause(error);
     }
 
-    // Log unexpected errors (not UserExceptions) to crash reporting
+    // Log unexpected errors (not UserExceptions) to crash reporting.
+    // Note `action` is null when the error came from the Persistor.
     if (error is! UserException) {
-      print("Error during ${action.runtimeType}: $error");
+      print("Error during ${action?.runtimeType ?? 'persistence'}: $error");
       crashlytics.recordError(error, stackTrace);
     }
 
@@ -166,12 +167,16 @@ Inside `observe()` you have access to:
 - `error`: The error, after the action's `wrapError()`
 - `originalError`: The error before `wrapError()`
 - `stackTrace`: The stack trace
-- `action`: The action that failed
+- `action`: The action that failed, or `null` if the error didn't come from an action (for example, from the Persistor). Always check for `null` before using it.
 - `store`: Use it to read `store.state`, `store.environment` or `store.configuration`. Do **not** use it to dispatch actions.
 
 The `observe` method returns:
 - The error (unchanged or modified) to keep it. `UserException`s then go to the error queue (shown by `UserExceptionDialog`) and are not thrown; other errors are thrown.
 - `null` to swallow the error silently
+
+### Persistor Errors
+
+Errors thrown by `Persistor.persistDifference()` (for both the `persistor` and the `cloudSync`) also go through the `GlobalErrorObserver`, with `action == null`. They are first processed by `Persistor.wrapError()`, which works like the action's `wrapError()`. Then `error` is the error after `Persistor.wrapError()`, and `originalError` is the error before it. As with actions, a resulting `UserException` goes to the error queue. The persistor can also report errors with its `addError()` method, even before the store exists (for example, from `readState()`); these also go to the `GlobalErrorObserver` with `action == null`, but not to `Persistor.wrapError()`. See the `asyncredux-persistence` skill for details.
 
 AsyncRedux also provides `GlobalErrorObserverDummy` (does nothing), `GlobalErrorObserverForDevelopment` (also shows non-`UserException` errors in the dialog), and `SwallowGlobalErrorObserver` (swallows all errors, not recommended).
 

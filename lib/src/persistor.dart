@@ -4,8 +4,10 @@
 // For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:async_redux/async_redux.dart';
+import 'package:meta/meta.dart';
 
 /// Use it like this:
 ///
@@ -36,6 +38,22 @@ abstract class Persistor<St> {
   /// occurs while loading the info, we have to deal with it by fixing the problem. In the worse
   /// case, if we think the state is corrupted and cannot be fixed, one alternative is deleting
   /// all persisted files and returning null.
+  ///
+  /// Since this method is usually called before the store is created, it can't show errors
+  /// to the user by throwing them. Instead, use [addError] to let the user know something
+  /// went wrong. For example:
+  ///
+  /// ```dart
+  /// Future<AppState?> readState() async {
+  ///   try {
+  ///     return await _read();
+  ///   } on FormatException catch (error) {
+  ///     await deleteState();
+  ///     addError(UserException('Could not read your data, so it was reset.').addCause(error));
+  ///     return null;
+  ///   }
+  /// }
+  /// ```
   Future<St?> readState();
 
   /// Delete the saved state from the persistence.
@@ -97,6 +115,41 @@ abstract class Persistor<St> {
   ///   and is called after this method (unless this method returns `null`).
   ///
   Object? wrapError(Object error, StackTrace stackTrace) => error;
+
+  /// Errors added by [addError], waiting to be processed by the store.
+  final Queue<(Object, StackTrace)> _errors = Queue();
+
+  /// Adds an error to be processed by the store, even if the store was not yet created.
+  /// This is useful in methods like [readState], which are usually called before the store
+  /// exists, and can't show errors to the user by throwing them.
+  ///
+  /// The store processes the errors added here (by calling [getAndRemoveFirstError])
+  /// when it's created, and then again after each
+  /// persistence operation (reading, deleting, or saving the state). Each error is given to
+  /// the [GlobalErrorObserver] (with a `null` action), where it can be logged, changed or
+  /// swallowed. Then, if the resulting error is a [UserException], it will be added to the
+  /// store's error queue, so that it can be shown to the user (for example, by the
+  /// `UserExceptionDialog`). Any other error will be thrown as an unhandled async error.
+  ///
+  /// Note: Errors added here are NOT processed by [wrapError], since you are adding them
+  /// on purpose, already in the form you want.
+  ///
+  /// Example:
+  ///
+  /// ```dart
+  /// addError(UserException('Could not read your data, so it was reset.'));
+  /// ```
+  @protected
+  void addError(Object error, [StackTrace? stackTrace]) =>
+      _errors.add((error, stackTrace ?? StackTrace.current));
+
+  /// Gets the first error added by [addError] (with its stack trace), and removes it.
+  /// Returns `null` if there are no errors.
+  ///
+  /// This is used by the store to process the errors added by the persistor,
+  /// so you usually don't need to call it yourself.
+  (Object, StackTrace)? getAndRemoveFirstError() =>
+      _errors.isEmpty ? null : _errors.removeFirst();
 }
 
 /// A decorator to print persistor information to the console.
@@ -130,7 +183,7 @@ class PersistorPrinterDecorator<St> extends Persistor<St> {
   }) async {
     print("Persistor: persist difference:\n"
         "lastPersistedState = $lastPersistedState\n"
-        "newState = newState");
+        "newState = $newState");
     return _persistor.persistDifference(
         lastPersistedState: lastPersistedState, newState: newState);
   }
@@ -144,6 +197,13 @@ class PersistorPrinterDecorator<St> extends Persistor<St> {
   @override
   Object? wrapError(Object error, StackTrace stackTrace) =>
       _persistor.wrapError(error, stackTrace);
+
+  @override
+  void addError(Object error, [StackTrace? stackTrace]) =>
+      _persistor.addError(error, stackTrace);
+
+  @override
+  (Object, StackTrace)? getAndRemoveFirstError() => _persistor.getAndRemoveFirstError();
 
   @override
   Duration? get throttle => _persistor.throttle;

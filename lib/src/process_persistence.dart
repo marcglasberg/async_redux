@@ -36,22 +36,52 @@ class ProcessPersistence<St> {
   Duration get throttle => persistor.throttle ?? const Duration();
 
   /// Same as [Persistor.saveInitialState] but will remember [initialState] as the [lastPersistedState].
-  Future<void> saveInitialState(St initialState) {
+  Future<void> saveInitialState(St initialState) async {
     lastPersistedState = initialState;
-    return persistor.saveInitialState(initialState);
+    try {
+      return await persistor.saveInitialState(initialState);
+    } finally {
+      processAddedErrors();
+    }
   }
 
   /// Same as [Persistor.readState] but will remember the read state as the [lastPersistedState].
   Future<St?> readState() async {
-    St? state = await persistor.readState();
-    lastPersistedState = state;
-    return state;
+    try {
+      St? state = await persistor.readState();
+      lastPersistedState = state;
+      return state;
+    } finally {
+      processAddedErrors();
+    }
   }
 
   /// Same as [Persistor.deleteState] but will clear the [lastPersistedState].
   Future<void> deleteState() async {
     lastPersistedState = null;
-    return persistor.deleteState();
+    try {
+      return await persistor.deleteState();
+    } finally {
+      processAddedErrors();
+    }
+  }
+
+  /// Processes the errors added by [Persistor.addError], removing them from the persistor.
+  /// Each error is given to [onError], and if it returns an error, it's thrown as an
+  /// unhandled async error.
+  void processAddedErrors() {
+    while (true) {
+      var addedError = persistor.getAndRemoveFirstError();
+      if (addedError == null) break;
+      var (error, stackTrace) = addedError;
+
+      Object? processedError = (onError == null) //
+          ? error
+          : onError!(error, error, stackTrace);
+
+      if (processedError != null)
+        Future(() => Error.throwWithStackTrace(processedError, stackTrace));
+    }
   }
 
   /// 1) If we're still persisting the last time, don't persist no matter what.
@@ -150,6 +180,8 @@ class ProcessPersistence<St> {
     //
     finally {
       isPersisting = false;
+
+      processAddedErrors();
 
       // If a new state became available while the present state was saving, save again.
       if (isANewStateAvailable) {

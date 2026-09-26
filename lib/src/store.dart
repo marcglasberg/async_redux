@@ -137,6 +137,12 @@ class Store<St> {
 
     // Dependencies can use `store` and `store.configuration`, if necessary.
     _dependencies = dependencies?.call(this);
+
+    // Process the errors the persistor added (usually when reading the state, before the
+    // store was created). This must come last, since the GlobalErrorObserver may use the
+    // store's configuration and dependencies.
+    _processPersistence?.processAddedErrors();
+    _processCloudSync?.processAddedErrors();
   }
 
   St _state;

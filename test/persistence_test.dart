@@ -930,7 +930,7 @@ class LocalDbInMemory extends LocalDb<List<SavedInfo>> {
   }
 }
 
-class MyPersistor implements Persistor<AppState> {
+class MyPersistor extends Persistor<AppState> {
   //
   final Duration? _throttle;
   final Duration? _saveDuration;
@@ -943,9 +943,6 @@ class MyPersistor implements Persistor<AppState> {
 
   @override
   Duration? get throttle => _throttle;
-
-  @override
-  Object? wrapError(Object error, StackTrace stackTrace) => error;
 
   Duration? get saveDuration => _saveDuration;
 
