@@ -62,15 +62,51 @@ final disk = ValueNotifier<String?>(null);
 
 /// What happens when saving the state.
 enum SaveBehavior {
-  savesOk('Saves OK'),
-  throwsUserException('Throws UserException'),
-  throwsStateError('Throws StateError'),
-  throwsTimeoutException('Throws TimeoutException'),
-  throwsArgumentError('Throws ArgumentError');
+  savesOk(
+    'Saves OK',
+    'Tap "+": The counter goes up, and "On disk" changes to the new value. '
+        'No dialog opens.\n\n'
+        'Why: The persistor\'s persistDifference() writes the new counter to the disk, '
+        'and nothing fails.',
+  ),
+  throwsUserException(
+    'Throws UserException',
+    'Tap "+": The counter goes up, but "On disk" does NOT change. '
+        'A dialog opens saying "Could not save the counter".\n\n'
+        'Why: persistDifference() throws a UserException. The persistor\'s wrapError() '
+        'keeps it as is, and the GlobalErrorObserver also keeps it as is. '
+        'Since it\'s a UserException, the dialog shows it.',
+  ),
+  throwsStateError(
+    'Throws StateError',
+    'Tap "+": The counter goes up, but "On disk" does NOT change. '
+        'A dialog opens saying "There was a problem with your saved data".\n\n'
+        'Why: persistDifference() throws a StateError. The persistor\'s wrapError() '
+        'keeps it as is. Then the GlobalErrorObserver sees an error from the persistor '
+        '(the action is null), and converts the StateError into a UserException, '
+        'which the dialog shows.',
+  ),
+  throwsTimeoutException(
+    'Throws TimeoutException',
+    'Tap "+": The counter goes up, but "On disk" does NOT change. '
+        'A dialog opens saying "Saving took too long".\n\n'
+        'Why: persistDifference() throws a TimeoutException. This time it\'s the '
+        'persistor\'s wrapError() that converts it into a UserException. '
+        'The GlobalErrorObserver keeps it as is, and the dialog shows it.',
+  ),
+  throwsArgumentError(
+    'Throws ArgumentError',
+    'Tap "+": The counter goes up, but "On disk" does NOT change. '
+        'NO dialog opens. Look at the console instead.\n\n'
+        'Why: persistDifference() throws an ArgumentError. Neither the persistor\'s '
+        'wrapError() nor the GlobalErrorObserver convert it into a UserException, '
+        'so it can\'t be shown in the dialog. It\'s thrown as an unhandled async error.',
+  );
 
   final String label;
+  final String explanation;
 
-  const SaveBehavior(this.label);
+  const SaveBehavior(this.label, this.explanation);
 }
 
 final saveBehavior = ValueNotifier<SaveBehavior>(SaveBehavior.savesOk);
@@ -200,7 +236,8 @@ class AppErrorObserver extends GlobalErrorObserver<int> {
 
     // Errors from the persistor have a null action.
     if (action == null && (error is StateError || error is FormatException))
-      return const UserException('There was a problem with your saved data.').addCause(error);
+      return const UserException('There was a problem with your saved data.')
+          .addCause(error);
 
     return error;
   }
@@ -243,6 +280,7 @@ class _MyAppState extends State<MyApp> {
 
           if (snapshot.connectionState != ConnectionState.done || store == null)
             return const MaterialApp(
+              debugShowCheckedModeBanner: false,
               home: Scaffold(body: Center(child: CircularProgressIndicator())),
             );
 
@@ -250,6 +288,7 @@ class _MyAppState extends State<MyApp> {
             key: ObjectKey(store),
             store: store,
             child: MaterialApp(
+              debugShowCheckedModeBanner: false,
               home: UserExceptionDialog<int>(
                 child: MyHomePage(restart: _restart),
               ),
@@ -297,8 +336,16 @@ class MyHomePage extends StatelessWidget {
                 children: [
                   for (var behavior in SaveBehavior.values)
                     RadioListTile<SaveBehavior>(
-                      title: Text(behavior.label),
+                      title: Text(
+                        behavior.label,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4, bottom: 8),
+                        child: Text(behavior.explanation),
+                      ),
                       value: behavior,
+                      isThreeLine: true,
                       dense: true,
                     ),
                 ],
@@ -309,24 +356,48 @@ class MyHomePage extends StatelessWidget {
           //
           const Text('When the app opens', style: TextStyle(fontSize: 20)),
           const Text('Write bad data to the disk, then restart the app.'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton(
-                onPressed: () => disk.value = 'v1:$counter',
-                child: const Text('Write old format'),
-              ),
-              OutlinedButton(
-                onPressed: () => disk.value = '%&*garbage*&%',
-                child: const Text('Write garbage'),
-              ),
-              ElevatedButton(
-                onPressed: restart,
-                child: const Text('Restart app'),
-              ),
-            ],
+          const SizedBox(height: 16),
+          _ButtonWithExplanation(
+            button: OutlinedButton(
+              onPressed: () => disk.value = 'v1:$counter',
+              child: const Text('Write old format'),
+            ),
+            explanation: 'Tap it: "On disk" changes to "v1:$counter". '
+                'Then tap "Restart app": The counter is reset to 0, and a dialog opens '
+                'saying "Your saved counter was in an old format".\n\n'
+                'Why: The persistor\'s readState() recognizes "v1:" as the format of an '
+                'old version of the app. It deletes it from the disk, and calls addError() '
+                'with a UserException. Errors added with addError() skip the persistor\'s '
+                'wrapError(). The GlobalErrorObserver keeps it as is, and since it\'s a '
+                'UserException, the dialog shows it.',
+          ),
+          _ButtonWithExplanation(
+            button: OutlinedButton(
+              onPressed: () => disk.value = '%&*garbage*&%',
+              child: const Text('Write garbage'),
+            ),
+            explanation: 'Tap it: "On disk" changes to "%&*garbage*&%". '
+                'Then tap "Restart app": The counter is reset to 0, and a dialog opens '
+                'saying "There was a problem with your saved data".\n\n'
+                'Why: The persistor\'s readState() can\'t read it at all. It deletes it '
+                'from the disk, and calls addError() with a FormatException. This is NOT a '
+                'UserException, but the GlobalErrorObserver sees an error from the persistor '
+                '(the action is null), and converts it into a UserException, '
+                'which the dialog shows.',
+          ),
+          _ButtonWithExplanation(
+            button: ElevatedButton(
+              onPressed: restart,
+              child: const Text('Restart app'),
+            ),
+            explanation: 'Tap it: The app reads the state from the disk again, and creates '
+                'a new store.\n\n'
+                'If the disk has a valid "v2:" value, the counter is restored and no dialog '
+                'opens. If the disk is empty (or the bad data was just deleted), the counter '
+                'starts at 0, and saveInitialState() tries to save it, using the save option '
+                'selected above. If that option fails, you get one more dialog '
+                '(or a console error, for ArgumentError). So, bad data plus a failing option '
+                'means two dialogs: One for the bad data, and one for the failed save.',
           ),
           const SizedBox(height: 80),
         ],
@@ -337,6 +408,30 @@ class MyHomePage extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A button, with an explanation of what happens when you tap it.
+class _ButtonWithExplanation extends StatelessWidget {
+  final Widget button;
+  final String explanation;
+
+  const _ButtonWithExplanation({required this.button, required this.explanation});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            button,
+            const SizedBox(height: 6),
+            Text(
+              explanation,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      );
 }
 
 extension BuildContextExtension on BuildContext {
