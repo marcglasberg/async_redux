@@ -96,7 +96,6 @@ class Store<St> {
     Object? Function(Store<St>)? configuration,
     Map<Object?, Object?> props = const {},
     bool syncStream = false,
-    TestInfoPrinter? testInfoPrinter,
     List<ActionObserver<St>>? actionObservers,
     List<StateObserver<St>>? stateObservers,
     Persistor<St>? persistor,
@@ -129,12 +128,7 @@ class Store<St> {
         _maxErrorsQueued = maxErrorsQueued ?? 10,
         _dispatchCount = 0,
         _reduceCount = 0,
-        _shutdown = false,
-        _testInfoPrinter = testInfoPrinter,
-        _testInfoController = (testInfoPrinter == null)
-            ? //
-            null
-            : StreamController.broadcast(sync: syncStream) {
+        _shutdown = false {
     // Init the config first, so that it can be used by the dependencies.
     _configuration = configuration?.call(this);
 
@@ -393,10 +387,6 @@ class Store<St> {
   // For testing:
   int _dispatchCount;
   int _reduceCount;
-  TestInfoPrinter? _testInfoPrinter;
-  StreamController<TestInfo<St>>? _testInfoController;
-
-  TestInfoPrinter? get testInfoPrinter => _testInfoPrinter;
 
   /// A stream that emits the current state when it changes.
   ///
@@ -417,12 +407,6 @@ class Store<St> {
   ///     subscription.cancel();
   ///
   Stream<St> get onChange => _changeController.stream;
-
-  /// Stream of [TestInfo], emitted when a [testInfoPrinter] is set in the constructor.
-  Stream<TestInfo<St>> get onReduce => (_testInfoController != null)
-      ? //
-      _testInfoController!.stream
-      : Stream<TestInfo<St>>.empty();
 
   /// Pause the [Persistor] temporarily.
   ///
@@ -525,17 +509,6 @@ class Store<St> {
 
   /// Gets, from the [CloudSync], the last state that was saved to the cloud.
   St? getLastPersistedStateFromCloudSync() => _processCloudSync?.lastPersistedState;
-
-  /// Turns on testing capabilities, if not already.
-  void initTestInfoController() {
-    _testInfoController ??= StreamController.broadcast(sync: false);
-  }
-
-  /// Changes the testInfoPrinter.
-  void initTestInfoPrinter(TestInfoPrinter testInfoPrinter) {
-    _testInfoPrinter = testInfoPrinter;
-    initTestInfoController();
-  }
 
   /// Beware: Changes the state directly. Use only for TESTS.
   /// This will not notify the listeners nor complete wait conditions.
@@ -1601,29 +1574,6 @@ class Store<St> {
     return _processAction(action, notify: notify);
   }
 
-  void createTestInfoSnapshot(
-    St state,
-    ReduxAction<St> action,
-    Object? error,
-    Object? processedError, {
-    required bool ini,
-  }) {
-    if (_testInfoController != null || testInfoPrinter != null) {
-      var reduceInfo = TestInfo<St>(
-        state,
-        ini,
-        action,
-        error,
-        processedError,
-        dispatchCount,
-        reduceCount,
-        errors,
-      );
-      if (_testInfoController != null) _testInfoController!.add(reduceInfo);
-      if (testInfoPrinter != null) testInfoPrinter!(reduceInfo);
-    }
-  }
-
   /// Returns a copy of the error queue, containing user exception errors thrown by
   /// dispatched actions. Note that this is a copy of the queue, so you can't modify the original
   /// queue here. Instead, use [getAndRemoveFirstError] to consume the errors, one by one.
@@ -1913,9 +1863,6 @@ class Store<St> {
     bool notify = true,
   }) {
     //
-    // Creates the "INI" test snapshot.
-    createTestInfoSnapshot(state!, action, null, null, ini: true);
-
     // The action may access the store/state/dispatch as fields.
     assert(action.store == this);
 
@@ -1952,7 +1899,7 @@ class Store<St> {
     }
     //
     finally {
-      _finalize(action, originalError, processedError, afterWasRun, notify);
+      _finalize(action, originalError, afterWasRun, notify);
     }
 
     return action._status;
@@ -1966,9 +1913,6 @@ class Store<St> {
     bool notify = true,
   }) async {
     //
-    // Creates the "INI" test snapshot.
-    createTestInfoSnapshot(state!, action, null, null, ini: true);
-
     // The action may access the store/state/dispatch as fields.
     assert(action.store == this);
 
@@ -2002,7 +1946,7 @@ class Store<St> {
     }
     //
     finally {
-      _finalize(action, originalError, processedError, afterWasRun, notify);
+      _finalize(action, originalError, afterWasRun, notify);
     }
 
     return action._status;
@@ -2310,7 +2254,6 @@ class Store<St> {
   void _finalize(
     ReduxAction<St> action,
     Object? error,
-    Object? processedError,
     _Flag<bool> afterWasRun,
     bool notify,
   ) {
@@ -2324,8 +2267,6 @@ class Store<St> {
     if (_awaitableActions.contains(action.runtimeType) && ((error != null) || !notify)) {
       _changeController.add(state);
     }
-
-    createTestInfoSnapshot(state!, action, error, processedError, ini: false);
 
     if (_actionObservers != null)
       for (ActionObserver observer in _actionObservers) {

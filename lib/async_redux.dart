@@ -17,7 +17,6 @@ export 'src/state_observer.dart';
 export 'src/store.dart';
 export 'src/store_exception.dart';
 export 'src/store_provider_and_connector.dart';
-export 'src/test_info.dart';
 export 'src/user_exception_dialog.dart';
 export 'src/view_model.dart';
 export 'src/wait.dart';

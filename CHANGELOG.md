@@ -37,6 +37,14 @@ Sponsored by [MyText.ai](https://mytext.ai)
   - `TestInfoList`: Use the `Store` directly instead of `StoreTester`.
   - `StoreExceptionTimeout`: Use the `Store` directly instead of `StoreTester`.
   - The `StateCondition` typedef: Use `Store.waitCondition` instead.
+  - `TestInfo` and the `TestInfoPrinter` typedef: Use `ActionObserver` and
+    `StateObserver` instead.
+  - The `testInfoPrinter` parameter of `Store` and `MockStore`: Use the `actionObservers`
+    and `stateObservers` parameters instead.
+  - `Store.testInfoPrinter`, `Store.initTestInfoPrinter`, `Store.initTestInfoController`
+    and `Store.createTestInfoSnapshot`: Use `ActionObserver` and `StateObserver` instead.
+  - `Store.onReduce`: Use `ActionObserver` and `StateObserver` instead, or `Store.onChange`
+    to listen to state changes.
 
 ## 28.4.0
 
