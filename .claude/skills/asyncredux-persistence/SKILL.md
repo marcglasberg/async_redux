@@ -245,5 +245,4 @@ URLs from the documentation:
 - https://asyncredux.com/flutter/testing/mocking
 - https://asyncredux.com/flutter/advanced-actions/redux-action
 - https://asyncredux.com/flutter/about
-- https://asyncredux.com/flutter/testing/store-tester
 - https://asyncredux.com/flutter/miscellaneous/advanced-waiting

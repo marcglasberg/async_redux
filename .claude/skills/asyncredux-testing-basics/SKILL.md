@@ -348,7 +348,6 @@ void main() {
 ## References
 
 URLs from the documentation:
-- https://asyncredux.com/flutter/testing/store-tester
 - https://asyncredux.com/flutter/testing/dispatch-wait-and-expect
 - https://asyncredux.com/flutter/testing/test-files
 - https://asyncredux.com/flutter/testing/mocking

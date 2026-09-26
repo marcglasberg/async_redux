@@ -163,6 +163,5 @@ URLs from the documentation:
 - https://asyncredux.com/flutter/advanced-actions/before-and-after-the-reducer
 - https://asyncredux.com/flutter/advanced-actions/redux-action
 - https://asyncredux.com/flutter/miscellaneous/navigation
-- https://asyncredux.com/flutter/testing/store-tester
 - https://asyncredux.com/flutter/testing/dispatch-wait-and-expect
 - https://asyncredux.com/flutter/testing/testing-user-exceptions

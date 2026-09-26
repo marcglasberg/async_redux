@@ -369,7 +369,6 @@ URLs from the documentation:
 - https://asyncredux.com/flutter/miscellaneous/logging
 - https://asyncredux.com/flutter/miscellaneous/metrics
 - https://asyncredux.com/flutter/advanced-actions/redux-action
-- https://asyncredux.com/flutter/testing/store-tester
 - https://asyncredux.com/flutter/basics/sync-actions
 - https://asyncredux.com/flutter/advanced-actions/before-and-after-the-reducer
 - https://asyncredux.com/flutter/basics/async-actions

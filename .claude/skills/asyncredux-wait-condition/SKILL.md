@@ -308,7 +308,6 @@ URLs from the documentation:
 - https://asyncredux.com/flutter/miscellaneous/wait-condition
 - https://asyncredux.com/flutter/miscellaneous/advanced-waiting
 - https://asyncredux.com/flutter/advanced-actions/redux-action
-- https://asyncredux.com/flutter/testing/store-tester
 - https://asyncredux.com/flutter/testing/dispatch-wait-and-expect
 - https://asyncredux.com/flutter/basics/async-actions
 - https://asyncredux.com/flutter/basics/dispatching-actions

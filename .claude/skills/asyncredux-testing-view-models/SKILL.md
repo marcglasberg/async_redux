@@ -391,7 +391,6 @@ URLs from the documentation:
 - https://asyncredux.com/flutter/testing/dispatch-wait-and-expect
 - https://asyncredux.com/flutter/testing/test-files
 - https://asyncredux.com/flutter/testing/mocking
-- https://asyncredux.com/flutter/testing/store-tester
 - https://asyncredux.com/flutter/connector/store-connector
 - https://asyncredux.com/flutter/connector/advanced-view-model
 - https://asyncredux.com/flutter/connector/connector-pattern

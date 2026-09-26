@@ -506,7 +506,6 @@ class AnotherAction extends DelayedAction {
 
 URLs from the documentation:
 - https://asyncredux.com/flutter/testing/dispatch-wait-and-expect
-- https://asyncredux.com/flutter/testing/store-tester
 - https://asyncredux.com/flutter/miscellaneous/wait-condition
 - https://asyncredux.com/flutter/miscellaneous/advanced-waiting
 - https://asyncredux.com/flutter/testing/mocking

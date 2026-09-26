@@ -382,6 +382,5 @@ URLs from the documentation:
 - https://asyncredux.com/flutter/basics/store
 - https://asyncredux.com/flutter/advanced-actions/redux-action
 - https://asyncredux.com/flutter/connector/store-connector
-- https://asyncredux.com/flutter/testing/store-tester
 - https://asyncredux.com/flutter/testing/dispatch-wait-and-expect
 - https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_dependency_injection.dart
