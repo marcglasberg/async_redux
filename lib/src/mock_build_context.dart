@@ -5,7 +5,7 @@
 
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/foundation.dart' show DiagnosticsTreeStyle;
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 /// A mock BuildContext that holds a Store reference, for testing purposes.
 ///

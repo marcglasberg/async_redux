@@ -9,7 +9,7 @@ import 'dart:collection';
 import 'package:async_redux/async_redux.dart';
 import 'package:collection/collection.dart' show DeepCollectionEquality;
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 /// Convert the entire [Store] into a [Model]. The [Model] will
 /// be used to build a Widget using the [ViewModelBuilder].

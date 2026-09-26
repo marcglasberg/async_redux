@@ -6,7 +6,7 @@
 library async_redux_view_model;
 
 import 'package:async_redux/async_redux.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 /// Each state passed in the [Vm.equals] parameter in the in view-model will be
 /// compared by equality (==), unless it is of type [VmEquals], when it will be
