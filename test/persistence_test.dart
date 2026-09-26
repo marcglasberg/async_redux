@@ -944,6 +944,9 @@ class MyPersistor implements Persistor<AppState> {
   @override
   Duration? get throttle => _throttle;
 
+  @override
+  Object? wrapError(Object error, StackTrace stackTrace) => error;
+
   Duration? get saveDuration => _saveDuration;
 
   LocalDb? _localDb;

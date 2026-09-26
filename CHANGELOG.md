@@ -46,6 +46,64 @@ Sponsored by [MyText.ai](https://mytext.ai)
   - `Store.onReduce`: Use `ActionObserver` and `StateObserver` instead, or `Store.onChange`
     to listen to state changes.
 
+* Breaking change: `GlobalErrorObserver.action` is now nullable (`ReduxAction<St>?`).
+  It's `null` when the error didn't come from an action, but from somewhere else, such
+  as from the `Persistor` (see below). If your observer uses the action, you now have to
+  check for `null`. For example:
+
+  ```dart
+  class MyGlobalErrorObserver extends GlobalErrorObserver<AppState> {
+    @override
+    Object? observe() {
+      if (action == null) log('Persistence error: $error');
+      else log('Error in ${action.runtimeType}: $error');
+      return error;
+    }
+  }
+  ```
+
+* New feature: Errors thrown by the `Persistor` (and by the `cloudSync`) when saving the
+  state are now handled by the store. Before, an error thrown by
+  `Persistor.persistDifference` would become an unhandled async error, which was not seen
+  by the `GlobalErrorObserver`. Now:
+
+  - The error is first given to the new `Persistor.wrapError` method, which works the
+    same way as `ReduxAction.wrapError`: Return the error unaltered to keep it, return
+    another error to replace it (for example, a `UserException`), or return `null` to
+    swallow it. By default, it returns the error unaltered.
+
+  - Then, the error is given to the `GlobalErrorObserver`, with a `null` action, so that
+    you can log it, or change it, or swallow it, the same way you do with action errors.
+    Here, `error` is the error after `Persistor.wrapError`, and `originalError` is the
+    error before it. If `Persistor.wrapError` returns `null`, the observer is not called.
+
+  - If the error is a `UserException` (either thrown by the persistor, or returned by the
+    `GlobalErrorObserver`), it goes to the store's error queue, so that it can be shown
+    to the user, for example by the `UserExceptionDialog`. As usual, a `UserException`
+    with `noDialog` is not added to the queue.
+
+  - If the `GlobalErrorObserver` returns `null`, the error is swallowed.
+
+  - Any other error is still thrown as an unhandled async error, as before.
+
+  - In any case, the store keeps working, and the persistor will keep persisting the
+    state in the future.
+
+* Breaking change: Since `Persistor` has the new `wrapError` method (see above), if you
+  have a class that `implements Persistor` (instead of `extends Persistor`), you now have
+  to implement it. To keep the previous behavior, just return the error unaltered:
+
+  ```dart
+  @override
+  Object? wrapError(Object error, StackTrace stackTrace) => error;
+  ```
+
+* Bug fix: When `Persistor.persistDifference` failed, the new state was still considered
+  persisted, and the next call to `persistDifference` would receive it as its
+  `lastPersistedState`. For persistors that save only the difference, the changes of the
+  failed call would be lost. Now, when saving fails, `lastPersistedState` is kept as the
+  last state that was actually persisted, so the next call includes the failed changes.
+
 ## 28.4.0
 
 * Bug fix: The `Polling` mixin now really waits for each run to finish before

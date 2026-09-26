@@ -129,6 +129,9 @@ class Store<St> {
         _dispatchCount = 0,
         _reduceCount = 0,
         _shutdown = false {
+    _processPersistence?.onError = _processPersistorError;
+    _processCloudSync?.onError = _processPersistorError;
+
     // Init the config first, so that it can be used by the dependencies.
     _configuration = configuration?.call(this);
 
@@ -2251,6 +2254,45 @@ class Store<St> {
     return null;
   }
 
+  /// Processes errors thrown by the [Persistor] (or the cloud-sync) when persisting the state.
+  /// The [error] was already processed by [Persistor.wrapError], while [originalError] is the
+  /// error before it. The error is given to the [GlobalErrorObserver], if defined. Then:
+  /// - If the processed error is a [UserException], it's added to the error queue.
+  /// - If it's `null`, it's swallowed.
+  /// - Otherwise, it's returned, to be thrown as an unhandled async error.
+  Object? _processPersistorError(Object error, Object originalError, StackTrace stackTrace) {
+    Object? errorOrNull = error;
+
+    var globalErrorObserver = _globalErrorObserver?.call(this);
+    if (globalErrorObserver != null) {
+      try {
+        globalErrorObserver._init(
+          error: error,
+          originalError: originalError,
+          stackTrace: stackTrace,
+          action: null,
+          store: this,
+        );
+        errorOrNull = globalErrorObserver.observe();
+      } catch (_error) {
+        // If the GlobalErrorObserver throws an error, it will be used instead
+        // of the original error (but the recommended way is returning the error).
+        errorOrNull = _error;
+      }
+    }
+
+    // Memorizes errors of type UserException (in the error queue).
+    if (errorOrNull is UserException) {
+      if (errorOrNull.ifOpenDialog) {
+        _addError(errorOrNull);
+        if (!_changeController.isClosed) _changeController.add(state);
+      }
+      return null;
+    }
+
+    return errorOrNull;
+  }
+
   void _finalize(
     ReduxAction<St> action,
     Object? error,
@@ -2665,7 +2707,8 @@ class _InternalMixinProps {
 /// ```
 ///
 /// Your observer error object will be given all errors thrown in your actions
-/// (including those of type `UserException`). Then:
+/// (including those of type `UserException`), and also the errors thrown by the
+/// [Persistor] (and the cloud-sync) when persisting the state. Then:
 /// * If it returns the same [error] unaltered, this original error will be used.
 /// * If it returns something else, that it will be used instead of [error].
 /// * If it returns `null`, [error] will be disabled (swallowed).
@@ -2676,6 +2719,17 @@ class _InternalMixinProps {
 /// it is still recommended to return the error rather than throwing it.
 ///
 /// Note this observer is called AFTER the action's [ReduxAction.wrapError].
+///
+/// # Errors not thrown by actions
+///
+/// Errors thrown by [Persistor.persistDifference] (for both the `persistor` and the
+/// `cloudSync` of the store) are also given to this observer, AFTER the persistor's
+/// [Persistor.wrapError]. In this case, the [action] will be `null`, and [originalError]
+/// will be the error before [Persistor.wrapError]. Then:
+/// * If it returns a [UserException], it will be added to the store's error queue,
+///   so that it can be shown to the user (for example, by the `UserExceptionDialog`).
+/// * If it returns `null`, the error will be swallowed.
+/// * If it returns any other error, it will be thrown as an unhandled async error.
 ///
 /// # Use cases
 ///
@@ -2696,23 +2750,40 @@ class _InternalMixinProps {
 /// - `error`: The error thrown by the action, AFTER `wrapError`.
 /// - `originalError`: The action error BEFORE `wrapError`.
 /// - `stackTrace`: The stack trace associated with the error.
-/// - `action`: The action that triggered the error.
+/// - `action`: The action that triggered the error, or `null` if the error didn't come
+///    from an action (for example, if it came from the [Persistor]).
 /// - `store`: Use it to read `store.environment` or `store.configuration`.
 ///    Do **not** use it to dispatch new actions.
 ///
 abstract class GlobalErrorObserver<St> {
   //
   /// The error thrown by the action, AFTER being processed by the action's `wrapError`.
+  /// If the error came from the [Persistor] (see [action]), this is the error AFTER being
+  /// processed by [Persistor.wrapError].
   late final Object error;
 
   /// The error thrown by the action, BEFORE being processed by the action's `wrapError`.
+  /// If the error came from the [Persistor] (see [action]), this is the error BEFORE being
+  /// processed by [Persistor.wrapError].
   late final Object originalError;
 
   /// The stack trace of the error.
   late final StackTrace stackTrace;
 
   /// The action that threw the error.
-  late final ReduxAction<St> action;
+  ///
+  /// This is `null` when the error didn't come from an action, but from somewhere else.
+  /// For example, errors thrown by the [Persistor] (or the cloud-sync) when persisting
+  /// the state will have a `null` action. Always check for `null` before using it:
+  ///
+  /// ```dart
+  /// Object? observe() {
+  ///   if (action == null) log('Persistence error: $error');
+  ///   else log('Error in ${action.runtimeType}: $error');
+  ///   return error;
+  /// }
+  /// ```
+  late final ReduxAction<St>? action;
 
   /// You can access the store, but do NOT use it to dispatch actions,
   /// because the store is still processing the current action, and dispatching another
@@ -2739,7 +2810,7 @@ abstract class GlobalErrorObserver<St> {
     required Object error,
     required Object? originalError,
     required StackTrace stackTrace,
-    required ReduxAction<St> action,
+    required ReduxAction<St>? action,
     required Store<St> store,
   }) {
     this.error = error;

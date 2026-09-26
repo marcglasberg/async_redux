@@ -26,6 +26,13 @@ class ProcessPersistence<St> {
   bool isPaused;
   bool isInit;
 
+  /// Called when [Persistor.persistDifference] throws an error, after the error was processed
+  /// by [Persistor.wrapError] (and only if it didn't return `null`). The [error] is the
+  /// wrapped error, and [originalError] is the error before [Persistor.wrapError].
+  /// It should return the error that should be thrown (as an unhandled async error),
+  /// or `null` to swallow it. If not set, the wrapped error is thrown.
+  Object? Function(Object error, Object originalError, StackTrace stackTrace)? onError;
+
   Duration get throttle => persistor.throttle ?? const Duration();
 
   /// Same as [Persistor.saveInitialState] but will remember [initialState] as the [lastPersistedState].
@@ -118,10 +125,30 @@ class ProcessPersistence<St> {
         lastPersistedState: lastPersistedState,
         newState: newState,
       );
+
+      // Only consider the state persisted if it succeeded. Otherwise, the next time we persist,
+      // the difference will be calculated from the last state that was actually persisted.
+      lastPersistedState = newState;
+    }
+    //
+    catch (error, stackTrace) {
+      Object? processedError;
+
+      try {
+        processedError = persistor.wrapError(error, stackTrace);
+      } catch (_error) {
+        // If the persistor's wrapError throws an error, it will be used instead
+        // of the original error (but the recommended way is returning the error).
+        processedError = _error;
+      }
+
+      if (processedError != null && onError != null)
+        processedError = onError!(processedError, error, stackTrace);
+
+      if (processedError != null) Error.throwWithStackTrace(processedError, stackTrace);
     }
     //
     finally {
-      lastPersistedState = newState;
       isPersisting = false;
 
       // If a new state became available while the present state was saving, save again.

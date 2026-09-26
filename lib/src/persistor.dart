@@ -30,7 +30,6 @@ import 'package:async_redux/async_redux.dart';
 ///
 abstract class Persistor<St> {
   //
-
   /// Read the saved state from the persistence. Should return null if the state is not yet
   /// persisted. This method should be called only once, when the app starts, before the store
   /// is created. The state it returns may become the store's initial-state. If some error
@@ -50,6 +49,12 @@ abstract class Persistor<St> {
   /// For simpler apps where your state is small, you can just ignore [lastPersistedState]
   /// and persist the whole [newState] every time. But for larger apps, you should compare
   /// [lastPersistedState] and [newState], to persist only the difference between them.
+  ///
+  /// If this method throws an error, it will first be processed by [wrapError], and then
+  /// given to the [GlobalErrorObserver] (with a `null` action). If the resulting error is a
+  /// [UserException], it will be added to the store's error queue, so that it can be shown
+  /// to the user. Also, [newState] will not be considered persisted, so the next call will
+  /// receive the same [lastPersistedState].
   Future<void> persistDifference({
     required St? lastPersistedState,
     required St newState,
@@ -61,6 +66,37 @@ abstract class Persistor<St> {
 
   /// The default throttle is 2 seconds. Pass null to turn off throttle.
   Duration? get throttle => const Duration(seconds: 2);
+
+  /// If any error is thrown by [persistDifference], you have the chance to further
+  /// process it by using `wrapError`. Usually this is used to wrap the error inside
+  /// of another that better describes the failure. For example, you could turn a
+  /// `FileSystemException` into a [UserException], so that it's shown to the user:
+  ///
+  /// ```dart
+  /// wrapError(error, _) => (error is FileSystemException)
+  ///     ? UserException("Could not save your data.", cause: error)
+  ///     : error;
+  /// ```
+  ///
+  /// If you want to disable the error you can return `null`. For example, if you want
+  /// to disable errors of type `MyException`:
+  ///
+  /// ```dart
+  /// wrapError(error, _) => (error is MyException) ? null : error
+  /// ```
+  ///
+  /// If you don't want to modify the error, just return it unaltered
+  /// (or don't override this method).
+  ///
+  /// IMPORTANT: If instead of RETURNING an error you THROW an error inside the `wrapError`
+  /// method, AsyncRedux will catch this error and use it instead of the original error.
+  /// However, it is still recommended to return the error rather than throwing it.
+  ///
+  /// See also:
+  /// - [GlobalErrorObserver], which is a global way to observe and wrap errors,
+  ///   and is called after this method (unless this method returns `null`).
+  ///
+  Object? wrapError(Object error, StackTrace stackTrace) => error;
 }
 
 /// A decorator to print persistor information to the console.
@@ -104,6 +140,10 @@ class PersistorPrinterDecorator<St> extends Persistor<St> {
     print("Persistor: save initial state.");
     return _persistor.saveInitialState(state);
   }
+
+  @override
+  Object? wrapError(Object error, StackTrace stackTrace) =>
+      _persistor.wrapError(error, stackTrace);
 
   @override
   Duration? get throttle => _persistor.throttle;
