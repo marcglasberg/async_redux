@@ -1,6 +1,6 @@
 ---
 name: asyncredux-observers
-description: Set up observers for debugging and monitoring. Covers implementing actionObservers for dispatch logging, stateObserver for state change tracking, combining observers with globalWrapError, and using observers for analytics.
+description: Set up observers for debugging and monitoring. Covers implementing actionObservers for dispatch logging, stateObserver for state change tracking, observing errors with globalErrorObserver, and using observers for analytics.
 ---
 
 # Setting Up Observers for Debugging and Monitoring
@@ -13,7 +13,7 @@ AsyncRedux provides several observer types for monitoring actions, state changes
 |--------------|---------|
 | `ActionObserver` | Monitor action dispatch (start and end) |
 | `StateObserver` | Monitor state changes after actions |
-| `ErrorObserver` | Monitor and handle action errors |
+| `GlobalErrorObserver` | Monitor, transform, and handle action errors |
 | `ModelObserver` | Monitor widget rebuilds (for StoreConnector) |
 
 ## Store Configuration with Observers
@@ -23,7 +23,7 @@ var store = Store<AppState>(
   initialState: AppState.initialState(),
   actionObservers: [ConsoleActionObserver()],
   stateObservers: [MyStateObserver()],
-  errorObserver: MyErrorObserver(),
+  globalErrorObserver: (store) => MyGlobalErrorObserver(),
   modelObserver: DefaultModelObserver(),
 );
 ```
@@ -226,72 +226,54 @@ class UndoRedoObserver implements StateObserver<AppState> {
 }
 ```
 
-## ErrorObserver
+## GlobalErrorObserver
 
-The `ErrorObserver` monitors all errors thrown by actions and can suppress or allow them to propagate.
+The `GlobalErrorObserver` monitors all errors thrown by actions. It can log them, transform them (for example, into `UserException`s), or suppress them.
 
 ### Error Handling Flow
 
 The error handling order is:
 1. `wrapError()` (action-level)
-2. `GlobalWrapError` (app-level)
-3. `ErrorObserver` (monitoring/logging)
+2. `GlobalErrorObserver` (app-level transformation and monitoring/logging)
 
-### ErrorObserver Implementation
+After that, `UserException`s go to the error queue (shown by `UserExceptionDialog`) and are not thrown, while other errors are thrown.
+
+### GlobalErrorObserver Implementation
+
+Extend `GlobalErrorObserver` and override `observe()`. Inside it you can access `error` (after `wrapError`), `originalError` (before `wrapError`), `stackTrace`, `action`, and `store`. Do not use `store` to dispatch actions.
 
 ```dart
-class MyErrorObserver<St> implements ErrorObserver<St> {
+class MyGlobalErrorObserver extends GlobalErrorObserver<AppState> {
   @override
-  bool observe(
-    Object error,
-    StackTrace stackTrace,
-    ReduxAction<St> action,
-    Store store,
-  ) {
-    // Log the error
-    print('Error in ${action.runtimeType}: $error');
-    print(stackTrace);
-
-    // Send to crash reporting service
-    crashReporter.recordError(error, stackTrace, reason: action.runtimeType.toString());
-
-    // Return true to rethrow the error, false to suppress it
-    return true;
-  }
-}
-```
-
-### Store Configuration with ErrorObserver
-
-```dart
-var store = Store<AppState>(
-  initialState: AppState.initialState(),
-  errorObserver: MyErrorObserver<AppState>(),
-);
-```
-
-### Combining with GlobalWrapError
-
-Use `GlobalWrapError` to transform errors before they reach the `ErrorObserver`:
-
-```dart
-var store = Store<AppState>(
-  initialState: AppState.initialState(),
-  globalWrapError: MyGlobalWrapError(),
-  errorObserver: MyErrorObserver<AppState>(),
-);
-
-class MyGlobalWrapError extends GlobalWrapError {
-  @override
-  Object? wrap(Object error, StackTrace stackTrace, ReduxAction<dynamic> action) {
+  Object? observe() {
     // Transform platform errors to user-friendly messages
     if (error is PlatformException) {
       return UserException('Check your internet connection').addCause(error);
     }
+
+    // Log unexpected errors and send them to a crash reporting service
+    if (error is! UserException) {
+      print('Error in ${action.runtimeType}: $error');
+      print(stackTrace);
+      crashReporter.recordError(error, stackTrace, reason: action.runtimeType.toString());
+    }
+
+    // Return the error to keep it, or null to suppress it
     return error;
   }
 }
 ```
+
+### Store Configuration with GlobalErrorObserver
+
+```dart
+var store = Store<AppState>(
+  initialState: AppState.initialState(),
+  globalErrorObserver: (store) => MyGlobalErrorObserver(),
+);
+```
+
+AsyncRedux also provides `GlobalErrorObserverDummy` (does nothing), `GlobalErrorObserverForDevelopment` (also shows non-`UserException` errors in the dialog), and `SwallowGlobalErrorObserver` (swallows all errors, not recommended).
 
 ## ModelObserver
 
@@ -439,14 +421,18 @@ class ConsoleStateObserver implements StateObserver<AppState> {
   }
 }
 
-class CrashReportingErrorObserver implements ErrorObserver<AppState> {
+class CrashReportingErrorObserver extends GlobalErrorObserver<AppState> {
   @override
-  bool observe(Object error, StackTrace stackTrace, ReduxAction<AppState> action, Store store) {
+  Object? observe() {
+    // Transform errors globally
+    if (error is PlatformException) {
+      return UserException('Check your internet connection').addCause(error);
+    }
     // Don't report UserExceptions (they're expected)
     if (error is! UserException) {
       FirebaseCrashlytics.instance.recordError(error, stackTrace);
     }
-    return true; // Rethrow the error
+    return error; // Keep the error
   }
 }
 
@@ -457,10 +443,8 @@ void main() {
     // Only enable console observers in debug mode
     actionObservers: kDebugMode ? [ConsoleActionObserver()] : null,
     stateObservers: kDebugMode ? [ConsoleStateObserver()] : null,
-    // Always enable error observer
-    errorObserver: CrashReportingErrorObserver(),
-    // Transform errors globally
-    globalWrapError: MyGlobalWrapError(),
+    // Always enable error observer (also transforms errors globally)
+    globalErrorObserver: (store) => CrashReportingErrorObserver(),
   );
 
   runApp(StoreProvider<AppState>(

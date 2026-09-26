@@ -24,9 +24,9 @@ import '../async_redux.dart';
 ///   void _onInit(Store<AppState> store) => store.dispatch(SomeAction());
 /// }
 ///
-/// var storeTester = StoreTester(...);
-/// ConnectorTester(tester, MyConnector()).runOnInit();
-/// var info = await tester.waitUntil(SomeAction);
+/// var store = Store(...);
+/// ConnectorTester(store, MyConnector()).runOnInit();
+/// await store.waitActionType(SomeAction);
 /// ```
 ///
 class ConnectorTester<St, Model> {

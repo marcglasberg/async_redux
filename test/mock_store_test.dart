@@ -44,10 +44,7 @@ class MyMockAction extends MockAction<AppState> {
 }
 
 void main() {
-  StoreTester<AppState> createMockStoreTester() {
-    var store = MockStore<AppState>(initialState: AppState("0"));
-    return StoreTester.from(store);
-  }
+  MockStore<AppState> createMockStore() => MockStore<AppState>(initialState: AppState("0"));
 
   test('Store: mock a single sync action.', () async {
     var store = MockStore<AppState>(initialState: AppState("0"));
@@ -66,20 +63,20 @@ void main() {
     expect(store.state.text, "0A");
   });
 
-  test('StoreTester: mock a single sync action.', () async {
+  test('MockStore: mock a single sync action.', () async {
     // Without mock:
-    var storeTester = createMockStoreTester();
-    expect(storeTester.state.text, "0");
-    storeTester.dispatch(MyAction1());
-    expect(storeTester.state.text, "01");
+    var store = createMockStore();
+    expect(store.state.text, "0");
+    store.dispatch(MyAction1());
+    expect(store.state.text, "01");
 
     // With mock:
-    storeTester = createMockStoreTester();
-    expect(storeTester.state.text, "0");
-    storeTester.addMock(
+    store = createMockStore();
+    expect(store.state.text, "0");
+    store.addMock(
         MyAction1, (ReduxAction<AppState> action, AppState state) => AppState(state.text + 'A'));
-    storeTester.dispatch(MyAction1());
-    expect(storeTester.state.text, "0A");
+    store.dispatch(MyAction1());
+    expect(store.state.text, "0A");
   });
 
   test('Store: mock sync actions in different ways.', () async {

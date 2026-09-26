@@ -93,7 +93,7 @@ import 'package:async_redux/async_redux.dart';
 ```
 
 Create the store with your initial state. Note that `PersistorDummy`,
-`GlobalWrapErrorDummy`, and `ConsoleActionObserver` are provided by AsyncRedux for basic
+`GlobalErrorObserverDummy`, and `ConsoleActionObserver` are provided by AsyncRedux for basic
 setups. In the future these can be replaced with custom implementations as needed.
 
 ```dart
@@ -116,7 +116,7 @@ void main() async {
   store = Store<AppState>(
     initialState: initialState,
     persistor: persistor,
-    globalWrapError: GlobalWrapErrorDummy(),    
+    globalErrorObserver: (store) => GlobalErrorObserverDummy(),
     actionObservers: [ConsoleActionObserver()],
   );
 

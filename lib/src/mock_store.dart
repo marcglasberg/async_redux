@@ -25,13 +25,8 @@ class MockStore<St> extends Store<St> {
     Persistor<St>? persistor,
     Persistor<St>? cloudSync,
     ModelObserver? modelObserver,
-    ErrorObserver<St>? errorObserver,
     WrapReduce<St>? wrapReduce,
     GlobalErrorObserver<St> Function(Store<St>)? globalErrorObserver,
-    //
-    @Deprecated("Use `globalErrorObserver` instead. This will be removed.")
-    GlobalWrapError<St>? globalWrapError,
-    //
     bool? defaultDistinct,
     CompareBy? immutableCollectionEquality,
     int? maxErrorsQueued,
@@ -47,10 +42,8 @@ class MockStore<St> extends Store<St> {
           persistor: persistor,
           cloudSync: cloudSync,
           modelObserver: modelObserver,
-          errorObserver: errorObserver,
           wrapReduce: wrapReduce,
           globalErrorObserver: globalErrorObserver,
-          globalWrapError: globalWrapError,
           defaultDistinct: defaultDistinct,
           immutableCollectionEquality: immutableCollectionEquality,
           maxErrorsQueued: maxErrorsQueued,
@@ -108,12 +101,6 @@ class MockStore<St> extends Store<St> {
     return (_action == null) //
         ? Future.value(ActionStatus(context: (action, this)))
         : super.dispatch(_action, notify: notify);
-  }
-
-  @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
-  @override
-  Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) {
-    return dispatchAndWait(action, notify: notify);
   }
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.

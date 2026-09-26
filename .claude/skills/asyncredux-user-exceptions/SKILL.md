@@ -164,19 +164,20 @@ class ConvertAction extends AppAction with ShowUserException {
 }
 ```
 
-## Global Error Handling with GlobalWrapError
+## Global Error Handling with GlobalErrorObserver
 
 Handle third-party or framework errors uniformly across all actions:
 
 ```dart
 var store = Store<AppState>(
   initialState: AppState.initialState(),
-  globalWrapError: MyGlobalWrapError(),
+  globalErrorObserver: (store) => MyGlobalErrorObserver(),
 );
 
-class MyGlobalWrapError extends GlobalWrapError {
+class MyGlobalErrorObserver extends GlobalErrorObserver<AppState> {
   @override
-  Object? wrap(Object error, StackTrace stackTrace, ReduxAction<dynamic> action) {
+  Object? observe() {
+    final error = this.error;
     if (error is PlatformException &&
         error.code == 'Error performing get') {
       return UserException('Check your internet connection')
@@ -188,7 +189,7 @@ class MyGlobalWrapError extends GlobalWrapError {
 }
 ```
 
-**Processing order**: Action's `wrapError()` -> `GlobalWrapError` -> `ErrorObserver`
+**Processing order**: Action's `wrapError()` -> `GlobalErrorObserver`
 
 ## Error Queue
 

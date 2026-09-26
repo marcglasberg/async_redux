@@ -41,29 +41,24 @@ class _MyStateObserver extends StateObserver<num> {
 
 void main() {
   var observer = _MyStateObserver();
-  StoreTester<num> createStoreTester() {
-    var store = Store<num>(initialState: 0, stateObservers: [observer]);
-    return StoreTester.from(store);
-  }
+  Store<num> createStore() => Store<num>(initialState: 0, stateObservers: [observer]);
 
   test('Dispatch a sync action, see what the StateObserver picks up. ', () async {
-    var storeTester = createStoreTester();
-    expect(storeTester.state, 0);
+    var store = createStore();
+    expect(store.state, 0);
 
-    storeTester.dispatch(_MyAction(1));
-    var condition = (TestInfo<num?>? info) => info!.state == 1;
-    await storeTester.waitConditionGetLast(condition);
+    store.dispatch(_MyAction(1));
+    await store.waitCondition((state) => state == 1);
     expect(observer.iniValue, 0);
     expect(observer.endValue, 1);
   });
 
   test('Dispatch an async action, see what the StateObserver picks up.', () async {
-    var storeTester = createStoreTester();
-    expect(storeTester.state, 0);
+    var store = createStore();
+    expect(store.state, 0);
 
-    storeTester.dispatch(_MyAsyncAction(1));
-    var condition = (TestInfo<num?>? info) => info!.state == 1;
-    await storeTester.waitConditionGetLast(condition);
+    store.dispatch(_MyAsyncAction(1));
+    await store.waitCondition((state) => state == 1);
     expect(observer.iniValue, 0);
     expect(observer.endValue, 1);
   });

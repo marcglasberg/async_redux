@@ -97,12 +97,13 @@ void main() {
       'and no actions are dispatched inside of the reducer. '
       'It acts as a pure function, just like a regular reducer of "vanilla" Redux.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
-    expect(storeTester.state.text, 'A');
-    storeTester.dispatch(Action1B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action1B]));
+    var recorder = _Recorder();
+    var store = recorder.createStore();
+    expect(store.state.text, 'A');
+    store.dispatch(Action1B());
+    var info = await recorder.waitAllUnordered([Action1B]);
     expect(states, [AppState('A')]);
-    expect(info.state!.text, 'AB');
+    expect(info.last.state.text, 'AB');
   });
 
   test(
@@ -110,24 +111,26 @@ void main() {
       'which dispatches another sync action. '
       'They are both executed synchronously.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
-    expect(storeTester.state.text, 'A');
-    storeTester.dispatch(Action2B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action2B, Action2C]));
+    var recorder = _Recorder();
+    var store = recorder.createStore();
+    expect(store.state.text, 'A');
+    store.dispatch(Action2B());
+    var info = await recorder.waitAllUnordered([Action2B, Action2C]);
     expect(states, [AppState('A'), AppState('AC')]);
-    expect(info.state!.text, 'ACB');
+    expect(info.last.state.text, 'ACB');
   });
 
   test(
       '3) A sync reducer is called, '
       'which dispatches an ASYNC action.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
-    expect(storeTester.state.text, 'A');
-    storeTester.dispatch(Action3B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action3B, Action3C]));
+    var recorder = _Recorder();
+    var store = recorder.createStore();
+    expect(store.state.text, 'A');
+    store.dispatch(Action3B());
+    var info = await recorder.waitAllUnordered([Action3B, Action3C]);
     expect(states, [AppState('A'), AppState('A')]);
-    expect(info.state!.text, 'ABC');
+    expect(info.last.state.text, 'ABC');
   });
 
   test(
@@ -135,12 +138,13 @@ void main() {
       'which dispatches another ASYNC action. '
       'The second reducer finishes BEFORE the first.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
-    expect(storeTester.state.text, 'A');
-    storeTester.dispatch(Action4B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action4B, Action4C]));
+    var recorder = _Recorder();
+    var store = recorder.createStore();
+    expect(store.state.text, 'A');
+    store.dispatch(Action4B());
+    var info = await recorder.waitAllUnordered([Action4B, Action4C]);
     expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('AC')]);
-    expect(info.state!.text, 'ACB');
+    expect(info.last.state.text, 'ACB');
   });
 
   test(
@@ -148,12 +152,13 @@ void main() {
       'which dispatches another ASYNC action. '
       'The second reducer finishes AFTER the first.', () async {
     states = [];
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
-    expect(storeTester.state.text, 'A');
-    storeTester.dispatch(Action5B());
-    TestInfo<AppState?> info = await (storeTester.waitAllUnorderedGetLast([Action5B, Action5C]));
+    var recorder = _Recorder();
+    var store = recorder.createStore();
+    expect(store.state.text, 'A');
+    store.dispatch(Action5B());
+    var info = await recorder.waitAllUnordered([Action5B, Action5C]);
     expect(states, [AppState('A'), AppState('A'), AppState('A'), AppState('A')]);
-    expect(info.state!.text, 'ABC');
+    expect(info.last.state.text, 'ABC');
   });
 
   test(
@@ -172,44 +177,48 @@ void main() {
       () async {
     //
     // 1) Completed then Completed = state gets swallowed.
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
-    expect(storeTester.state.text, 'A');
-    storeTester.dispatch(Action6ACompleted());
-    storeTester.dispatch(Action6BCompleted());
-    var info = await (storeTester.waitAllUnordered([Action6ACompleted, Action6BCompleted]));
+    var recorder = _Recorder();
+    var store = recorder.createStore();
+    expect(store.state.text, 'A');
+    store.dispatch(Action6ACompleted());
+    store.dispatch(Action6BCompleted());
+    var info = await (recorder.waitAllUnordered([Action6ACompleted, Action6BCompleted]));
     expect(info.first.action.runtimeType, Action6ACompleted);
     expect(info.last.action.runtimeType, Action6BCompleted);
     expect(info.first.state.text, 'AX');
     expect(info.last.state.text, 'A'); // The X was swallowed.
 
     // 2) Completed then Uncompleted = wrong, but works because of order.
-    storeTester = StoreTester<AppState>(initialState: AppState.initialState());
-    expect(storeTester.state.text, 'A');
-    storeTester.dispatch(Action6ACompleted());
-    storeTester.dispatch(Action6BUncompleted());
-    info = await storeTester.waitAllUnordered([Action6ACompleted, Action6BUncompleted]);
+    recorder = _Recorder();
+    store = recorder.createStore();
+    expect(store.state.text, 'A');
+    store.dispatch(Action6ACompleted());
+    store.dispatch(Action6BUncompleted());
+    info = await recorder.waitAllUnordered([Action6ACompleted, Action6BUncompleted]);
     expect(info.first.action.runtimeType, Action6ACompleted);
     expect(info.last.action.runtimeType, Action6BUncompleted);
     expect(info.first.state.text, 'AX');
     expect(info.last.state.text, 'AX');
 
     // 3) Uncompleted then Completed = state gets swallowed.
-    storeTester = StoreTester<AppState>(initialState: AppState.initialState());
-    expect(storeTester.state.text, 'A');
-    storeTester.dispatch(Action6AUncompleted());
-    storeTester.dispatch(Action6BCompleted());
-    info = await storeTester.waitAllUnordered([Action6AUncompleted, Action6BCompleted]);
+    recorder = _Recorder();
+    store = recorder.createStore();
+    expect(store.state.text, 'A');
+    store.dispatch(Action6AUncompleted());
+    store.dispatch(Action6BCompleted());
+    info = await recorder.waitAllUnordered([Action6AUncompleted, Action6BCompleted]);
     expect(info.first.action.runtimeType, Action6AUncompleted);
     expect(info.last.action.runtimeType, Action6BCompleted);
     expect(info.first.state.text, 'AX');
     expect(info.last.state.text, 'A'); // The X was swallowed.
 
     // 4) Uncompleted then Uncompleted = correct and works.
-    storeTester = StoreTester<AppState>(initialState: AppState.initialState());
-    expect(storeTester.state.text, 'A');
-    storeTester.dispatch(Action6AUncompleted());
-    storeTester.dispatch(Action6BUncompleted());
-    info = await storeTester.waitAllUnordered([Action6AUncompleted, Action6BUncompleted]);
+    recorder = _Recorder();
+    store = recorder.createStore();
+    expect(store.state.text, 'A');
+    store.dispatch(Action6AUncompleted());
+    store.dispatch(Action6BUncompleted());
+    info = await recorder.waitAllUnordered([Action6AUncompleted, Action6BUncompleted]);
     expect(info.first.action.runtimeType, Action6AUncompleted);
     expect(info.last.action.runtimeType, Action6BUncompleted);
     expect(info.first.state.text, 'AX');
@@ -220,14 +229,14 @@ void main() {
       "Test that if you add method assertUncompletedFuture() to the end of reducers, "
       "it's capable of detecting completed futures.", () async {
     //
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var store = Store<AppState>(initialState: AppState.initialState());
 
     // ---
 
     dynamic error1 = "";
 
     runZonedGuarded(() async {
-      storeTester.dispatch(Action7Completed());
+      store.dispatch(Action7Completed());
     }, (_error, stackTrace) {
       error1 = _error;
     });
@@ -241,7 +250,7 @@ void main() {
     dynamic error2 = "";
 
     runZonedGuarded(() async {
-      storeTester.dispatch(Action7Uncompleted());
+      store.dispatch(Action7Uncompleted());
     }, (_error, stackTrace) {
       error2 = _error;
     });
@@ -256,7 +265,7 @@ void main() {
       "and dispatching an async action works just the same as calling an async function.",
       () async {
     //
-    var storeTester = StoreTester<AppState>(initialState: AppState.initialState());
+    var store = Store<AppState>(initialState: AppState.initialState());
 
     // ---
 
@@ -271,7 +280,7 @@ void main() {
     /// The below code will print: 1 3 5 2 4 6
 
     states.add(AppState('BEFORE'));
-    storeTester.dispatch(MyAsyncAction());
+    store.dispatch(MyAsyncAction());
     asyncFunction();
     states.add(AppState('AFTER'));
 
@@ -472,3 +481,54 @@ class MyAsyncAction extends ReduxAction<AppState> {
 }
 
 // ----------------------------------------------
+
+// ----------------------------------------------
+
+/// Records the END of each dispatched action, together with the store state
+/// at that moment (right after the action finishes), in the order they finish.
+/// Also records the INI of each action, to verify no unexpected actions were
+/// dispatched.
+class _Recorder extends ActionObserver<AppState> {
+  late final Store<AppState> store;
+  final List<Type> iniTypes = [];
+  final List<_EndInfo> ends = [];
+  final _changes = StreamController<void>.broadcast();
+
+  Store<AppState> createStore() {
+    store = Store<AppState>(
+      initialState: AppState.initialState(),
+      actionObservers: [this],
+    );
+    return store;
+  }
+
+  @override
+  void observe(ReduxAction<AppState> action, int dispatchCount, {required bool ini}) {
+    if (ini)
+      iniTypes.add(action.runtimeType);
+    else {
+      ends.add(_EndInfo(action, store.state));
+      _changes.add(null);
+    }
+  }
+
+  /// Waits until all actions of the given [actionTypes] finish, in any order,
+  /// and returns the END infos in the order they finished. Fails if any other
+  /// action is dispatched.
+  Future<List<_EndInfo>> waitAllUnordered(List<Type> actionTypes) async {
+    bool done() => ends.length >= actionTypes.length;
+    if (!done()) {
+      await _changes.stream.firstWhere((_) => done()).timeout(const Duration(seconds: 10));
+    }
+    expect(ends.map((e) => e.action.runtimeType).toList(), unorderedEquals(actionTypes));
+    expect(iniTypes, unorderedEquals(actionTypes));
+    return List.of(ends);
+  }
+}
+
+class _EndInfo {
+  final ReduxAction<AppState> action;
+  final AppState state;
+
+  _EndInfo(this.action, this.state);
+}

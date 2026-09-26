@@ -1,6 +1,6 @@
 ---
 name: asyncredux-error-handling
-description: Implement comprehensive error handling for actions. Covers the `wrapError()` method for action-level error wrapping, GlobalWrapError for app-wide error transformation, ErrorObserver for logging/monitoring, and the error handling flow (before → reduce → after).
+description: Implement comprehensive error handling for actions. Covers the `wrapError()` method for action-level error wrapping, GlobalErrorObserver for app-wide error transformation and logging/monitoring, and the error handling flow (before → reduce → after).
 ---
 
 # Error Handling in AsyncRedux
@@ -15,7 +15,7 @@ When errors occur during action execution:
 2. If `reduce()` throws an error, execution halts without state modification
 3. The `after()` method **always** runs, even when errors occur (like a `finally` block)
 
-**Processing order:** `wrapError()` → `GlobalWrapError` → `ErrorObserver`
+**Processing order:** `wrapError()` → `GlobalErrorObserver`
 
 ## Throwing Errors from Actions
 
@@ -127,21 +127,21 @@ Object? wrapError(Object error, StackTrace stackTrace) {
 }
 ```
 
-## Global Error Handling with GlobalWrapError
+## Global Error Handling with GlobalErrorObserver
 
-`GlobalWrapError` processes all action errors centrally. This is useful for transforming third-party library errors (like Firebase or platform exceptions):
+`GlobalErrorObserver` processes all action errors centrally, after the action's `wrapError()`. Use it to transform third-party library errors (like Firebase or platform exceptions) into `UserException`s, and to log errors to services like Sentry or Crashlytics:
 
 ```dart
 var store = Store<AppState>(
   initialState: AppState.initialState(),
-  globalWrapError: MyGlobalWrapError(),
+  globalErrorObserver: (store) => MyGlobalErrorObserver(),
 );
 
-class MyGlobalWrapError extends GlobalWrapError {
+class MyGlobalErrorObserver extends GlobalErrorObserver<AppState> {
   @override
-  Object? wrap(Object error, StackTrace stackTrace, ReduxAction<AppState> action) {
+  Object? observe() {
     // Transform platform exceptions to user-friendly messages
-    if (error is PlatformException && error.code == "Error performing get") {
+    if (error is PlatformException && (error as PlatformException).code == "Error performing get") {
       return UserException('Check your internet connection').addCause(error);
     }
 
@@ -150,47 +150,30 @@ class MyGlobalWrapError extends GlobalWrapError {
       return UserException('Service temporarily unavailable').addCause(error);
     }
 
+    // Log unexpected errors (not UserExceptions) to crash reporting
+    if (error is! UserException) {
+      print("Error during ${action.runtimeType}: $error");
+      crashlytics.recordError(error, stackTrace);
+    }
+
     // Pass through all other errors unchanged
     return error;
   }
 }
 ```
 
-Return `null` from `GlobalWrapError.wrap()` to suppress errors globally.
-
-## Error Observation with ErrorObserver
-
-`ErrorObserver` receives all errors with context about the action and store. Use it for logging, monitoring, or analytics:
-
-```dart
-var store = Store<AppState>(
-  initialState: AppState.initialState(),
-  errorObserver: MyErrorObserver<AppState>(),
-);
-
-class MyErrorObserver<St> implements ErrorObserver<St> {
-  @override
-  bool observe(
-    Object error,
-    StackTrace stackTrace,
-    ReduxAction<St> action,
-    Store<St> store,
-  ) {
-    // Log the error
-    print("Error during ${action.runtimeType}: $error");
-
-    // Send to crash reporting service
-    crashlytics.recordError(error, stackTrace);
-
-    // Return true to rethrow, false to swallow
-    return true;
-  }
-}
-```
+Inside `observe()` you have access to:
+- `error`: The error, after the action's `wrapError()`
+- `originalError`: The error before `wrapError()`
+- `stackTrace`: The stack trace
+- `action`: The action that failed
+- `store`: Use it to read `store.state`, `store.environment` or `store.configuration`. Do **not** use it to dispatch actions.
 
 The `observe` method returns:
-- `true` to rethrow the error (default behavior)
-- `false` to swallow the error silently
+- The error (unchanged or modified) to keep it. `UserException`s then go to the error queue (shown by `UserExceptionDialog`) and are not thrown; other errors are thrown.
+- `null` to swallow the error silently
+
+AsyncRedux also provides `GlobalErrorObserverDummy` (does nothing), `GlobalErrorObserverForDevelopment` (also shows non-`UserException` errors in the dialog), and `SwallowGlobalErrorObserver` (swallows all errors, not recommended).
 
 ## UserExceptionAction for Mid-Action Errors
 
@@ -310,29 +293,21 @@ test('multiple actions accumulate errors', () async {
 ```dart
 var store = Store<AppState>(
   initialState: AppState.initialState(),
-  globalWrapError: MyGlobalWrapError(),
-  errorObserver: MyErrorObserver<AppState>(),
+  globalErrorObserver: (store) => MyGlobalErrorObserver(),
   actionObservers: [Log.printer(formatter: Log.verySimpleFormatter)],
 );
 
-class MyGlobalWrapError extends GlobalWrapError {
+class MyGlobalErrorObserver extends GlobalErrorObserver<AppState> {
   @override
-  Object? wrap(Object error, StackTrace stackTrace, ReduxAction<AppState> action) {
+  Object? observe() {
     if (error is SocketException) {
       return UserException('No internet connection').addCause(error);
     }
-    return error;
-  }
-}
-
-class MyErrorObserver<St> implements ErrorObserver<St> {
-  @override
-  bool observe(Object error, StackTrace stackTrace, ReduxAction<St> action, Store<St> store) {
     // Skip logging UserExceptions (they're expected)
     if (error is! UserException) {
       crashlytics.recordError(error, stackTrace);
     }
-    return true;
+    return error;
   }
 }
 ```

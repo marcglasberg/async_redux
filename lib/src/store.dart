@@ -30,12 +30,6 @@ typedef DispatchSync<St> = ActionStatus Function(
   bool notify,
 });
 
-@Deprecated("Use `DispatchAndWait` instead. This will be removed.")
-typedef DispatchAsync<St> = Future<ActionStatus> Function(
-  ReduxAction<St> action, {
-  bool notify,
-});
-
 typedef DispatchAndWait<St> = Future<ActionStatus> Function(
   ReduxAction<St> action, {
   bool notify,
@@ -110,8 +104,6 @@ class Store<St> {
     ModelObserver? modelObserver,
     WrapReduce<St>? wrapReduce,
     GlobalErrorObserver<St> Function(Store<St>)? globalErrorObserver,
-    GlobalWrapError<St>? globalWrapError,
-    ErrorObserver<St>? errorObserver,
     bool? defaultDistinct,
     CompareBy? immutableCollectionEquality,
     int? maxErrorsQueued,
@@ -130,11 +122,6 @@ class Store<St> {
             : ProcessPersistence(cloudSync, initialState),
         _modelObserver = modelObserver,
         _globalErrorObserver = globalErrorObserver,
-        //
-        // Deprecated (will be removed): Use globalErrorObserver instead.
-        _errorObserver = errorObserver,
-        _globalWrapError = globalWrapError,
-        //
         _wrapReduce = wrapReduce,
         _defaultDistinct = defaultDistinct ?? true,
         _immutableCollectionEquality = immutableCollectionEquality,
@@ -383,10 +370,6 @@ class Store<St> {
 
   final ModelObserver? _modelObserver;
 
-  final ErrorObserver<St>? _errorObserver;
-
-  final GlobalWrapError<St>? _globalWrapError;
-
   final GlobalErrorObserver<St> Function(Store<St>)? _globalErrorObserver;
 
   final WrapReduce<St>? _wrapReduce;
@@ -435,7 +418,7 @@ class Store<St> {
   ///
   Stream<St> get onChange => _changeController.stream;
 
-  /// Used by the storeTester.
+  /// Stream of [TestInfo], emitted when a [testInfoPrinter] is set in the constructor.
   Stream<TestInfo<St>> get onReduce => (_testInfoController != null)
       ? //
       _testInfoController!.stream
@@ -1594,10 +1577,6 @@ class Store<St> {
     return actions;
   }
 
-  @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
-  Future<ActionStatus> dispatchAsync(ReduxAction<St> action, {bool notify = true}) =>
-      dispatchAndWait(action, notify: notify);
-
   FutureOr<ActionStatus> _dispatch(ReduxAction<St> action, {required bool notify}) {
     //
     // The action may access the store/state/dispatch as fields.
@@ -2302,18 +2281,6 @@ class Store<St> {
       }
     }
 
-    // This is DEPRECATED and will be removed in the future.
-    // The recommended way is using a GlobalErrorObserver.
-    if (_globalWrapError != null && errorOrNull != null) {
-      try {
-        errorOrNull = _globalWrapError.wrap(errorOrNull, stackTrace, action);
-      } catch (_error) {
-        // If the GlobalWrapError throws an error, it will be used instead
-        // of the original error (but the recommended way is returning the error).
-        errorOrNull = _error;
-      }
-    }
-
     action._status = action._status.copy(wrappedError: errorOrNull);
 
     // Memorizes the action that failed. We'll remove it when it's dispatched again.
@@ -2333,29 +2300,9 @@ class Store<St> {
       action._status = action._status.copy(isDispatchAborted: true);
     }
 
-    // If an errorObserver was NOT defined, return (to throw) all errors which are
-    // not UserException or AbortDispatchException.
-    if (_errorObserver == null) {
-      if ((errorOrNull is! UserException) && (errorOrNull is! AbortDispatchException))
-        return errorOrNull;
-    }
-    // If an errorObserver was defined, observe the error.
-    // Then, if the observer returns true, return the error to be thrown.
-    else if (errorOrNull != null) {
-      try {
-        if (_errorObserver.observe(errorOrNull, stackTrace, action, this)) //
-          return errorOrNull;
-      } catch (_error) {
-        // The errorObserver should never throw. However, if it does, print the error.
-        _throws(
-            "Method 'ErrorObserver.observe()' has thrown an error '$_error' "
-            "when observing error '$errorOrNull'.",
-            _error,
-            stackTrace);
-
-        return errorOrNull;
-      }
-    }
+    // Return (to throw) all errors which are not UserException or AbortDispatchException.
+    if ((errorOrNull is! UserException) && (errorOrNull is! AbortDispatchException))
+      return errorOrNull;
 
     return null;
   }
@@ -2650,7 +2597,7 @@ extension FutureActionStatusExtension on Future<ActionStatus> {
   /// The callback gets the [ActionStatus], from which you can read the error:
   /// [ActionStatus.originalError] is the error originally thrown by the action,
   /// and [ActionStatus.wrappedError] is the final error, after being processed
-  /// by the action's `wrapError` and the `globalWrapError`.
+  /// by the action's `wrapError` and the `globalErrorObserver`.
   ///
   /// ```dart
   /// dispatchAndWait(InitializeWeb3())

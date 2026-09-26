@@ -39,7 +39,7 @@
 
    This example displays the testing capabilities of AsyncRedux: 
    How to test the store, actions, sync and async reducers, 
-   by using the StoreTester. **Important:** To run the tests, put this file in a test directory.
+   by using the Store directly. **Important:** To run the tests, put this file in a test directory.
  
 6. <a href="https://github.com/marcglasberg/async_redux/blob/master/example/lib/main_show_error_dialog.dart">main_show_error_dialog</a>
     

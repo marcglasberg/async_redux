@@ -289,7 +289,7 @@ void main() {
     // Widget rebuild tracking (debug only)
     modelObserver: kDebugMode ? DefaultModelObserver() : null,
     // Error observer (always enabled)
-    errorObserver: MyErrorObserver(),
+    globalErrorObserver: (store) => MyGlobalErrorObserver(),
   );
 
   // Debug print initial state

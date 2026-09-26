@@ -7,6 +7,37 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 29.0.0
+
+* Breaking change: Removed the following, which were already deprecated:
+
+  - `ErrorObserver`: Use `GlobalErrorObserver` instead.
+  - `DevelopmentErrorObserver`: Use `GlobalErrorObserverForDevelopment` instead.
+  - `SwallowErrorObserver`: Use `SwallowGlobalErrorObserver` instead.
+  - `GlobalWrapError`: Use `GlobalErrorObserver` instead.
+  - `GlobalWrapErrorDummy`: Use `GlobalErrorObserver` (for example,
+    `GlobalErrorObserverDummy`) instead.
+  - The `errorObserver` parameter of `Store` and `MockStore`: Use `globalErrorObserver`
+    instead.
+  - The `globalWrapError` parameter of `Store` and `MockStore`: Use `globalErrorObserver`
+    instead.
+  - `Store.dispatchAsync`: Use `dispatchAndWait` instead.
+  - `MockStore.dispatchAsync`: Use `dispatchAndWait` instead.
+  - `ReduxAction.dispatchAsync`: Use `dispatchAndWait` instead.
+  - `VmFactory.dispatchAsync`: Use `dispatchAndWait` instead.
+  - The `DispatchAsync` typedef: Use `DispatchAndWait` instead.
+  - `VmFactory.widget`: Use `connector` instead.
+
+* Breaking change: Removed the following, which were used only for tests:
+
+  - `StoreTester`: Use the `Store` (or `MockStore`) directly instead, with
+    `dispatchAndWait`, `waitCondition`, `waitAllActions`, `waitActionType`,
+    `waitAllActionTypes` and the other wait methods.
+  - `TestErrorObserver`: Use the `Store` directly instead of `StoreTester`.
+  - `TestInfoList`: Use the `Store` directly instead of `StoreTester`.
+  - `StoreExceptionTimeout`: Use the `Store` directly instead of `StoreTester`.
+  - The `StateCondition` typedef: Use `Store.waitCondition` instead.
+
 ## 28.4.0
 
 * Bug fix: The `Polling` mixin now really waits for each run to finish before

@@ -24,7 +24,7 @@ void main() {
     localDb = persistor.localDb;
   }
 
-  Future<StoreTester<AppState>> createStoreTester() async {
+  Future<Store<AppState>> createStore() async {
     //
     var initialState = await persistor.readState();
 
@@ -38,7 +38,7 @@ void main() {
       persistor: persistor,
     );
 
-    return StoreTester.from(store);
+    return store;
   }
 
   void printResults(List<Object> results) => print("-\nRESULTS:\n${results.join("\n")}\n-");
@@ -47,54 +47,54 @@ void main() {
     //
     await setupPersistorAndLocalDb();
 
-    var storeTester = await createStoreTester();
-    expect(storeTester.state.name, "John");
-    expect(await storeTester.store.readStateFromPersistence(), storeTester.state);
+    var store = await createStore();
+    expect(store.state.name, "John");
+    expect(await store.readStateFromPersistence(), store.state);
 
-    storeTester.dispatch(ChangeNameAction("Mary"));
-    TestInfo<AppState> info1 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    await store.dispatchAndWait(ChangeNameAction("Mary"));
+    AppState state1 = store.state;
     expect(localDb.get(db: "main", id: Id("name")), "Mary");
-    expect(await storeTester.store.readStateFromPersistence(), info1.state);
+    expect(await store.readStateFromPersistence(), state1);
 
-    storeTester.dispatch(ChangeNameAction("Steve"));
-    TestInfo<AppState> info2 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    await store.dispatchAndWait(ChangeNameAction("Steve"));
+    AppState state2 = store.state;
     expect(localDb.get(db: "main", id: Id("name")), "Steve");
-    expect(await storeTester.store.readStateFromPersistence(), info2.state);
+    expect(await store.readStateFromPersistence(), state2);
   });
 
   test('Create some simple state and persist, with a 1 second throttle.', () async {
     //
     await setupPersistorAndLocalDb(throttle: const Duration(seconds: 1));
 
-    var storeTester = await createStoreTester();
-    expect(storeTester.state.name, "John");
-    expect(await storeTester.store.readStateFromPersistence(), storeTester.state);
+    var store = await createStore();
+    expect(store.state.name, "John");
+    expect(await store.readStateFromPersistence(), store.state);
 
     // 1) The state is changed, but the persisted AppState is not.
-    storeTester.dispatch(ChangeNameAction("Mary"));
-    TestInfo<AppState?> info1 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    await store.dispatchAndWait(ChangeNameAction("Mary"));
+    AppState state1 = store.state;
     expect(localDb.get(db: "main", id: Id("name")), "John");
-    expect(info1.state!.name, "Mary");
-    expect(await storeTester.store.readStateFromPersistence(), isNot(info1.state));
+    expect(state1.name, "Mary");
+    expect(await store.readStateFromPersistence(), isNot(state1));
 
     // 2) The state is changed, but the persisted AppState is not.
-    storeTester.dispatch(ChangeNameAction("Steve"));
-    TestInfo<AppState?> info2 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    await store.dispatchAndWait(ChangeNameAction("Steve"));
+    AppState state2 = store.state;
     expect(localDb.get(db: "main", id: Id("name")), "John");
-    expect(info2.state!.name, "Steve");
-    expect(await storeTester.store.readStateFromPersistence(), isNot(info2.state));
+    expect(state2.name, "Steve");
+    expect(await store.readStateFromPersistence(), isNot(state2));
 
     // 3) The state is changed, but the persisted AppState is not.
-    storeTester.dispatch(ChangeNameAction("Eve"));
-    TestInfo<AppState?> info3 = await (storeTester.waitAllGetLast([ChangeNameAction]));
+    await store.dispatchAndWait(ChangeNameAction("Eve"));
+    AppState state3 = store.state;
     expect(localDb.get(db: "main", id: Id("name")), "John");
-    expect(info3.state!.name, "Eve");
-    expect(await storeTester.store.readStateFromPersistence(), isNot(info3.state));
+    expect(state3.name, "Eve");
+    expect(await store.readStateFromPersistence(), isNot(state3));
 
     // 4) Now lets wait until the save is done.
     await Future.delayed(duration(1500));
     expect(localDb.get(db: "main", id: Id("name")), "Eve");
-    expect(await storeTester.store.readStateFromPersistence(), storeTester.state);
+    expect(await store.readStateFromPersistence(), store.state);
   });
 
   test(
@@ -106,17 +106,17 @@ void main() {
     List<String> results = [];
 
     await setupPersistorAndLocalDb(throttle: null);
-    var storeTester = await createStoreTester();
+    var store = await createStore();
 
-    String result = writeStateAndDb(storeTester, localDb);
+    String result = writeStateAndDb(store, localDb);
     results.add(result);
 
     int count = 0;
     Completer completer = Completer();
 
     Timer.periodic(duration(40), (timer) {
-      storeTester.dispatch(ChangeNameAction(count.toString()));
-      String result = writeStateAndDb(storeTester, localDb);
+      store.dispatch(ChangeNameAction(count.toString()));
+      String result = writeStateAndDb(store, localDb);
       results.add(result);
       count++;
       if (count == 8) {
@@ -153,17 +153,17 @@ void main() {
     List<String> results = [];
 
     await setupPersistorAndLocalDb(throttle: null);
-    var storeTester = await createStoreTester();
+    var store = await createStore();
 
-    String result = writeStateAndDb(storeTester, localDb);
+    String result = writeStateAndDb(store, localDb);
     results.add(result);
 
     int count = 0;
     Completer completer = Completer();
 
     Timer.periodic(duration(40), (timer) {
-      storeTester.dispatch(ChangeNameAction(count.toString()));
-      String result = writeStateAndDb(storeTester, localDb);
+      store.dispatch(ChangeNameAction(count.toString()));
+      String result = writeStateAndDb(store, localDb);
       results.add(result);
       count++;
       if (count == 8) {
@@ -171,8 +171,8 @@ void main() {
         completer.complete();
       }
 
-      if (count == 3) storeTester.store.pausePersistor();
-      if (count == 6) storeTester.store.resumePersistor();
+      if (count == 3) store.pausePersistor();
+      if (count == 6) store.resumePersistor();
     });
 
     await completer.future;
@@ -203,17 +203,17 @@ void main() {
     List<String> results = [];
 
     await setupPersistorAndLocalDb(throttle: duration(215));
-    var storeTester = await createStoreTester();
+    var store = await createStore();
 
-    String result = writeStateAndDb(storeTester, localDb);
+    String result = writeStateAndDb(store, localDb);
     results.add(result);
 
     int count = 0;
     Completer completer = Completer();
 
     Timer.periodic(duration(60), (timer) {
-      storeTester.dispatch(ChangeNameAction(count.toString()));
-      String result = writeStateAndDb(storeTester, localDb);
+      store.dispatch(ChangeNameAction(count.toString()));
+      String result = writeStateAndDb(store, localDb);
       results.add(result);
       count++;
       if (count == 15) {
@@ -258,17 +258,17 @@ void main() {
       List<String> results = [];
 
       await setupPersistorAndLocalDb(throttle: duration(215));
-      var storeTester = await createStoreTester();
+      var store = await createStore();
 
-      String result = writeStateAndDb(storeTester, localDb);
+      String result = writeStateAndDb(store, localDb);
       results.add(result);
 
       int count = 0;
       Completer completer = Completer();
 
       Timer.periodic(duration(60), (timer) {
-        storeTester.dispatch(ChangeNameAction(count.toString()));
-        String result = writeStateAndDb(storeTester, localDb);
+        store.dispatch(ChangeNameAction(count.toString()));
+        String result = writeStateAndDb(store, localDb);
         results.add(result);
         count++;
         if (count == 15) {
@@ -276,8 +276,8 @@ void main() {
           completer.complete();
         }
 
-        if (count == 5) storeTester.store.pausePersistor();
-        if (count == 12) storeTester.store.resumePersistor();
+        if (count == 5) store.pausePersistor();
+        if (count == 12) store.resumePersistor();
       });
 
       await completer.future;
@@ -318,17 +318,17 @@ void main() {
       List<String> results = [];
 
       await setupPersistorAndLocalDb(throttle: duration(215));
-      var storeTester = await createStoreTester();
+      var store = await createStore();
 
-      String result = writeStateAndDb(storeTester, localDb);
+      String result = writeStateAndDb(store, localDb);
       results.add(result);
 
       int count = 0;
       Completer completer = Completer();
 
       Timer.periodic(duration(60), (timer) {
-        storeTester.dispatch(ChangeNameAction(count.toString()));
-        String result = writeStateAndDb(storeTester, localDb);
+        store.dispatch(ChangeNameAction(count.toString()));
+        String result = writeStateAndDb(store, localDb);
         results.add(result);
         count++;
         if (count == 15) {
@@ -336,8 +336,8 @@ void main() {
           completer.complete();
         }
 
-        if (count == 5) storeTester.store.persistAndPausePersistor();
-        if (count == 12) storeTester.store.resumePersistor();
+        if (count == 5) store.persistAndPausePersistor();
+        if (count == 12) store.resumePersistor();
       });
 
       await completer.future;
@@ -383,18 +383,18 @@ void main() {
       saveDuration: duration(430),
     );
 
-    var storeTester = await createStoreTester();
+    var store = await createStore();
 
-    String result = writeStateAndDb(storeTester, localDb);
+    String result = writeStateAndDb(store, localDb);
     results.add(result);
 
     int count = 0;
     Completer completer = Completer();
 
     Timer.periodic(duration(120), (timer) {
-      storeTester.dispatch(ChangeNameAction(count.toString()));
+      store.dispatch(ChangeNameAction(count.toString()));
 
-      String result = writeStateAndDb(storeTester, localDb);
+      String result = writeStateAndDb(store, localDb);
       results.add(result);
 
       count++;
@@ -445,18 +445,18 @@ void main() {
       saveDuration: duration(430),
     );
 
-    var storeTester = await createStoreTester();
+    var store = await createStore();
 
-    String result = writeStateAndDb(storeTester, localDb);
+    String result = writeStateAndDb(store, localDb);
     results.add(result);
 
     int count = 0;
     Completer completer = Completer();
 
     Timer.periodic(duration(120), (timer) {
-      storeTester.dispatch(ChangeNameAction(count.toString()));
+      store.dispatch(ChangeNameAction(count.toString()));
 
-      String result = writeStateAndDb(storeTester, localDb);
+      String result = writeStateAndDb(store, localDb);
       results.add(result);
 
       count++;
@@ -465,8 +465,8 @@ void main() {
         completer.complete();
       }
 
-      if (count == 5) storeTester.store.pausePersistor();
-      if (count == 12) storeTester.store.resumePersistor();
+      if (count == 5) store.pausePersistor();
+      if (count == 12) store.resumePersistor();
     });
 
     await completer.future;
@@ -509,37 +509,37 @@ void main() {
       saveDuration: null,
     );
 
-    var storeTester = await createStoreTester();
+    var store = await createStore();
 
     /// Discard the time waiting for the saving of the initial state.
     await Future.delayed(duration(300));
 
     // At 0 millis: (state:John, db: John)
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     // At 0 millis the state is changed and saved: (state:1st, db: 1st)
-    storeTester.dispatch(ChangeNameAction("1st"));
-    results.add(writeStateAndDb(storeTester, localDb));
+    store.dispatch(ChangeNameAction("1st"));
+    results.add(writeStateAndDb(store, localDb));
 
     // At 100 millis the state is initially unchanged (state:1st, db: 1st)
     await Future.delayed(duration(100));
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     // At 100 millis the state is changed and saved: (state:2nd, db: 1st)
-    storeTester.dispatch(ChangeNameAction("2nd"));
-    results.add(writeStateAndDb(storeTester, localDb));
+    store.dispatch(ChangeNameAction("2nd"));
+    results.add(writeStateAndDb(store, localDb));
 
     // At 200 millis the state is unchanged: (state:2nd, db: 1st)
     await Future.delayed(duration(100));
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     // Right before 300 millis the state is unchanged: (state:2nd, db: 1st)
     await Future.delayed(duration(80));
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     // Right after 300 millis the state is saved: (state:2nd, db: 2nd)
     await Future.delayed(duration(40));
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     printResults(results);
 
@@ -569,46 +569,46 @@ void main() {
       saveDuration: duration(300),
     );
 
-    var storeTester = await createStoreTester();
+    var store = await createStore();
 
     /// Discard the time waiting for the saving of the initial state.
     await Future.delayed(duration(300));
 
     // At 0 millis: (state:John, db: John)
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     // At 0 millis the state is and the save starts: (state:1st, db: John)
-    storeTester.dispatch(ChangeNameAction("1st"));
-    results.add(writeStateAndDb(storeTester, localDb));
+    store.dispatch(ChangeNameAction("1st"));
+    results.add(writeStateAndDb(store, localDb));
 
     // At 100 millis the state is initially unchanged (state:1st, db: John)
     await Future.delayed(duration(100));
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     // At 100 millis the state is changed, but the previous save hasn't finished: (state:2nd, db: John)
-    storeTester.dispatch(ChangeNameAction("2nd"));
-    results.add(writeStateAndDb(storeTester, localDb));
+    store.dispatch(ChangeNameAction("2nd"));
+    results.add(writeStateAndDb(store, localDb));
 
     // At 200 millis the state is unchanged: (state:2nd, db: John)
     await Future.delayed(duration(100));
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     // Right before 300 millis the state is unchanged: (state:2nd, db: John)
     await Future.delayed(duration(80));
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     // Right after 300 millis the 1st state is saved: (state:2nd, db: 1st)
     await Future.delayed(duration(40));
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     // It will take 300 millis more (until 600) to save the 2nd state.
     // So, at 580 millis we're still at (state:2nd, db: 1st)
     await Future.delayed(duration(260));
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     // At 620 we're finally finished: (state:2nd, db: 2nd)
     await Future.delayed(duration(40));
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     printResults(results);
 
@@ -639,37 +639,37 @@ void main() {
       saveDuration: null,
     );
 
-    var storeTester = await createStoreTester();
+    var store = await createStore();
 
     /// Discard the throttle period for the saving of the initial state.
     await Future.delayed(duration(300));
 
     // At 0 millis: (state:John, db: John)
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     // At 0 millis the state is changed and saved: (state:1st, db: 1st)
-    storeTester.dispatch(ChangeNameAction("1st"));
-    results.add(writeStateAndDb(storeTester, localDb));
+    store.dispatch(ChangeNameAction("1st"));
+    results.add(writeStateAndDb(store, localDb));
 
     // At 100 millis the state is initially unchanged (state:1st, db: 1st)
     await Future.delayed(duration(100));
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     // At 100 millis the state is changed and saved: (state:2nd, db: 1st)
-    storeTester.dispatch(ChangeNameAction("2nd"));
-    results.add(writeStateAndDb(storeTester, localDb));
+    store.dispatch(ChangeNameAction("2nd"));
+    results.add(writeStateAndDb(store, localDb));
 
     // At 150 millis the state is initially unchanged (state:2nd, db: 1st)
     await Future.delayed(duration(50));
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     // At 150 millis the PersistAction is dispatched. The state is changed: (state:2nd, db: 2nd)
-    storeTester.dispatch(PersistAction());
-    results.add(writeStateAndDb(storeTester, localDb));
+    store.dispatch(PersistAction());
+    results.add(writeStateAndDb(store, localDb));
 
     // At 400 millis the state is unchanged (state:2nd, db: 2nd)
     await Future.delayed(duration(150));
-    results.add(writeStateAndDb(storeTester, localDb));
+    results.add(writeStateAndDb(store, localDb));
 
     printResults(results);
 
@@ -703,21 +703,19 @@ void main() {
     var persistedState = await persistor.readState();
     expect(persistedState, isNull);
 
-    var storeTester = StoreTester.from(store);
-
-    storeTester.dispatch(ChangeNameAction("Mary"));
-    TestInfo<AppState> info1 = await (storeTester.waitAllGetLast([ChangeNameAction]));
-    expect(await storeTester.store.readStateFromPersistence(), info1.state);
+    await store.dispatchAndWait(ChangeNameAction("Mary"));
+    AppState state1 = store.state;
+    expect(await store.readStateFromPersistence(), state1);
     expect(store.getLastPersistedStateFromPersistor(), initialState.copy(name: "Mary"));
 
     /// If we delete it, it will be null.
-    storeTester.store.deleteStateFromPersistence();
+    store.deleteStateFromPersistence();
     expect(store.getLastPersistedStateFromPersistor(), isNull);
   });
 }
 
-String writeStateAndDb(StoreTester<AppState> storeTester, LocalDb localDb) => "("
-    "state:${storeTester.state.name}, "
+String writeStateAndDb(Store<AppState> store, LocalDb localDb) => "("
+    "state:${store.state.name}, "
     "db: ${localDb.get(db: 'main', id: Id('name'))}"
     ")";
 

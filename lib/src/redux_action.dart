@@ -239,10 +239,6 @@ abstract class ReduxAction<St> {
   @protected
   DispatchSync<St> get dispatchSync => _store.dispatchSync;
 
-  @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
-  @protected
-  DispatchAsync<St> get dispatchAsync => _store.dispatchAndWait;
-
   /// This is a shortcut, equivalent to:
   ///
   /// ```dart

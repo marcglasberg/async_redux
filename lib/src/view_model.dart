@@ -195,10 +195,6 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   final T? _connector;
 
   /// The connector widget that will instantiate the view-model.
-  @Deprecated("Use `connector` instead")
-  T? get widget => _connector;
-
-  /// The connector widget that will instantiate the view-model.
   T get connector {
     if (_connector == null)
       throw StoreException(
@@ -312,9 +308,6 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
   ///
   Dispatch<St> get dispatch => _store.dispatch;
-
-  @Deprecated("Use `dispatchAndWait` instead. This will be removed.")
-  DispatchAsync<St> get dispatchAsync => _store.dispatchAndWait;
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
   /// The action may be sync or async. In both cases, it returns a [Future] that resolves when

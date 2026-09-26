@@ -13,6 +13,10 @@ analyzer:
     - 'bin/cache/**'
     - 'lib/src/http/**'
     - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
 
 # https://github.com/dart-lang/linter/blob/master/example/all.yaml
 linter:

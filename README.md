@@ -674,29 +674,30 @@ test('Selecting an item', () async {
 If you are the Team Lead, you set up the app's infrastructure in a central
 place, and allow your developers to concentrate solely on the business logic.
 
-You can add a `stateObserver` to collect app metrics, an `errorObserver` to log
-errors, an `actionObserver` to print information to the console during
-development, and a `globalWrapError` to catch all errors.
+You can add a `stateObserver` to collect app metrics, an `actionObserver` to
+print information to the console during development, and a `globalErrorObserver`
+to catch, modify and log all errors.
 
 ```dart
 var store = Store<String>(    
-  stateObserver: [MyStateObserver()],
-  errorObserver: [MyErrorObserver()],
+  stateObservers: [MyStateObserver()],
   actionObservers: [MyActionObserver()],
-  globalWrapError: MyGlobalWrapError(),
+  globalErrorObserver: (store) => MyGlobalErrorObserver(),
 ```
 
 &nbsp;
 
-For example, the following `globalWrapError` handles `PlatformException` errors
+For example, the following `globalErrorObserver` handles `PlatformException` errors
 thrown by Firebase. It converts them into `UserException` errors, which are
 built-in types that automatically show a message to the user in an error dialog:
 
 ```dart
-Object? wrap(error, stackTrace, action) =>
-  (error is PlatformException)
-    ? UserException('Error connecting to Firebase')
-    : error;
+class MyGlobalErrorObserver extends GlobalErrorObserver<AppState> {
+  @override
+  Object? observe() =>
+    (error is PlatformException)
+      ? UserException('Error connecting to Firebase')
+      : error;
 }  
 ```
 

@@ -72,12 +72,12 @@ void main() {
     expect(actionA.status.wrappedError, 'wrapped error in action: UserException{During reduce}');
   });
 
-  test('Test wrapping the error globally with the globalWrapError (Store constructor).', () async {
+  test('Test wrapping the error globally with the globalErrorObserver (Store constructor).', () async {
     //
     info = [];
     Store<String> store = Store<String>(
       initialState: "",
-      globalWrapError: MyGlobalWrapError<String>(),
+      globalErrorObserver: (store) => MyGlobalErrorObserver<String>(),
     );
 
     var actionA = MyAction(whenToThrow: When.reduce);
@@ -383,7 +383,7 @@ class MyAbortAction extends ReduxAction<String> {
   String reduce() => state;
 }
 
-class MyGlobalWrapError<St> implements GlobalWrapError<St> {
+class MyGlobalErrorObserver<St> extends GlobalErrorObserver<St> {
   @override
-  Object? wrap(error, stackTrace, action) => 'global wrapped error: $error';
+  Object? observe() => 'global wrapped error: $error';
 }

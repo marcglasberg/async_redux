@@ -8,10 +8,10 @@ void main() {
     testWidgets(
       "shouldUpdateModel.converter",
       (tester) async {
-        final storeTester = StoreTester<int>(initialState: 0);
+        final store = Store<int>(initialState: 0);
 
         await tester.pumpWidget(StoreProvider<int>(
-          store: storeTester.store,
+          store: store,
           child: MaterialApp(
             home: StoreConnector<int, int>(
               converter: (store) => store.state,
@@ -25,11 +25,11 @@ void main() {
 
         expect(find.text("0"), findsOneWidget);
 
-        await storeTester.dispatchState(1);
+        await store.dispatchAndWait(UpdateStateAction(1));
         await tester.pumpAndSettle();
         expect(find.text("0"), findsOneWidget);
 
-        await storeTester.dispatchState(2);
+        await store.dispatchAndWait(UpdateStateAction(2));
         await tester.pumpAndSettle();
         expect(find.text("2"), findsOneWidget);
       },

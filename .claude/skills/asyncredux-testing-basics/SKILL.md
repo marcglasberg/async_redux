@@ -5,7 +5,7 @@ description: Write unit tests for AsyncRedux actions using the Store directly. C
 
 # Testing AsyncRedux Actions
 
-The recommended approach for testing AsyncRedux is to use the `Store` directly rather than the deprecated `StoreTester`. This provides a clean, straightforward testing pattern.
+The recommended approach for testing AsyncRedux is to use the `Store` directly. This provides a clean, straightforward testing pattern.
 
 ## Creating a Test Store
 
