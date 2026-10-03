@@ -1630,7 +1630,7 @@ class CheckAction extends ReduxAction<AppState> with Fresh {
 class FreshWithThrottleAction extends ReduxAction<AppState>
     with
         Throttle,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Fresh {
   @override
   int get freshFor => 1000;
@@ -1648,7 +1648,7 @@ class FreshWithThrottleAction extends ReduxAction<AppState>
 class FreshWithNonReentrantAction extends ReduxAction<AppState>
     with
         NonReentrant,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Fresh {
   @override
   int get freshFor => 1000;
@@ -1663,7 +1663,7 @@ class FreshWithNonReentrantAction extends ReduxAction<AppState>
 class FreshWithUnlimitedRetryAction extends ReduxAction<AppState>
     with
         UnlimitedRetryCheckInternet,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Fresh {
   @override
   int get freshFor => 1000;
@@ -1678,7 +1678,7 @@ class FreshWithUnlimitedRetryAction extends ReduxAction<AppState>
 class ThrottleWithNonReentrantAction extends ReduxAction<AppState>
     with
         Throttle,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         NonReentrant {
   @override
   int get throttle => 1000;
@@ -1693,7 +1693,7 @@ class ThrottleWithNonReentrantAction extends ReduxAction<AppState>
 class ThrottleWithUnlimitedRetryAction extends ReduxAction<AppState>
     with
         Throttle,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         UnlimitedRetryCheckInternet {
   @override
   int get throttle => 1000;
@@ -1708,7 +1708,7 @@ class ThrottleWithUnlimitedRetryAction extends ReduxAction<AppState>
 class NonReentrantWithUnlimitedRetryAction extends ReduxAction<AppState>
     with
         NonReentrant,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         UnlimitedRetryCheckInternet {
   @override
   AppState reduce() {
@@ -1720,7 +1720,7 @@ class NonReentrantWithUnlimitedRetryAction extends ReduxAction<AppState>
 class CheckInternetWithAbortWhenNoInternetAction extends ReduxAction<AppState>
     with
         CheckInternet,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         AbortWhenNoInternet {
   @override
   AppState reduce() {
@@ -1732,7 +1732,7 @@ class CheckInternetWithAbortWhenNoInternetAction extends ReduxAction<AppState>
 class CheckInternetWithUnlimitedRetryAction extends ReduxAction<AppState>
     with
         CheckInternet,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         UnlimitedRetryCheckInternet {
   @override
   AppState reduce() {
@@ -1744,7 +1744,7 @@ class CheckInternetWithUnlimitedRetryAction extends ReduxAction<AppState>
 class AbortWhenNoInternetWithUnlimitedRetryAction extends ReduxAction<AppState>
     with
         AbortWhenNoInternet,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         UnlimitedRetryCheckInternet {
   @override
   AppState reduce() {
@@ -1829,6 +1829,7 @@ class TripleNestOuterAction extends ReduxAction<AppState> with Fresh {
 
   @override
   Future<AppState?> reduce() async {
+    await microtask;
     try {
       await dispatch(TripleNestMiddleAction(
         shouldFail: middleShouldFail,
@@ -1865,6 +1866,7 @@ class TripleNestMiddleAction extends ReduxAction<AppState> with Fresh {
 
   @override
   Future<AppState?> reduce() async {
+    await microtask;
     try {
       await dispatch(TripleNestInnerAction(shouldFail: innerShouldFail));
     } catch (_) {
@@ -2006,6 +2008,7 @@ class OuterNormalInnerIgnoreFreshAction extends ReduxAction<AppState>
 
   @override
   Future<AppState?> reduce() async {
+    await microtask;
     try {
       await dispatch(InnerIgnoreFreshFailAction());
     } catch (_) {

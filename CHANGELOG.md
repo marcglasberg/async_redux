@@ -7,6 +7,43 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 29.1.0
+
+* New package [async_redux_lints](https://pub.dev/packages/async_redux_lints): an
+  analyzer plugin that reports, while you type, AsyncRedux mistakes that would otherwise
+  only fail at runtime. Most come with a quick fix. See its README for how to install it.
+  Rules:
+
+  - `reduce_return_type`: Method `reduce` must return `St?` or `Future<St?>`.
+  - `before_return_type`: Method `before` must return `void` or `Future<void>`.
+  - `wrap_reduce_return_type`: Method `wrapReduce` must return `Future<St?>`.
+  - `reduce_without_await`: An async method `reduce` must pass through an `await` before
+    returning a non-null value.
+  - `dispatch_sync_async_action`: Method `dispatchSync` must not dispatch an async action.
+  - `wait_fail_invalid_argument`: Methods `isWaiting`, `isFailed`, `exceptionFor` and
+    `clearExceptionFor` must get only what they accept. For example, `isFailed` accepts
+    action types, but not actions.
+  - `wait_fail_never_matches`: Warns when `isWaiting`, `isFailed`, `exceptionFor` or
+    `clearExceptionFor` get something that never matches an action, like an abstract
+    action type.
+  - `incompatible_mixins`: An action must not combine mixins that can't be combined,
+    like `NonReentrant` with `Throttle`.
+  - `polling_with_caveat_mixin`: Mixins like `CheckInternet` or `NonReentrant` go in the
+    action returned by `createPollingAction`, not in the action with `Polling`.
+  - `context_state_for_one_field`: Use `context.select` instead of `context.state` in
+    `build` when only one field of the state is used.
+  - `select_in_callback`: Use `context.read()` instead of `context.select` in callbacks
+    like `onPressed`.
+  - `vm_field_not_in_equals`: Every field of a `Vm` must be in its `equals` list.
+
+* Fixed `exceptionFor` and `isFailed` with a list of action types. They only checked
+  the first type in the list. Also, `clearExceptionFor` with a list now always rebuilds
+  the widgets when it clears a failure.
+
+* Docs: `isFailed` accepts an action type or a list of action types, but not an
+  action. Passing an action returns `false`, and throws a `StoreException` after the
+  async gap.
+
 ## 29.0.0
 
 * Breaking change: Removed the following, which were already deprecated:

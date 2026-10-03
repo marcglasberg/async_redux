@@ -37,11 +37,13 @@ void main() {
     final store = Store<State>(initialState: State(1));
 
     // SYNC ACTION: isWaiting is always false.
+    // ignore: async_redux_lints/wait_fail_never_matches
     expect(store.isWaiting(IncrementSync), false);
     expect(store.state.count, 1);
 
     var actionSync = IncrementSync();
     store.dispatch(actionSync);
+    // ignore: async_redux_lints/wait_fail_never_matches
     expect(store.isWaiting(IncrementSync), false);
     expect(store.state.count, 2);
 

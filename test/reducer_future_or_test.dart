@@ -184,6 +184,7 @@ class ActionB extends ReduxAction<AppState> {
 class ActionC extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
+    await microtask;
     return state.copy(state.text + 'C');
   }
 }
@@ -192,6 +193,7 @@ class ActionC extends ReduxAction<AppState> {
 class ActionD extends ReduxAction<AppState> {
   @override
   Future<AppState?> reduce() async {
+    await microtask;
     return state.copy(state.text + 'D');
   }
 }
@@ -199,6 +201,7 @@ class ActionD extends ReduxAction<AppState> {
 /// Future<AppState>? reduce()
 class ActionE extends ReduxAction<AppState> {
   @override
+  // ignore: async_redux_lints/reduce_return_type
   Future<AppState>? reduce() async {
     return state.copy(state.text + 'E');
   }
@@ -207,6 +210,7 @@ class ActionE extends ReduxAction<AppState> {
 /// Future<AppState?>? reduce()
 class ActionF extends ReduxAction<AppState> {
   @override
+  // ignore: async_redux_lints/reduce_return_type
   Future<AppState?>? reduce() async {
     return state.copy(state.text + 'F');
   }
@@ -215,6 +219,7 @@ class ActionF extends ReduxAction<AppState> {
 /// FutureOr<AppState> reduce()
 class ActionG extends ReduxAction<AppState> {
   @override
+  // ignore: async_redux_lints/reduce_return_type
   FutureOr<AppState> reduce() async {
     return state.copy(state.text + 'G');
   }
@@ -223,6 +228,7 @@ class ActionG extends ReduxAction<AppState> {
 /// FutureOr<AppState?> reduce()
 class ActionH extends ReduxAction<AppState> {
   @override
+  // ignore: async_redux_lints/reduce_return_type
   FutureOr<AppState?> reduce() async {
     return state.copy(state.text + 'H');
   }
@@ -231,6 +237,7 @@ class ActionH extends ReduxAction<AppState> {
 /// FutureOr<AppState>? reduce()
 class ActionI extends ReduxAction<AppState> {
   @override
+  // ignore: async_redux_lints/reduce_return_type
   FutureOr<AppState>? reduce() async {
     return state.copy(state.text + 'I');
   }
@@ -239,6 +246,7 @@ class ActionI extends ReduxAction<AppState> {
 /// FutureOr<AppState?>? reduce()
 class ActionJ extends ReduxAction<AppState> {
   @override
+  // ignore: async_redux_lints/reduce_return_type
   FutureOr<AppState?>? reduce() async {
     return state.copy(state.text + 'J');
   }

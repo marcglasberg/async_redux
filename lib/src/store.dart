@@ -1766,14 +1766,23 @@ class Store<St> {
     }
   }
 
-  /// Returns true if an [actionOrTypeOrList] failed with an [UserException].
-  /// Note: This method uses the EXACT type in [actionOrTypeOrList]. Subtypes are not considered.
-  bool isFailed(Object actionOrTypeOrList) => exceptionFor(actionOrTypeOrList) != null;
+  /// Returns true if an action of the given type failed with a [UserException].
+  ///
+  /// [actionTypeOrList] can be an action [Type], or an Iterable of action types, in
+  /// which case it returns true if any of them failed. Note it does NOT accept an
+  /// action, only its type. Any other object, including an action, will return false
+  /// and throw a [StoreException] after the async gap.
+  ///
+  /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
+  bool isFailed(Object actionTypeOrList) => exceptionFor(actionTypeOrList) != null;
 
   /// Returns the [UserException] of the [actionTypeOrList] that failed.
   ///
   /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
   /// of object will return null and throw a [StoreException] after the async gap.
+  ///
+  /// If an Iterable is passed, returns the exception of the first of its types that
+  /// failed, or null if none failed.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
   UserException? exceptionFor(Object actionTypeOrList) {
@@ -1788,15 +1797,15 @@ class Store<St> {
     //
     // 2) If a list was passed:
     else if (actionTypeOrList is Iterable) {
+      UserException? result;
       for (var actionType in actionTypeOrList) {
-        _actionsWeCanCheckFailed.add(actionType);
         if (actionType is Type) {
-          var error = _failedActions.entries
-              .firstWhereOrNull((entry) => entry.key == actionType)
-              ?.value
-              .status
-              .wrappedError;
-          return (error is UserException) ? error : null;
+          // Doesn't stop at the first exception, because all types must be added here.
+          _actionsWeCanCheckFailed.add(actionType);
+          if (result == null) {
+            var error = _failedActions[actionType]?.status.wrappedError;
+            if (error is UserException) result = error;
+          }
         } else {
           Future.microtask(() {
             throw StoreException(
@@ -1805,7 +1814,7 @@ class Store<St> {
           });
         }
       }
-      return null;
+      return result;
     }
     // 3) If something different was passed, it's an error. We show the error after the
     // async gap, so we don't interrupt the code. But we return null.
@@ -1839,10 +1848,10 @@ class Store<St> {
     //
     // 2) If a list was passed:
     else if (actionTypeOrList is Iterable) {
-      Object? result;
+      bool removedAny = false;
       for (var actionType in actionTypeOrList) {
         if (actionType is Type) {
-          result = _failedActions.remove(actionType);
+          if (_failedActions.remove(actionType) != null) removedAny = true;
         } else {
           Future.microtask(() {
             throw StoreException(
@@ -1851,7 +1860,7 @@ class Store<St> {
           });
         }
       }
-      if (result != null) _changeController.add(state);
+      if (removedAny) _changeController.add(state);
     }
     // 3) If something different was passed, it's an error. We show the error after the
     // async gap, so we don't interrupt the code. But we return null.

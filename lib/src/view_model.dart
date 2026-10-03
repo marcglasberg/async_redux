@@ -390,10 +390,15 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   bool isWaiting(Object actionOrTypeOrList) =>
       _store.isWaiting(actionOrTypeOrList);
 
-  /// Returns true if an [actionOrTypeOrList] failed with an [UserException].
-  /// Note: This method uses the EXACT type in [actionOrTypeOrList]. Subtypes are not considered.
-  bool isFailed(Object actionOrTypeOrList) =>
-      _store.isFailed(actionOrTypeOrList);
+  /// Returns true if an action of the given type failed with a [UserException].
+  ///
+  /// [actionTypeOrList] can be an action [Type], or an Iterable of action types, in
+  /// which case it returns true if any of them failed. Note it does NOT accept an
+  /// action, only its type. Any other object, including an action, will return false
+  /// and throw a [StoreException] after the async gap.
+  ///
+  /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
+  bool isFailed(Object actionTypeOrList) => _store.isFailed(actionTypeOrList);
 
   /// Returns the [UserException] of the [actionTypeOrList] that failed.
   ///

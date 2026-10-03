@@ -170,7 +170,7 @@ abstract class AppAction extends ReduxAction<State> {
   }
 
   @override
-  Future<State?> reduce() async {
+  State? reduce() {
     log.add('reduce');
     return State(state.count + 1);
   }

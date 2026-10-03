@@ -1025,7 +1025,12 @@ class StoreProvider<St> extends InheritedWidget {
               : _getStoreNoDependency_Untyped)(context)
           .isWaiting(actionOrTypeOrList);
 
-  /// Returns true if an [actionOrTypeOrList] failed with an [UserException].
+  /// Returns true if an action of the given type failed with a [UserException].
+  ///
+  /// [actionTypeOrList] can be an action [Type], or an Iterable of action types, in
+  /// which case it returns true if any of them failed. Note it does NOT accept an
+  /// action, only its type. Any other object, including an action, will return false
+  /// and throw a [StoreException] after the async gap.
   ///
   /// It's recommended that you use the BuildContext extension instead:
   ///
@@ -1038,13 +1043,13 @@ class StoreProvider<St> extends InheritedWidget {
   ///
   static bool isFailed(
     BuildContext context,
-    Object actionOrTypeOrList, {
+    Object actionTypeOrList, {
     bool notify = true,
   }) =>
       (notify
               ? _getStoreWithDependency_Untyped
               : _getStoreNoDependency_Untyped)(context)
-          .isFailed(actionOrTypeOrList);
+          .isFailed(actionTypeOrList);
 
   /// Returns the [UserException] of the [actionTypeOrList] that failed.
   ///
@@ -1062,13 +1067,13 @@ class StoreProvider<St> extends InheritedWidget {
   ///
   static UserException? exceptionFor(
     BuildContext context,
-    Object actionOrTypeOrList, {
+    Object actionTypeOrList, {
     bool notify = true,
   }) =>
       (notify
               ? _getStoreWithDependency_Untyped
               : _getStoreNoDependency_Untyped)(context)
-          .exceptionFor(actionOrTypeOrList);
+          .exceptionFor(actionTypeOrList);
 
   /// Removes the given [actionTypeOrList] from the list of action types that failed.
   ///
@@ -1083,13 +1088,13 @@ class StoreProvider<St> extends InheritedWidget {
   ///
   static void clearExceptionFor(
     BuildContext context,
-    Object actionOrTypeOrList, {
+    Object actionTypeOrList, {
     bool notify = true,
   }) =>
       (notify
               ? _getStoreWithDependency_Untyped
               : _getStoreNoDependency_Untyped)(context)
-          .clearExceptionFor(actionOrTypeOrList);
+          .clearExceptionFor(actionTypeOrList);
 
   /// Avoid using if you don't have a good reason to do so.
   ///
@@ -2042,16 +2047,21 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
       ? _store.isWaiting(actionOrTypeOrList)
       : StoreProvider.isWaiting(this, actionOrTypeOrList);
 
-  /// Returns true if an [actionOrTypeOrList] failed with an [UserException].
+  /// Returns true if an action of the given type failed with a [UserException].
+  ///
+  /// [actionTypeOrList] can be an action [Type], or an Iterable of action types, in
+  /// which case it returns true if any of them failed. Note it does NOT accept an
+  /// action, only its type. Any other object, including an action, will return false
+  /// and throw a [StoreException] after the async gap.
   ///
   /// Example:
   ///
   /// ```dart
   /// if (context.isFailed(MyAction)) { // Show an error message. }
   /// ```
-  bool isFailed(Object actionOrTypeOrList) => _isMock
-      ? _store.isFailed(actionOrTypeOrList)
-      : StoreProvider.isFailed(this, actionOrTypeOrList);
+  bool isFailed(Object actionTypeOrList) => _isMock
+      ? _store.isFailed(actionTypeOrList)
+      : StoreProvider.isFailed(this, actionTypeOrList);
 
   /// Returns the [UserException] of the [actionTypeOrList] that failed.
   ///
@@ -2063,9 +2073,9 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// ```dart
   /// if (context.isFailed(SaveUserAction)) Text(context.exceptionFor(SaveUserAction)!.reason ?? '');
   /// ```
-  UserException? exceptionFor(Object actionOrTypeOrList) => _isMock
-      ? _store.exceptionFor(actionOrTypeOrList)
-      : StoreProvider.exceptionFor(this, actionOrTypeOrList);
+  UserException? exceptionFor(Object actionTypeOrList) => _isMock
+      ? _store.exceptionFor(actionTypeOrList)
+      : StoreProvider.exceptionFor(this, actionTypeOrList);
 
   /// Removes the given [actionTypeOrList] from the list of action types that failed.
   ///
@@ -2076,9 +2086,9 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
-  void clearExceptionFor(Object actionOrTypeOrList) => _isMock
-      ? _store.clearExceptionFor(actionOrTypeOrList)
-      : StoreProvider.clearExceptionFor(this, actionOrTypeOrList);
+  void clearExceptionFor(Object actionTypeOrList) => _isMock
+      ? _store.clearExceptionFor(actionTypeOrList)
+      : StoreProvider.clearExceptionFor(this, actionTypeOrList);
 
   /// Given the BuildContext, provides easy access to the optional AsyncRedux
   /// store "environment" that you may have defined. The environment is considered

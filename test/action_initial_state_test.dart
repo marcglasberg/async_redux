@@ -66,6 +66,7 @@ class IncrementAsync extends ReduxAction<State> {
 
   @override
   Future<State> reduce() async {
+    await microtask;
     result += 'reduce initialState: $initialState|';
     result += 'reduce state: $state|';
     dispatch(ChangeAction(100));

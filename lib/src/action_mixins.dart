@@ -100,7 +100,7 @@ mixin CheckInternet<St> on ReduxAction<St> {
   @mustCallSuper
   @override
   Future<void> before() async {
-    _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet();
+    _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush();
 
     await super.before();
     var result = await checkConnectivity();
@@ -110,9 +110,10 @@ mixin CheckInternet<St> on ReduxAction<St> {
   }
 
   void
-      _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet() {
+      _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush() {
     _incompatible<CheckInternet, AbortWhenNoInternet>(this);
     _incompatible<CheckInternet, UnlimitedRetryCheckInternet>(this);
+    _incompatible<CheckInternet, ServerPush>(this);
   }
 }
 
@@ -214,7 +215,7 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
   @mustCallSuper
   @override
   Future<void> before() async {
-    _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet();
+    _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush();
 
     await super.before();
     var result = await checkConnectivity();
@@ -222,9 +223,10 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
   }
 
   void
-      _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet() {
+      _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush() {
     _incompatible<AbortWhenNoInternet, CheckInternet>(this);
     _incompatible<AbortWhenNoInternet, UnlimitedRetryCheckInternet>(this);
+    _incompatible<AbortWhenNoInternet, ServerPush>(this);
   }
 }
 
@@ -335,7 +337,7 @@ mixin NonReentrant<St> on ReduxAction<St> {
 
   @override
   bool abortDispatch() {
-    _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet();
+    _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
 
     // This mixin should not be combined with other mixins or classes that
     // set `abortDispatch`, but just in case, we call super first, and we
@@ -403,11 +405,15 @@ mixin NonReentrant<St> on ReduxAction<St> {
     }
   }
 
-  void _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet() {
-    _incompatible<NonReentrant, Fresh>(this);
-    _incompatible<NonReentrant, Throttle>(this);
+  void
+      _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
     _incompatible<NonReentrant, UnlimitedRetryCheckInternet>(this);
+    _incompatible<NonReentrant, Throttle>(this);
+    _incompatible<NonReentrant, Fresh>(this);
     _incompatible<NonReentrant, OptimisticCommand>(this);
+    _incompatible<NonReentrant, OptimisticSync>(this);
+    _incompatible<NonReentrant, OptimisticSyncWithPush>(this);
+    _incompatible<NonReentrant, ServerPush>(this);
   }
 }
 
@@ -491,8 +497,7 @@ mixin Retry<St> on ReduxAction<St> {
 
   @override
   Future<St?> wrapReduce(Reducer<St> reduce) async {
-    _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet();
-    _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+    _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
 
     // When combined with OptimisticCommand, we skip the retry logic here.
     // OptimisticCommand will handle retries internally to avoid UI flickering.
@@ -541,18 +546,14 @@ mixin Retry<St> on ReduxAction<St> {
     return _currentDelay!;
   }
 
-  void _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet() {
-    _incompatible<Retry, Debounce>(this);
-    _incompatible<Retry, UnlimitedRetryCheckInternet>(this);
-    _incompatible<Retry, Polling>(this);
-  }
-
   void
-      _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
+      _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
     _incompatible<Retry, UnlimitedRetryCheckInternet>(this);
+    _incompatible<Retry, Debounce>(this);
     _incompatible<Retry, OptimisticSync>(this);
     _incompatible<Retry, OptimisticSyncWithPush>(this);
     _incompatible<Retry, ServerPush>(this);
+    _incompatible<Retry, Polling>(this);
   }
 }
 
@@ -571,6 +572,19 @@ mixin Retry<St> on ReduxAction<St> {
 mixin UnlimitedRetries<St> on Retry<St> {
   @override
   int get maxRetries => -1;
+
+  // Never called by this mixin, since the incompatible mixins already check it.
+  // It exists so that the analyzer reports a `private_collision_in_mixin_application`
+  // error when this mixin is combined with an incompatible one.
+  // ignore: unused_element
+  void _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
+    _incompatible<UnlimitedRetries, Debounce>(this);
+    _incompatible<UnlimitedRetries, OptimisticCommand>(this);
+    _incompatible<UnlimitedRetries, OptimisticSync>(this);
+    _incompatible<UnlimitedRetries, OptimisticSyncWithPush>(this);
+    _incompatible<UnlimitedRetries, ServerPush>(this);
+    _incompatible<UnlimitedRetries, Polling>(this);
+  }
 }
 
 /// Mixin [OptimisticCommand] is for actions that represent a command.
@@ -1255,8 +1269,8 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 
   @override
   bool abortDispatch() {
-    _cannot_combine_mixins_OptimisticCommand();
-    _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+    _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+    _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
 
     // First, check the super class/mixin wants to abort.
     // See the comment in [NonReentrant.abortDispatch].
@@ -1289,21 +1303,25 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
   /// Only [Retry], [CheckInternet] and [AbortWhenNoInternet] can be combined
   /// with [OptimisticCommand].
   ///
-  void _cannot_combine_mixins_OptimisticCommand() {
-    _incompatible<OptimisticCommand, NonReentrant>(this);
-    _incompatible<OptimisticCommand, Fresh>(this);
-    _incompatible<OptimisticCommand, Throttle>(this);
-    _incompatible<OptimisticCommand, Debounce>(this);
-    _incompatible<OptimisticCommand, UnlimitedRetries>(this);
-    _incompatible<OptimisticCommand, Polling>(this);
-  }
-
   void
-      _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
+      _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
+    _incompatible<OptimisticCommand, NonReentrant>(this);
     _incompatible<OptimisticCommand, UnlimitedRetryCheckInternet>(this);
+    _incompatible<OptimisticCommand, Throttle>(this);
+    _incompatible<OptimisticCommand, Fresh>(this);
     _incompatible<OptimisticCommand, OptimisticSync>(this);
     _incompatible<OptimisticCommand, OptimisticSyncWithPush>(this);
     _incompatible<OptimisticCommand, ServerPush>(this);
+  }
+
+  void
+      _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
+    _incompatible<OptimisticCommand, UnlimitedRetries>(this);
+    _incompatible<OptimisticCommand, Debounce>(this);
+    _incompatible<OptimisticCommand, OptimisticSync>(this);
+    _incompatible<OptimisticCommand, OptimisticSyncWithPush>(this);
+    _incompatible<OptimisticCommand, ServerPush>(this);
+    _incompatible<OptimisticCommand, Polling>(this);
   }
 }
 
@@ -1494,7 +1512,7 @@ mixin Throttle<St> on ReduxAction<St> {
 
   @override
   bool abortDispatch() {
-    _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet();
+    _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
 
     // First, check the super class/mixin wants to abort.
     // See the comment in [NonReentrant.abortDispatch].
@@ -1540,11 +1558,15 @@ mixin Throttle<St> on ReduxAction<St> {
     }
   }
 
-  void _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet() {
-    _incompatible<Throttle, Fresh>(this);
+  void
+      _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
     _incompatible<Throttle, NonReentrant>(this);
     _incompatible<Throttle, UnlimitedRetryCheckInternet>(this);
+    _incompatible<Throttle, Fresh>(this);
     _incompatible<Throttle, OptimisticCommand>(this);
+    _incompatible<Throttle, OptimisticSync>(this);
+    _incompatible<Throttle, OptimisticSyncWithPush>(this);
+    _incompatible<Throttle, ServerPush>(this);
   }
 }
 
@@ -1639,7 +1661,9 @@ mixin Debounce<St> on ReduxAction<St> {
 
   @override
   Future<St?> wrapReduce(Reducer<St> reduce) async {
-    _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet();
+    _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential();
 
     var lock = lockBuilder();
 
@@ -1664,10 +1688,33 @@ mixin Debounce<St> on ReduxAction<St> {
     }
   }
 
-  void _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet() {
+  void
+      _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
     _incompatible<Debounce, Retry>(this);
     _incompatible<Debounce, UnlimitedRetryCheckInternet>(this);
+    _incompatible<Debounce, OptimisticSync>(this);
+    _incompatible<Debounce, OptimisticSyncWithPush>(this);
+    _incompatible<Debounce, ServerPush>(this);
     _incompatible<Debounce, Polling>(this);
+  }
+
+  void
+      _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
+    _incompatible<Debounce, UnlimitedRetries>(this);
+    _incompatible<Debounce, OptimisticCommand>(this);
+    _incompatible<Debounce, OptimisticSync>(this);
+    _incompatible<Debounce, OptimisticSyncWithPush>(this);
+    _incompatible<Debounce, ServerPush>(this);
+    _incompatible<Debounce, Polling>(this);
+  }
+
+  void
+      _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential() {
+    _incompatible<Debounce, UnlimitedRetryCheckInternet>(this);
+    _incompatible<Debounce, OptimisticSync>(this);
+    _incompatible<Debounce, OptimisticSyncWithPush>(this);
+    _incompatible<Debounce, ServerPush>(this);
+    _incompatible<Debounce, Sequential>(this);
   }
 }
 
@@ -1723,10 +1770,10 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
   //
   @override
   bool abortDispatch() {
-    _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet();
-    _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet();
-    _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet();
-    _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+    _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush();
+    _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+    _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential();
 
     // First, check the super class/mixin wants to abort.
     // See the comment in [NonReentrant.abortDispatch].
@@ -1869,31 +1916,41 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
     return await (Connectivity().checkConnectivity());
   }
 
-  void _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet() {
-    _incompatible<UnlimitedRetryCheckInternet, Fresh>(this);
-    _incompatible<UnlimitedRetryCheckInternet, Throttle>(this);
-    _incompatible<UnlimitedRetryCheckInternet, NonReentrant>(this);
-  }
-
   void
-      _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet() {
+      _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush() {
     _incompatible<UnlimitedRetryCheckInternet, CheckInternet>(this);
     _incompatible<UnlimitedRetryCheckInternet, AbortWhenNoInternet>(this);
-  }
-
-  void _cannot_combine_mixins_Debounce_Retry_UnlimitedRetryCheckInternet() {
-    _incompatible<UnlimitedRetryCheckInternet, Debounce>(this);
-    _incompatible<UnlimitedRetryCheckInternet, Retry>(this);
-    _incompatible<UnlimitedRetryCheckInternet, Polling>(this);
-    _incompatible<UnlimitedRetryCheckInternet, Sequential>(this);
+    _incompatible<UnlimitedRetryCheckInternet, ServerPush>(this);
   }
 
   void
-      _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
+      _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
+    _incompatible<UnlimitedRetryCheckInternet, NonReentrant>(this);
+    _incompatible<UnlimitedRetryCheckInternet, Throttle>(this);
+    _incompatible<UnlimitedRetryCheckInternet, Fresh>(this);
     _incompatible<UnlimitedRetryCheckInternet, OptimisticCommand>(this);
     _incompatible<UnlimitedRetryCheckInternet, OptimisticSync>(this);
     _incompatible<UnlimitedRetryCheckInternet, OptimisticSyncWithPush>(this);
     _incompatible<UnlimitedRetryCheckInternet, ServerPush>(this);
+  }
+
+  void
+      _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
+    _incompatible<UnlimitedRetryCheckInternet, Retry>(this);
+    _incompatible<UnlimitedRetryCheckInternet, Debounce>(this);
+    _incompatible<UnlimitedRetryCheckInternet, OptimisticSync>(this);
+    _incompatible<UnlimitedRetryCheckInternet, OptimisticSyncWithPush>(this);
+    _incompatible<UnlimitedRetryCheckInternet, ServerPush>(this);
+    _incompatible<UnlimitedRetryCheckInternet, Polling>(this);
+  }
+
+  void
+      _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential() {
+    _incompatible<UnlimitedRetryCheckInternet, Debounce>(this);
+    _incompatible<UnlimitedRetryCheckInternet, OptimisticSync>(this);
+    _incompatible<UnlimitedRetryCheckInternet, OptimisticSyncWithPush>(this);
+    _incompatible<UnlimitedRetryCheckInternet, ServerPush>(this);
+    _incompatible<UnlimitedRetryCheckInternet, Sequential>(this);
   }
 }
 
@@ -2272,7 +2329,7 @@ mixin Fresh<St> on ReduxAction<St> {
 
   @override
   bool abortDispatch() {
-    _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet_OptimisticCommand();
+    _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
 
     // First, check the super class/mixin wants to abort.
     // See the comment in [NonReentrant.abortDispatch].
@@ -2308,11 +2365,14 @@ mixin Fresh<St> on ReduxAction<St> {
   }
 
   void
-      _cannot_combine_mixins_Fresh_Throttle_NonReentrant_UnlimitedRetryCheckInternet_OptimisticCommand() {
-    _incompatible<Fresh, Throttle>(this);
+      _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
     _incompatible<Fresh, NonReentrant>(this);
     _incompatible<Fresh, UnlimitedRetryCheckInternet>(this);
+    _incompatible<Fresh, Throttle>(this);
     _incompatible<Fresh, OptimisticCommand>(this);
+    _incompatible<Fresh, OptimisticSync>(this);
+    _incompatible<Fresh, OptimisticSyncWithPush>(this);
+    _incompatible<Fresh, ServerPush>(this);
   }
 
   DateTime _expiringKeyFrom(DateTime now) => now.add(Duration(milliseconds: freshFor));
@@ -2354,6 +2414,39 @@ mixin Fresh<St> on ReduxAction<St> {
   }
 }
 
+/// Fails an assertion if [instance] is a [T2]. It's called by the mixin [T1].
+///
+/// Incompatible mixins are also reported by the analyzer, before the code runs.
+/// Each group of mutually incompatible mixins shares a private method, named
+/// `_cannot_combine_mixins_` followed by the names of the mixins in the group.
+/// Each mixin in the group declares that method, which calls [_incompatible] for
+/// the other mixins in the group. Combining two mixins of the same group then
+/// makes the analyzer report a `private_collision_in_mixin_application` error,
+/// which shows the method name.
+///
+/// The groups are:
+/// - Mixins that check the internet: `CheckInternet`, `AbortWhenNoInternet`,
+///   `UnlimitedRetryCheckInternet`, `ServerPush`.
+/// - Mixins that may abort the dispatch: `NonReentrant`,
+///   `UnlimitedRetryCheckInternet`, `Throttle`, `Fresh`, `OptimisticCommand`,
+///   `OptimisticSync`, `OptimisticSyncWithPush`, `ServerPush`.
+/// - Mixins incompatible with `Retry`: `Retry`, `UnlimitedRetryCheckInternet`,
+///   `Debounce`, `OptimisticSync`, `OptimisticSyncWithPush`, `ServerPush`, `Polling`.
+/// - Mixins incompatible with `UnlimitedRetries`: `UnlimitedRetries`, `Debounce`,
+///   `OptimisticCommand`, `OptimisticSync`, `OptimisticSyncWithPush`, `ServerPush`,
+///   `Polling`.
+/// - Mixins incompatible with `Sequential`: `UnlimitedRetryCheckInternet`,
+///   `Debounce`, `OptimisticSync`, `OptimisticSyncWithPush`, `ServerPush`,
+///   `Sequential`.
+///
+/// All mixins of a group must be incompatible with each other, and each pair of
+/// incompatible mixins must be in at least one group. When changing which mixins
+/// are compatible, update the groups, the `mixin_compatibility.md` file, and the
+/// `incompatible_mixins` rule of `async_redux_lints`. That rule has a test that
+/// checks it matches the [_incompatible] calls in this file.
+///
+/// Note the collision is only reported by the analyzer. The compiler accepts it,
+/// and then the assertion fails at runtime, in debug mode.
 void _incompatible<T1, T2>(Object instance) {
   assert(
     instance is! T2,
@@ -2810,8 +2903,10 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
 
   @override
   Future<St?> reduce() async {
-    _cannot_combine_mixins_OptimisticSync();
-    _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+    _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+    _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential();
 
     // Reset per-dispatch tracking fields.
     lastSentValue = null;
@@ -2948,22 +3043,44 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
 
   /// Only [CheckInternet] and [AbortWhenNoInternet] can be combined
   /// with [OptimisticSync].
-  void _cannot_combine_mixins_OptimisticSync() {
+  void
+      _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
     _incompatible<OptimisticSync, NonReentrant>(this);
-    _incompatible<OptimisticSync, Fresh>(this);
+    _incompatible<OptimisticSync, UnlimitedRetryCheckInternet>(this);
     _incompatible<OptimisticSync, Throttle>(this);
+    _incompatible<OptimisticSync, Fresh>(this);
+    _incompatible<OptimisticSync, OptimisticCommand>(this);
+    _incompatible<OptimisticSync, OptimisticSyncWithPush>(this);
+    _incompatible<OptimisticSync, ServerPush>(this);
+  }
+
+  void
+      _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
+    _incompatible<OptimisticSync, Retry>(this);
+    _incompatible<OptimisticSync, UnlimitedRetryCheckInternet>(this);
     _incompatible<OptimisticSync, Debounce>(this);
-    _incompatible<OptimisticSync, UnlimitedRetries>(this);
+    _incompatible<OptimisticSync, OptimisticSyncWithPush>(this);
+    _incompatible<OptimisticSync, ServerPush>(this);
     _incompatible<OptimisticSync, Polling>(this);
   }
 
   void
-      _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
-    _incompatible<OptimisticSync, UnlimitedRetryCheckInternet>(this);
+      _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
+    _incompatible<OptimisticSync, UnlimitedRetries>(this);
+    _incompatible<OptimisticSync, Debounce>(this);
     _incompatible<OptimisticSync, OptimisticCommand>(this);
     _incompatible<OptimisticSync, OptimisticSyncWithPush>(this);
     _incompatible<OptimisticSync, ServerPush>(this);
-    _incompatible<OptimisticSync, Retry>(this);
+    _incompatible<OptimisticSync, Polling>(this);
+  }
+
+  void
+      _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential() {
+    _incompatible<OptimisticSync, UnlimitedRetryCheckInternet>(this);
+    _incompatible<OptimisticSync, Debounce>(this);
+    _incompatible<OptimisticSync, OptimisticSyncWithPush>(this);
+    _incompatible<OptimisticSync, ServerPush>(this);
+    _incompatible<OptimisticSync, Sequential>(this);
   }
 }
 
@@ -3491,8 +3608,10 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
 
   @override
   Future<St?> reduce() async {
-    _cannot_combine_mixins_OptimisticSyncWithPush();
-    _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+    _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+    _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential();
 
     // Compute and cache the key for this dispatch.
     _currentKey = computeOptimisticSyncKey();
@@ -3635,22 +3754,44 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
 
   /// Only [CheckInternet] and [AbortWhenNoInternet] can be combined
   /// with [OptimisticSyncWithPush].
-  void _cannot_combine_mixins_OptimisticSyncWithPush() {
+  void
+      _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
     _incompatible<OptimisticSyncWithPush, NonReentrant>(this);
-    _incompatible<OptimisticSyncWithPush, Fresh>(this);
+    _incompatible<OptimisticSyncWithPush, UnlimitedRetryCheckInternet>(this);
     _incompatible<OptimisticSyncWithPush, Throttle>(this);
+    _incompatible<OptimisticSyncWithPush, Fresh>(this);
+    _incompatible<OptimisticSyncWithPush, OptimisticCommand>(this);
+    _incompatible<OptimisticSyncWithPush, OptimisticSync>(this);
+    _incompatible<OptimisticSyncWithPush, ServerPush>(this);
+  }
+
+  void
+      _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
+    _incompatible<OptimisticSyncWithPush, Retry>(this);
+    _incompatible<OptimisticSyncWithPush, UnlimitedRetryCheckInternet>(this);
     _incompatible<OptimisticSyncWithPush, Debounce>(this);
-    _incompatible<OptimisticSyncWithPush, UnlimitedRetries>(this);
+    _incompatible<OptimisticSyncWithPush, OptimisticSync>(this);
+    _incompatible<OptimisticSyncWithPush, ServerPush>(this);
     _incompatible<OptimisticSyncWithPush, Polling>(this);
   }
 
   void
-      _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
-    _incompatible<OptimisticSyncWithPush, UnlimitedRetryCheckInternet>(this);
+      _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
+    _incompatible<OptimisticSyncWithPush, UnlimitedRetries>(this);
+    _incompatible<OptimisticSyncWithPush, Debounce>(this);
     _incompatible<OptimisticSyncWithPush, OptimisticCommand>(this);
     _incompatible<OptimisticSyncWithPush, OptimisticSync>(this);
     _incompatible<OptimisticSyncWithPush, ServerPush>(this);
-    _incompatible<OptimisticSyncWithPush, Retry>(this);
+    _incompatible<OptimisticSyncWithPush, Polling>(this);
+  }
+
+  void
+      _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential() {
+    _incompatible<OptimisticSyncWithPush, UnlimitedRetryCheckInternet>(this);
+    _incompatible<OptimisticSyncWithPush, Debounce>(this);
+    _incompatible<OptimisticSyncWithPush, OptimisticSync>(this);
+    _incompatible<OptimisticSyncWithPush, ServerPush>(this);
+    _incompatible<OptimisticSyncWithPush, Sequential>(this);
   }
 }
 
@@ -3737,8 +3878,11 @@ mixin ServerPush<St> on ReduxAction<St> {
 
   @override
   St? reduce() {
-    _cannot_combine_mixins_ServerPush();
-    _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+    _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush();
+    _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+    _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential();
 
     final key = computeOptimisticSyncKey();
 
@@ -3807,23 +3951,51 @@ mixin ServerPush<St> on ReduxAction<St> {
       get _optimisticSyncWithPushRevisionMap =>
           store.internalMixinProps.optimisticSyncWithPushRevisionMap;
 
-  void _cannot_combine_mixins_ServerPush() {
+  void
+      _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush() {
     _incompatible<ServerPush, CheckInternet>(this);
     _incompatible<ServerPush, AbortWhenNoInternet>(this);
+    _incompatible<ServerPush, UnlimitedRetryCheckInternet>(this);
+  }
+
+  void
+      _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
     _incompatible<ServerPush, NonReentrant>(this);
-    _incompatible<ServerPush, Fresh>(this);
+    _incompatible<ServerPush, UnlimitedRetryCheckInternet>(this);
     _incompatible<ServerPush, Throttle>(this);
+    _incompatible<ServerPush, Fresh>(this);
+    _incompatible<ServerPush, OptimisticCommand>(this);
+    _incompatible<ServerPush, OptimisticSync>(this);
+    _incompatible<ServerPush, OptimisticSyncWithPush>(this);
+  }
+
+  void
+      _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
+    _incompatible<ServerPush, Retry>(this);
+    _incompatible<ServerPush, UnlimitedRetryCheckInternet>(this);
     _incompatible<ServerPush, Debounce>(this);
-    _incompatible<ServerPush, UnlimitedRetries>(this);
+    _incompatible<ServerPush, OptimisticSync>(this);
+    _incompatible<ServerPush, OptimisticSyncWithPush>(this);
     _incompatible<ServerPush, Polling>(this);
   }
 
   void
-      _cannot_combine_mixins_UnlimitedRetryCheckInternet_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
-    _incompatible<ServerPush, UnlimitedRetryCheckInternet>(this);
+      _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
+    _incompatible<ServerPush, UnlimitedRetries>(this);
+    _incompatible<ServerPush, Debounce>(this);
     _incompatible<ServerPush, OptimisticCommand>(this);
     _incompatible<ServerPush, OptimisticSync>(this);
-    _incompatible<ServerPush, Retry>(this);
+    _incompatible<ServerPush, OptimisticSyncWithPush>(this);
+    _incompatible<ServerPush, Polling>(this);
+  }
+
+  void
+      _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential() {
+    _incompatible<ServerPush, UnlimitedRetryCheckInternet>(this);
+    _incompatible<ServerPush, Debounce>(this);
+    _incompatible<ServerPush, OptimisticSync>(this);
+    _incompatible<ServerPush, OptimisticSyncWithPush>(this);
+    _incompatible<ServerPush, Sequential>(this);
   }
 }
 
@@ -4233,7 +4405,8 @@ mixin Polling<St> on ReduxAction<St> {
 
   @override
   Future<St?> wrapReduce(Reducer<St> reduce) async {
-    _cannot_combine_mixins_Polling();
+    _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
 
     final key = computePollingKey();
 
@@ -4314,11 +4487,20 @@ mixin Polling<St> on ReduxAction<St> {
     }
   }
 
-  void _cannot_combine_mixins_Polling() {
+  void
+      _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
     _incompatible<Polling, Retry>(this);
+    _incompatible<Polling, UnlimitedRetryCheckInternet>(this);
+    _incompatible<Polling, Debounce>(this);
+    _incompatible<Polling, OptimisticSync>(this);
+    _incompatible<Polling, OptimisticSyncWithPush>(this);
+    _incompatible<Polling, ServerPush>(this);
+  }
+
+  void
+      _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
     _incompatible<Polling, UnlimitedRetries>(this);
     _incompatible<Polling, Debounce>(this);
-    _incompatible<Polling, UnlimitedRetryCheckInternet>(this);
     _incompatible<Polling, OptimisticCommand>(this);
     _incompatible<Polling, OptimisticSync>(this);
     _incompatible<Polling, OptimisticSyncWithPush>(this);
@@ -4632,7 +4814,7 @@ mixin Sequential<St> on ReduxAction<St> {
   @mustCallSuper
   @override
   Future<void> before() async {
-    _cannot_combine_mixins_Sequential();
+    _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential();
 
     // Reserve the position in the queue. This part of the method runs
     // synchronously when the action is dispatched (there is no `await` before
@@ -4712,9 +4894,10 @@ mixin Sequential<St> on ReduxAction<St> {
     }
   }
 
-  void _cannot_combine_mixins_Sequential() {
-    _incompatible<Sequential, Debounce>(this);
+  void
+      _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential() {
     _incompatible<Sequential, UnlimitedRetryCheckInternet>(this);
+    _incompatible<Sequential, Debounce>(this);
     _incompatible<Sequential, OptimisticSync>(this);
     _incompatible<Sequential, OptimisticSyncWithPush>(this);
     _incompatible<Sequential, ServerPush>(this);

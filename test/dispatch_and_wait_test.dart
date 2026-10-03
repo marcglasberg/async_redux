@@ -31,6 +31,7 @@ void main() {
 
     // SYNC ACTION: isWaiting is always false.
 
+    // ignore: async_redux_lints/wait_fail_never_matches
     expect(store.isWaiting(IncrementSync), false);
     expect(store.state.count, 1);
 
@@ -39,11 +40,13 @@ void main() {
     var promise1 = store.dispatch(actionSync);
     expect(actionSync.status.isDispatched, true);
 
+    // ignore: async_redux_lints/wait_fail_never_matches
     expect(store.isWaiting(IncrementSync), false);
     expect(store.state.count, 2);
 
     await promise1; // Since it's SYNC, it's already finished when dispatched.
 
+    // ignore: async_redux_lints/wait_fail_never_matches
     expect(store.isWaiting(IncrementSync), false);
     expect(store.state.count, 2);
 

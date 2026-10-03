@@ -101,6 +101,42 @@ void main() {
     expect(store.isFailed(AsyncActionThatFails), true);
     expect(store.exceptionFor(AsyncActionThatFails), const UserException('Yes, it failed.'));
   });
+
+  Bdd(feature)
+      .scenario('Checking if any of a list of action types has failed.')
+      .given('A list of action types, where only the last one failed.')
+      .when('We check the list with `isFailed` and `exceptionFor`.')
+      .then('We get the failure of the type that failed, even if it is not the first.')
+      .and('Dispatching any of the types again clears its failure.')
+      .and('Clearing the list notifies the UI, even if only the first type failed.')
+      .run((_) async {
+    final store = Store<State>(initialState: State(1));
+    var types = [SyncActionThatFails, AsyncActionThatFails];
+
+    // Only the LAST type in the list failed.
+    await store.dispatchAndWait(AsyncActionThatFails(true));
+    expect(store.isFailed(types), true);
+    expect(store.exceptionFor(types), const UserException('Yes, it failed.'));
+
+    // Now both types failed. We get the exception of the first one in the list.
+    store.dispatch(SyncActionThatFails(true));
+    expect(store.isFailed(types), true);
+
+    // Since we checked the whole list, dispatching any of its types clears its failure.
+    await store.dispatchAndWait(AsyncActionThatFails(false));
+    expect(store.isFailed(AsyncActionThatFails), false);
+    expect(store.isFailed(types), true);
+
+    // Only the FIRST type in the list failed, and clearing the list notifies the UI.
+    var notifications = 0;
+    var subscription = store.onChange.listen((_) => notifications++);
+    store.clearExceptionFor(types);
+    await Future.delayed(Duration.zero);
+    expect(notifications, 1);
+    expect(store.isFailed(types), false);
+    expect(store.exceptionFor(types), null);
+    await subscription.cancel();
+  });
 }
 
 class State {

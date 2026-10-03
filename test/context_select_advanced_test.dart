@@ -398,6 +398,7 @@ void main() {
                     onPressed: () {
                       // This should throw an error.
                       expect(
+                        // ignore: async_redux_lints/select_in_callback
                         () => context.select((st) => st.user.name),
                         throwsA(isA<FlutterError>()),
                       );

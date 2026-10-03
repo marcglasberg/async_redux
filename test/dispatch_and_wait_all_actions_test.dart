@@ -66,7 +66,7 @@ class IncrementAsync extends ReduxAction<State> {
 
 class DispatchMultipleActions extends ReduxAction<State> {
   @override
-  Future<State> reduce() async {
+  State reduce() {
     // First, update the state synchronously.
     final updated = State(state.count + 1);
 

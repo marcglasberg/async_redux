@@ -39,8 +39,11 @@ void main() {
     var store = Store<State>(initialState: State(1));
 
     expect(store.state.count, 1);
-    store.dispatch(NonReentrantAsyncActionCallsItself());
+    await store.dispatchAndWait(NonReentrantAsyncActionCallsItself());
     expect(store.state.count, 2);
+
+    // The nested dispatch was aborted, so only one action was dispatched.
+    expect(store.dispatchCount, 1);
   });
 
   // ==========================================================================
@@ -333,7 +336,10 @@ class NonReentrantAsyncActionCallsItself extends ReduxAction<State>
     with NonReentrant {
   @override
   Future<State> reduce() async {
-    dispatch(NonReentrantSyncActionCallsItself());
+    // Dispatch before the await, so that a reentrant dispatch would recurse
+    // synchronously, and result in a stack overflow.
+    dispatch(NonReentrantAsyncActionCallsItself());
+    await microtask;
     return State(state.count + 1);
   }
 }

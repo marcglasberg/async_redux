@@ -984,7 +984,7 @@ void main() {
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
-        'The UnlimitedRetryCheckInternet mixin cannot be combined with the Polling mixin.',
+        'The Polling mixin cannot be combined with the UnlimitedRetryCheckInternet mixin.',
       )),
     );
   });
@@ -1007,7 +1007,7 @@ void main() {
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
-        'The OptimisticCommand mixin cannot be combined with the Polling mixin.',
+        'The Polling mixin cannot be combined with the OptimisticCommand mixin.',
       )),
     );
   });
@@ -2241,6 +2241,7 @@ class RealClockPollAction extends ReduxAction<AppState> with Polling {
 /// Note `Throttle` reads the real wall clock, so this is tested without
 /// `fakeAsync`.
 class RealClockThrottledPollAction extends ReduxAction<AppState>
+    // ignore: async_redux_lints/polling_with_caveat_mixin
     with Throttle, Polling {
   @override
   final Poll poll;
@@ -2297,6 +2298,7 @@ class FreshWorker extends ReduxAction<AppState> with Fresh {
 }
 
 /// The controller itself is `Fresh`, which is the problematic setup.
+// ignore: async_redux_lints/polling_with_caveat_mixin
 class FreshPollAction extends ReduxAction<AppState> with Fresh, Polling {
   @override
   final Poll poll;
@@ -2345,6 +2347,7 @@ class OfflineAwareWorker extends ReduxAction<AppState>
 
 /// The controller itself checks the internet, which is the problematic setup.
 class CheckInternetPollAction extends ReduxAction<AppState>
+    // ignore: async_redux_lints/polling_with_caveat_mixin
     with CheckInternet, Polling {
   @override
   final Poll poll;
@@ -2537,6 +2540,7 @@ class SequentialWorker extends ReduxAction<AppState> with Sequential {
 // Polling combined with Throttle and NonReentrant, on the CONTROLLER action
 // =============================================================================
 
+// ignore: async_redux_lints/polling_with_caveat_mixin
 class ThrottledPollAction extends ReduxAction<AppState> with Throttle, Polling {
   @override
   final Poll poll;
@@ -2562,6 +2566,7 @@ class SimpleWorkerAction extends ReduxAction<AppState> {
 }
 
 class NonReentrantPollAction extends ReduxAction<AppState>
+    // ignore: async_redux_lints/polling_with_caveat_mixin
     with NonReentrant, Polling {
   @override
   final Poll poll;
@@ -2884,7 +2889,7 @@ class WorkerAction extends ReduxAction<AppState> {
 class PollingWithRetryAction extends ReduxAction<AppState>
     with
         Retry,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Polling {
   @override
   final Poll poll;
@@ -2907,7 +2912,7 @@ class PollingWithUnlimitedRetriesAction extends ReduxAction<AppState>
     with
         Retry<AppState>,
         UnlimitedRetries,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Polling {
   @override
   final Poll poll;
@@ -2929,7 +2934,7 @@ class PollingWithUnlimitedRetriesAction extends ReduxAction<AppState>
 class PollingWithDebounceAction extends ReduxAction<AppState>
     with
         Debounce,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Polling {
   @override
   final Poll poll;
@@ -2952,7 +2957,7 @@ class PollingWithUnlimitedRetryCheckInternetAction
     extends ReduxAction<AppState>
     with
         UnlimitedRetryCheckInternet,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Polling {
   @override
   final Poll poll;
@@ -2974,7 +2979,7 @@ class PollingWithUnlimitedRetryCheckInternetAction
 class PollingWithOptimisticCommandAction extends ReduxAction<AppState>
     with
         OptimisticCommand,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Polling {
   @override
   final Poll poll;
@@ -3001,14 +3006,17 @@ class PollingWithOptimisticCommandAction extends ReduxAction<AppState>
   Future<Object?> sendCommandToServer(Object? optimisticValue) async => null;
 
   @override
-  Future<AppState?> reduce() async => state.copy(count: state.count + 1);
+  Future<AppState?> reduce() async {
+    await microtask;
+    return state.copy(count: state.count + 1);
+  }
 }
 
 // Action that combines Polling with OptimisticSync (incompatible)
 class PollingWithOptimisticSyncAction extends ReduxAction<AppState>
     with
         OptimisticSync<AppState, int>,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Polling {
   @override
   final Poll poll;
@@ -3040,14 +3048,17 @@ class PollingWithOptimisticSyncAction extends ReduxAction<AppState>
   Future<Object?> sendValueToServer(Object? optimisticValue) async => null;
 
   @override
-  Future<AppState?> reduce() async => state.copy(count: state.count + 1);
+  Future<AppState?> reduce() async {
+    await microtask;
+    return state.copy(count: state.count + 1);
+  }
 }
 
 // Action that combines Polling with OptimisticSyncWithPush (incompatible)
 class PollingWithOptimisticSyncWithPushAction extends ReduxAction<AppState>
     with
         OptimisticSyncWithPush<AppState, int>,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Polling {
   @override
   final Poll poll;
@@ -3087,14 +3098,17 @@ class PollingWithOptimisticSyncWithPushAction extends ReduxAction<AppState>
       null;
 
   @override
-  Future<AppState?> reduce() async => state.copy(count: state.count + 1);
+  Future<AppState?> reduce() async {
+    await microtask;
+    return state.copy(count: state.count + 1);
+  }
 }
 
 // Action that combines Polling with ServerPush (incompatible)
 class PollingWithServerPushAction extends ReduxAction<AppState>
     with
         ServerPush,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Polling {
   @override
   final Poll poll;

@@ -425,11 +425,13 @@ class Action5C extends ReduxAction<AppState> {
 
 class Action6ACompleted extends ReduxAction<AppState> {
   @override
+  // ignore: async_redux_lints/reduce_without_await
   Future<AppState?> reduce() async => state.copy(state.text + 'X');
 }
 
 class Action6BCompleted extends ReduxAction<AppState> {
   @override
+  // ignore: async_redux_lints/reduce_without_await
   Future<AppState?> reduce() async => state;
 }
 
@@ -455,6 +457,7 @@ class Action7Completed extends ReduxAction<AppState> {
   @override
   Future<AppState?> reduce() async {
     assertUncompletedFuture();
+    // ignore: async_redux_lints/reduce_without_await
     return state;
   }
 }

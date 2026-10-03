@@ -284,6 +284,7 @@ void main() {
 
     var action = SyncReducerAction();
     expect(action.isSync(), isFalse);
+    // ignore: async_redux_lints/dispatch_sync_async_action
     expect(() => store.dispatchSync(action), throwsA(isA<StoreException>()));
 
     await store.dispatchAndWait(SyncReducerAction());
@@ -615,7 +616,7 @@ void main() {
       throwsA(isA<AssertionError>().having(
         (error) => error.message,
         'message',
-        'The Sequential mixin cannot be combined with the Debounce mixin.',
+        'The Debounce mixin cannot be combined with the Sequential mixin.',
       )),
     );
   });
@@ -652,8 +653,8 @@ void main() {
       throwsA(isA<AssertionError>().having(
         (error) => error.message,
         'message',
-        'The Sequential mixin cannot be combined '
-            'with the OptimisticSync mixin.',
+        'The OptimisticSync mixin cannot be combined '
+            'with the Sequential mixin.',
       )),
     );
   });
@@ -671,8 +672,8 @@ void main() {
       throwsA(isA<AssertionError>().having(
         (error) => error.message,
         'message',
-        'The Sequential mixin cannot be combined '
-            'with the OptimisticSyncWithPush mixin.',
+        'The OptimisticSyncWithPush mixin cannot be combined '
+            'with the Sequential mixin.',
       )),
     );
   });
@@ -690,7 +691,7 @@ void main() {
       throwsA(isA<AssertionError>().having(
         (error) => error.message,
         'message',
-        'The Sequential mixin cannot be combined with the ServerPush mixin.',
+        'The ServerPush mixin cannot be combined with the Sequential mixin.',
       )),
     );
   });
@@ -1038,6 +1039,7 @@ class DiscardingAbortInBeforeAction extends ReduxAction<State> with Sequential {
 
 /// Combines Sequential and Debounce (not allowed).
 class SequentialWithDebounceAction extends ReduxAction<State>
+    // ignore: async_redux_lints/incompatible_mixins, private_collision_in_mixin_application
     with Sequential, Debounce {
   @override
   State? reduce() => null;
@@ -1045,6 +1047,7 @@ class SequentialWithDebounceAction extends ReduxAction<State>
 
 /// Combines Sequential and UnlimitedRetryCheckInternet (not allowed).
 class SequentialWithUnlimitedRetryCheckInternetAction extends ReduxAction<State>
+    // ignore: async_redux_lints/incompatible_mixins, private_collision_in_mixin_application
     with Sequential, UnlimitedRetryCheckInternet {
   @override
   State? reduce() => null;
@@ -1052,6 +1055,7 @@ class SequentialWithUnlimitedRetryCheckInternetAction extends ReduxAction<State>
 
 /// Combines Sequential and OptimisticSync (not allowed).
 class SequentialWithOptimisticSyncAction extends ReduxAction<State>
+    // ignore: async_redux_lints/incompatible_mixins, private_collision_in_mixin_application
     with Sequential, OptimisticSync<State, int> {
   @override
   int valueToApply() => 1;
@@ -1072,6 +1076,7 @@ class SequentialWithOptimisticSyncAction extends ReduxAction<State>
 
 /// Combines Sequential and OptimisticSyncWithPush (not allowed).
 class SequentialWithOptimisticSyncWithPushAction extends ReduxAction<State>
+    // ignore: async_redux_lints/incompatible_mixins, private_collision_in_mixin_application
     with Sequential, OptimisticSyncWithPush<State, int> {
   @override
   int valueToApply() => 1;
@@ -1100,6 +1105,7 @@ class SequentialWithOptimisticSyncWithPushAction extends ReduxAction<State>
 
 /// Combines Sequential and ServerPush (not allowed).
 class SequentialWithServerPushAction extends ReduxAction<State>
+    // ignore: async_redux_lints/incompatible_mixins, private_collision_in_mixin_application
     with Sequential, ServerPush {
   @override
   Type associatedAction() => SequentialWithOptimisticSyncWithPushAction;

@@ -9,13 +9,15 @@ runtime, or rules that are too large to keep in your head.
 
 A dialog that asks for:
 
-- the action name 
-- One of 2 options on how to name the action: like `SaveUser_Action.dart` or `SaveUserAction.dart`.
+- the action name
+- One of 2 options on how to name the action: like `SaveUser_Action.dart` or
+  `SaveUserAction.dart`.
 - sync or async
 - which base action to extend (detected from the project)
 - which mixins to add
 - if add the class in the currently open file, or create a new file in the same dir
-- One of 2 options on how to name the file: like `save_user_action.dart` or `ACTION_save_user.dart`.
+- One of 2 options on how to name the file: like `save_user_action.dart` or
+  `ACTION_save_user.dart`.
 
 Live templates `act` (sync action) and `actasync` (async action).
 
@@ -47,15 +49,18 @@ The same data powers an inspection that flags bad combinations already in the co
 These turn existing `StoreException`s into editor errors, each with a quick fix:
 
 - `reduce()` declared as `FutureOr<St?>`, `Future<St>?` and similar
+- `reduce()` returning a Future without `await` in all paths that don't return null.
 - `before()` returning `FutureOr`
 - `wrapReduce` returning `St` instead of `Future<St?>`
 - `dispatchSync` called on an action that is async
 
 ### 5. Wait/fail API misuse
 
-Checks the arguments passed to `isWaiting`, `isFailed`, `exceptionFor` and
-`clearExceptionFor`. A common case is passing an action instance where a `Type` is
-expected, which today only fails at runtime.
+Checks the arguments passed to `isWaiting` and `isFailed` that can only accept:
+A specific async ACTION, a specific async action TYPE, or a list with those. 
+
+Checks the arguments passed to `exceptionFor` and `clearExceptionFor` that can only accept:
+A specific async action TYPE, or a list with these.
 
 ### 6. Widget state access inspections
 
@@ -112,10 +117,17 @@ analysis server is used, from a single implementation:
 
 - **IntelliJ and VS Code:** squiggly underlines and quick fixes, through the existing
   Dart support. No IntelliJ plugin is needed for this.
-- **Command line, CI and AI agents:** the same diagnostics appear in `dart analyze`
-  and `flutter analyze`, and `dart fix --apply` applies the quick fixes. AI agents
-  already run `flutter analyze` to check their work, so they get these checks with
-  no extra script.
+- **Command line, CI and AI agents:** the same diagnostics appear in `dart analyze`.
+
+Tested with Dart 3.13.4 and Flutter 3.47.5, the command line has limits:
+
+- `dart analyze <files>` reports the plugin's diagnostics, but `dart analyze` on a
+  directory may finish before the plugin reports, and miss them. Passing the files
+  explicitly works: `dart analyze $(git ls-files '*.dart')`.
+- `flutter analyze` doesn't report them.
+- `dart fix` doesn't apply plugin quick fixes. They are only available in the IDE.
+
+So AI agents and CI need that `dart analyze` command, not `flutter analyze`.
 
 Prefer `analysis_server_plugin` over `custom_lint`. With `custom_lint`, the IDE still
 shows the diagnostics, but the command line needs a separate `dart run custom_lint`
@@ -144,13 +156,35 @@ package named `async_redux_lints`, in the `async_redux_lints/` directory of the
   dependencies too. That causes version conflicts with packages that pin `analyzer`,
   such as `build_runner`, `freezed` and `json_serializable`. Also, analyzer plugins
   need Dart 3.10 or later, while `async_redux` supports Dart 3.5.
-- **Publishing:** add `async_redux_lints/` to `async_redux`'s `.pubignore`, so the
-  plugin isn't included when `async_redux` is published.
+- **Publishing:** when `async_redux` is published, the `async_redux_lints/` folder
+  is included in its archive (about 9 KB). Excluding it with a `.pubignore` doesn't
+  work: pub also applies the parent's `.pubignore` when publishing
+  `async_redux_lints`, which then hides all of its files.
+
+The `async_redux` package and its `example/` directory both enable the plugin in their
+`analysis_options.yaml`, with a relative `path`.
 
 **IntelliJ plugin (features 1–3, 7 and 8):** the
 `C:\Users\Marcelo\Documents\GitHub\marcelosdartplugin` repo.
 
 Feature 4 is built entirely in the analyzer plugin. It needs no IntelliJ plugin code.
+It is implemented in `async_redux_lints`, as the rules `reduce_return_type`,
+`before_return_type`, `wrap_reduce_return_type`, `reduce_without_await` and
+`dispatch_sync_async_action`.
+
+Feature 5 is also built entirely in the analyzer plugin, as the rules
+`wait_fail_invalid_argument` (arguments that throw at runtime) and
+`wait_fail_never_matches` (arguments that are accepted, but never match an action).
+
+Feature 6 is also built entirely in the analyzer plugin, as the rules
+`context_state_for_one_field` (an info), `select_in_callback` (an error) and
+`vm_field_not_in_equals` (a warning).
+
+The inspection of feature 2 is built in the analyzer plugin, as the rules
+`incompatible_mixins` (combinations that fail an assertion at runtime) and
+`polling_with_caveat_mixin` (`Polling` with `CheckInternet`, `AbortWhenNoInternet`,
+`NonReentrant`, `Throttle`, `Fresh` or `Sequential` in the same action). Both are
+errors. The mixin picker stays in the IntelliJ plugin.
 
 ## Suggested first release
 

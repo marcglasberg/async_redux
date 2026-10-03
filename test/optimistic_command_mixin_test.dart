@@ -2561,6 +2561,7 @@ class OptimisticCommandSharedKey2 extends ReduxAction<AppState>
 
 /// OptimisticCommand action that also uses NonReentrant (should throw assertion error).
 class OptimisticCommandWithNonReentrant extends ReduxAction<AppState>
+    // ignore: async_redux_lints/incompatible_mixins, private_collision_in_mixin_application
     with OptimisticCommand<AppState>, NonReentrant<AppState> {
   final String newItem;
 
@@ -2584,6 +2585,7 @@ class OptimisticCommandWithNonReentrant extends ReduxAction<AppState>
 
 /// OptimisticCommand action that also uses Throttle (should throw assertion error).
 class OptimisticCommandWithThrottle extends ReduxAction<AppState>
+    // ignore: async_redux_lints/incompatible_mixins, private_collision_in_mixin_application
     with OptimisticCommand<AppState>, Throttle<AppState> {
   final String newItem;
 
@@ -2607,6 +2609,7 @@ class OptimisticCommandWithThrottle extends ReduxAction<AppState>
 
 /// OptimisticCommand action that also uses Fresh (should throw assertion error).
 class OptimisticCommandWithFresh extends ReduxAction<AppState>
+    // ignore: async_redux_lints/incompatible_mixins, private_collision_in_mixin_application
     with OptimisticCommand<AppState>, Fresh<AppState> {
   final String newItem;
 

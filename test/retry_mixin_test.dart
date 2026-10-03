@@ -77,6 +77,7 @@ void main() {
     expect(action.status.isCompletedOk, isTrue);
 
     // The action cannot be dispatched SYNC anymore.
+    // ignore: async_redux_lints/dispatch_sync_async_action
     expect(() => store.dispatchSync(action), throwsA(isA<StoreException>()));
   });
 }

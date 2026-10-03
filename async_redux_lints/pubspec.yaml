@@ -1,0 +1,18 @@
+name: async_redux_lints
+description: Analyzer plugin for AsyncRedux. Reports, in the IDE and in `dart analyze`, mistakes that AsyncRedux would otherwise only report at runtime.
+version: 0.1.0
+homepage: https://asyncredux.com
+repository: https://github.com/marcglasberg/async_redux/tree/master/async_redux_lints
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  analysis_server_plugin: ^0.3.23
+  analyzer: ^14.4.0
+  analyzer_plugin: ^0.14.17
+
+dev_dependencies:
+  analyzer_testing: ^0.4.2
+  test: ^1.25.0
+  test_reflective_loader: ^0.2.0

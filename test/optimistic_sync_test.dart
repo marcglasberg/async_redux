@@ -335,7 +335,7 @@ void main() {
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
-        'The OptimisticSync mixin cannot be combined with the NonReentrant mixin.',
+        'The NonReentrant mixin cannot be combined with the OptimisticSync mixin.',
       )),
     );
   });
@@ -357,7 +357,7 @@ void main() {
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
-        'The OptimisticSync mixin cannot be combined with the Throttle mixin.',
+        'The Throttle mixin cannot be combined with the OptimisticSync mixin.',
       )),
     );
   });
@@ -451,7 +451,7 @@ void main() {
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
-        'The OptimisticSync mixin cannot be combined with the Fresh mixin.',
+        'The Fresh mixin cannot be combined with the OptimisticSync mixin.',
       )),
     );
   });
@@ -535,7 +535,7 @@ void main() {
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
-        'The OptimisticSync mixin cannot be combined with the Debounce mixin.',
+        'The Debounce mixin cannot be combined with the OptimisticSync mixin.',
       )),
     );
   });
@@ -1015,7 +1015,7 @@ class SharedKeyAction2 extends ReduxAction<AppState>
 class OptimisticSyncWithNonReentrantAction extends ReduxAction<AppState>
     with
         OptimisticSync<AppState, bool>,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         NonReentrant {
   @override
   bool valueToApply() => !state.liked;
@@ -1038,7 +1038,7 @@ class OptimisticSyncWithNonReentrantAction extends ReduxAction<AppState>
 class OptimisticSyncWithThrottleAction extends ReduxAction<AppState>
     with
         OptimisticSync<AppState, bool>,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Throttle {
   @override
   bool valueToApply() => !state.liked;
@@ -1061,7 +1061,7 @@ class OptimisticSyncWithThrottleAction extends ReduxAction<AppState>
 class OptimisticSyncWithDebounceAction extends ReduxAction<AppState>
     with
         OptimisticSync<AppState, bool>,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Debounce {
   @override
   bool valueToApply() => !state.liked;
@@ -1084,7 +1084,7 @@ class OptimisticSyncWithDebounceAction extends ReduxAction<AppState>
 class OptimisticSyncWithFreshAction extends ReduxAction<AppState>
     with
         OptimisticSync<AppState, bool>,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Fresh {
   @override
   bool valueToApply() => !state.liked;
@@ -1108,7 +1108,7 @@ class OptimisticSyncWithUnlimitedRetryCheckInternetAction
     extends ReduxAction<AppState>
     with
         OptimisticSync<AppState, bool>,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         UnlimitedRetryCheckInternet {
   @override
   bool valueToApply() => !state.liked;
@@ -1131,7 +1131,7 @@ class OptimisticSyncWithUnlimitedRetryCheckInternetAction
 class OptimisticSyncWithUnlimitedRetriesAction extends ReduxAction<AppState>
     with
         OptimisticSync<AppState, bool>,
-        // ignore: private_collision_in_mixin_application
+        // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
         Retry<AppState>,
         // ignore: private_collision_in_mixin_application
         UnlimitedRetries<AppState> {

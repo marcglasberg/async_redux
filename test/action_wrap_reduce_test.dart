@@ -33,6 +33,7 @@ class IncrementReduceSyncNoBeforeNoWrap extends ReduxAction<State> {
 class IncrementReduceAsyncNoBeforeNoWrap extends ReduxAction<State> {
   @override
   Future<State> reduce() async {
+    await microtask;
     return State(state.count + 1);
   }
 }
@@ -60,6 +61,7 @@ class IncrementReduceSyncNoBeforeWrapSync extends ReduxAction<State> {
   State reduce() => State(state.count + 1);
 
   @override
+  // ignore: async_redux_lints/wrap_reduce_return_type
   State? wrapReduce(Reducer<State> reduce) {
     return reduce() as State?;
   }
@@ -70,6 +72,7 @@ class IncrementReduceSyncNoBeforeWrapSync2 extends ReduxAction<State> {
   State reduce() => State(state.count + 1);
 
   @override
+  // ignore: async_redux_lints/wrap_reduce_return_type
   State wrapReduce(Reducer<State> reduce) {
     return reduce() as State;
   }
@@ -80,6 +83,7 @@ class IncrementReduceSyncNoBeforeWrapSync3 extends ReduxAction<State> {
   State reduce() => State(state.count + 1);
 
   @override
+  // ignore: async_redux_lints/wrap_reduce_return_type
   State wrapReduce(Reducer<State> reduce) {
     return reduce() as State;
   }

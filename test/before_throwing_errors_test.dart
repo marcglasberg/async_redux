@@ -145,6 +145,7 @@ void main() {
 
 class ActionBeforeFutureOr extends ReduxAction<String> {
   @override
+  // ignore: async_redux_lints/before_return_type
   FutureOr<void> before() async {
     await Future.delayed(const Duration(milliseconds: 10));
   }

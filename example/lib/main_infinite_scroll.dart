@@ -152,7 +152,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     // Select only the numTrivia list from state. Rebuilds only when numTrivia changes.
     final numTrivia = context.select((state) => state.numTrivia);
-
+                        
     // Check if LoadMoreAction is currently running
     final isLoading = context.isWaiting(LoadMoreAction);
 

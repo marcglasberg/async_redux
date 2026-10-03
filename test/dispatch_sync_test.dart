@@ -20,8 +20,11 @@ void main() {
     store.dispatchSync(IncrementSync());
 
     // Fails synchronously with a `StoreException`.
+    // ignore: async_redux_lints/dispatch_sync_async_action
     expect(() => store.dispatchSync(IncrementAsyncBefore()), throwsA(isA<StoreException>()));
+    // ignore: async_redux_lints/dispatch_sync_async_action
     expect(() => store.dispatchSync(IncrementAsyncReduce()), throwsA(isA<StoreException>()));
+    // ignore: async_redux_lints/dispatch_sync_async_action
     expect(() => store.dispatchSync(IncrementAsyncBeforeReduce()), throwsA(isA<StoreException>()));
   });
 }
@@ -50,6 +53,7 @@ class IncrementAsyncBefore extends ReduxAction<State> {
 class IncrementAsyncReduce extends ReduxAction<State> {
   @override
   Future<State> reduce() async {
+    await microtask;
     return State(state.count + 1);
   }
 }
@@ -62,6 +66,7 @@ class IncrementAsyncBeforeReduce extends ReduxAction<State> {
 
   @override
   Future<State> reduce() async {
+    await microtask;
     return State(state.count + 1);
   }
 }

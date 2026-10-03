@@ -1,0 +1,7 @@
+# The analysis options of the parent async_redux package don't apply here.
+analyzer:
+  errors:
+    todo: ignore
+
+formatter:
+  page_width: 90

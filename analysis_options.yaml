@@ -1,3 +1,6 @@
+formatter:
+  page_width: 90
+
 analyzer:
   #  strong-mode:
   #    implicit-casts: false
@@ -13,6 +16,12 @@ analyzer:
     - 'bin/cache/**'
     - 'lib/src/http/**'
     - build/**
+
+# Reports AsyncRedux mistakes that would otherwise only fail at runtime.
+# See async_redux_lints/README.md.
+plugins:
+  async_redux_lints:
+    path: async_redux_lints
 
 # https://github.com/dart-lang/linter/blob/master/example/all.yaml
 linter:

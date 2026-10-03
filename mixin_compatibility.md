@@ -49,6 +49,13 @@ This document describes the compatibility between AsyncRedux action mixins.
 - ⚠️ = Allowed, but with caveats (see the notes below)
 - ➡️ = Requires (must be used together)
 
+Incompatible combinations are reported by the Dart analyzer as a
+`private_collision_in_mixin_application` error, whose message names the private
+`_cannot_combine_mixins_...` method that lists the conflicting mixins. If the code
+runs anyway, it fails an assertion in debug mode. With the `async_redux_lints`
+plugin, they are also reported by the `incompatible_mixins` rule, with a clearer
+message.
+
 ## Incompatibility Groups
 
 ### Group 1: Internet Checking Mixins
