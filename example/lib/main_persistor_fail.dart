@@ -305,6 +305,7 @@ class MyHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: async_redux_lints/avoid_context_state
     final counter = context.state;
 
     return Scaffold(

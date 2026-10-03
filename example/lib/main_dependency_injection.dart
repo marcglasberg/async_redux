@@ -118,6 +118,7 @@ class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final env = context.environment;
+    // ignore: async_redux_lints/avoid_context_state
     int counter = context.state;
 
     return Scaffold(

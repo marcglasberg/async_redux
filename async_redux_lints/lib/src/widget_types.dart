@@ -108,3 +108,100 @@ bool isVm(Element? element) =>
 /// Returns true if [element] is a subclass of `Vm`, but not `Vm` itself.
 bool isVmSubclass(InterfaceElement element) =>
     !isVm(element) && element.allSupertypes.any((type) => isVm(type.element));
+
+/// Returns true if [node] is a closure that gets a `BuildContext`, like the
+/// `builder` of a `Builder` widget, but not a local function declaration.
+bool isBuilder(FunctionExpression node) {
+  if (node.parent is FunctionDeclaration) return false;
+  var parameters = node.parameters?.parameters ?? const <FormalParameter>[];
+  return parameters.any(
+    (parameter) => isBuildContext(parameter.declaredFragment?.element.type),
+  );
+}
+
+/// Returns true if [node] runs while the widget builds: directly in a `build`
+/// method, or in a builder like `Builder(builder: (context) => ...)`. Code in other
+/// closures inside them, like `onPressed: () => ...`, is not considered. Neither is
+/// a closure that gets a `BuildContext` but is passed as a callback, like
+/// `onInit: (context) => ...`, since it may run when the widget is not building.
+bool runsWhileBuilding(AstNode node) {
+  for (var ancestor = node.parent; ancestor != null; ancestor = ancestor.parent) {
+    switch (ancestor) {
+      case FunctionExpression():
+        var parent = ancestor.parent;
+        return isBuilder(ancestor) &&
+            !(parent is NamedArgument && _callbackName.hasMatch(parent.name.lexeme));
+      case MethodDeclaration():
+        return ancestor.name.lexeme == 'build';
+      case FunctionDeclaration():
+      case CompilationUnit():
+        return false;
+    }
+  }
+  return false;
+}
+
+/// Returns true if [node] is directly in the `initState` method of a `State`, and
+/// not in a closure inside it, like `addPostFrameCallback((_) => ...)`.
+bool isInInitState(AstNode node) {
+  for (var ancestor = node.parent; ancestor != null; ancestor = ancestor.parent) {
+    switch (ancestor) {
+      case FunctionExpression():
+      case FunctionDeclaration():
+      case CompilationUnit():
+        return false;
+      case MethodDeclaration():
+        var enclosing = ancestor.declaredFragment?.element.enclosingElement;
+        return ancestor.name.lexeme == 'initState' &&
+            enclosing is InterfaceElement &&
+            isFlutterState(enclosing);
+    }
+  }
+  return false;
+}
+
+const _stateLifecycleMethods = {
+  'initState',
+  'didChangeDependencies',
+  'didUpdateWidget',
+  'activate',
+  'deactivate',
+  'dispose',
+  'reassemble',
+};
+
+final _callbackName = RegExp(r'^on[A-Z]');
+
+/// Returns a description of the code around [node] that doesn't run while the
+/// widget builds, like "the 'onPressed' callback". Returns null if that code may
+/// run while the widget builds.
+///
+/// These are closures passed as a named argument that starts with `on`, like
+/// `onPressed`, and the `State` methods `initState`, `didChangeDependencies`,
+/// `didUpdateWidget`, `activate`, `deactivate`, `dispose` and `reassemble`.
+String? notBuildingDescription(AstNode node) {
+  for (var ancestor = node.parent; ancestor != null; ancestor = ancestor.parent) {
+    switch (ancestor) {
+      case FunctionExpression():
+        if (isBuilder(ancestor)) return null;
+        var parent = ancestor.parent;
+        if (parent is NamedArgument && _callbackName.hasMatch(parent.name.lexeme)) {
+          return "the '${parent.name.lexeme}' callback";
+        }
+      case MethodDeclaration():
+        var name = ancestor.name.lexeme;
+        var enclosing = ancestor.declaredFragment?.element.enclosingElement;
+        if (_stateLifecycleMethods.contains(name) &&
+            enclosing is InterfaceElement &&
+            isFlutterState(enclosing)) {
+          return "'$name'";
+        }
+        return null;
+      case FunctionDeclaration():
+      case ClassDeclaration():
+      case CompilationUnit():
+        return null;
+    }
+  }
+  return null;
+}

@@ -10,6 +10,21 @@ bool isReduxAction(Element? element) =>
     element.name == 'ReduxAction' &&
     element.library.uri.toString().startsWith('package:async_redux/');
 
+/// Returns true if [element] is annotated with `@stateClass` or `@StateClass()`
+/// of package `async_redux`.
+bool hasStateClassAnnotation(Element element) => element.metadata.annotations.any((
+  annotation,
+) {
+  var annotationElement = annotation.element;
+  var isStateClass = switch (annotationElement) {
+    GetterElement(:var name) => name == 'stateClass',
+    ConstructorElement(:var enclosingElement) => enclosingElement.name == 'StateClass',
+    _ => false,
+  };
+  return isStateClass &&
+      annotationElement!.library!.uri.toString().startsWith('package:async_redux/');
+});
+
 /// Returns the `ReduxAction<St>` supertype of [element], or null if [element]
 /// is not an action (or mixin on an action). Returns null for `ReduxAction` itself.
 InterfaceType? reduxActionSupertype(InterfaceElement element) {

@@ -83,10 +83,10 @@ class GetsStateFromBuildContextExtension extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text('${context.state.counter}',
+        Text('${context.select((st) => st.counter)}',
             style: const TextStyle(fontSize: 30, color: Colors.black)),
         const Text(
-          'Value read with the StoreProvider:\n`context.state.counter`',
+          'Value read with the StoreProvider:\n`context.select((st) => st.counter)`',
           style: TextStyle(fontSize: 13),
           textAlign: TextAlign.center,
         ),
@@ -96,7 +96,7 @@ class GetsStateFromBuildContextExtension extends StatelessWidget {
 }
 
 extension _BuildContextExtension on BuildContext {
-  AppState get state => getState<AppState>();
+  R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
 }
 
 class AppState {

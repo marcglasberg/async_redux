@@ -13,6 +13,7 @@ export 'src/mock_store.dart';
 export 'src/model_observer.dart';
 export 'src/navigate_action.dart';
 export 'src/persistor.dart';
+export 'src/state_class.dart';
 export 'src/state_observer.dart';
 export 'src/store.dart';
 export 'src/store_exception.dart';

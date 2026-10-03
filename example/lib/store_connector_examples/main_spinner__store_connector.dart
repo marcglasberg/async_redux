@@ -178,14 +178,14 @@ class CounterWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      '${context.state.counter}',
+      '${context.select((st) => st.counter)}',
       style: const TextStyle(fontSize: 40, color: Colors.black),
     );
   }
 }
 
 extension _BuildContextExtension on BuildContext {
-  AppState get state => getState<AppState>();
+  R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
 }
 
 class AppState {

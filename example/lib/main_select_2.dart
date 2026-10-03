@@ -125,6 +125,7 @@ class ContextStateWidget extends StatelessWidget {
     print('🔴 ContextStateWidget rebuilt');
 
     // Will rebuild automatically on ANY state changes.
+    // ignore: async_redux_lints/avoid_context_state
     var state = context.state;
 
     return Container(

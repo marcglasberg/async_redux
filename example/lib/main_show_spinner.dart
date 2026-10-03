@@ -72,14 +72,14 @@ class CounterWidget extends StatelessWidget {
     var _isWaiting = context.isWaiting(WaitAndIncrementAction);
 
     return Text(
-      '${context.state.counter}',
+      '${context.select((st) => st.counter)}',
       style: TextStyle(fontSize: 40, color: _isWaiting ? Colors.grey[350] : Colors.black),
     );
   }
 }
 
 extension _BuildContextExtension on BuildContext {
-  AppState get state => getState<AppState>();
+  R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
 }
 
 class AppState {

@@ -10,6 +10,7 @@ import 'package:async_redux/async_redux.dart';
 import 'package:collection/collection.dart' show DeepCollectionEquality;
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/widgets.dart';
+import 'package:meta/meta.dart';
 
 /// Convert the entire [Store] into a [Model]. The [Model] will
 /// be used to build a Widget using the [ViewModelBuilder].
@@ -1096,13 +1097,14 @@ class StoreProvider<St> extends InheritedWidget {
               : _getStoreNoDependency_Untyped)(context)
           .clearExceptionFor(actionTypeOrList);
 
-  /// Avoid using if you don't have a good reason to do so.
+  /// Avoid using if you don't have a good reason to do so. This is marked as [internal],
+  /// so you will have to silence the linter to use it. Use it at your own risk.
   ///
   /// The [backdoorInheritedWidget] gives you direct access to the store for advanced
   /// use-cases. It does NOT create a dependency like [_getStoreWithDependency_Untyped] does,
   /// and it does NOT rebuild the state when the state changes, when you access it like this:
   /// `var state = StoreProvider.backdoorInheritedWidget(context, this).state;`.
-  ///
+  @internal
   static Store<St> backdoorInheritedWidget<St>(BuildContext context,
       {Object? debug}) {
     //
@@ -1117,7 +1119,8 @@ class StoreProvider<St> extends InheritedWidget {
     return provider._store;
   }
 
-  /// Avoid using this if you don't have a good reason to do so.
+  /// Avoid using if you don't have a good reason to do so. This is marked as [internal],
+  /// so you will have to silence the linter to use it. Use it at your own risk.
   ///
   /// The [backdoorStaticGlobal] gives you direct access to the store for
   /// advanced use-cases. It does NOT need the context, as it gets the store
@@ -1137,6 +1140,7 @@ class StoreProvider<St> extends InheritedWidget {
   /// var state = StoreProvider.backdoorStaticGlobal<AppState>().state;`.
   /// ```
   ///
+  @internal
   static Store<St> backdoorStaticGlobal<St>() {
     if (_staticStoreBackdoor == null)
       throw StoreException('Error: No Redux store found. '
@@ -1152,6 +1156,10 @@ class StoreProvider<St> extends InheritedWidget {
     return _staticStoreBackdoor as Store<St>;
   }
 
+  /// Avoid using if you don't have a good reason to do so. This is marked as [internal],
+  /// so you will have to silence the linter to use it. Use it at your own risk.
+  ///
+  @internal
   static Store backdoorStaticGlobalUntyped() {
     if (_staticStoreBackdoor == null)
       throw StoreException('Error: No Redux store found. '

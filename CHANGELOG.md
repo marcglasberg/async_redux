@@ -30,11 +30,19 @@ Sponsored by [MyText.ai](https://mytext.ai)
     like `NonReentrant` with `Throttle`.
   - `polling_with_caveat_mixin`: Mixins like `CheckInternet` or `NonReentrant` go in the
     action returned by `createPollingAction`, not in the action with `Polling`.
-  - `context_state_for_one_field`: Use `context.select` instead of `context.state` in
-    `build` when only one field of the state is used.
+  - `avoid_context_state`: Use `context.select` instead of `context.state` while the
+    widget builds, and `context.read()` in callbacks like `onPressed`.
+  - `context_state_in_init_state`: `context.state` throws in `initState`. Use
+    `context.read()` instead.
   - `select_in_callback`: Use `context.read()` instead of `context.select` in callbacks
     like `onPressed`.
   - `vm_field_not_in_equals`: Every field of a `Vm` must be in its `equals` list.
+  - `state_class_must_be_immutable`: The instance fields of a `@stateClass` class must
+    be final.
+
+* New `@stateClass` annotation, for state classes like `AppState`, and classes used
+  inside the state. For now, it works like `@immutable`: the `async_redux_lints` plugin
+  reports a class with `@stateClass`, or a subtype of it, that has non-final fields.
 
 * Fixed `exceptionFor` and `isFailed` with a list of action types. They only checked
   the first type in the list. Also, `clearExceptionFor` with a list now always rebuilds

@@ -382,6 +382,7 @@ class MyConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MyWidget(
+      // ignore: async_redux_lints/avoid_context_state
       name: context.state.name,
       nameFromRead: context.read().name,
       nameFromSelect: context.select((AppState state) => state.name),

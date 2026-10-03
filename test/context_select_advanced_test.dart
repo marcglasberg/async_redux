@@ -342,6 +342,7 @@ void main() {
                   // Widget using regular state access
                   Builder(builder: (context) {
                     regularBuildCount++;
+                    // ignore: async_redux_lints/avoid_context_state
                     final state = context.state;
                     return Text('Regular: ${state.user.name}');
                   }),

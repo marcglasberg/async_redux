@@ -40,7 +40,7 @@ The same data powers an inspection that flags bad combinations already in the co
 
 - Generates and updates `copy()`, `==` and `hashCode`, and `initialState()` when a
   field is added.
-- An inspection warns when a field is missing from `copy()`.
+- An inspection warns when a field is missing from `copy()` or `copyWith()`.
 
 ## Catching runtime errors in the editor
 
@@ -64,8 +64,11 @@ A specific async action TYPE, or a list with these.
 
 ### 6. Widget state access inspections
 
-- `context.state` in `build()` when only one field is used, which rebuilds the
-  widget too often. The quick fix converts it to `context.select(...)`.
+- Every `context.state`, which rebuilds the widget when any part of the state
+  changes. In `build()`, the quick fix converts it to `context.select(...)`, one per
+  field used. In callbacks such as `onPressed`, it converts it to `context.read()`.
+- `context.state` in `initState`, which throws at runtime. The quick fix converts it
+  to `context.read()`.
 - `context.select` inside callbacks such as `onPressed`. The quick fix converts it
   to `context.read()`.
 - A `Vm` field that is missing from `equals: [...]`, which leads to missed or
@@ -177,14 +180,21 @@ Feature 5 is also built entirely in the analyzer plugin, as the rules
 `wait_fail_never_matches` (arguments that are accepted, but never match an action).
 
 Feature 6 is also built entirely in the analyzer plugin, as the rules
-`context_state_for_one_field` (an info), `select_in_callback` (an error) and
-`vm_field_not_in_equals` (a warning).
+`avoid_context_state` (an info), `context_state_in_init_state` (an error),
+`select_in_callback` (an error) and `vm_field_not_in_equals` (a warning).
 
 The inspection of feature 2 is built in the analyzer plugin, as the rules
 `incompatible_mixins` (combinations that fail an assertion at runtime) and
 `polling_with_caveat_mixin` (`Polling` with `CheckInternet`, `AbortWhenNoInternet`,
 `NonReentrant`, `Throttle`, `Fresh` or `Sequential` in the same action). Both are
 errors. The mixin picker stays in the IntelliJ plugin.
+
+The inspections of feature 3 are built in the analyzer plugin, as the rules
+`copy_missing_field`, `state_class_missing_equality` and `equality_missing_field` (all
+warnings). They check classes annotated with `@stateClass`, and their subclasses: the
+`copy` and `copyWith` methods must handle all fields, and the class must override
+`==` and `hashCode`, using all fields. Generating `copy()`, `==`, `hashCode` and
+`initialState()` stays in the IntelliJ plugin.
 
 ## Suggested first release
 

@@ -48,6 +48,7 @@ class MyHomePage extends StatelessWidget {
     // This will rebuild whenever the state changes.
     // In more complex cases where we want the widget to rebuild only when
     // specific parts of the state change, we can use `context.select` instead.
+    // ignore: async_redux_lints/avoid_context_state
     final counter = context.state;
 
     return Scaffold(

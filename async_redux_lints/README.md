@@ -82,8 +82,10 @@ plugins:
 ## Rules
 
 All rules are enabled by default. They are reported as errors, except
-`wait_fail_never_matches` and `vm_field_not_in_equals`, which are warnings, and
-`context_state_for_one_field`, which is an info.
+`wait_fail_never_matches`, `vm_field_not_in_equals`, `copy_missing_field`,
+`state_class_must_be_immutable`, `state_class_missing_equality` and
+`equality_missing_field`, which are warnings, and `avoid_context_state`, which is an
+info.
 
 ### reduce_return_type
 
@@ -269,32 +271,73 @@ context.isWaiting(LoadUser()); // An action that was never dispatched.
 
 Quick fix, for a new action: replace it with its type.
 
-### context_state_for_one_field
+### avoid_context_state
 
-An info for `context.state` in a `build` method when only one field of the state is
-used. `context.state` rebuilds the widget when any part of the state changes.
-`context.select` only rebuilds it when the selected field changes:
+An info for every `context.state`, and `context.getState<AppState>()`. They rebuild the
+widget when any part of the state changes. While the widget builds, `context.select`
+only rebuilds it when the selected parts change. In callbacks, `context.read()` reads
+the state without rebuilding the widget:
 
 ```dart
 Widget build(BuildContext context) {
-  var state = context.state;            // Info
-  return Text('${state.counter}');
+  var state = context.state;                        // Info
+  return ElevatedButton(
+    onPressed: () => print(context.state.counter), // Info
+    child: Text('${state.counter} ${state.name}'),
+  );
 }
 
 Widget build(BuildContext context) {
   var counter = context.select((st) => st.counter); // OK
-  return Text('$counter');
+  var name = context.select((st) => st.name);       // OK
+  return ElevatedButton(
+    onPressed: () => print(context.read().counter), // OK
+    child: Text('$counter $name'),
+  );
 }
 ```
 
-This also applies to builders, like `Builder(builder: (context) => ...)`, and to
-`context.getState<AppState>()`. The rule only reports when every use of
-`context.state` in the method uses the same field, either as `context.state.field`, or
-through a variable used only as `state.field`. Code inside callbacks, like `onPressed`,
-is not checked.
+The rule is reported even when no quick fix is offered. When the widget really needs
+the whole state, for example when the state is an `int` that the widget shows, add
+`// ignore: async_redux_lints/avoid_context_state`.
 
-Quick fix: replace it with `context.select((st) => st.field)`. For a variable, the fix
-also renames it to the field name, unless that name is already used in the method.
+Quick fixes:
+
+- In a `build` method, or a builder like `Builder(builder: (context) => ...)`: replace
+  `context.state.field` with `context.select((st) => st.field)`. For
+  `var state = context.state;`, where the variable is only used as `state.field`, the
+  fix declares one variable per field, like
+  `var field = context.select((st) => st.field);`. It's not offered when one of these
+  names is already used in the method, or when the state itself is used, like in
+  `print(state)`.
+- In callbacks, like `onPressed`, and in the `State` methods `didChangeDependencies`,
+  `didUpdateWidget`, `activate`, `deactivate`, `dispose` and `reassemble`: replace `context.state` with `context.read()`, and
+  `context.getState<AppState>()` with `context.getRead<AppState>()`.
+- Elsewhere, like in helper methods, or closures that are not callbacks or builders,
+  no fix is offered, since it's not known whether the code runs while the widget
+  builds.
+
+In `initState`, `context.state` is reported by `context_state_in_init_state` instead.
+
+### context_state_in_init_state
+
+`context.state` throws in the `initState` method of a `State`, because the widget
+can't depend on the store before `initState` completes. Use `context.read()` instead:
+
+```dart
+@override
+void initState() {
+  super.initState();
+  var counter = context.state.counter;  // Error
+  var counter = context.read().counter; // OK
+}
+```
+
+This also applies to `context.getState<AppState>()`. Closures inside `initState`, like
+`addPostFrameCallback((_) => ...)`, run later, so they're not reported.
+
+Quick fix: replace `context.state` with `context.read()`, and
+`context.getState<AppState>()` with `context.getRead<AppState>()`.
 
 ### select_in_callback
 
@@ -356,6 +399,144 @@ Not reported:
   `super(equals: list)`.
 
 Quick fixes: add the field to `equals`, or add all missing fields to `equals`.
+
+### copy_missing_field
+
+A warning for a `copy` or `copyWith` method that can't change some fields of its
+class, when the class is a state class. A state class is annotated with `@stateClass`
+from `package:async_redux`, or extends, implements or mixes in a class or mixin
+annotated with `@stateClass`.
+
+This usually happens when a field is added to the class, but not to `copy`. If the
+constructor parameter for the field is optional, `copy` then also resets the field to
+its default value:
+
+```dart
+@stateClass
+class AppState {
+  final int counter;
+  final String name;
+  final bool waiting;
+
+  AppState({required this.counter, this.name = '', this.waiting = false});
+
+  // Warning: Fields 'name' and 'waiting' are missing from 'copy'.
+  AppState copy({int? counter, bool? waiting}) =>
+      AppState(counter: counter ?? this.counter, waiting: false);
+  // Quick fix: Add 'name' to 'copy'.
+}
+```
+
+A field is missing from the copy method if the method has no parameter with the
+field's name, like `name` above, or has one but doesn't use it, like `waiting` above.
+Each copy method gets a single warning, on its name, listing all its missing fields.
+
+Not reported:
+
+- Classes that are not state classes. Classes that are only annotated with
+  `@immutable` are not checked.
+- Private fields.
+- Fields that no constructor sets from a parameter with the same name, like
+  `final int x = 0`, or `doubled = counter * 2`. Fields set with `this.name`, or
+  with `name = name ?? ''`, are checked.
+- Fields and copy methods inherited from a superclass.
+
+Quick fix: add the missing fields to the copy method, all at once. For each field,
+the fix adds a nullable parameter if needed, like `String? name`, and passes
+`name: name ?? this.name` to the constructor.
+
+The fix never changes existing code. It skips a field when the constructor call
+already has an argument for it, like `waiting: false` above, or `name: this.name`.
+It also skips a field when the constructor's parameter for it is positional, or when
+the copy method needs a new parameter for it but has optional positional parameters.
+Fix the skipped fields by hand, or ignore the warning. The fix is only offered when it
+can add at least one field.
+
+### state_class_must_be_immutable
+
+A warning for a class with non-final instance fields, when the class is annotated with
+`@stateClass` from `package:async_redux`. Annotate your state classes, like `AppState`,
+and the classes used inside the state:
+
+```dart
+@stateClass
+class AppState { // Warning: 'AppState.counter' isn't final.
+  int counter;
+  final String name;
+
+  AppState({required this.counter, required this.name});
+}
+```
+
+This is the same check the analyzer does for `@immutable`. Classes that extend,
+implement or mix in a `@stateClass` class or mixin are checked too, and so are the
+fields they inherit.
+
+### state_class_missing_equality
+
+A warning for a state class that doesn't override `==` and `hashCode`. Without them,
+two states with the same values are not equal. A state class is annotated with
+`@stateClass` from `package:async_redux`, or extends, implements or mixes in a class
+or mixin annotated with `@stateClass`:
+
+```dart
+@stateClass
+class AppState { // Warning: must override '==' and 'hashCode'.
+  final int counter;
+  AppState({required this.counter});
+}
+```
+
+Not reported:
+
+- Abstract classes.
+- Classes that inherit `==` or `hashCode` from a superclass or mixin other than
+  `Object`, like `Equatable`.
+
+There's no quick fix. Your IDE can generate `==` and `hashCode`. In IntelliJ or
+Android Studio, press **Alt+Insert** (**Cmd+N** on macOS) inside the class.
+
+### equality_missing_field
+
+A warning for the `==` operator or the `hashCode` getter of a state class, when they
+don't use all fields of the class. Each one gets a single warning, on its name,
+listing all its missing fields:
+
+```dart
+@stateClass
+class AppState {
+  final int counter;
+  final bool waiting;
+  final bool loading;
+
+  ...
+
+  @override
+  bool operator ==(Object other) => // Warning: Field 'counter' is missing from '=='.
+      identical(this, other) ||
+      other is AppState &&
+          runtimeType == other.runtimeType &&
+          waiting == other.waiting &&
+          loading == other.loading;
+
+  @override
+  int get hashCode => // Warning: Field 'waiting' is missing from 'hashCode'.
+      Object.hash(counter, loading);
+}
+```
+
+All instance fields declared in the class are checked, including private fields, and
+fields with initializers. A field counts as used if `==` or `hashCode` mentions it
+anywhere. Fields declared in a superclass are not checked.
+
+Quick fix: add the missing fields. It never changes existing code, and is only
+offered for these forms:
+
+- In `==`, it adds `&& counter == other.counter` at the end of the `&&` chain. The
+  chain must contain `other is AppState`, possibly after `identical(this, other) ||`.
+- In `hashCode`, it adds the fields to `Object.hash(...)` or `Object.hashAll([...])`,
+  or adds `^ counter.hashCode` after `a.hashCode ^ b.hashCode` or `a.hashCode`. It
+  isn't offered if `Object.hash` would get more than 20 values, its limit.
 
 ## Turning off rules
 
