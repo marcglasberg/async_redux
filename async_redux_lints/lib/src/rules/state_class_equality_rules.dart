@@ -3,16 +3,16 @@ import 'package:analyzer/analysis_rule/rule_context.dart';
 import 'package:analyzer/analysis_rule/rule_visitor_registry.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
-import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
 import '../state_class_utils.dart';
 
-/// Reports a state class that doesn't override `==` or `hashCode`. Without them,
-/// two states with the same values are not equal.
+/// Reports a state class that declares instance fields, but doesn't override `==`
+/// and `hashCode`. Each class handles its own fields, so this includes abstract
+/// classes, and classes that inherit `==` and `hashCode` from a superclass.
 ///
-/// Abstract classes are not reported. Neither are classes that inherit `==` or
-/// `hashCode` from a superclass or mixin other than `Object`, like `Equatable`.
+/// Classes that use `Equatable` from package `equatable` are not reported, since
+/// they list their fields in `props` instead.
 class StateClassMissingEqualityRule extends AnalysisRule {
   static const LintCode code = LintCode(
     'state_class_missing_equality',
@@ -24,7 +24,7 @@ class StateClassMissingEqualityRule extends AnalysisRule {
   StateClassMissingEqualityRule()
     : super(
         name: 'state_class_missing_equality',
-        description: "State classes must override '==' and 'hashCode'.",
+        description: "State classes with fields must override '==' and 'hashCode'.",
       );
 
   @override
@@ -44,43 +44,25 @@ class _MissingEqualityVisitor extends SimpleAstVisitor<void> {
   @override
   void visitClassDeclaration(ClassDeclaration node) {
     var element = node.declaredFragment?.element;
-    if (element == null || element.isAbstract || !isStateClass(element)) return;
+    if (element == null || !isStateClass(element) || isEquatable(element)) return;
+    if (declaredFields(node).isEmpty) return;
 
     var missing = [
-      if (!_declaresOrInherits(element, (e) => e.getMethod('==') != null)) '==',
-      if (!_declaresOrInherits(element, (e) => e.getGetter('hashCode') != null))
-        'hashCode',
+      if (element.getMethod('==') == null) '==',
+      if (element.getGetter('hashCode') == null) 'hashCode',
     ];
     if (missing.isEmpty) return;
     var name = node.namePart.typeName;
     rule.reportAtToken(name, arguments: [name.lexeme, joinNames(missing)]);
   }
-
-  /// Returns true if [element], or a superclass or mixin other than `Object`,
-  /// declares the member checked by [declares].
-  static bool _declaresOrInherits(
-    InterfaceElement element,
-    bool Function(InterfaceElement) declares,
-  ) {
-    for (
-      InterfaceElement? e = element;
-      e != null && e.supertype != null;
-      e = e.supertype?.element
-    ) {
-      if (declares(e) || e.mixins.any((mixin) => declares(mixin.element))) {
-        return true;
-      }
-    }
-    return false;
-  }
 }
 
 /// Reports the `==` operator and the `hashCode` getter of a state class when some
-/// fields of the class are missing from them. All instance fields declared in the
-/// class must be used in both. Each member gets a single diagnostic, on its name,
-/// listing all its missing fields.
+/// fields declared in the class are missing from them. All instance fields declared
+/// in the class must be used in both. Each member gets a single diagnostic, on its
+/// name, listing all its missing fields.
 ///
-/// Fields declared in a superclass are not checked.
+/// Inherited fields are checked by [EqualityMissingInheritedFieldRule].
 class EqualityMissingFieldRule extends AnalysisRule {
   static const LintCode code = LintCode(
     'equality_missing_field',
@@ -114,11 +96,64 @@ class _MissingFieldVisitor extends SimpleAstVisitor<void> {
   void visitClassDeclaration(ClassDeclaration node) {
     for (var member in missingEqualityFields(node)) {
       var name = member.method.name.lexeme;
-      var fields = [for (var field in member.missingFields) field.name.lexeme];
       rule.reportAtToken(
         member.method.name,
-        arguments: [missingFieldsMessage(fields, name), name],
+        arguments: [missingFieldsMessage(member.fieldNames, name), name],
       );
+    }
+  }
+}
+
+/// Reports the `==` operator and the `hashCode` getter of a state class when they
+/// don't handle the fields the class inherits. Each class handles its own fields, so
+/// `==` must call `super == other`, and `hashCode` must use `super.hashCode`, when a
+/// superclass or mixin overrides them. Otherwise, they must use the inherited fields
+/// themselves.
+class EqualityMissingInheritedFieldRule extends AnalysisRule {
+  static const LintCode code = LintCode(
+    'equality_missing_inherited_field',
+    '{0}',
+    correctionMessage: '{1}',
+    severity: DiagnosticSeverity.WARNING,
+  );
+
+  EqualityMissingInheritedFieldRule()
+    : super(
+        name: 'equality_missing_inherited_field',
+        description:
+            "The '==' and 'hashCode' of a state class must handle its inherited "
+            'fields.',
+      );
+
+  @override
+  LintCode get diagnosticCode => code;
+
+  @override
+  void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    registry.addClassDeclaration(this, _MissingInheritedFieldVisitor(this));
+  }
+}
+
+class _MissingInheritedFieldVisitor extends SimpleAstVisitor<void> {
+  final AnalysisRule rule;
+
+  _MissingInheritedFieldVisitor(this.rule);
+
+  @override
+  void visitClassDeclaration(ClassDeclaration node) {
+    for (var member in missingInheritedEqualityFields(node)) {
+      var name = member.method.name.lexeme;
+      var isEquals = name == '==';
+      var names = member.fieldNames;
+      var message = names.length == 1
+          ? "Inherited field ${joinNames(names)} is missing from '$name'."
+          : "Inherited fields ${joinNames(names)} are missing from '$name'.";
+      var correction = !member.superOverrides
+          ? 'Try using ${names.length == 1 ? 'it' : 'them'}.'
+          : isEquals
+          ? "Try adding 'super == other'."
+          : "Try adding 'super.hashCode'.";
+      rule.reportAtToken(member.method.name, arguments: [message, correction]);
     }
   }
 }
@@ -127,41 +162,77 @@ class _MissingFieldVisitor extends SimpleAstVisitor<void> {
 /// doesn't use.
 class EqualityMemberFields {
   final MethodDeclaration method;
-  final List<VariableDeclaration> missingFields;
+  final List<String> fieldNames;
 
-  EqualityMemberFields(this.method, this.missingFields);
+  /// Whether a superclass or mixin overrides the member, so that the member can
+  /// call it with `super`. Only used for inherited fields.
+  final bool superOverrides;
+
+  EqualityMemberFields(this.method, this.fieldNames, {this.superOverrides = false});
+
+  bool get isEquals => method.name.lexeme == '==';
 }
 
 /// Returns the `==` operator and `hashCode` getter of [node] that don't use some
-/// of its fields. Returns an empty list if [node] is not a state class.
+/// of the fields declared in [node]. Returns an empty list if [node] is not a state
+/// class.
 List<EqualityMemberFields> missingEqualityFields(ClassDeclaration node) {
   var element = node.declaredFragment?.element;
   if (element == null || !isStateClass(element)) return const [];
+  var fields = declaredFields(node);
+  if (fields.isEmpty) return const [];
 
-  var fields = [
-    for (var member in node.body.members)
-      if (member is FieldDeclaration && !member.isStatic) ...member.fields.variables,
+  return [
+    for (var method in _equalityMembers(node))
+      if (unusedFields(method.body, fields, (field) => field.declaredFragment?.element)
+          case var missing when missing.isNotEmpty)
+        EqualityMemberFields(method, [for (var field in missing) field.name.lexeme]),
   ];
+}
+
+/// Returns the `==` operator and `hashCode` getter of [node] that don't handle
+/// the fields [node] inherits. Returns an empty list if [node] is not a state class.
+List<EqualityMemberFields> missingInheritedEqualityFields(ClassDeclaration node) {
+  var element = node.declaredFragment?.element;
+  if (element == null || !isStateClass(element)) return const [];
+  var fields = inheritedFields(element);
   if (fields.isEmpty) return const [];
 
   var result = <EqualityMemberFields>[];
-  for (var member in node.body.members) {
-    if (member is! MethodDeclaration || member.isStatic) continue;
-    var isEquals = member.isOperator && member.name.lexeme == '==';
-    var isHashCode = member.isGetter && member.name.lexeme == 'hashCode';
-    if (!isEquals && !isHashCode) continue;
-    var body = member.body;
-    if (body is! BlockFunctionBody && body is! ExpressionFunctionBody) continue;
+  for (var method in _equalityMembers(node)) {
+    var isEquals = method.name.lexeme == '==';
+    var superOverrides = isEquals
+        ? inheritsEquals(element)
+        : inheritsGetter(element, 'hashCode');
+    var callsSuper = isEquals
+        ? usesSuperEquals(method.body)
+        : usesSuperGetter(method.body, 'hashCode');
+    if (superOverrides && callsSuper) continue;
 
-    var used = {
-      for (var element in referencedElements(body))
-        if (element is GetterElement) element.variable.baseElement else element,
-    };
-    var missing = [
-      for (var field in fields)
-        if (!used.contains(field.declaredFragment?.element)) field,
-    ];
-    if (missing.isNotEmpty) result.add(EqualityMemberFields(member, missing));
+    var missing = unusedFields(method.body, fields, (field) => field);
+    if (missing.isEmpty) continue;
+    result.add(
+      EqualityMemberFields(method, [
+        for (var field in missing) field.name!,
+      ], superOverrides: superOverrides),
+    );
   }
   return result;
 }
+
+/// Returns the instance fields declared in [node].
+List<VariableDeclaration> declaredFields(ClassDeclaration node) => [
+  for (var member in node.body.members)
+    if (member is FieldDeclaration && !member.isStatic) ...member.fields.variables,
+];
+
+/// Returns the `==` operator and `hashCode` getter declared in [node], if they have
+/// a body.
+Iterable<MethodDeclaration> _equalityMembers(ClassDeclaration node) =>
+    node.body.members.whereType<MethodDeclaration>().where(
+      (member) =>
+          !member.isStatic &&
+          ((member.isOperator && member.name.lexeme == '==') ||
+              (member.isGetter && member.name.lexeme == 'hashCode')) &&
+          (member.body is BlockFunctionBody || member.body is ExpressionFunctionBody),
+    );

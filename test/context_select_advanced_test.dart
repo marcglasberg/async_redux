@@ -399,7 +399,7 @@ void main() {
                     onPressed: () {
                       // This should throw an error.
                       expect(
-                        // ignore: async_redux_lints/select_in_callback
+                        // ignore: async_redux_lints/select_outside_build
                         () => context.select((st) => st.user.name),
                         throwsA(isA<FlutterError>()),
                       );
@@ -437,6 +437,7 @@ void main() {
                   try {
                     context.select((st) {
                       // Nested select - should throw.
+                      // ignore: async_redux_lints/context_in_selector
                       context.select((s) => s.counter);
                       return st.user.name;
                     });

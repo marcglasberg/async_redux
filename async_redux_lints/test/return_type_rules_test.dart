@@ -60,7 +60,7 @@ class A extends ReduxAction<AppState> {
         code,
         'FutureOr<AppState?>',
         messageContainsAll: [
-          "must return 'AppState?' or 'Future<AppState?>', not 'FutureOr<AppState?>'",
+          "must not return 'FutureOr'. Do return 'AppState?' or 'Future<AppState?>'",
         ],
       ),
     ]);

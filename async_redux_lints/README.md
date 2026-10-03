@@ -83,9 +83,10 @@ plugins:
 
 All rules are enabled by default. They are reported as errors, except
 `wait_fail_never_matches`, `vm_field_not_in_equals`, `copy_missing_field`,
-`state_class_must_be_immutable`, `state_class_missing_equality` and
-`equality_missing_field`, which are warnings, and `avoid_context_state`, which is an
-info.
+`state_class_must_be_immutable`, `state_class_missing_equality`,
+`equality_missing_field`, `equality_missing_inherited_field` and
+`equatable_props_missing_field`, which are warnings, and `avoid_context_state`, which
+is an info.
 
 ### reduce_return_type
 
@@ -271,6 +272,33 @@ context.isWaiting(LoadUser()); // An action that was never dispatched.
 
 Quick fix, for a new action: replace it with its type.
 
+### Where the BuildContext methods can be used
+
+The next rules check where the `BuildContext` methods of AsyncRedux are used. They
+report wrong usages even when AsyncRedux can't detect them at runtime, for example
+`context.select` in `didUpdateWidget` with `debug: false`:
+
+- `context.state`: an info while the widget builds, and in callbacks. An error in
+  `initState`, in `dispose`, and in selectors.
+- `context.select` and `context.event`: only while the widget builds, with the
+  `BuildContext` of that widget, and not in the `itemBuilder` of a list. In
+  `didChangeDependencies`, only with `debug: false`. An error anywhere else, like in
+  callbacks, `initState` or `dispose`.
+- `context.read()`: anywhere, except in `dispose` and in selectors.
+- `context.isWaiting`, `isFailed`, `exceptionFor` and `clearExceptionFor`: anywhere,
+  except in `initState`, in `dispose`, and in selectors.
+- `context.getEnvironment` and `getConfiguration`: anywhere, except in `dispose`.
+- `context.dispatch` and its variants: anywhere, except in selectors.
+
+The other `State` methods, `didUpdateWidget`, `activate`, `deactivate` and
+`reassemble`, work like callbacks.
+
+The `state`, `select`, `event` and `read` of the `BuildContext` extension recommended
+by AsyncRedux are recognized by their names, when the extension's library imports
+`async_redux`. This way, the `select` and `read` of packages like `provider` are not
+reported. The `getState`, `getSelect`, `getEvent` and `getRead` methods of AsyncRedux
+are also recognized.
+
 ### avoid_context_state
 
 An info for every `context.state`, and `context.getState<AppState>()`. They rebuild the
@@ -304,25 +332,48 @@ the whole state, for example when the state is an `int` that the widget shows, a
 Quick fixes:
 
 - In a `build` method, or a builder like `Builder(builder: (context) => ...)`: replace
-  `context.state.field` with `context.select((st) => st.field)`. For
-  `var state = context.state;`, where the variable is only used as `state.field`, the
-  fix declares one variable per field, like
-  `var field = context.select((st) => st.field);`. It's not offered when one of these
-  names is already used in the method, or when the state itself is used, like in
-  `print(state)`.
-- In callbacks, like `onPressed`, and in the `State` methods `didChangeDependencies`,
-  `didUpdateWidget`, `activate`, `deactivate`, `dispose` and `reassemble`: replace `context.state` with `context.read()`, and
-  `context.getState<AppState>()` with `context.getRead<AppState>()`.
-- Elsewhere, like in helper methods, or closures that are not callbacks or builders,
-  no fix is offered, since it's not known whether the code runs while the widget
-  builds.
+  `context.state.user.name` with `context.select((st) => st.user.name)`. The fix
+  selects the getters as deep as the code uses them, so the widget only rebuilds when
+  what it shows changes. It stops at methods, like `trim()` in
+  `context.state.name.trim()`, and at null-aware accesses, like `?.name` in
+  `context.state.user?.name`.
 
-In `initState`, `context.state` is reported by `context_state_in_init_state` instead.
+  For `var state = context.state;`, where the variable is only used through getters,
+  the fix declares one variable per path, named after the path:
+
+  ```dart
+  var state = context.state;
+  return Text('${state.user.name} ${state.user.age}');
+
+  // Becomes:
+  var userName = context.select((st) => st.user.name);
+  var userAge = context.select((st) => st.user.age);
+  return Text('${userName} ${userAge}');
+  ```
+
+  When a path is a prefix of another, like `state.user` and `state.user.name`, only the
+  shorter one is selected. When a name is already used, a number is added, starting
+  at 2, like `userName2`.
+
+  The fix is not offered when the state itself is used, like in `print(state)`, or
+  where `context.select` can't be used: in the `itemBuilder` of a list, or with the
+  `context` of another widget.
+- In callbacks, like `onPressed`, in closures passed to methods like
+  `addPostFrameCallback`, and in the `State` methods `didUpdateWidget`, `activate`,
+  `deactivate` and `reassemble`: replace `context.state` with `context.read()`, and
+  `context.getState<AppState>()` with `context.getRead<AppState>()`.
+- Elsewhere, like in helper methods, closures that are not callbacks or builders, or
+  `didChangeDependencies`, no fix is offered.
+
+In `initState`, `dispose` and selectors, `context.state` is an error, reported by the
+rules below instead.
 
 ### context_state_in_init_state
 
-`context.state` throws in the `initState` method of a `State`, because the widget
-can't depend on the store before `initState` completes. Use `context.read()` instead:
+`context.state`, `context.isWaiting`, `context.isFailed`, `context.exceptionFor` and
+`context.clearExceptionFor` throw in the `initState` method of a `State`, because the
+widget can't depend on the store before `initState` completes. Use `context.read()`
+instead, or move the code to `didChangeDependencies` or `build`:
 
 ```dart
 @override
@@ -336,13 +387,50 @@ void initState() {
 This also applies to `context.getState<AppState>()`. Closures inside `initState`, like
 `addPostFrameCallback((_) => ...)`, run later, so they're not reported.
 
-Quick fix: replace `context.state` with `context.read()`, and
+Quick fix, for `context.state`: replace it with `context.read()`, and
 `context.getState<AppState>()` with `context.getRead<AppState>()`.
 
-### select_in_callback
+### context_in_dispose
 
-`context.select` only works while the widget builds. In a callback, like `onPressed`,
-it throws a `FlutterError` in debug mode. Use `context.read()` instead:
+When the `dispose` method of a `State` runs, the widget is no longer in the tree. So
+`context.state`, `context.read()`, `context.isWaiting`, `context.isFailed`,
+`context.exceptionFor`, `context.clearExceptionFor`, `context.getEnvironment` and
+`context.getConfiguration` throw there. Read what you need in `deactivate`, or earlier,
+and keep it in a field:
+
+```dart
+@override
+void dispose() {
+  print(context.read().counter); // Error
+  context.dispatch(StopTimer()); // OK
+  super.dispose();
+}
+```
+
+This also applies to closures inside `dispose`. Dispatching actions works. For
+`context.select` and `context.event`, see `select_outside_build`.
+
+### context_in_selector
+
+The selector of `context.select` or `context.event` must only use its parameter. Using
+`context.state` there rebuilds the widget on any state change, and a nested
+`context.select` throws. The rule reports `context.state`, `context.read()`,
+`context.select`, `context.event`, `context.isWaiting`, `context.isFailed`,
+`context.exceptionFor`, `context.clearExceptionFor` and `context.dispatch` inside a
+selector:
+
+```dart
+var items = context.select((st) => context.state.items); // Error
+var items = context.select((st) => st.items);            // OK
+```
+
+Quick fix, for `context.state` and `context.read()`: replace it with the parameter of
+the selector.
+
+### select_outside_build
+
+`context.select` and `context.event` only work while the widget builds, with the
+`BuildContext` of that widget. Otherwise, they throw a `FlutterError` in debug mode:
 
 ```dart
 ElevatedButton(
@@ -351,20 +439,52 @@ ElevatedButton(
 );
 ```
 
-The rule checks closures passed as a named argument that starts with `on`, like
-`onPressed` or `onChanged`, and the `State` methods `initState`,
-`didChangeDependencies`, `didUpdateWidget`, `activate`, `deactivate`, `dispose` and
-`reassemble`. It doesn't check helper methods, since `build` may call them. It also
-applies to `context.getSelect`.
+The rule reports them in:
 
-Quick fix: replace `context.select((st) => st.counter)` with `context.read().counter`.
-For `context.getSelect`, it uses `context.getRead<AppState>()`. The fix is not offered
-when your `BuildContext` extension doesn't declare `read()`.
+- Closures passed as a named argument that starts with `on`, like `onPressed`, and
+  closures passed to `addPostFrameCallback`, `scheduleMicrotask`, `Future`,
+  `Future.microtask`, `Future.delayed`, `Timer`, `Timer.periodic`, `then`,
+  `catchError`, `whenComplete`, `listen`, `addListener` and `setState`.
+- The `State` methods `initState`, `didUpdateWidget`, `activate`, `deactivate`,
+  `dispose` and `reassemble`. They're reported even when `debug: false` is passed to
+  `getSelect` or `getEvent`, which turns off the runtime check.
+- The `State` method `didChangeDependencies`, unless `debug: false` is passed to
+  `getSelect` or `getEvent`. AsyncRedux allows them there with `debug: false`. The rule
+  finds `debug: false` in your `BuildContext` extension, or at the call:
 
-The `state`, `select` and `read` of the `BuildContext` extension recommended by
-AsyncRedux are recognized by their names, when the extension's library imports
-`async_redux`. This way, the `select` and `read` of packages like `provider` are not
-reported.
+  ```dart
+  extension BuildContextExtension on BuildContext {
+    R? event<R>(Evt<R> Function(AppState state) selector) =>
+        getEvent<AppState, R>(selector, debug: false);
+  }
+  ```
+
+- Builders that use the `BuildContext` of another widget. The builder runs after that
+  widget builds:
+
+  ```dart
+  Widget build(BuildContext context) {
+    return Builder(builder: (inner) => Text(context.select((st) => st.name))); // Error
+  }
+  ```
+
+- The `itemBuilder` and `separatorBuilder` of lists, like `ListView.builder`, and the
+  `builder` of `SliverChildBuilderDelegate`. Their `BuildContext` belongs to the list,
+  not to the item. Wrap the item in a `Builder`, or use a separate widget.
+
+Helper methods, like `Widget buildHeader(BuildContext context)`, may be called while
+the widget builds, so they're not reported. Neither are closures like
+`items.map((item) => ...)`.
+
+Quick fixes:
+
+- In callbacks, and in `State` methods other than `dispose` and
+  `didChangeDependencies`: replace `context.select((st) => st.counter)` with
+  `context.read().counter`. For `context.getSelect`, it uses
+  `context.getRead<AppState>()`. The fix is not offered when your `BuildContext`
+  extension doesn't declare `read()`, or for `context.event`.
+- In a builder that uses the `BuildContext` of another widget: use the builder's own
+  `BuildContext`, unless it's a wildcard, like `_`.
 
 ### vm_field_not_in_equals
 
@@ -474,10 +594,10 @@ fields they inherit.
 
 ### state_class_missing_equality
 
-A warning for a state class that doesn't override `==` and `hashCode`. Without them,
-two states with the same values are not equal. A state class is annotated with
-`@stateClass` from `package:async_redux`, or extends, implements or mixes in a class
-or mixin annotated with `@stateClass`:
+A warning for a state class that declares instance fields, but doesn't override `==`
+and `hashCode`. Without them, two states with the same values are not equal. A state
+class is annotated with `@stateClass` from `package:async_redux`, or extends,
+implements or mixes in a class or mixin annotated with `@stateClass`:
 
 ```dart
 @stateClass
@@ -487,11 +607,14 @@ class AppState { // Warning: must override '==' and 'hashCode'.
 }
 ```
 
-Not reported:
+Each class handles its own fields. So this also applies to abstract classes, and to
+classes that inherit `==` and `hashCode` from a superclass: the inherited ones don't
+know about the fields the class declares. Classes that don't declare fields are not
+reported.
 
-- Abstract classes.
-- Classes that inherit `==` or `hashCode` from a superclass or mixin other than
-  `Object`, like `Equatable`.
+Classes that use `Equatable` or `EquatableMixin` from package `equatable` are not
+reported either, since they list their fields in `props`. See
+[equatable_props_missing_field](#equatable_props_missing_field).
 
 There's no quick fix. Your IDE can generate `==` and `hashCode`. In IntelliJ or
 Android Studio, press **Alt+Insert** (**Cmd+N** on macOS) inside the class.
@@ -527,7 +650,8 @@ class AppState {
 
 All instance fields declared in the class are checked, including private fields, and
 fields with initializers. A field counts as used if `==` or `hashCode` mentions it
-anywhere. Fields declared in a superclass are not checked.
+anywhere. Inherited fields are checked by
+[equality_missing_inherited_field](#equality_missing_inherited_field).
 
 Quick fix: add the missing fields. It never changes existing code, and is only
 offered for these forms:
@@ -537,6 +661,76 @@ offered for these forms:
 - In `hashCode`, it adds the fields to `Object.hash(...)` or `Object.hashAll([...])`,
   or adds `^ counter.hashCode` after `a.hashCode ^ b.hashCode` or `a.hashCode`. It
   isn't offered if `Object.hash` would get more than 20 values, its limit.
+
+### equality_missing_inherited_field
+
+A warning for the `==` operator or the `hashCode` getter of a state class, when they
+don't handle the fields the class inherits from its superclasses and mixins. When a
+class overrides `==`, the `==` of its superclass doesn't run, so the inherited fields
+are not compared, unless the class does it:
+
+```dart
+class Sub extends Base {
+  final String name;
+
+  ...
+
+  @override
+  bool operator ==(Object other) => // Warning: Inherited field 'counter' is missing.
+      other is Sub && name == other.name;
+}
+```
+
+If a superclass or mixin overrides `==`, call it with `super == other`. Otherwise,
+compare the inherited fields yourself. The same applies to `hashCode`, with
+`super.hashCode`:
+
+```dart
+@override
+bool operator ==(Object other) =>
+    other is Sub && super == other && name == other.name;
+
+@override
+int get hashCode => Object.hash(super.hashCode, name);
+```
+
+Quick fix: add `super == other` or `super.hashCode`, or the inherited fields when no
+superclass overrides `==` or `hashCode`. It's offered for the same forms as the fix of
+[equality_missing_field](#equality_missing_field).
+
+### equatable_props_missing_field
+
+A warning for the `props` getter of a state class that uses `Equatable` or
+`EquatableMixin` from package `equatable`, when some fields of the class are missing
+from it. Equatable compares `props` in `==` and `hashCode`, so a field missing from
+`props` is ignored by them:
+
+```dart
+@stateClass
+class AppState extends Equatable {
+  final int counter;
+  final String name;
+
+  ...
+
+  @override
+  List<Object?> get props => [counter]; // Warning: Field 'name' is missing.
+}
+```
+
+Neither `async_redux` nor this plugin depend on package `equatable`. Its classes are
+recognized by name.
+
+The inherited fields must be in `props` too. If a superclass or mixin implements
+`props`, add `...super.props` instead. If a class declares fields but not `props`, so
+that it inherits a `props` that doesn't have them, the warning is shown on the class
+name. Abstract classes that don't declare `props` are not reported, since their
+subclasses must list the inherited fields.
+
+Quick fix: add the missing fields to `props`, and `...super.props` at the start of
+the list for missing inherited fields, when a superclass implements `props`. It never
+changes existing code, and is only offered when `props` returns a list literal that
+is not `const`.
 
 ## Turning off rules
 

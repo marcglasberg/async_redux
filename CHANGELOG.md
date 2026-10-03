@@ -32,10 +32,17 @@ Sponsored by [MyText.ai](https://mytext.ai)
     action returned by `createPollingAction`, not in the action with `Polling`.
   - `avoid_context_state`: Use `context.select` instead of `context.state` while the
     widget builds, and `context.read()` in callbacks like `onPressed`.
-  - `context_state_in_init_state`: `context.state` throws in `initState`. Use
-    `context.read()` instead.
-  - `select_in_callback`: Use `context.read()` instead of `context.select` in callbacks
-    like `onPressed`.
+  - `context_state_in_init_state`: `context.state`, `isWaiting`, `isFailed`,
+    `exceptionFor` and `clearExceptionFor` throw in `initState`.
+  - `context_in_dispose`: `context.state`, `context.read()` and others throw in
+    `dispose`, because the widget is no longer in the tree.
+  - `context_in_selector`: The selector of `context.select` and `context.event` must
+    only use its parameter, not the `context`.
+  - `select_outside_build`: `context.select` and `context.event` only work while the
+    widget builds, with the `BuildContext` of that widget. Not in callbacks like
+    `onPressed`, in `State` methods other than `didChangeDependencies` (with
+    `debug: false`), in builders that use another widget's `context`, or in the
+    `itemBuilder` of a list.
   - `vm_field_not_in_equals`: Every field of a `Vm` must be in its `equals` list.
   - `state_class_must_be_immutable`: The instance fields of a `@stateClass` class must
     be final.

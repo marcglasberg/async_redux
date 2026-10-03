@@ -4,6 +4,7 @@ import 'package:analysis_server_plugin/registry.dart';
 import 'src/fixes/copy_fixes.dart';
 import 'src/fixes/dispatch_sync_fixes.dart';
 import 'src/fixes/equality_fixes.dart';
+import 'src/fixes/equatable_props_fixes.dart';
 import 'src/fixes/reduce_without_await_fixes.dart';
 import 'src/fixes/return_type_fixes.dart';
 import 'src/fixes/state_access_fixes.dart';
@@ -12,10 +13,11 @@ import 'src/fixes/wait_fail_fixes.dart';
 import 'src/rules/avoid_context_state_rule.dart';
 import 'src/rules/copy_missing_field_rule.dart';
 import 'src/rules/dispatch_sync_async_action_rule.dart';
+import 'src/rules/equatable_props_missing_field_rule.dart';
 import 'src/rules/mixin_combination_rules.dart';
 import 'src/rules/reduce_without_await_rule.dart';
 import 'src/rules/return_type_rules.dart';
-import 'src/rules/select_in_callback_rule.dart';
+import 'src/rules/select_outside_build_rule.dart';
 import 'src/rules/state_class_equality_rules.dart';
 import 'src/rules/state_class_must_be_immutable_rule.dart';
 import 'src/rules/vm_field_not_in_equals_rule.dart';
@@ -74,8 +76,14 @@ class AsyncReduxLintsPlugin extends Plugin {
     registry.registerWarningRule(ContextStateInInitStateRule());
     registry.registerFixForRule(ContextStateInInitStateRule.code, UseContextRead.new);
 
-    registry.registerWarningRule(SelectInCallbackRule());
-    registry.registerFixForRule(SelectInCallbackRule.code, ReplaceSelectWithRead.new);
+    registry.registerWarningRule(ContextInDisposeRule());
+
+    registry.registerWarningRule(ContextInSelectorRule());
+    registry.registerFixForRule(ContextInSelectorRule.code, UseSelectorParameter.new);
+
+    registry.registerWarningRule(SelectOutsideBuildRule());
+    registry.registerFixForRule(SelectOutsideBuildRule.code, ReplaceSelectWithRead.new);
+    registry.registerFixForRule(SelectOutsideBuildRule.code, UseBuilderContext.new);
 
     registry.registerWarningRule(VmFieldNotInEqualsRule());
     registry.registerFixForRule(VmFieldNotInEqualsRule.code, AddFieldToVmEquals.new);
@@ -90,6 +98,18 @@ class AsyncReduxLintsPlugin extends Plugin {
     registry.registerFixForRule(
       EqualityMissingFieldRule.code,
       AddMissingFieldsToEquality.new,
+    );
+
+    registry.registerWarningRule(EqualityMissingInheritedFieldRule());
+    registry.registerFixForRule(
+      EqualityMissingInheritedFieldRule.code,
+      AddInheritedFieldsToEquality.new,
+    );
+
+    registry.registerWarningRule(EquatablePropsMissingFieldRule());
+    registry.registerFixForRule(
+      EquatablePropsMissingFieldRule.code,
+      AddMissingFieldsToProps.new,
     );
 
     registry.registerWarningRule(StateClassMustBeImmutableRule());

@@ -11,15 +11,22 @@ import 'package:analyzer_plugin/utilities/change_builder/change_builder_dart.dar
 import 'package:analyzer_plugin/utilities/fixes/fixes.dart';
 import 'package:analyzer_plugin/utilities/range_factory.dart';
 
+import '../rules/select_outside_build_rule.dart';
 import '../widget_types.dart';
 
-/// Replaces `context.state.field` with `context.select((st) => st.field)`.
+/// Replaces `context.state.user.name` with `context.select((st) => st.user.name)`.
 ///
-/// For `var state = context.state;`, where the variable is only used as
-/// `state.field`, declares one variable per field instead, like
-/// `var field = context.select((st) => st.field);`, and replaces each `state.field`
-/// with `field`. Not offered if one of these names is already used in the enclosing
-/// method.
+/// Selects the getters that follow `context.state`, as deep as the code uses them.
+/// It stops at methods, like `trim()` in `context.state.name.trim()`, and at
+/// null-aware accesses, like `?.name` in `context.state.user?.name`.
+///
+/// For `var state = context.state;`, where the variable is only used through
+/// getters, like `state.user.name`, declares one variable per path instead, like
+/// `var userName = context.select((st) => st.user.name);`, and replaces each
+/// `state.user.name` with `userName`. When a path is a prefix of another, like
+/// `state.user` and `state.user.name`, only the shorter one is selected. Each
+/// variable is named after its path. If that name is already used, a number is
+/// added, starting at 2, like `userName2`.
 ///
 /// Only offered where the widget builds, since `context.select` throws in callbacks.
 class UseContextSelect extends ResolvedCorrectionProducer {
@@ -40,58 +47,67 @@ class UseContextSelect extends ResolvedCorrectionProducer {
   @override
   Future<void> compute(ChangeBuilder builder) async {
     var access = _stateAccess(node);
-    if (access == null || !runsWhileBuilding(access)) return;
+    if (access == null || !canUseSelect(access, stateAccessTarget(access))) return;
     if (!_isAsyncReduxGetState(access) && _extensionMethod(access, 'select') == null) {
       return;
     }
 
     var target = stateAccessTarget(access);
     var stateType = access.staticType;
-    var usage = _fieldUsage(access);
+    var usage = _stateUsage(access);
     if (target == null || stateType == null || usage == null) return;
 
     var targetText = utils.getNodeText(target);
-    void writeSelect(DartEditBuilder builder, String fieldName, DartType fieldType) {
+    void writeSelect(DartEditBuilder builder, _GetterPath path) {
       builder.write('$targetText.');
       if (access is MethodInvocation) {
         // context.getState<AppState>()
         builder.write('getSelect<');
         builder.writeType(stateType);
         builder.write(', ');
-        builder.writeType(fieldType);
+        builder.writeType(path.type);
         builder.write('>');
       } else {
         builder.write('select');
       }
-      builder.write('((st) => st.$fieldName)');
+      builder.write('((st) => st.${path.names.join('.')})');
     }
 
-    var propertyAccess = usage.propertyAccess;
-    if (propertyAccess != null) {
-      var fieldType = propertyAccess.staticType;
-      if (fieldType == null) return;
+    // context.state.user.name
+    var statement = usage.statement;
+    if (statement == null) {
+      var path = usage.paths.single;
+      if (path.type == null) return;
       await builder.addDartFileEdit(file, (builder) {
-        builder.addReplacement(
-          range.node(propertyAccess),
-          (builder) => writeSelect(builder, propertyAccess.propertyName.name, fieldType),
-        );
+        builder.addReplacement(range.node(path.nodes.last), (b) => writeSelect(b, path));
       });
       return;
     }
 
-    var statement = usage.statement!;
+    // var state = context.state;
     var list = statement.variables;
     var variable = list.variables.single;
 
-    // The type of each field, in the order of their first use.
-    var fieldTypes = <String, DartType>{};
-    for (var variableAccess in usage.variableAccesses) {
-      var fieldType = variableAccess.staticType;
-      if (fieldType == null) return;
-      fieldTypes.putIfAbsent(variableAccess.identifier.name, () => fieldType);
+    // The paths to select, in the order of their first use. A path that has another
+    // path as a prefix uses the variable of the shorter one.
+    var selected = <_GetterPath>[];
+    for (var path in usage.paths) {
+      if (path.type == null) return;
+      var hasShorterPrefix = usage.paths.any(
+        (other) => other.names.length < path.names.length && other.isPrefixOf(path),
+      );
+      var isSelected = selected.any((other) => other.isSameAs(path));
+      if (!hasShorterPrefix && !isSelected) selected.add(path);
     }
-    for (var fieldName in fieldTypes.keys) {
-      if (_isNameUsed(variable, fieldName, usage.variableAccesses)) return;
+
+    var names = <_GetterPath, String>{};
+    for (var path in selected) {
+      var base = path.variableName;
+      var name = base;
+      for (var i = 2; names.containsValue(name) || _isNameUsed(variable, name); i++) {
+        name = '$base$i';
+      }
+      names[path] = name;
     }
 
     var keyword = list.keyword?.lexeme;
@@ -101,58 +117,112 @@ class UseContextSelect extends ResolvedCorrectionProducer {
     await builder.addDartFileEdit(file, (builder) {
       builder.addReplacement(range.node(statement), (builder) {
         var isFirst = true;
-        for (var MapEntry(key: fieldName, value: fieldType) in fieldTypes.entries) {
+        for (var path in selected) {
           if (!isFirst) builder.write(separator);
           isFirst = false;
           if (keyword != null) builder.write('$keyword ');
           if (hasType) {
-            builder.writeType(fieldType);
+            builder.writeType(path.type);
             builder.write(' ');
           }
-          builder.write('$fieldName = ');
-          writeSelect(builder, fieldName, fieldType);
+          builder.write('${names[path]} = ');
+          writeSelect(builder, path);
           builder.write(';');
         }
       });
-      for (var variableAccess in usage.variableAccesses) {
+      for (var path in usage.paths) {
+        var prefix = selected.firstWhere((other) => other.isPrefixOf(path));
         builder.addSimpleReplacement(
-          range.node(variableAccess),
-          variableAccess.identifier.name,
+          range.node(path.nodes[prefix.names.length - 1]),
+          names[prefix]!,
         );
       }
     });
   }
 
-  /// Returns true if [name] is used in the method or function that declares
-  /// [variable], other than as the field name of the [variableAccesses].
-  bool _isNameUsed(
-    VariableDeclaration variable,
-    String name,
-    List<PrefixedIdentifier> variableAccesses,
-  ) {
+  /// Returns true if a new local variable named [name], declared instead of
+  /// [variable], would conflict with another use of [name]. That's when the block
+  /// that declares [variable], which is the scope of the new variable, references
+  /// something else named [name], or declares something named [name]. So do the
+  /// parameters of the function, if the block is its body.
+  ///
+  /// Property names, like `st.name`, and named arguments, like `name: ...`, are not
+  /// conflicts.
+  bool _isNameUsed(VariableDeclaration variable, String name) {
     if (variable.name.lexeme == name) return false;
-    AstNode scope =
-        variable.thisOrAncestorOfType<ClassMember>() ??
-        variable.thisOrAncestorOfType<CompilationUnitMember>() ??
-        variable.root;
-    var replaced = {for (var access in variableAccesses) access.identifier.token};
-    var end = scope.endToken.next;
-    for (
-      Token? token = scope.beginToken;
-      token != null && token != end;
-      token = token.next
-    ) {
-      if (token.lexeme == name && !replaced.contains(token)) return true;
+    var block = variable.thisOrAncestorOfType<VariableDeclarationStatement>()?.parent;
+    if (block is! Block) return true;
+
+    var function = block.parent?.parent;
+    var parameters = switch (function) {
+      FunctionExpression() => function.parameters,
+      MethodDeclaration() => function.parameters,
+      ConstructorDeclaration() => function.parameters,
+      _ => null,
+    };
+    if (block.parent is BlockFunctionBody &&
+        (parameters?.parameters.any((p) => p.name?.lexeme == name) ?? false)) {
+      return true;
     }
-    return false;
+
+    var finder = _NameUseFinder(name, variable);
+    block.accept(finder);
+    return finder.isUsed;
   }
+}
+
+/// Finds references to [name], and declarations of [name], other than [variable].
+class _NameUseFinder extends GeneralizingAstVisitor<void> {
+  final String name;
+  final VariableDeclaration variable;
+  bool isUsed = false;
+
+  _NameUseFinder(this.name, this.variable);
+
+  @override
+  void visitNode(AstNode node) {
+    if (isUsed) return;
+    var declaredName = switch (node) {
+      VariableDeclaration() when node != variable => node.name,
+      FormalParameter() => node.name,
+      FunctionDeclaration() => node.name,
+      DeclaredIdentifier() => node.name,
+      DeclaredVariablePattern() => node.name,
+      CatchClauseParameter() => node.name,
+      _ => null,
+    };
+    if (declaredName?.lexeme == name) {
+      isUsed = true;
+      return;
+    }
+    super.visitNode(node);
+  }
+
+  @override
+  void visitSimpleIdentifier(SimpleIdentifier node) {
+    if (node.name == name && !_isPropertyName(node)) {
+      isUsed = true;
+    }
+  }
+
+  /// Returns true if [node] is the name of a property or method of an object, like
+  /// `name` in `st.name`, `st?.name` or `st.name()`.
+  bool _isPropertyName(SimpleIdentifier node) => switch (node.parent) {
+    PrefixedIdentifier(:var identifier) => identifier == node,
+    PropertyAccess(:var propertyName) => propertyName == node,
+    MethodInvocation(:var methodName, :var target) =>
+      methodName == node && target != null,
+    _ => false,
+  };
 }
 
 /// Replaces `context.state` with `context.read()`, and `context.getState<St>()` with
 /// `context.getRead<St>()`.
 ///
-/// Only offered in code that doesn't run while the widget builds, like callbacks.
-/// For `context.state`, not offered if the extension that declares `state` doesn't
+/// Only offered in code that doesn't run while the widget builds, like callbacks,
+/// but not in `dispose`, where `context.read()` throws too, or in
+/// `didChangeDependencies`, which runs when the dependencies change. For
+/// `context.state`, not offered if the extension that declares `state` doesn't
 /// declare `read`.
 class UseContextRead extends ResolvedCorrectionProducer {
   static const _kind = FixKind(
@@ -177,7 +247,13 @@ class UseContextRead extends ResolvedCorrectionProducer {
   @override
   Future<void> compute(ChangeBuilder builder) async {
     var access = _stateAccess(node);
-    if (access == null || notBuildingDescription(access) == null) return;
+    if (access == null || enclosingSelector(access) != null) return;
+    var stateMethod = notBuilding(access)?.stateMethod;
+    if (notBuilding(access) == null ||
+        stateMethod == 'dispose' ||
+        stateMethod == 'didChangeDependencies') {
+      return;
+    }
     var target = stateAccessTarget(access);
     if (target == null) return;
 
@@ -235,39 +311,62 @@ ExtensionElement? _extensionOf(Element? element) {
   return extension is ExtensionElement ? extension : null;
 }
 
-/// How a `context.state` access uses the fields of the state.
-class _FieldUsage {
-  /// The access of a field: `context.state.field`.
-  /// Null if the state is assigned to a variable.
-  final PropertyAccess? propertyAccess;
-
+/// How a `context.state` access uses the state.
+class _StateUsage {
   /// The declaration of the variable that holds the state:
-  /// `var state = context.state;`. Null if a field is accessed directly.
+  /// `var state = context.state;`. Null if the state is used directly, like in
+  /// `context.state.user.name`.
   final VariableDeclarationStatement? statement;
 
-  /// The accesses of the fields through the variable: `state.field`.
-  final List<PrefixedIdentifier> variableAccesses;
+  /// The getters used after each use of the state, in the order of the uses.
+  final List<_GetterPath> paths;
 
-  _FieldUsage.direct(PropertyAccess this.propertyAccess)
-    : statement = null,
-      variableAccesses = const [];
-
-  _FieldUsage.variable(VariableDeclarationStatement this.statement, this.variableAccesses)
-    : propertyAccess = null;
+  _StateUsage(this.statement, this.paths);
 }
 
-/// Returns how the `context.state` [access] uses the fields of the state, or null
-/// if it uses the state itself, or assigns to its fields.
-_FieldUsage? _fieldUsage(Expression access) {
-  var parent = access.parent;
+/// The getters used after a use of the state, like `user` and `name` in
+/// `state.user.name`.
+class _GetterPath {
+  /// The names of the getters, like `['user', 'name']`.
+  final List<String> names;
 
-  // context.state.field
-  if (parent is PropertyAccess && parent.target == access) {
-    if (parent.operator.type != TokenType.PERIOD) return null;
-    if (parent.propertyName.element?.baseElement is! GetterElement) return null;
-    if (_isAssigned(parent)) return null;
-    return _FieldUsage.direct(parent);
+  /// The access of each getter, like `state.user` and `state.user.name`.
+  final List<Expression> nodes;
+
+  _GetterPath(this.names, this.nodes);
+
+  /// The type of the value of the last getter.
+  DartType? get type => nodes.last.staticType;
+
+  /// The name of a variable that holds the value of the last getter, like
+  /// `userName` for `state.user.name`.
+  String get variableName {
+    var words = names
+        .map((name) => name.replaceFirst(RegExp(r'^_+'), ''))
+        .where((name) => name.isNotEmpty)
+        .toList();
+    if (words.isEmpty) return 'value';
+    return words.first +
+        words.skip(1).map((word) => word[0].toUpperCase() + word.substring(1)).join();
   }
+
+  /// Returns true if this path is a prefix of [other], or the same as [other].
+  bool isPrefixOf(_GetterPath other) {
+    if (names.length > other.names.length) return false;
+    for (var i = 0; i < names.length; i++) {
+      if (names[i] != other.names[i]) return false;
+    }
+    return true;
+  }
+
+  bool isSameAs(_GetterPath other) =>
+      names.length == other.names.length && isPrefixOf(other);
+}
+
+/// Returns how the `context.state` [access] uses the state, or null if it uses the
+/// state itself, like in `print(state)`, or assigns to a field of the state.
+_StateUsage? _stateUsage(Expression access) {
+  var parent = access.parent;
 
   // var state = context.state;
   if (parent is VariableDeclaration && parent.initializer == access) {
@@ -288,20 +387,55 @@ _FieldUsage? _fieldUsage(Expression access) {
     function.accept(finder);
     if (finder.references.isEmpty) return null;
 
-    var variableAccesses = <PrefixedIdentifier>[];
+    var paths = <_GetterPath>[];
     for (var reference in finder.references) {
-      var referenceParent = reference.parent;
-      if (referenceParent is! PrefixedIdentifier || referenceParent.prefix != reference) {
-        return null;
-      }
-      if (referenceParent.identifier.element?.baseElement is! GetterElement) return null;
-      if (_isAssigned(referenceParent)) return null;
-      variableAccesses.add(referenceParent);
+      var path = _getterPath(reference);
+      if (path == null) return null;
+      paths.add(path);
     }
-    return _FieldUsage.variable(statement, variableAccesses);
+    return _StateUsage(statement, paths);
   }
 
-  return null;
+  // context.state.user.name
+  var path = _getterPath(access);
+  return path == null ? null : _StateUsage(null, [path]);
+}
+
+/// Returns the getters used after [state], which is a use of the state, like
+/// `user` and `name` in `state.user.name`. They stop at methods, like `trim()` in
+/// `state.name.trim()`, and at null-aware accesses, like `?.name` in
+/// `state.user?.name`. Returns null if there are none, or if the last one is
+/// assigned to, like in `state.user.name = ''`.
+_GetterPath? _getterPath(Expression state) {
+  var names = <String>[];
+  var nodes = <Expression>[];
+  var current = state;
+  while (true) {
+    var parent = current.parent;
+    SimpleIdentifier property;
+    if (parent is PrefixedIdentifier && parent.prefix == current) {
+      property = parent.identifier;
+    } else if (parent is PropertyAccess &&
+        parent.target == current &&
+        parent.operator.type == TokenType.PERIOD) {
+      property = parent.propertyName;
+    } else {
+      break;
+    }
+    if (property.element?.baseElement is! GetterElement) break;
+    names.add(property.name);
+    nodes.add(parent as Expression);
+    current = parent;
+  }
+  if (names.isEmpty || _isAssigned(current)) return null;
+
+  // state.user.name = '', where `name` is a setter.
+  var next = current.parent;
+  if ((next is PrefixedIdentifier || next is PropertyAccess) &&
+      _isAssigned(next as Expression)) {
+    return null;
+  }
+  return _GetterPath(names, nodes);
 }
 
 bool _isAssigned(Expression node) {
@@ -328,6 +462,10 @@ class _ReferenceFinder extends RecursiveAstVisitor<void> {
 ///
 /// For `context.getSelect(...)`, uses `context.getRead<St>()`. For `context.select`,
 /// not offered if the extension that declares `select` doesn't declare `read`.
+///
+/// Only offered in callbacks, and in `State` methods other than `dispose`, where
+/// `context.read()` throws too, and `didChangeDependencies`, which runs when the
+/// dependencies change.
 class ReplaceSelectWithRead extends ResolvedCorrectionProducer {
   static const _kind = FixKind(
     'async_redux_lints.fix.replaceSelectWithRead',
@@ -358,6 +496,10 @@ class ReplaceSelectWithRead extends ResolvedCorrectionProducer {
             )
             as MethodInvocation?;
     if (invocation == null) return;
+    var kind = selectProblem(invocation)?.kind;
+    if (kind != SelectProblemKind.callback && kind != SelectProblemKind.stateMethod) {
+      return;
+    }
 
     var target = invocation.target;
     var element = invocation.methodName.element?.baseElement;
@@ -455,5 +597,94 @@ class _ParameterReferenceFinder extends RecursiveAstVisitor<void> {
   @override
   void visitSimpleIdentifier(SimpleIdentifier node) {
     if (node.element == parameter) references.add(node);
+  }
+}
+
+/// Replaces the `context` of a `context.select` or `context.event` in a builder,
+/// when it's the `BuildContext` of another widget, with the `BuildContext` parameter
+/// of the builder. Not offered if that parameter is a wildcard, like `_`.
+class UseBuilderContext extends ResolvedCorrectionProducer {
+  static const _kind = FixKind(
+    'async_redux_lints.fix.useBuilderContext',
+    DartFixKindPriority.standard,
+    "Use the builder's '{0}'",
+  );
+
+  String _name = '';
+
+  UseBuilderContext({required super.context});
+
+  @override
+  CorrectionApplicability get applicability => CorrectionApplicability.singleLocation;
+
+  @override
+  FixKind get fixKind => _kind;
+
+  @override
+  List<String> get fixArguments => [_name];
+
+  @override
+  Future<void> compute(ChangeBuilder builder) async {
+    var invocation = node.thisOrAncestorOfType<MethodInvocation>();
+    while (invocation != null && selectProblem(invocation) == null) {
+      invocation = invocation.parent?.thisOrAncestorOfType<MethodInvocation>();
+    }
+    if (invocation == null) return;
+    if (selectProblem(invocation)?.kind != SelectProblemKind.otherContext) return;
+
+    var target = invocation.target;
+    var function = enclosingBuildFunction(invocation, throughClosures: true);
+    var name = function?.context?.name;
+    if (target == null || name == null || name.startsWith('_')) return;
+
+    _name = name;
+    await builder.addDartFileEdit(file, (builder) {
+      builder.addSimpleReplacement(range.node(target), name);
+    });
+  }
+}
+
+/// Replaces `context.state` and `context.read()` inside a selector, like
+/// `context.select((st) => context.state.counter)`, with the parameter of the
+/// selector: `context.select((st) => st.counter)`. Not offered if that parameter is
+/// a wildcard, like `_`.
+class UseSelectorParameter extends ResolvedCorrectionProducer {
+  static const _kind = FixKind(
+    'async_redux_lints.fix.useSelectorParameter',
+    DartFixKindPriority.standard,
+    "Replace with '{0}'",
+  );
+
+  String _name = '';
+
+  UseSelectorParameter({required super.context});
+
+  @override
+  CorrectionApplicability get applicability => CorrectionApplicability.singleLocation;
+
+  @override
+  FixKind get fixKind => _kind;
+
+  @override
+  List<String> get fixArguments => [_name];
+
+  @override
+  Future<void> compute(ChangeBuilder builder) async {
+    var access =
+        node.thisOrAncestorMatching((node) {
+              var access = stateAccessOfNode(node);
+              return node is Expression &&
+                  (access == StateAccess.state || access == StateAccess.read);
+            })
+            as Expression?;
+    if (access == null) return;
+    var selector = enclosingSelector(access);
+    var name = selector?.parameters?.parameters.firstOrNull?.name?.lexeme;
+    if (name == null || name.startsWith('_')) return;
+
+    _name = name;
+    await builder.addDartFileEdit(file, (builder) {
+      builder.addSimpleReplacement(range.node(access), name);
+    });
   }
 }

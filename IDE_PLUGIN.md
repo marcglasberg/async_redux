@@ -67,10 +67,15 @@ A specific async action TYPE, or a list with these.
 - Every `context.state`, which rebuilds the widget when any part of the state
   changes. In `build()`, the quick fix converts it to `context.select(...)`, one per
   field used. In callbacks such as `onPressed`, it converts it to `context.read()`.
-- `context.state` in `initState`, which throws at runtime. The quick fix converts it
-  to `context.read()`.
-- `context.select` inside callbacks such as `onPressed`. The quick fix converts it
-  to `context.read()`.
+- `context.state`, `isWaiting` and similar methods in `initState`, and most
+  `context` methods in `dispose`, which throw at runtime. The quick fix converts
+  `context.state` in `initState` to `context.read()`.
+- `context.select` and `context.event` where they can't be used: in callbacks such as
+  `onPressed`, in `State` methods (in `didChangeDependencies`, only without
+  `debug: false`), with the `context` of another widget, or in the `itemBuilder` of a
+  list. The quick fix converts `context.select` in callbacks to `context.read()`.
+- The `context` used inside the selector of `context.select`. The quick fix uses the
+  selector's parameter instead.
 - A `Vm` field that is missing from `equals: [...]`, which leads to missed or
   extra rebuilds.
 
@@ -180,8 +185,9 @@ Feature 5 is also built entirely in the analyzer plugin, as the rules
 `wait_fail_never_matches` (arguments that are accepted, but never match an action).
 
 Feature 6 is also built entirely in the analyzer plugin, as the rules
-`avoid_context_state` (an info), `context_state_in_init_state` (an error),
-`select_in_callback` (an error) and `vm_field_not_in_equals` (a warning).
+`avoid_context_state` (an info), `context_state_in_init_state`,
+`context_in_dispose`, `context_in_selector` and `select_outside_build` (errors), and
+`vm_field_not_in_equals` (a warning).
 
 The inspection of feature 2 is built in the analyzer plugin, as the rules
 `incompatible_mixins` (combinations that fail an assertion at runtime) and
@@ -190,11 +196,14 @@ The inspection of feature 2 is built in the analyzer plugin, as the rules
 errors. The mixin picker stays in the IntelliJ plugin.
 
 The inspections of feature 3 are built in the analyzer plugin, as the rules
-`copy_missing_field`, `state_class_missing_equality` and `equality_missing_field` (all
+`copy_missing_field`, `state_class_missing_equality`, `equality_missing_field`,
+`equality_missing_inherited_field` and `equatable_props_missing_field` (all
 warnings). They check classes annotated with `@stateClass`, and their subclasses: the
-`copy` and `copyWith` methods must handle all fields, and the class must override
-`==` and `hashCode`, using all fields. Generating `copy()`, `==`, `hashCode` and
-`initialState()` stays in the IntelliJ plugin.
+`copy` and `copyWith` methods must handle all fields, and each class that declares
+fields must override `==` and `hashCode`, using its own fields, and calling `super`
+or using the inherited fields. Equatable classes must have all fields in `props`.
+Generating `copy()`, `==`, `hashCode` and `initialState()` stays in the IntelliJ
+plugin.
 
 ## Suggested first release
 

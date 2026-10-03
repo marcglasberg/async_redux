@@ -8,6 +8,9 @@ void main() {
   defineReflectiveSuite(() {
     defineReflectiveTests(AvoidContextStateTest);
     defineReflectiveTests(ContextStateInInitStateTest);
+    defineReflectiveTests(ContextStateInInitStateActionStatusTest);
+    defineReflectiveTests(ContextInDisposeTest);
+    defineReflectiveTests(ContextInSelectorTest);
   });
 }
 
@@ -179,7 +182,105 @@ class W extends StatelessWidget {
 ''');
   }
 
-  Future<void> test_variable_nameConflict_noFix() async {
+  /// The name is used elsewhere in the enclosing function, but not in the block
+  /// that declares the variable, like in a test file where `main()` contains many
+  /// tests.
+  Future<void> test_variable_nameUsedOutsideBlock() async {
+    var code = '''$widgetHeader
+void use({String? name}) {}
+
+Widget main() {
+  var name = 'other';
+  use(name: name);
+  return Builder(builder: (context) {
+    final state = context.state;
+    return Text('Regular: \${state.name}');
+  });
+}
+''';
+    await assertDiagnostics(code, [lintAt(code, 'context.state')]);
+    await assertFix(code, UseContextSelect.new, '''$widgetHeader
+void use({String? name}) {}
+
+Widget main() {
+  var name = 'other';
+  use(name: name);
+  return Builder(builder: (context) {
+    final name = context.select((st) => st.name);
+    return Text('Regular: \${name}');
+  });
+}
+''');
+  }
+
+  Future<void> test_variable_propertyAndNamedArgument_noConflict() async {
+    var code = '''$widgetHeader
+void use({String? name}) {}
+
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    use(name: AppState().name);
+    var state = context.state;
+    return Text(state.name);
+  }
+}
+''';
+    await assertFix(code, UseContextSelect.new, '''$widgetHeader
+void use({String? name}) {}
+
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    use(name: AppState().name);
+    var name = context.select((st) => st.name);
+    return Text(name);
+  }
+}
+''');
+  }
+
+  Future<void> test_variable_closureParameterInBlock_suffix() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var state = context.state;
+    var names = ['a'].map((name) => name).toList();
+    return Text(state.name + names.first);
+  }
+}
+''';
+    await assertDiagnostics(code, [lintAt(code, 'context.state')]);
+    await assertFix(code, UseContextSelect.new, '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var name2 = context.select((st) => st.name);
+    var names = ['a'].map((name) => name).toList();
+    return Text(name2 + names.first);
+  }
+}
+''');
+  }
+
+  Future<void> test_variable_parameterOfEnclosingFunction_suffix() async {
+    var code = '''$widgetHeader
+Widget build(String name) => Builder(builder: (context) {
+  var state = context.state;
+  return Text(state.name + name);
+});
+''';
+    await assertDiagnostics(code, [lintAt(code, 'context.state')]);
+    await assertFix(code, UseContextSelect.new, '''$widgetHeader
+Widget build(String name) => Builder(builder: (context) {
+  var name2 = context.select((st) => st.name);
+  return Text(name2 + name);
+});
+''');
+  }
+
+  Future<void> test_variable_fieldWithSameName_suffix() async {
     var code = '''$widgetHeader
 class W extends StatelessWidget {
   final String name = '';
@@ -191,6 +292,183 @@ class W extends StatelessWidget {
 }
 ''';
     await assertDiagnostics(code, [lintAt(code, 'context.state')]);
+    await assertFix(code, UseContextSelect.new, '''$widgetHeader
+class W extends StatelessWidget {
+  final String name = '';
+  @override
+  Widget build(BuildContext context) {
+    var counter = context.select((st) => st.counter);
+    var name2 = context.select((st) => st.name);
+    return Text('\${counter}\${name2}' + name);
+  }
+}
+''');
+  }
+
+  Future<void> test_variable_suffixAlsoUsed() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var userName = '';
+    var userName2 = '';
+    final state = context.state;
+    return Text(state.user.name + userName + userName2);
+  }
+}
+''';
+    await assertFix(code, UseContextSelect.new, '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var userName = '';
+    var userName2 = '';
+    final userName3 = context.select((st) => st.user.name);
+    return Text(userName3 + userName + userName2);
+  }
+}
+''');
+  }
+
+  Future<void> test_variable_deepPath() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var user = '';
+    final state = context.state;
+    return Text('Name: \${state.user.name}' + user);
+  }
+}
+''';
+    await assertFix(code, UseContextSelect.new, '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var user = '';
+    final userName = context.select((st) => st.user.name);
+    return Text('Name: \${userName}' + user);
+  }
+}
+''');
+  }
+
+  Future<void> test_variable_twoDeepPaths() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final AppState state = context.state;
+    return Text('\${state.user.name} \${state.user.age} \${state.user.name}');
+  }
+}
+''';
+    await assertFix(code, UseContextSelect.new, '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final String userName = context.select((st) => st.user.name);
+    final int userAge = context.select((st) => st.user.age);
+    return Text('\${userName} \${userAge} \${userName}');
+  }
+}
+''');
+  }
+
+  Future<void> test_variable_pathIsPrefixOfAnother() async {
+    var code = '''$widgetHeader
+void use(User user) {}
+
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var state = context.state;
+    use(state.user);
+    return Text(state.user.name);
+  }
+}
+''';
+    await assertFix(code, UseContextSelect.new, '''$widgetHeader
+void use(User user) {}
+
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var user = context.select((st) => st.user);
+    use(user);
+    return Text(user.name);
+  }
+}
+''');
+  }
+
+  Future<void> test_variable_stopsAtMethodAndNullAware() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var state = context.state;
+    return Text(state.user.name.trim() + (state.maybeUser?.name ?? ''));
+  }
+}
+''';
+    await assertFix(code, UseContextSelect.new, '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var userName = context.select((st) => st.user.name);
+    var maybeUser = context.select((st) => st.maybeUser);
+    return Text(userName.trim() + (maybeUser?.name ?? ''));
+  }
+}
+''');
+  }
+
+  Future<void> test_direct_deepPath() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) =>
+      Text(context.state.user.name + (context.state.maybeUser?.name ?? ''));
+}
+''';
+    await assertFix(code, UseContextSelect.new, '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) =>
+      Text(context.select((st) => st.user.name) + (context.state.maybeUser?.name ?? ''));
+}
+''');
+  }
+
+  Future<void> test_direct_nullAware() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Text(context.state.maybeUser?.name ?? '');
+}
+''';
+    await assertFix(
+      code,
+      UseContextSelect.new,
+      code.replaceFirst(
+        'context.state.maybeUser',
+        'context.select((st) => st.maybeUser)',
+      ),
+    );
+  }
+
+  Future<void> test_variable_assignedField_noFix() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var state = context.state;
+    state.user.nickname = '';
+    return Text(state.name);
+  }
+}
+''';
     await assertFix(code, UseContextSelect.new, null);
   }
 
@@ -335,8 +613,104 @@ class W extends StatelessWidget {
     await assertNoDiagnostics(initStateCode);
   }
 
-  Future<void> test_dispose() async {
+  Future<void> test_didUpdateWidget() async {
     var code = '''$widgetHeader
+class W extends StatefulWidget {
+  @override
+  State<W> createState() => _WState();
+}
+
+class _WState extends State<W> {
+  // The mock 'State' doesn't declare it.
+  void didUpdateWidget(W oldWidget) {
+    print(context.state.name);
+  }
+
+  @override
+  Widget build(BuildContext context) => const Text('');
+}
+''';
+    await assertDiagnostics(code, [lintAt(code, 'context.state')]);
+    await assertFix(code, UseContextSelect.new, null);
+    await assertFix(
+      code,
+      UseContextRead.new,
+      code.replaceFirst('context.state.name', 'context.read().name'),
+    );
+  }
+
+  Future<void> test_didChangeDependencies_noFix() async {
+    var code = '''$widgetHeader
+class W extends StatefulWidget {
+  @override
+  State<W> createState() => _WState();
+}
+
+class _WState extends State<W> {
+  // The mock 'State' doesn't declare it.
+  void didChangeDependencies() {
+    print(context.state.name);
+  }
+
+  @override
+  Widget build(BuildContext context) => const Text('');
+}
+''';
+    await assertDiagnostics(code, [lintAt(code, 'context.state')]);
+    await assertFix(code, UseContextSelect.new, null);
+    await assertFix(code, UseContextRead.new, null);
+  }
+
+  Future<void> test_postFrameCallback() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => print(context.state.name));
+    return const Text('');
+  }
+}
+''';
+    await assertDiagnostics(code, [lintAt(code, 'context.state')]);
+    await assertFix(code, UseContextSelect.new, null);
+    await assertFix(
+      code,
+      UseContextRead.new,
+      code.replaceFirst('context.state.name', 'context.read().name'),
+    );
+  }
+
+  Future<void> test_itemBuilder_noFix() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemBuilder: (context, index) => Text(context.state.name),
+    );
+  }
+}
+''';
+    await assertDiagnostics(code, [lintAt(code, 'context.state')]);
+    await assertFix(code, UseContextSelect.new, null);
+    await assertFix(code, UseContextRead.new, null);
+  }
+
+  Future<void> test_contextOfAnotherWidget_noFix() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Builder(builder: (_) => Text(context.state.name));
+  }
+}
+''';
+    await assertDiagnostics(code, [lintAt(code, 'context.state')]);
+    await assertFix(code, UseContextSelect.new, null);
+  }
+
+  Future<void> test_dispose_isIgnored() async {
+    await assertNoDiagnostics('''$widgetHeader
 class W extends StatefulWidget {
   @override
   State<W> createState() => _WState();
@@ -352,24 +726,15 @@ class _WState extends State<W> {
   @override
   Widget build(BuildContext context) => const Text('');
 }
-''';
-    await assertDiagnostics(code, [lintAt(code, 'context.state')]);
-    await assertFix(code, UseContextSelect.new, null);
-    await assertFix(code, UseContextRead.new, '''$widgetHeader
-class W extends StatefulWidget {
-  @override
-  State<W> createState() => _WState();
-}
-
-class _WState extends State<W> {
-  @override
-  void dispose() {
-    print(context.read().name);
-    super.dispose();
+''');
   }
 
+  Future<void> test_selector_isIgnored() async {
+    await assertNoDiagnostics('''$widgetHeader
+class W extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => const Text('');
+  Widget build(BuildContext context) =>
+      Text(context.select((st) => context.state.name));
 }
 ''');
   }
@@ -510,6 +875,234 @@ class W {
 class W extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(context.state.name);
+}
+''');
+  }
+}
+
+/// A `State` with [body] in the method [method]. The mock `State` doesn't declare
+/// most lifecycle methods, so they don't use `@override`.
+String _stateWith(String method, String body) =>
+    '''$widgetHeader
+class W extends StatefulWidget {
+  @override
+  State<W> createState() => _WState();
+}
+
+class _WState extends State<W> {
+  void $method {
+    $body
+  }
+
+  @override
+  Widget build(BuildContext context) => const Text('');
+}
+''';
+
+@reflectiveTest
+class ContextStateInInitStateActionStatusTest extends AsyncReduxWidgetRuleTest {
+  @override
+  void setUp() {
+    rule = ContextStateInInitStateRule();
+    super.setUp();
+  }
+
+  Future<void> test_actionStatus() async {
+    var code = _stateWith(
+      'initState()',
+      'super.initState(); '
+          'print(context.isWaiting(int)); print(context.isFailed(int)); '
+          'print(context.exceptionFor(int)); context.clearExceptionFor(int);',
+    );
+    await assertDiagnostics(code, [
+      lintAt(
+        code,
+        'context.isWaiting(int)',
+        messageContainsAll: ["'context.isWaiting' can't be used in 'initState'"],
+      ),
+      lintAt(code, 'context.isFailed(int)'),
+      lintAt(code, 'context.exceptionFor(int)'),
+      lintAt(code, 'context.clearExceptionFor(int)'),
+    ]);
+    await assertFix(code, UseContextRead.new, null);
+  }
+
+  Future<void> test_readDispatchAndEnvironment_isIgnored() async {
+    await assertNoDiagnostics(
+      _stateWith(
+        'initState()',
+        'super.initState(); print(context.read()); context.dispatch(1); '
+            'print(context.getEnvironment<AppState>());',
+      ),
+    );
+  }
+
+  Future<void> test_didChangeDependencies_isIgnored() async {
+    await assertNoDiagnostics(
+      _stateWith(
+        'didChangeDependencies()',
+        'print(context.state); print(context.isWaiting(int));',
+      ),
+    );
+  }
+}
+
+@reflectiveTest
+class ContextInDisposeTest extends AsyncReduxWidgetRuleTest {
+  @override
+  void setUp() {
+    rule = ContextInDisposeRule();
+    super.setUp();
+  }
+
+  Future<void> test_dispose() async {
+    var code = _stateWith(
+      'dispose()',
+      'print(context.state); print(context.read()); print(context.isWaiting(int)); '
+          'print(context.getConfiguration<AppState>()); super.dispose();',
+    );
+    await assertDiagnostics(code, [
+      lintAt(
+        code,
+        'context.state',
+        messageContainsAll: ["'context.state' can't be used in 'dispose'"],
+      ),
+      lintAt(code, 'context.read()'),
+      lintAt(code, 'context.isWaiting(int)'),
+      lintAt(code, 'context.getConfiguration<AppState>()'),
+    ]);
+    await assertFix(code, UseContextRead.new, null);
+  }
+
+  Future<void> test_closureInDispose() async {
+    var code = _stateWith(
+      'dispose()',
+      'Future.microtask(() => print(context.read())); super.dispose();',
+    );
+    await assertDiagnostics(code, [lintAt(code, 'context.read()')]);
+  }
+
+  Future<void> test_dispatchAndSelect_isIgnored() async {
+    // 'select' in 'dispose' is reported by 'select_outside_build'.
+    await assertNoDiagnostics(
+      _stateWith(
+        'dispose()',
+        'context.dispatch(1); print(context.select((st) => st.name)); super.dispose();',
+      ),
+    );
+  }
+
+  Future<void> test_deactivate_isIgnored() async {
+    await assertNoDiagnostics(
+      _stateWith('deactivate()', 'print(context.read()); print(context.state);'),
+    );
+  }
+}
+
+@reflectiveTest
+class ContextInSelectorTest extends AsyncReduxWidgetRuleTest {
+  @override
+  void setUp() {
+    rule = ContextInSelectorRule();
+    super.setUp();
+  }
+
+  Future<void> test_state() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) =>
+      Text(context.select((st) => context.state.name));
+}
+''';
+    await assertDiagnostics(code, [
+      lintAt(
+        code,
+        'context.state',
+        messageContainsAll: [
+          "'context.state' can't be used inside the selector of 'context.select'",
+        ],
+      ),
+    ]);
+    await assertFix(
+      code,
+      UseSelectorParameter.new,
+      code.replaceFirst('context.state.name', 'st.name'),
+    );
+  }
+
+  Future<void> test_read() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) =>
+      Text(context.select((st) => [1].map((_) => context.read().name).first));
+}
+''';
+    await assertDiagnostics(code, [lintAt(code, 'context.read()')]);
+    await assertFix(
+      code,
+      UseSelectorParameter.new,
+      code.replaceFirst('context.read().name', 'st.name'),
+    );
+  }
+
+  Future<void> test_nestedSelectAndDispatch() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Text(
+    context.select((st) {
+      context.dispatch(1);
+      return context.select((s) => s.name);
+    }),
+  );
+}
+''';
+    await assertDiagnostics(code, [
+      lintAt(code, 'context.dispatch(1)'),
+      lintAt(code, 'context.select((s) => s.name)'),
+    ]);
+    await assertFix(code, UseSelectorParameter.new, null);
+  }
+
+  Future<void> test_event() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) =>
+      Text('\${context.event((st) => context.isWaiting(int) ? st.evt : st.evt)}');
+}
+''';
+    await assertDiagnostics(code, [
+      lintAt(
+        code,
+        'context.isWaiting(int)',
+        messageContainsAll: ["inside the selector of 'context.event'"],
+      ),
+    ]);
+  }
+
+  Future<void> test_wildcardParameter_noFix() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) =>
+      Text(context.select((_) => context.state.name));
+}
+''';
+    await assertDiagnostics(code, [lintAt(code, 'context.state')]);
+    await assertFix(code, UseSelectorParameter.new, null);
+  }
+
+  Future<void> test_selectorParameter_isIgnored() async {
+    await assertNoDiagnostics('''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var name = context.select((st) => st.name);
+    return Text(name + context.state.name);
+  }
 }
 ''');
   }
