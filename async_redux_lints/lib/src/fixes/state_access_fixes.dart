@@ -15,6 +15,8 @@ import '../rules/select_outside_build_rule.dart';
 import '../widget_types.dart';
 
 /// Replaces `context.state.user.name` with `context.select((st) => st.user.name)`.
+/// Also replaces `context.read()` the same way, and `context.getState<St>()` and
+/// `context.getRead<St>()` with `context.getSelect<St, R>(...)`.
 ///
 /// Selects the getters that follow `context.state`, as deep as the code uses them.
 /// It stops at methods, like `trim()` in `context.state.name.trim()`, and at
@@ -46,11 +48,10 @@ class UseContextSelect extends ResolvedCorrectionProducer {
 
   @override
   Future<void> compute(ChangeBuilder builder) async {
-    var access = _stateAccess(node);
+    var access = _stateOrReadAccess(node);
     if (access == null || !canUseSelect(access, stateAccessTarget(access))) return;
-    if (!_isAsyncReduxGetState(access) && _extensionMethod(access, 'select') == null) {
-      return;
-    }
+    var isAsyncReduxMethod = _isAsyncReduxMethod(access);
+    if (!isAsyncReduxMethod && _extensionMethod(access, 'select') == null) return;
 
     var target = stateAccessTarget(access);
     var stateType = access.staticType;
@@ -60,8 +61,8 @@ class UseContextSelect extends ResolvedCorrectionProducer {
     var targetText = utils.getNodeText(target);
     void writeSelect(DartEditBuilder builder, _GetterPath path) {
       builder.write('$targetText.');
-      if (access is MethodInvocation) {
-        // context.getState<AppState>()
+      if (isAsyncReduxMethod) {
+        // context.getState<AppState>() or context.getRead<AppState>()
         builder.write('getSelect<');
         builder.writeType(stateType);
         builder.write(', ');
@@ -288,19 +289,32 @@ Expression? _stateAccess(AstNode node) =>
         )
         as Expression?;
 
-/// Returns true if [access] is the `context.getState<St>()` of AsyncRedux.
-bool _isAsyncReduxGetState(Expression access) {
+/// Returns the `context.state` or `context.read()` access that contains [node], or
+/// null.
+Expression? _stateOrReadAccess(AstNode node) =>
+    node.thisOrAncestorMatching((node) {
+          var access = stateAccessOfNode(node);
+          return node is Expression &&
+              (access == StateAccess.state || access == StateAccess.read);
+        })
+        as Expression?;
+
+/// Returns true if [access] is the `context.getState<St>()` or
+/// `context.getRead<St>()` of AsyncRedux.
+bool _isAsyncReduxMethod(Expression access) {
   if (access is! MethodInvocation) return false;
   var extension = _extensionOf(access.methodName.element);
   return extension != null && isAsyncReduxLibrary(extension.library);
 }
 
 /// Returns the method named [name] of the extension that declares the `state` of
-/// the `context.state` [access], or null.
+/// the `context.state` [access], or the `read` of the `context.read()` [access], or
+/// null.
 MethodElement? _extensionMethod(Expression access, String name) {
   var element = switch (access) {
     PrefixedIdentifier() => access.identifier.element,
     PropertyAccess() => access.propertyName.element,
+    MethodInvocation() => access.methodName.element,
     _ => null,
   };
   return _extensionOf(element)?.getMethod(name);

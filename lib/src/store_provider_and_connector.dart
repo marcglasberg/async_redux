@@ -2205,9 +2205,12 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
 
 /// This extension allows you to write `dispatch()` instead of
 /// `context.dispatch()` inside the [State] of a [StatefulWidget]. It
-/// also works for `dispatchAndWait()`, `dispatchAll()`, `dispatchAndWaitAll()`,
-/// `dispatchSync()`, `isWaiting()`, `isFailed()`, `exceptionFor()`, and
-/// `clearExceptionFor()`.
+/// also works for `dispatchAndWait()`, `dispatchAll()`, `dispatchAndWaitAll()`
+/// and `dispatchSync()`.
+///
+/// - Other methods, like `isWaiting()`, `isFailed()`, `exceptionFor()` and
+/// `clearExceptionFor()`, still need the `context`, so that the widget rebuilds
+/// when the state changes.
 ///
 /// - It is compatible with testing with [MockBuildContext].
 ///
@@ -2360,9 +2363,12 @@ extension StatefulWidgetExtensionForProviderAndConnector<St> on State {
 
 /// This extension allows you to write `dispatch()` instead of
 /// `context.dispatch()` inside a [StatelessWidget]. It also works for
-/// `dispatchAndWait()`, `dispatchAll()`, `dispatchAndWaitAll()`,
-/// `dispatchSync()`, `isWaiting()`, `isFailed()`, `exceptionFor()`, and
-/// `clearExceptionFor()`.
+/// `dispatchAndWait()`, `dispatchAll()`, `dispatchAndWaitAll()` and
+/// `dispatchSync()`.
+///
+/// - Other methods, like `isWaiting()`, `isFailed()`, `exceptionFor()` and
+/// `clearExceptionFor()`, still need the `context`, so that the widget rebuilds
+/// when the state changes.
 ///
 /// - It is compatible with testing with [MockBuildContext].
 ///

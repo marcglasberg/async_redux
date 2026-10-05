@@ -1,3 +1,5 @@
+// ignore_for_file: async_redux_lints/extend_base_action
+
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
@@ -82,28 +84,28 @@ class MainScreen extends StatelessWidget {
             const SizedBox(height: 16),
 
             ElevatedButton.icon(
-              onPressed: () => context.dispatch(IncrementNumberAction()),
+              onPressed: () => dispatch(IncrementNumberAction()),
               icon: const Icon(Icons.add),
               label: const Text('Increment Number'),
             ),
             const SizedBox(height: 8),
 
             ElevatedButton.icon(
-              onPressed: () => context.dispatch(AddXToTextAction()),
+              onPressed: () => dispatch(AddXToTextAction()),
               icon: const Icon(Icons.text_fields),
               label: const Text('Add X to Text'),
             ),
             const SizedBox(height: 8),
 
             ElevatedButton.icon(
-              onPressed: () => context.dispatch(AddDayToDateAction()),
+              onPressed: () => dispatch(AddDayToDateAction()),
               icon: const Icon(Icons.calendar_today),
               label: const Text('Add Day to Date'),
             ),
             const SizedBox(height: 8),
 
             ElevatedButton.icon(
-              onPressed: () => context.dispatch(ToggleFlagAction()),
+              onPressed: () => dispatch(ToggleFlagAction()),
               icon: const Icon(Icons.flag),
               label: const Text('Toggle Flag'),
             ),
@@ -167,6 +169,7 @@ class ContextReadWidget extends StatelessWidget {
     print('🟡 ContextReadWidget rebuilt');
 
     // It will NEVER rebuild automatically on state changes.
+    // ignore: async_redux_lints/context_read_in_build
     final state = context.read();
 
     return Container(

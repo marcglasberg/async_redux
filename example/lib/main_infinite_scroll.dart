@@ -1,3 +1,5 @@
+// ignore_for_file: async_redux_lints/extend_base_action
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -25,7 +27,9 @@ void main() {
   var state = AppState.initialState();
   store = Store<AppState>(
     initialState: state,
+    // ignore: async_redux_lints/debug_observer_in_release
     actionObservers: [Log<AppState>.printer()],
+    // ignore: async_redux_lints/debug_observer_in_release
     modelObserver: DefaultModelObserver(),
   );
   runApp(MyApp());
@@ -72,8 +76,8 @@ class LoadMoreAction extends ReduxAction<AppState> {
 
     // Fetch 20 people concurrently.
     final responses = await Future.wait(
-      List.generate(20,
-          (i) => get(Uri.parse('https://swapi.dev/api/people/${start + i}/'))),
+      List.generate(
+          20, (i) => get(Uri.parse('https://swapi.dev/api/people/${start + i}/'))),
     );
 
     for (final response in responses) {
@@ -94,8 +98,7 @@ class RefreshAction extends ReduxAction<AppState> {
 
     // Fetch the first 20 people concurrently.
     final responses = await Future.wait(
-      List.generate(
-          20, (i) => get(Uri.parse('https://swapi.dev/api/people/${i + 1}/'))),
+      List.generate(20, (i) => get(Uri.parse('https://swapi.dev/api/people/${i + 1}/'))),
     );
 
     for (final response in responses) {
@@ -152,7 +155,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     // Select only the numTrivia list from state. Rebuilds only when numTrivia changes.
     final numTrivia = context.select((state) => state.numTrivia);
-                        
+
     // Check if LoadMoreAction is currently running
     final isLoading = context.isWaiting(LoadMoreAction);
 
@@ -195,8 +198,7 @@ extension BuildContextExtension on BuildContext {
 
   AppState read() => getRead<AppState>();
 
-  R select<R>(R Function(AppState state) selector) =>
-      getSelect<AppState, R>(selector);
+  R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
 
   R? event<R>(Evt<R> Function(AppState state) selector) =>
       getEvent<AppState, R>(selector);

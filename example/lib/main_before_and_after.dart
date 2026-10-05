@@ -1,3 +1,5 @@
+// ignore_for_file: async_redux_lints/extend_base_action
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -45,8 +47,7 @@ class AppState {
         waiting: waiting ?? this.waiting,
       );
 
-  static AppState initialState() =>
-      AppState(counter: 0, description: "", waiting: false);
+  static AppState initialState() => AppState(counter: 0, description: "", waiting: false);
 
   @override
   bool operator ==(Object other) =>
@@ -58,8 +59,7 @@ class AppState {
           waiting == other.waiting;
 
   @override
-  int get hashCode =>
-      counter.hashCode ^ description.hashCode ^ waiting.hashCode;
+  int get hashCode => counter.hashCode ^ description.hashCode ^ waiting.hashCode;
 }
 
 class MyApp extends StatelessWidget {
@@ -170,8 +170,7 @@ extension BuildContextExtension on BuildContext {
 
   AppState read() => getRead<AppState>();
 
-  R select<R>(R Function(AppState state) selector) =>
-      getSelect<AppState, R>(selector);
+  R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
 
   R? event<R>(Evt<R> Function(AppState state) selector) =>
       getEvent<AppState, R>(selector);

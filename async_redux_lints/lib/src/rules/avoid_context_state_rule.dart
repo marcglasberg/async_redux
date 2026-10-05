@@ -84,7 +84,7 @@ class ContextStateInInitStateRule extends AnalysisRule {
   static const LintCode code = LintCode(
     'context_state_in_init_state',
     "'{0}' can't be used in 'initState', because the widget can't depend on the store "
-        "before 'initState' completes. This throws an error at runtime.",
+        "before 'initState' completes.",
     correctionMessage: '{1}',
     severity: DiagnosticSeverity.ERROR,
   );
@@ -126,11 +126,9 @@ class ContextStateInInitStateRule extends AnalysisRule {
 class ContextInDisposeRule extends AnalysisRule {
   static const LintCode code = LintCode(
     'context_in_dispose',
-    "'{0}' can't be used in 'dispose', because the widget is no longer in the tree. "
-        "This throws an error at runtime.",
+    "'{0}' can't be used in 'dispose', because the widget is no longer in the tree.",
     correctionMessage:
-        "Try reading what you need in 'deactivate', or earlier, and keeping it in a "
-        "field.",
+        "Try reading what you need in 'deactivate', or earlier, and keeping it in a field.",
     severity: DiagnosticSeverity.ERROR,
   );
 

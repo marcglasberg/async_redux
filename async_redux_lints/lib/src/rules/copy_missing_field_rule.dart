@@ -91,9 +91,8 @@ class CopyMethodFields {
 /// Returns the copy methods of [node] that can't change some of its fields. Returns
 /// an empty list if [node] is not a state class.
 List<CopyMethodFields> missingCopyFields(ClassDeclaration node) {
-  var element = node.declaredFragment?.element;
-  if (element == null || !isStateClass(element)) return const [];
-
+  // Most classes don't declare copy methods, and finding them is faster than checking
+  // if the class is a state class.
   var copyMethods = [
     for (var member in node.body.members)
       if (member is MethodDeclaration &&
@@ -105,6 +104,8 @@ List<CopyMethodFields> missingCopyFields(ClassDeclaration node) {
         member,
   ];
   if (copyMethods.isEmpty) return const [];
+  var element = node.declaredFragment?.element;
+  if (element == null || !isStateClass(element)) return const [];
 
   var settable = _fieldsSetFromParameters(node);
   var fields = <(VariableDeclaration, FieldElement)>[];

@@ -19,8 +19,9 @@ class DispatchSyncAsyncActionRule extends AnalysisRule {
   static const LintCode code = LintCode(
     'dispatch_sync_async_action',
     "'{0}' is async because {1}. Dispatching it with 'dispatchSync' "
-        "throws a StoreException at runtime.",
-    correctionMessage: "Try using 'dispatch' or 'dispatchAndWait' instead.",
+        "throws a StoreException.",
+    correctionMessage:
+        "Try using 'dispatch' or 'dispatchAndWait' instead, or making the action sync.",
     severity: DiagnosticSeverity.ERROR,
   );
 

@@ -1,3 +1,5 @@
+// ignore_for_file: async_redux_lints/extend_base_action
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -23,7 +25,9 @@ void main() {
   var state = AppState.initialState();
   store = Store<AppState>(
     initialState: state,
+    // ignore: async_redux_lints/debug_observer_in_release
     actionObservers: [Log<AppState>.printer()],
+    // ignore: async_redux_lints/debug_observer_in_release
     modelObserver: DefaultModelObserver(),
   );
   runApp(MyApp());

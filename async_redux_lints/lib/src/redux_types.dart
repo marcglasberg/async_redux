@@ -1,3 +1,4 @@
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
@@ -12,18 +13,24 @@ bool isReduxAction(Element? element) =>
 
 /// Returns true if [element] is annotated with `@stateClass` or `@StateClass()`
 /// of package `async_redux`.
-bool hasStateClassAnnotation(Element element) => element.metadata.annotations.any((
-  annotation,
-) {
-  var annotationElement = annotation.element;
-  var isStateClass = switch (annotationElement) {
-    GetterElement(:var name) => name == 'stateClass',
-    ConstructorElement(:var enclosingElement) => enclosingElement.name == 'StateClass',
-    _ => false,
-  };
-  return isStateClass &&
-      annotationElement!.library!.uri.toString().startsWith('package:async_redux/');
-});
+///
+/// The rules check the supertypes of every class, which are mostly the same classes,
+/// so the result is cached. When a file changes, the analyzer creates new elements for
+/// its library, so the cached values of the old elements are not used anymore.
+bool hasStateClassAnnotation(Element element) => _stateClassAnnotationCache[element] ??=
+    element.metadata.annotations.any((annotation) {
+      var annotationElement = annotation.element;
+      var isStateClass = switch (annotationElement) {
+        GetterElement(:var name) => name == 'stateClass',
+        ConstructorElement(:var enclosingElement) =>
+          enclosingElement.name == 'StateClass',
+        _ => false,
+      };
+      return isStateClass &&
+          annotationElement!.library!.uri.toString().startsWith('package:async_redux/');
+    });
+
+final _stateClassAnnotationCache = Expando<bool>();
 
 /// Returns the `ReduxAction<St>` supertype of [element], or null if [element]
 /// is not an action (or mixin on an action). Returns null for `ReduxAction` itself.
@@ -141,4 +148,39 @@ bool isKnownSyncAction(
     typeSystem.promoteToNonNull(reduce.returnType),
     stateType,
   );
+}
+
+/// Returns true if [element] is declared in package `async_redux`.
+bool isFromAsyncRedux(Element element) =>
+    element.library?.uri.toString().startsWith('package:async_redux/') ?? false;
+
+/// Returns true if [element] is a non-abstract action class that is not part of
+/// AsyncRedux, like `class LoadUser extends AppAction`.
+bool isConcreteAction(Element? element) =>
+    element is ClassElement &&
+    !element.isAbstract &&
+    !element.isSealed &&
+    !isFromAsyncRedux(element) &&
+    reduxActionSupertype(element) != null;
+
+/// Returns true if [node] is an instance method with a body, declared in an action or
+/// in a mixin on an action.
+bool isActionMethod(MethodDeclaration node) {
+  if (node.isStatic || node.isGetter || node.isSetter || node.isOperator) return false;
+  if (node.body is EmptyFunctionBody) return false;
+  var enclosing = node.declaredFragment?.element.enclosingElement;
+  return enclosing is InterfaceElement && reduxActionSupertype(enclosing) != null;
+}
+
+/// Returns true if [expression] reads the getter called [name] of `ReduxAction`, like
+/// `state` or `this.state`.
+bool readsActionGetter(Expression expression, String name) {
+  var identifier = switch (expression.unParenthesized) {
+    SimpleIdentifier identifier => identifier,
+    PropertyAccess(target: ThisExpression(), :var propertyName) => propertyName,
+    _ => null,
+  };
+  if (identifier == null || identifier.name != name) return false;
+  var element = identifier.element;
+  return element is GetterElement && isReduxAction(element.enclosingElement);
 }

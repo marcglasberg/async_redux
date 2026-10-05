@@ -15,8 +15,7 @@ import '../redux_types.dart';
 class ReduceReturnTypeRule extends AnalysisRule {
   static const LintCode code = LintCode(
     'reduce_return_type',
-    "The 'reduce' method must return '{1}' or 'Future<{1}>', not '{0}'. "
-        "AsyncRedux throws a StoreException at runtime.",
+    "The 'reduce' method must return '{1}' or 'Future<{1}>', not '{0}'.",
     correctionMessage: "Try changing the return type.",
     severity: DiagnosticSeverity.ERROR,
   );
@@ -55,8 +54,7 @@ class ReduceReturnTypeRule extends AnalysisRule {
 class BeforeReturnTypeRule extends AnalysisRule {
   static const LintCode code = LintCode(
     'before_return_type',
-    "The 'before' method must return 'void' or 'Future<void>', not '{0}'. "
-        "When it returns a Future, AsyncRedux throws a StoreException at runtime.",
+    "The 'before' method must return 'void' or 'Future<void>', not '{0}'.",
     correctionMessage: "Try changing the return type.",
     severity: DiagnosticSeverity.ERROR,
   );

@@ -43,9 +43,10 @@ class _MissingEqualityVisitor extends SimpleAstVisitor<void> {
 
   @override
   void visitClassDeclaration(ClassDeclaration node) {
+    // Checking the fields is faster than checking if the class is a state class.
+    if (declaredFields(node).isEmpty) return;
     var element = node.declaredFragment?.element;
     if (element == null || !isStateClass(element) || isEquatable(element)) return;
-    if (declaredFields(node).isEmpty) return;
 
     var missing = [
       if (element.getMethod('==') == null) '==',
@@ -177,13 +178,17 @@ class EqualityMemberFields {
 /// of the fields declared in [node]. Returns an empty list if [node] is not a state
 /// class.
 List<EqualityMemberFields> missingEqualityFields(ClassDeclaration node) {
-  var element = node.declaredFragment?.element;
-  if (element == null || !isStateClass(element)) return const [];
+  // Most classes don't override `==` and `hashCode`, and finding them is faster than
+  // checking if the class is a state class.
+  var members = _equalityMembers(node);
+  if (members.isEmpty) return const [];
   var fields = declaredFields(node);
   if (fields.isEmpty) return const [];
+  var element = node.declaredFragment?.element;
+  if (element == null || !isStateClass(element)) return const [];
 
   return [
-    for (var method in _equalityMembers(node))
+    for (var method in members)
       if (unusedFields(method.body, fields, (field) => field.declaredFragment?.element)
           case var missing when missing.isNotEmpty)
         EqualityMemberFields(method, [for (var field in missing) field.name.lexeme]),
@@ -193,13 +198,17 @@ List<EqualityMemberFields> missingEqualityFields(ClassDeclaration node) {
 /// Returns the `==` operator and `hashCode` getter of [node] that don't handle
 /// the fields [node] inherits. Returns an empty list if [node] is not a state class.
 List<EqualityMemberFields> missingInheritedEqualityFields(ClassDeclaration node) {
+  // Most classes don't override `==` and `hashCode`, and finding them is faster than
+  // checking if the class is a state class.
+  var members = _equalityMembers(node);
+  if (members.isEmpty) return const [];
   var element = node.declaredFragment?.element;
   if (element == null || !isStateClass(element)) return const [];
   var fields = inheritedFields(element);
   if (fields.isEmpty) return const [];
 
   var result = <EqualityMemberFields>[];
-  for (var method in _equalityMembers(node)) {
+  for (var method in members) {
     var isEquals = method.name.lexeme == '==';
     var superOverrides = isEquals
         ? inheritsEquals(element)
@@ -228,11 +237,12 @@ List<VariableDeclaration> declaredFields(ClassDeclaration node) => [
 
 /// Returns the `==` operator and `hashCode` getter declared in [node], if they have
 /// a body.
-Iterable<MethodDeclaration> _equalityMembers(ClassDeclaration node) =>
-    node.body.members.whereType<MethodDeclaration>().where(
-      (member) =>
-          !member.isStatic &&
-          ((member.isOperator && member.name.lexeme == '==') ||
-              (member.isGetter && member.name.lexeme == 'hashCode')) &&
-          (member.body is BlockFunctionBody || member.body is ExpressionFunctionBody),
-    );
+List<MethodDeclaration> _equalityMembers(ClassDeclaration node) => [
+  for (var member in node.body.members)
+    if (member is MethodDeclaration &&
+        !member.isStatic &&
+        ((member.isOperator && member.name.lexeme == '==') ||
+            (member.isGetter && member.name.lexeme == 'hashCode')) &&
+        (member.body is BlockFunctionBody || member.body is ExpressionFunctionBody))
+      member,
+];

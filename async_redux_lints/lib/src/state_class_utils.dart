@@ -6,10 +6,13 @@ import 'redux_types.dart';
 
 /// Returns true if [element] is a state class: it's annotated with `@stateClass`, or
 /// extends, implements or mixes in a class or mixin annotated with `@stateClass`.
-bool isStateClass(InterfaceElement element) => [
-  element,
-  for (var type in element.allSupertypes) type.element,
-].any(hasStateClassAnnotation);
+///
+/// Several rules check every class, so the result is cached.
+bool isStateClass(InterfaceElement element) => _isStateClassCache[element] ??=
+    hasStateClassAnnotation(element) ||
+    element.allSupertypes.any((type) => hasStateClassAnnotation(type.element));
+
+final _isStateClassCache = Expando<bool>();
 
 /// Returns true if [element] extends `Equatable`, or mixes in `EquatableMixin`, of
 /// package `equatable`. The package is recognized by name, so neither `async_redux`

@@ -1,3 +1,5 @@
+// ignore_for_file: async_redux_lints/extend_base_action
+
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 import 'dart:async';
@@ -71,7 +73,7 @@ class _PlusButtonConnector extends StatelessWidget {
                 child: SizedBox(width: 25, height: 25, child: CircularProgressIndicator()))
             : FloatingActionButton(
                 disabledElevation: 0,
-                onPressed: () => context.dispatch(WaitAndIncrementAction()),
+                onPressed: () => dispatch(WaitAndIncrementAction()),
                 child: const Icon(Icons.add),
               );
       },
@@ -92,7 +94,7 @@ class _FailWithDialog_ButtonConnector extends StatelessWidget {
                 child: SizedBox(width: 25, height: 25, child: CircularProgressIndicator()))
             : FloatingActionButton(
                 disabledElevation: 0,
-                onPressed: () => context.dispatch(FailWithDialogAction()),
+                onPressed: () => dispatch(FailWithDialogAction()),
                 child: const Text('Fail with dialog', textAlign: TextAlign.center),
               );
       },
@@ -113,7 +115,7 @@ class _FailNoDialog_ButtonConnector extends StatelessWidget {
                 child: SizedBox(width: 25, height: 25, child: CircularProgressIndicator()))
             : FloatingActionButton(
                 disabledElevation: 0,
-                onPressed: () => context.dispatch(FailNoDialogAction()),
+                onPressed: () => dispatch(FailNoDialogAction()),
                 child: const Text('Fail no dialog', textAlign: TextAlign.center),
               );
       },

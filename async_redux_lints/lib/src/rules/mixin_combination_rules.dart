@@ -5,8 +5,9 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
+
+import '../mixin_utils.dart';
 
 /// The pairs of AsyncRedux mixins that can't be combined. This is the same as
 /// the `_incompatible` checks in `action_mixins.dart`, which throw an assertion
@@ -100,8 +101,7 @@ bool _isIncompatible(String mixin1, String mixin2) =>
 class IncompatibleMixinsRule extends AnalysisRule {
   static const LintCode code = LintCode(
     'incompatible_mixins',
-    "The '{0}' mixin{2} can't be combined with the '{1}' mixin{3}. "
-        "AsyncRedux throws an assertion error at runtime.",
+    "The '{0}' mixin{2} can't be combined with the '{1}' mixin{3}.",
     correctionMessage: "Try removing one of the mixins.",
     severity: DiagnosticSeverity.ERROR,
   );
@@ -216,13 +216,13 @@ class _MixinCombinationVisitor extends SimpleAstVisitor<void> {
   void _check(ClassElement? element, WithClause? withClause, Token className) {
     if (element == null) return;
 
-    var mixins = _asyncReduxMixins(element.allSupertypes);
+    var mixins = asyncReduxMixinsOf(element);
     if (mixins.length < 2) return;
 
     var superclass = element.supertype;
     var inherited = (superclass == null)
         ? const <String>{}
-        : _asyncReduxMixins([superclass, ...superclass.element.allSupertypes]);
+        : asyncReduxMixinsOfType(superclass);
 
     var mixinTypes = withClause?.mixinTypes ?? const <NamedType>[];
 
@@ -230,8 +230,8 @@ class _MixinCombinationVisitor extends SimpleAstVisitor<void> {
       if (inherited.contains(mixin1) && inherited.contains(mixin2)) continue;
 
       // Report on the mixin that comes last in the `with` clause.
-      var index1 = _indexInWithClause(mixin1, mixinTypes);
-      var index2 = _indexInWithClause(mixin2, mixinTypes);
+      var index1 = indexInWithClause(mixin1, mixinTypes);
+      var index2 = indexInWithClause(mixin2, mixinTypes);
       var index = (index1 > index2) ? index1 : index2;
       if (reportedFirst && index2 > index1) (mixin1, mixin2) = (mixin2, mixin1);
 
@@ -254,33 +254,4 @@ class _MixinCombinationVisitor extends SimpleAstVisitor<void> {
       }
     }
   }
-}
-
-/// Returns the names of the AsyncRedux mixins among [types].
-Set<String> _asyncReduxMixins(Iterable<InterfaceType> types) => {
-  for (var type in types)
-    if (_isAsyncReduxMixin(type.element)) type.element.name!,
-};
-
-bool _isAsyncReduxMixin(InterfaceElement element) =>
-    element is MixinElement &&
-    element.library.uri.toString().startsWith('package:async_redux/');
-
-/// Returns the index of the type in [mixinTypes] that adds the AsyncRedux [mixin],
-/// or -1 if none does. That's the [mixin] itself or, if missing, another mixin
-/// that has [mixin] as a supertype, like a mixin of your own.
-int _indexInWithClause(String mixin, List<NamedType> mixinTypes) {
-  var index = mixinTypes.indexWhere((type) {
-    var element = type.element;
-    return element is InterfaceElement &&
-        _isAsyncReduxMixin(element) &&
-        element.name == mixin;
-  });
-  if (index != -1) return index;
-
-  return mixinTypes.indexWhere((type) {
-    var element = type.element;
-    return element is InterfaceElement &&
-        _asyncReduxMixins(element.allSupertypes).contains(mixin);
-  });
 }

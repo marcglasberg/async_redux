@@ -4,6 +4,8 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 
+import 'names.dart';
+
 /// How a widget uses the store, through its `BuildContext`.
 enum StateAccess {
   /// `context.state`, or `context.getState<St>()`. Rebuilds on any state change.
@@ -133,6 +135,15 @@ bool isBuildContext(DartType? type) =>
 bool isFlutterState(InterfaceElement element) =>
     element.allSupertypes.any((type) => _isFlutterElement(type.element, 'State'));
 
+/// Returns true if [element] extends Flutter's `StatelessWidget`.
+bool isFlutterStatelessWidget(InterfaceElement element) => element.allSupertypes.any(
+  (type) => _isFlutterElement(type.element, 'StatelessWidget'),
+);
+
+/// Returns true if [element] extends Flutter's `Widget`.
+bool isFlutterWidget(InterfaceElement element) =>
+    element.allSupertypes.any((type) => _isFlutterElement(type.element, 'Widget'));
+
 bool _isFlutterElement(Element element, String name) =>
     element.name == name && _isFlutterLibrary(element.library);
 
@@ -148,6 +159,11 @@ bool isVm(Element? element) =>
 /// Returns true if [element] is a subclass of `Vm`, but not `Vm` itself.
 bool isVmSubclass(InterfaceElement element) =>
     !isVm(element) && element.allSupertypes.any((type) => isVm(type.element));
+
+/// Returns true if [element] extends the `VmFactory` class of package `async_redux`.
+bool isVmFactorySubclass(InterfaceElement element) => element.allSupertypes.any(
+  (type) => type.element.name == 'VmFactory' && isAsyncReduxLibrary(type.element.library),
+);
 
 /// Returns true if [node] is a closure that gets a `BuildContext`, like the
 /// `builder` of a `Builder` widget, but not a local function declaration.
@@ -280,16 +296,21 @@ bool _isItemBuilder(FunctionExpression closure) {
   return name == 'itemBuilder' || name == 'separatorBuilder';
 }
 
-final _callbackNamePattern = RegExp(r'^on[A-Z]');
-
 /// Returns the name of the callback, like `onPressed`, if [closure] is passed as a
 /// named argument that starts with `on`.
 String? _callbackName(FunctionExpression closure) {
   var parent = closure.parent;
-  return parent is NamedArgument && _callbackNamePattern.hasMatch(parent.name.lexeme)
+  return parent is NamedArgument && _isCallbackName(parent.name.lexeme)
       ? parent.name.lexeme
       : null;
 }
+
+/// Returns true if [name] is `on` followed by an uppercase letter, like `onPressed`.
+bool _isCallbackName(String name) =>
+    name.length > 2 &&
+    name.codeUnitAt(0) == 0x6F && // o
+    name.codeUnitAt(1) == 0x6E && // n
+    isUppercase(name.codeUnitAt(2));
 
 /// Methods and constructors of the Dart and Flutter SDKs, whose closures don't run
 /// immediately, or don't run while the widget builds.
@@ -311,6 +332,10 @@ const _deferringCallees = {
   'Timer.periodic',
   'Timer.run',
 };
+
+/// Returns true if [closure] is passed to a method or constructor of the Dart and
+/// Flutter SDKs that runs it later, like `Future.microtask` or `addPostFrameCallback`.
+bool runsLater(FunctionExpression closure) => _deferringCallee(closure) != null;
 
 /// Returns the name of the method or constructor, like `addPostFrameCallback`, if
 /// [closure] is passed to one that runs it later, or outside of `build`.
@@ -462,26 +487,69 @@ bool? isDebugCheckOn(MethodInvocation invocation) {
 
   // R select<R>(R Function(AppState state) selector) =>
   //     getSelect<AppState, R>(selector, debug: false);
+  var debugArgument = _debugArgumentCache[element];
+  if (debugArgument == null) {
+    debugArgument = _debugArgumentOf(element);
+    // Not cached when the declaration can't be parsed, which may be temporary.
+    if (debugArgument == null) return null;
+    _debugArgumentCache[element] = debugArgument;
+  }
+
+  var parameter = debugArgument.parameter;
+  if (parameter == null) return debugArgument.value;
+  var argument = _namedArgument(invocation.argumentList, parameter);
+  if (argument != null) return _booleanValue(argument);
+  return debugArgument.parameterDefault;
+}
+
+/// How a `BuildContext` extension method of the app, like `select`, passes `debug` to
+/// `getSelect` or `getEvent`.
+class _DebugArgument {
+  /// The value it passes, or null if it's not known, or it passes [parameter].
+  final bool? value;
+
+  /// The name of its own named parameter that it passes as `debug`, if any.
+  final String? parameter;
+
+  /// The default value of [parameter], or null if it's not known.
+  final bool? parameterDefault;
+
+  const _DebugArgument({this.value, this.parameter, this.parameterDefault});
+
+  static const unknown = _DebugArgument();
+}
+
+/// The [_DebugArgument] of each extension method. Finding it requires parsing the
+/// library of the extension, so it's done only once for each method. When the file
+/// of the extension changes, the analyzer creates new elements for its library, so
+/// the cached values of the old elements are not used anymore.
+final _debugArgumentCache = Expando<_DebugArgument>();
+
+/// Returns how [element], an extension method of the app, passes `debug` to
+/// `getSelect` or `getEvent`, or null if its declaration can't be parsed.
+_DebugArgument? _debugArgumentOf(ExecutableElement element) {
   var declaration = _parsedDeclaration(element);
-  if (declaration is! MethodDeclaration) return null;
+  if (declaration == null) return null;
+  if (declaration is! MethodDeclaration) return _DebugArgument.unknown;
   var finder = _GetSelectFinder();
   declaration.body.accept(finder);
   var getSelect = finder.invocations.singleOrNull;
-  if (getSelect == null) return null;
+  if (getSelect == null) return _DebugArgument.unknown;
 
   var debug = _namedArgument(getSelect.argumentList, 'debug');
-  if (debug == null) return true;
-  if (debug is! SimpleIdentifier) return _booleanValue(debug);
+  if (debug == null) return const _DebugArgument(value: true);
+  if (debug is! SimpleIdentifier) return _DebugArgument(value: _booleanValue(debug));
 
   // R select<R>(..., {bool debug = true}) => getSelect(..., debug: debug);
   var parameter = declaration.parameters?.parameters
       .where((parameter) => parameter.name?.lexeme == debug.name)
       .singleOrNull;
-  if (parameter == null || !parameter.isNamed) return null;
-  var argument = _namedArgument(invocation.argumentList, debug.name);
-  if (argument != null) return _booleanValue(argument);
+  if (parameter == null || !parameter.isNamed) return _DebugArgument.unknown;
   var defaultValue = parameter.defaultClause?.value;
-  return defaultValue == null ? null : _booleanValue(defaultValue);
+  return _DebugArgument(
+    parameter: debug.name,
+    parameterDefault: defaultValue == null ? null : _booleanValue(defaultValue),
+  );
 }
 
 Expression? _namedArgument(ArgumentList arguments, String name) => arguments.arguments

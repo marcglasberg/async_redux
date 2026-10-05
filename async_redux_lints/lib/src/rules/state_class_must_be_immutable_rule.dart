@@ -25,8 +25,8 @@ class StateClassMustBeImmutableRule extends AnalysisRule {
   static const LintCode code = LintCode(
     'state_class_must_be_immutable',
     "This class (or a class that this class inherits from) is marked as "
-        "'@stateClass', so all its fields must be final: {0}",
-    correctionMessage: "Make all fields final.",
+        "'@stateClass', so it must be immutable and all its fields must be final: {0}",
+    correctionMessage: "Try making all fields final.",
     severity: DiagnosticSeverity.WARNING,
   );
 
@@ -104,30 +104,36 @@ class _Visitor extends SimpleAstVisitor<void> {
 
   /// Returns whether the given class [element] or any superclass of it is
   /// annotated with `@stateClass`.
+  ///
+  /// [visiting] is used to stop at cycles, which only happen in invalid code.
+  ///
+  /// The result is cached for each element, including the supertypes, so that the
+  /// supertypes shared by many classes, like `StatelessWidget`, are only checked once.
+  /// When a file changes, the analyzer creates new elements for its library, so the
+  /// cached values of the old elements are not used anymore.
   static bool _isOrInheritsStateClass(
     InterfaceElement element,
-    Set<InterfaceElement> visited,
+    Set<InterfaceElement> visiting,
   ) {
-    if (visited.add(element)) {
-      if (hasStateClassAnnotation(element)) {
-        return true;
-      }
-      for (InterfaceType mixin in element.mixins) {
-        if (_isOrInheritsStateClass(mixin.element, visited)) {
-          return true;
-        }
-      }
-      for (InterfaceType interface in element.interfaces) {
-        if (_isOrInheritsStateClass(interface.element, visited)) {
-          return true;
-        }
-      }
-      if (element.supertype != null) {
-        return _isOrInheritsStateClass(element.supertype!.element, visited);
-      }
-    }
-    return false;
+    var cached = _isOrInheritsStateClassCache[element];
+    if (cached != null) return cached;
+    if (!visiting.add(element)) return false;
+
+    var result =
+        hasStateClassAnnotation(element) ||
+        element.mixins.any(
+          (InterfaceType mixin) => _isOrInheritsStateClass(mixin.element, visiting),
+        ) ||
+        element.interfaces.any(
+          (InterfaceType interface) =>
+              _isOrInheritsStateClass(interface.element, visiting),
+        ) ||
+        (element.supertype != null &&
+            _isOrInheritsStateClass(element.supertype!.element, visiting));
+    return _isOrInheritsStateClassCache[element] = result;
   }
+
+  static final _isOrInheritsStateClassCache = Expando<bool>();
 }
 
 extension on InterfaceElement {

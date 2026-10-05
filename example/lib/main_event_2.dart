@@ -1,3 +1,5 @@
+// ignore_for_file: async_redux_lints/extend_base_action
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -206,8 +208,7 @@ extension BuildContextExtension on BuildContext {
 
   AppState read() => getRead<AppState>();
 
-  R select<R>(R Function(AppState state) selector) =>
-      getSelect<AppState, R>(selector);
+  R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
 
   R? event<R>(Evt<R> Function(AppState state) selector) =>
       getEvent<AppState, R>(selector, debug: false);

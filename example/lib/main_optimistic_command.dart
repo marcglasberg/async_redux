@@ -42,6 +42,7 @@ late Store<AppState> store;
 void main() {
   store = Store<AppState>(
     initialState: AppState(isLiked: false),
+    // ignore: async_redux_lints/debug_observer_in_release
     actionObservers: [ConsoleActionObserver()],
   );
   runApp(const MyApp());
@@ -124,12 +125,14 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  // ignore: async_redux_lints/stream_or_timer_in_widget
   late Timer _timer;
 
   @override
   void initState() {
     super.initState();
     // Refresh the UI periodically to show the database state.
+    // ignore: async_redux_lints/stream_or_timer_in_widget
     _timer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       setState(() {});
     });

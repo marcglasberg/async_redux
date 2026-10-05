@@ -1,3 +1,5 @@
+// ignore_for_file: async_redux_lints/extend_base_action
+
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 
@@ -16,6 +18,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var store = Store<AppState>(initialState: AppState(counter: 0));
+    // ignore: async_redux_lints/stream_or_timer_in_widget
     store.onChange.listen(print);
 
     return MaterialApp(

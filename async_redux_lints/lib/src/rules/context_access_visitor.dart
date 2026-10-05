@@ -10,21 +10,32 @@ import '../widget_types.dart';
 ///
 /// The `BuildContext` extension that declares them, like
 /// `AppState get state => getState<AppState>();`, is skipped.
+///
+/// Prefixed identifiers, property accesses and method invocations are some of the
+/// most common nodes, so the rules that call this share a single visitor for each
+/// registry, which finds the use of the store once, and then calls the [check] of
+/// each rule. Errors thrown by any [check] are attributed to the first rule.
 void registerContextAccesses(
   AnalysisRule rule,
   RuleVisitorRegistry registry,
   void Function(Expression node, StateAccess access) check,
 ) {
-  var visitor = _Visitor(check);
-  registry.addPrefixedIdentifier(rule, visitor);
-  registry.addPropertyAccess(rule, visitor);
-  registry.addMethodInvocation(rule, visitor);
+  var visitor = _visitors[registry];
+  if (visitor == null) {
+    visitor = _visitors[registry] = _Visitor();
+    registry.addPrefixedIdentifier(rule, visitor);
+    registry.addPropertyAccess(rule, visitor);
+    registry.addMethodInvocation(rule, visitor);
+  }
+  visitor.checks.add(check);
 }
 
-class _Visitor extends SimpleAstVisitor<void> {
-  final void Function(Expression node, StateAccess access) check;
+/// The shared visitor of each registry. The plugin creates a new registry for each
+/// analysis of a library.
+final _visitors = Expando<_Visitor>();
 
-  _Visitor(this.check);
+class _Visitor extends SimpleAstVisitor<void> {
+  final checks = <void Function(Expression node, StateAccess access)>[];
 
   @override
   void visitPrefixedIdentifier(PrefixedIdentifier node) => _check(node);
@@ -40,6 +51,8 @@ class _Visitor extends SimpleAstVisitor<void> {
     if (access == null) return;
     var target = stateAccessTarget(node);
     if (target == null || target is ThisExpression) return;
-    check(node, access);
+    for (var check in checks) {
+      check(node, access);
+    }
   }
 }

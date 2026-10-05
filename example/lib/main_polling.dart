@@ -1,3 +1,5 @@
+// ignore_for_file: async_redux_lints/extend_base_action
+
 import 'dart:math';
 
 import 'package:async_redux/async_redux.dart';

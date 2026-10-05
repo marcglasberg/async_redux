@@ -93,7 +93,9 @@ class PropsFields {
 /// missing, or if [node] is not an Equatable state class.
 PropsFields? missingPropsFields(ClassDeclaration node) {
   var element = node.declaredFragment?.element;
-  if (element == null || !isStateClass(element) || !isEquatable(element)) return null;
+  // Few classes use Equatable, and checking it is faster than checking if the class
+  // is a state class.
+  if (element == null || !isEquatable(element) || !isStateClass(element)) return null;
   var declared = [for (var field in declaredFields(node)) field.name.lexeme];
   var superImplementsProps = inheritsGetter(element, 'props');
 

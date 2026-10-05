@@ -22,6 +22,9 @@ analyzer:
 plugins:
   async_redux_lints:
     path: async_redux_lints
+    diagnostics:
+      # Each test and example declares its own actions, extending ReduxAction directly.
+      extend_base_action: false
 
 # https://github.com/dart-lang/linter/blob/master/example/all.yaml
 linter:

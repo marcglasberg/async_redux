@@ -969,18 +969,15 @@ void main() {
   // ==========================================================================
 
   Bdd(feature)
-      .scenario(
-          'Polling mixin cannot be combined with UnlimitedRetryCheckInternet')
-      .given(
-          'An action that combines Polling and UnlimitedRetryCheckInternet mixins')
+      .scenario('Polling mixin cannot be combined with UnlimitedRetryCheckInternet')
+      .given('An action that combines Polling and UnlimitedRetryCheckInternet mixins')
       .when('The action is dispatched')
       .then('It should throw an AssertionError')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(0));
 
     expect(
-      () => store.dispatch(
-          PollingWithUnlimitedRetryCheckInternetAction(poll: Poll.once)),
+      () => store.dispatch(PollingWithUnlimitedRetryCheckInternetAction(poll: Poll.once)),
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
@@ -1002,8 +999,7 @@ void main() {
     var store = Store<AppState>(initialState: AppState(0));
 
     expect(
-      () =>
-          store.dispatch(PollingWithOptimisticCommandAction(poll: Poll.once)),
+      () => store.dispatch(PollingWithOptimisticCommandAction(poll: Poll.once)),
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
@@ -1039,18 +1035,15 @@ void main() {
   // ==========================================================================
 
   Bdd(feature)
-      .scenario(
-          'Polling mixin cannot be combined with OptimisticSyncWithPush')
-      .given(
-          'An action that combines Polling and OptimisticSyncWithPush mixins')
+      .scenario('Polling mixin cannot be combined with OptimisticSyncWithPush')
+      .given('An action that combines Polling and OptimisticSyncWithPush mixins')
       .when('The action is dispatched')
       .then('It should throw an AssertionError')
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(0));
 
     expect(
-      () => store.dispatch(
-          PollingWithOptimisticSyncWithPushAction(poll: Poll.once)),
+      () => store.dispatch(PollingWithOptimisticSyncWithPushAction(poll: Poll.once)),
       throwsA(isA<AssertionError>().having(
         (e) => e.message,
         'message',
@@ -1344,8 +1337,7 @@ void main() {
       TrackedPollAction.failure = PollFailure.userException;
       var store = Store<AppState>(initialState: AppState(0));
 
-      store.dispatch(
-          TrackedPollAction(poll: Poll.start, pollWaitsForRun: false));
+      store.dispatch(TrackedPollAction(poll: Poll.start, pollWaitsForRun: false));
 
       // Runs start at 0, 100, 200, 300... and all of them fail.
       fake.elapse(const Duration(milliseconds: 350));
@@ -1353,8 +1345,7 @@ void main() {
       expect(TrackedPollAction.errorCount, 4);
       expect(store.state.count, 0);
 
-      store.dispatch(
-          TrackedPollAction(poll: Poll.stop, pollWaitsForRun: false));
+      store.dispatch(TrackedPollAction(poll: Poll.stop, pollWaitsForRun: false));
       fake.elapse(const Duration(seconds: 1));
     });
   });
@@ -1446,16 +1437,15 @@ void main() {
       var store = Store<AppState>(initialState: AppState(0));
 
       // The interval is 100ms, and each run takes 50ms.
-      store.dispatch(
-          TrackedPollAction(poll: Poll.start, pollWaitsForRun: false));
+      store.dispatch(TrackedPollAction(poll: Poll.start, pollWaitsForRun: false));
 
       // Runs start at 0ms and 100ms. The tick at 200ms gets cancelled below.
       fake.elapse(const Duration(milliseconds: 150));
       expect(TrackedPollAction.runsStarted, 2);
 
       // Restarts at 150ms: runs now, and then ticks at 250, 350, 450...
-      store.dispatch(TrackedPollAction(
-          poll: Poll.runNowAndRestart, pollWaitsForRun: false));
+      store.dispatch(
+          TrackedPollAction(poll: Poll.runNowAndRestart, pollWaitsForRun: false));
       fake.elapse(Duration.zero);
       expect(TrackedPollAction.runsStarted, 3);
 
@@ -1465,8 +1455,7 @@ void main() {
       fake.elapse(const Duration(milliseconds: 350)); // 500ms
       expect(TrackedPollAction.runsStarted, 6);
 
-      store.dispatch(
-          TrackedPollAction(poll: Poll.stop, pollWaitsForRun: false));
+      store.dispatch(TrackedPollAction(poll: Poll.stop, pollWaitsForRun: false));
       fake.elapse(const Duration(seconds: 1));
     });
   });
@@ -2084,8 +2073,7 @@ void main() {
 
   group('Polling with widgets', () {
     //
-    testWidgets('A StoreConnector rebuilds on each polling tick',
-        (tester) async {
+    testWidgets('A StoreConnector rebuilds on each polling tick', (tester) async {
       var store = Store<AppState>(initialState: AppState(0));
 
       await tester.pumpWidget(_CountApp(store: store));
@@ -2109,8 +2097,7 @@ void main() {
       expect(find.text('Count: 3'), findsOneWidget);
     });
 
-    testWidgets('A StoreConnector shows the waiting state of each tick',
-        (tester) async {
+    testWidgets('A StoreConnector shows the waiting state of each tick', (tester) async {
       TrackedPollAction.reset();
       var store = Store<AppState>(initialState: AppState(0));
 
@@ -2240,9 +2227,11 @@ class RealClockPollAction extends ReduxAction<AppState> with Polling {
 
 /// Note `Throttle` reads the real wall clock, so this is tested without
 /// `fakeAsync`.
-class RealClockThrottledPollAction extends ReduxAction<AppState>
-    // ignore: async_redux_lints/polling_with_caveat_mixin
-    with Throttle, Polling {
+class RealClockThrottledPollAction
+    extends ReduxAction<AppState> // ignore: async_redux_lints/polling_with_caveat_mixin
+    with
+        Throttle,
+        Polling {
   @override
   final Poll poll;
 
@@ -2339,16 +2328,17 @@ class InternetControllerAction extends ReduxAction<AppState> with Polling {
   AppState? reduce() => null;
 }
 
-class OfflineAwareWorker extends ReduxAction<AppState>
-    with AbortWhenNoInternet {
+class OfflineAwareWorker extends ReduxAction<AppState> with AbortWhenNoInternet {
   @override
   AppState reduce() => state.copy(count: state.count + 1);
 }
 
 /// The controller itself checks the internet, which is the problematic setup.
-class CheckInternetPollAction extends ReduxAction<AppState>
-    // ignore: async_redux_lints/polling_with_caveat_mixin
-    with CheckInternet, Polling {
+class CheckInternetPollAction
+    extends ReduxAction<AppState> // ignore: async_redux_lints/polling_with_caveat_mixin
+    with
+        CheckInternet,
+        Polling {
   @override
   final Poll poll;
 
@@ -2565,9 +2555,11 @@ class SimpleWorkerAction extends ReduxAction<AppState> {
   AppState reduce() => state.copy(count: state.count + 1);
 }
 
-class NonReentrantPollAction extends ReduxAction<AppState>
-    // ignore: async_redux_lints/polling_with_caveat_mixin
-    with NonReentrant, Polling {
+class NonReentrantPollAction
+    extends ReduxAction<AppState> // ignore: async_redux_lints/polling_with_caveat_mixin
+    with
+        NonReentrant,
+        Polling {
   @override
   final Poll poll;
 
@@ -2577,8 +2569,7 @@ class NonReentrantPollAction extends ReduxAction<AppState>
   Duration get pollInterval => const Duration(milliseconds: 100);
 
   @override
-  ReduxAction<AppState> createPollingAction() =>
-      NonReentrantPollAction(poll: Poll.once);
+  ReduxAction<AppState> createPollingAction() => NonReentrantPollAction(poll: Poll.once);
 
   @override
   Future<AppState?> reduce() async {
@@ -2609,8 +2600,7 @@ class ZeroIntervalPollAction extends ReduxAction<AppState> with Polling {
   Duration get pollInterval => Duration.zero;
 
   @override
-  ReduxAction<AppState> createPollingAction() =>
-      ZeroIntervalPollAction(poll: Poll.once);
+  ReduxAction<AppState> createPollingAction() => ZeroIntervalPollAction(poll: Poll.once);
 
   @override
   Future<AppState?> reduce() async {
@@ -2698,8 +2688,7 @@ class SimplePollAction extends ReduxAction<AppState> with Polling {
   Duration get pollInterval => const Duration(milliseconds: 100);
 
   @override
-  ReduxAction<AppState> createPollingAction() =>
-      SimplePollAction(poll: Poll.once);
+  ReduxAction<AppState> createPollingAction() => SimplePollAction(poll: Poll.once);
 
   @override
   AppState reduce() => state.copy(count: state.count + 1);
@@ -2759,8 +2748,7 @@ class ParamPollAction extends ReduxAction<AppState> with Polling {
   Object? pollingKeyParams() => param;
 
   @override
-  ReduxAction<AppState> createPollingAction() =>
-      ParamPollAction(param, poll: Poll.once);
+  ReduxAction<AppState> createPollingAction() => ParamPollAction(param, poll: Poll.once);
 
   @override
   AppState reduce() => state.copy(count: state.count + 1);
@@ -2809,8 +2797,7 @@ class SharedKeyActionA extends ReduxAction<AppState> with Polling {
   Object computePollingKey() => 'shared-timer';
 
   @override
-  ReduxAction<AppState> createPollingAction() =>
-      SharedKeyActionA(poll: Poll.once);
+  ReduxAction<AppState> createPollingAction() => SharedKeyActionA(poll: Poll.once);
 
   @override
   AppState reduce() => state.copy(count: state.count + 1);
@@ -2829,8 +2816,7 @@ class SharedKeyActionB extends ReduxAction<AppState> with Polling {
   Object computePollingKey() => 'shared-timer';
 
   @override
-  ReduxAction<AppState> createPollingAction() =>
-      SharedKeyActionB(poll: Poll.once);
+  ReduxAction<AppState> createPollingAction() => SharedKeyActionB(poll: Poll.once);
 
   @override
   AppState reduce() => state.copy(count: state.count + 1);
@@ -2900,8 +2886,7 @@ class PollingWithRetryAction extends ReduxAction<AppState>
   Duration get pollInterval => const Duration(milliseconds: 100);
 
   @override
-  ReduxAction<AppState> createPollingAction() =>
-      PollingWithRetryAction(poll: Poll.once);
+  ReduxAction<AppState> createPollingAction() => PollingWithRetryAction(poll: Poll.once);
 
   @override
   AppState reduce() => state.copy(count: state.count + 1);
@@ -2953,8 +2938,7 @@ class PollingWithDebounceAction extends ReduxAction<AppState>
 }
 
 // Action that combines Polling with UnlimitedRetryCheckInternet (incompatible)
-class PollingWithUnlimitedRetryCheckInternetAction
-    extends ReduxAction<AppState>
+class PollingWithUnlimitedRetryCheckInternetAction extends ReduxAction<AppState>
     with
         UnlimitedRetryCheckInternet,
         // ignore: private_collision_in_mixin_application, async_redux_lints/incompatible_mixins
@@ -3034,12 +3018,10 @@ class PollingWithOptimisticSyncAction extends ReduxAction<AppState>
   int valueToApply() => 0;
 
   @override
-  AppState applyOptimisticValueToState(AppState state, int optimisticValue) =>
-      state;
+  AppState applyOptimisticValueToState(AppState state, int optimisticValue) => state;
 
   @override
-  AppState? applyServerResponseToState(AppState state, Object serverResponse) =>
-      null;
+  AppState? applyServerResponseToState(AppState state, Object serverResponse) => null;
 
   @override
   int getValueFromState(AppState state) => state.count;
@@ -3076,12 +3058,10 @@ class PollingWithOptimisticSyncWithPushAction extends ReduxAction<AppState>
   int valueToApply() => 0;
 
   @override
-  AppState applyOptimisticValueToState(AppState state, int optimisticValue) =>
-      state;
+  AppState applyOptimisticValueToState(AppState state, int optimisticValue) => state;
 
   @override
-  AppState? applyServerResponseToState(AppState state, Object serverResponse) =>
-      null;
+  AppState? applyServerResponseToState(AppState state, Object serverResponse) => null;
 
   @override
   int getValueFromState(AppState state) => state.count;
@@ -3126,12 +3106,10 @@ class PollingWithServerPushAction extends ReduxAction<AppState>
   Type associatedAction() => SimplePollAction;
 
   @override
-  PushMetadata pushMetadata() =>
-      (serverRevision: 1, localRevision: 1, deviceId: 1);
+  PushMetadata pushMetadata() => (serverRevision: 1, localRevision: 1, deviceId: 1);
 
   @override
-  AppState? applyServerPushToState(
-          AppState state, Object? key, int serverRevision) =>
+  AppState? applyServerPushToState(AppState state, Object? key, int serverRevision) =>
       null;
 
   @override

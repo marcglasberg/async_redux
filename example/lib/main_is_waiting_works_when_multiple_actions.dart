@@ -1,3 +1,5 @@
+// ignore_for_file: async_redux_lints/extend_base_action
+
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter/material.dart';
 
@@ -40,6 +42,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var store = Store<AppState>(initialState: AppState(counter: 0));
+    // ignore: async_redux_lints/stream_or_timer_in_widget
     store.onChange.listen(print);
 
     return MaterialApp(
@@ -174,8 +177,7 @@ extension BuildContextExtension on BuildContext {
 
   AppState read() => getRead<AppState>();
 
-  R select<R>(R Function(AppState state) selector) =>
-      getSelect<AppState, R>(selector);
+  R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
 
   R? event<R>(Evt<R> Function(AppState state) selector) =>
       getEvent<AppState, R>(selector);

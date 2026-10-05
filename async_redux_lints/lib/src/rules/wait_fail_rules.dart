@@ -23,7 +23,7 @@ import '../redux_types.dart';
 class WaitFailInvalidArgumentRule extends AnalysisRule {
   static const LintCode code = LintCode(
     'wait_fail_invalid_argument',
-    "'{0}' accepts only {1}, not '{2}'. AsyncRedux throws a StoreException at runtime.",
+    "'{0}' accepts only {1}, not '{2}'.",
     correctionMessage: "Try passing an action type instead.",
     severity: DiagnosticSeverity.ERROR,
   );

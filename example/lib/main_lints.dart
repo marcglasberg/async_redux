@@ -92,23 +92,30 @@ extension BuildContextExtension on BuildContext {
       getEvent<AppState, R>(selector);
 }
 
+/// The app's dependencies, which the store keeps in 'store.dependencies'.
+class Dependencies {
+  String get apiUrl => 'https://example.com';
+}
+
+/// The base action that all actions extend.
+abstract class AppAction extends ReduxAction<AppState> {
+  Dependencies get dependencies => store.dependencies as Dependencies;
+}
+
 /// A sync action.
-class Increment extends ReduxAction<AppState> {
+class Increment extends AppAction {
   @override
   AppState reduce() => state.copy(counter: state.counter + 1);
 }
 
 /// An async action.
-class LoadUser extends ReduxAction<AppState> {
+class LoadUser extends AppAction {
   @override
   Future<AppState?> reduce() async {
     var name = await fetchName();
     return state.copy(name: name);
   }
 }
-
-/// An abstract base action.
-abstract class AppAction extends ReduxAction<AppState> {}
 
 Future<String> fetchName() async => 'Mary';
 
@@ -120,20 +127,20 @@ void describe(Object? value) => print(value);
 // reduce_return_type (error)
 // =====================================================================================
 
-class ReduceReturnsFutureOr extends ReduxAction<AppState> {
+class ReduceReturnsFutureOr extends AppAction {
   // Error: reduce_return_type. FutureOr<AppState?>.
   // Quick fixes: change to 'AppState?', or to 'Future<AppState?>'.
   @override
   FutureOr<AppState?> reduce() => null;
 }
 
-class ReduceReturnsNullableFuture extends ReduxAction<AppState> {
+class ReduceReturnsNullableFuture extends AppAction {
   // Error: reduce_return_type. Future<AppState?>?.
   @override
   Future<AppState?>? reduce() => null;
 }
 
-class ReduceWithoutReturnType extends ReduxAction<AppState> {
+class ReduceWithoutReturnType extends AppAction {
   // Error: reduce_return_type. No return type, which Dart infers as FutureOr.
   @override
   reduce() async => null;
@@ -143,7 +150,7 @@ class ReduceWithoutReturnType extends ReduxAction<AppState> {
 // before_return_type (error)
 // =====================================================================================
 
-class BeforeReturnsFutureOr extends ReduxAction<AppState> {
+class BeforeReturnsFutureOr extends AppAction {
   // Error: before_return_type. FutureOr<void>.
   // Quick fixes: change to 'void', or to 'Future<void>'.
   @override
@@ -153,7 +160,7 @@ class BeforeReturnsFutureOr extends ReduxAction<AppState> {
   AppState? reduce() => null;
 }
 
-class BeforeWithoutReturnType extends ReduxAction<AppState> {
+class BeforeWithoutReturnType extends AppAction {
   // Error: before_return_type. No return type.
   @override
   before() async {}
@@ -166,7 +173,7 @@ class BeforeWithoutReturnType extends ReduxAction<AppState> {
 // wrap_reduce_return_type (error)
 // =====================================================================================
 
-class WrapReduceReturnsState extends ReduxAction<AppState> {
+class WrapReduceReturnsState extends AppAction {
   // Error: wrap_reduce_return_type. Returns 'AppState?', which throws at runtime.
   // Quick fix: change to 'Future<AppState?>'.
   @override
@@ -176,7 +183,7 @@ class WrapReduceReturnsState extends ReduxAction<AppState> {
   AppState? reduce() => null;
 }
 
-class WrapReduceReturnsFutureOr extends ReduxAction<AppState> {
+class WrapReduceReturnsFutureOr extends AppAction {
   // Error: wrap_reduce_return_type. Returns 'FutureOr<AppState?>', so AsyncRedux never
   // calls it.
   @override
@@ -192,18 +199,18 @@ class WrapReduceReturnsFutureOr extends ReduxAction<AppState> {
 // (only when it has no 'await' at all).
 // =====================================================================================
 
-class ReturnsBeforeAwait extends ReduxAction<AppState> {
+class ReturnsBeforeAwait extends AppAction {
   @override
   Future<AppState?> reduce() async {
     if (state.counter == 0) return null; // OK: returns null.
     // Error: reduce_without_await. A non-null value, before any await.
-    if (state.counter > 10) return state;
+    if (state.counter > 10) return state.copy(counter: 0);
     var name = await fetchName();
     return state.copy(name: name); // OK: after an await.
   }
 }
 
-class ReturnsFutureWithoutAwait extends ReduxAction<AppState> {
+class ReturnsFutureWithoutAwait extends AppAction {
   @override
   Future<AppState?> reduce() async {
     // Error: reduce_without_await. Returns a Future without awaiting it.
@@ -211,7 +218,7 @@ class ReturnsFutureWithoutAwait extends ReduxAction<AppState> {
   }
 }
 
-class AwaitOnlyInLoop extends ReduxAction<AppState> {
+class AwaitOnlyInLoop extends AppAction {
   @override
   Future<AppState?> reduce() async {
     var name = '';
@@ -223,7 +230,7 @@ class AwaitOnlyInLoop extends ReduxAction<AppState> {
   }
 }
 
-class AwaitInOneBranch extends ReduxAction<AppState> {
+class AwaitInOneBranch extends AppAction {
   @override
   Future<AppState?> reduce() async {
     var name = state.name;
@@ -233,7 +240,7 @@ class AwaitInOneBranch extends ReduxAction<AppState> {
   }
 }
 
-class AwaitAfterOr extends ReduxAction<AppState> {
+class AwaitAfterOr extends AppAction {
   @override
   Future<AppState?> reduce() async {
     var ok = state.counter > 0 || (await fetchName()).isNotEmpty;
@@ -242,7 +249,7 @@ class AwaitAfterOr extends ReduxAction<AppState> {
   }
 }
 
-class AwaitInsideTry extends ReduxAction<AppState> {
+class AwaitInsideTry extends AppAction {
   @override
   Future<AppState?> reduce() async {
     var name = '';
@@ -259,13 +266,13 @@ class AwaitInsideTry extends ReduxAction<AppState> {
 // Quick fixes: replace with 'dispatch', or with 'dispatchAndWait'.
 // =====================================================================================
 
-class LoadUserWithCheckInternet extends ReduxAction<AppState>
+class LoadUserWithCheckInternet extends AppAction
     with CheckInternet<AppState> {
   @override
   AppState? reduce() => null;
 }
 
-class AsyncWrapReduce extends ReduxAction<AppState> {
+class AsyncWrapReduce extends AppAction {
   @override
   Future<AppState?> wrapReduce(Reducer<AppState> reduce) async => reduce();
 
@@ -295,14 +302,13 @@ void dispatchSyncDemo(Store<AppState> store) {
 // =====================================================================================
 
 // Error: incompatible_mixins. On 'Throttle': can't be combined with 'NonReentrant'.
-class NonReentrantAndThrottle extends ReduxAction<AppState>
+class NonReentrantAndThrottle extends AppAction
     with NonReentrant<AppState>, Throttle<AppState> {
   @override
   AppState? reduce() => null;
 }
 
-abstract class NonReentrantBase extends ReduxAction<AppState>
-    with NonReentrant<AppState> {}
+abstract class NonReentrantBase extends AppAction with NonReentrant<AppState> {}
 
 // Error: incompatible_mixins. A mixin inherited from the base action counts too.
 class InheritedNonReentrantAndFresh extends NonReentrantBase with Fresh<AppState> {
@@ -314,7 +320,7 @@ class InheritedNonReentrantAndFresh extends NonReentrantBase with Fresh<AppState
 // polling_with_caveat_mixin (error)
 // =====================================================================================
 
-class PollWithSequential extends ReduxAction<AppState>
+class PollWithSequential extends AppAction
     // Error: polling_with_caveat_mixin. 'Sequential' goes in the polling action.
     with
         Polling<AppState>,
@@ -331,7 +337,7 @@ class PollWithSequential extends ReduxAction<AppState>
   AppState? reduce() => null;
 }
 
-class PollWithCheckInternet extends ReduxAction<AppState>
+class PollWithCheckInternet extends AppAction
     // Error: polling_with_caveat_mixin. 'CheckInternet' goes in the polling action.
     with
         Polling<AppState>,
@@ -539,7 +545,7 @@ class _LifecycleDemoState extends State<LifecycleDemo> {
     describe(context.select((st) => st.counter));
 
     describe(context.read().counter); // OK.
-    context.dispatch(LoadUser()); // OK.
+    dispatch(LoadUser()); // OK.
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Info: avoid_context_state. In a closure that runs later.
@@ -611,7 +617,7 @@ class _LifecycleDemoState extends State<LifecycleDemo> {
     // Error: select_outside_build. No quick fix, since 'context.read()' throws too.
     describe(context.select((st) => st.counter));
 
-    context.dispatch(Increment()); // OK: dispatching works in 'dispose'.
+    dispatch(Increment()); // OK: dispatching works in 'dispose'.
     super.dispose();
   }
 
@@ -972,4 +978,347 @@ class EquatableWithoutProps extends EquatableState {
     required super.name,
     required this.loading,
   });
+}
+
+// =====================================================================================
+// extend_base_action (info)
+// Quick fix: extend 'AppAction' instead.
+// =====================================================================================
+
+// Info: extend_base_action. Extends 'ReduxAction<AppState>' instead of 'AppAction'.
+class ExtendsReduxAction extends ReduxAction<AppState> {
+  @override
+  AppState? reduce() => null;
+}
+
+// OK: an action with a generic state can't extend the app's base action.
+class GenericAction<St> extends ReduxAction<St> {
+  @override
+  St? reduce() => null;
+}
+
+// =====================================================================================
+// dependencies_cast_in_action (info)
+// =====================================================================================
+
+class CastsDependencies extends AppAction {
+  @override
+  AppState? reduce() {
+    // Info: dependencies_cast_in_action. Use the 'dependencies' getter of 'AppAction'.
+    var deps = store.dependencies as Dependencies;
+    describe(deps.apiUrl);
+
+    describe(dependencies.apiUrl); // OK
+    return null;
+  }
+}
+
+// =====================================================================================
+// prefer_return_null (info)
+// Quick fix: return 'null'.
+// =====================================================================================
+
+class ReturnsUnchangedState extends AppAction {
+  @override
+  AppState? reduce() {
+    // Info: prefer_return_null. Returning 'null' means the state didn't change.
+    if (state.counter == 0) return state;
+    return state.copy(counter: 0);
+  }
+}
+
+// =====================================================================================
+// stale_state_after_await (warning)
+// Quick fix: use 'state' instead.
+// =====================================================================================
+
+class UsesStaleState extends AppAction {
+  @override
+  Future<AppState?> reduce() async {
+    var oldState = state;
+    var name = await fetchName();
+    // Warning: stale_state_after_await. Other actions may have changed the state
+    // during the 'await', and these changes would be lost.
+    return oldState.copy(name: name);
+  }
+}
+
+class ReadsStateAgain extends AppAction {
+  @override
+  Future<AppState?> reduce() async {
+    var name = await fetchName();
+    var newState = state; // OK: read after the 'await'.
+    return newState.copy(name: name);
+  }
+}
+
+// =====================================================================================
+// after_throws (warning)
+// =====================================================================================
+
+class ThrowsInAfter extends AppAction {
+  @override
+  AppState? reduce() => null;
+
+  @override
+  void after() {
+    // Warning: after_throws. The error would only show up in the console.
+    if (state.counter < 0) throw Exception('Negative counter');
+
+    try {
+      throw Exception('Caught'); // OK: caught below.
+    } catch (error) {
+      describe(error);
+    }
+  }
+}
+
+// =====================================================================================
+// missing_super_in_mixin_override (error)
+// =====================================================================================
+
+class OverridesNonReentrant extends AppAction with NonReentrant<AppState> {
+  // Error: missing_super_in_mixin_override. 'NonReentrant' doesn't work without
+  // 'super.abortDispatch()'.
+  @override
+  bool abortDispatch() => state.counter > 10;
+
+  @override
+  AppState? reduce() => null;
+}
+
+class CallsSuperAbortDispatch extends AppAction with NonReentrant<AppState> {
+  @override
+  bool abortDispatch() {
+    if (super.abortDispatch()) return true; // OK: calls super.
+    return state.counter > 10;
+  }
+
+  @override
+  AppState? reduce() => null;
+}
+
+// =====================================================================================
+// retry_without_non_reentrant (info)
+// Quick fix: add the 'NonReentrant' mixin.
+// =====================================================================================
+
+// Info: retry_without_non_reentrant. A new dispatch could run while this one retries.
+class RetryWithoutNonReentrant extends AppAction with Retry<AppState> {
+  @override
+  Future<AppState?> reduce() async => state.copy(name: await fetchName());
+}
+
+class RetryWithNonReentrant extends AppAction
+    with Retry<AppState>, NonReentrant<AppState> {
+  @override
+  Future<AppState?> reduce() async => state.copy(name: await fetchName()); // OK
+}
+
+// =====================================================================================
+// dispatch_and_wait_unlimited_retries (warning)
+// =====================================================================================
+
+class RetryForever extends AppAction
+    with Retry<AppState>, UnlimitedRetries<AppState>, NonReentrant<AppState> {
+  @override
+  Future<AppState?> reduce() async => state.copy(name: await fetchName());
+}
+
+Future<void> waitsForRetryForever(Store<AppState> store) async {
+  // Warning: dispatch_and_wait_unlimited_retries. It may never complete.
+  await store.dispatchAndWait(RetryForever());
+
+  store.dispatch(RetryForever()); // OK: doesn't wait.
+}
+
+// =====================================================================================
+// sequential_deadlock (error)
+// Quick fix: use 'dispatch' instead, without waiting.
+// =====================================================================================
+
+class SequentialChild extends AppAction with Sequential<AppState> {
+  @override
+  AppState? reduce() => null;
+}
+
+class SequentialParent extends AppAction with Sequential<AppState> {
+  @override
+  Future<AppState?> reduce() async {
+    // Error: sequential_deadlock. 'SequentialChild' only runs after this action ends.
+    await dispatchAndWait(SequentialChild());
+
+    dispatch(SequentialChild()); // OK: runs after this action ends.
+    return null;
+  }
+}
+
+// =====================================================================================
+// sequential_before_super_not_first (error),
+// sequential_after_super_not_in_finally (info)
+// =====================================================================================
+
+class SequentialWithBeforeAndAfter extends AppAction with Sequential<AppState> {
+  // Error: sequential_before_super_not_first. 'describe' runs before the action's turn.
+  @override
+  Future<void> before() async {
+    describe('dispatched');
+    await super.before();
+  }
+
+  @override
+  void after() {
+    describe('finished');
+    // Info: sequential_after_super_not_in_finally. Not called if 'describe' throws.
+    super.after();
+  }
+
+  @override
+  AppState? reduce() => null;
+}
+
+class SequentialWithBeforeAndAfterOk extends AppAction with Sequential<AppState> {
+  @override
+  Future<void> before() async {
+    await super.before(); // OK: the first statement.
+    describe('my turn');
+  }
+
+  @override
+  void after() {
+    try {
+      describe('finished');
+    } finally {
+      super.after(); // OK: in a 'finally' block.
+    }
+  }
+
+  @override
+  AppState? reduce() => null;
+}
+
+// =====================================================================================
+// polling_action_restarts_polling (warning)
+// Quick fix: use 'Poll.once'.
+// =====================================================================================
+
+class PollPrices extends AppAction with Polling<AppState> {
+  @override
+  final Poll poll;
+
+  PollPrices({this.poll = Poll.once});
+
+  // Warning: polling_action_restarts_polling. Each tick would restart the timer.
+  @override
+  ReduxAction<AppState> createPollingAction() => PollPrices(poll: Poll.runNowAndRestart);
+
+  @override
+  AppState? reduce() => null;
+}
+
+// =====================================================================================
+// server_push_associated_action (error)
+// =====================================================================================
+
+class PushName extends AppAction with ServerPush<AppState> {
+  // Error: server_push_associated_action. 'LoadUser' doesn't use
+  // 'OptimisticSyncWithPush'.
+  @override
+  Type associatedAction() => LoadUser;
+
+  @override
+  PushMetadata pushMetadata() => (serverRevision: 1, localRevision: 0, deviceId: 0);
+
+  @override
+  int getServerRevisionFromState(Object? key) => 0;
+
+  @override
+  AppState? applyServerPushToState(AppState state, Object? key, int serverRevision) =>
+      null;
+}
+
+// =====================================================================================
+// internet_simulation_in_production (warning)
+// =====================================================================================
+
+class LoadWhenOnline extends AppAction with CheckInternet<AppState> {
+  // Warning: internet_simulation_in_production. Ignores the real connection.
+  @override
+  bool? get internetOnOffSimulation => false;
+
+  @override
+  AppState? reduce() => null;
+}
+
+// =====================================================================================
+// prefer_dispatch_without_context (info). The opposite of the opt-in
+// prefer_dispatch_with_context.
+// =====================================================================================
+
+class DispatchDemo extends StatelessWidget {
+  const DispatchDemo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      // Info: prefer_dispatch_without_context. Quick fix: remove 'context.'.
+      ElevatedButton(
+        onPressed: () => context.dispatch(Increment()),
+        child: const Text('Increment'),
+      ),
+      ElevatedButton(
+        onPressed: () => dispatch(Increment()), // OK.
+        child: const Text('Increment'),
+      ),
+    ]);
+  }
+}
+
+// =====================================================================================
+// Opt-in rules. They are off in this example, so these diagnostics don't show. To see
+// them, turn them on in the example's analysis_options.yaml.
+// =====================================================================================
+
+// Action names. Turn on one of these:
+//
+// - action_name_ends_with_action: a warning on 'LoadUser', which should be
+//   'LoadUserAction'.
+// - action_name_ends_with_underscore_action: a warning on 'LoadUser', which should be
+//   'LoadUser_Action'.
+// - action_name_without_action: a warning on 'ExtendsReduxAction', which shouldn't
+//   end with 'Action'.
+//
+// Quick fix: rename the action, in all files of the package.
+
+// Dispatching with the context. Turn on prefer_dispatch_with_context, and turn off
+// prefer_dispatch_without_context, for an info on each 'dispatch(...)' in a widget,
+// like the second button of 'DispatchDemo'. Quick fix: add 'context.'.
+
+// Action file names. Turn on one of these:
+//
+// - action_file_name_ends_with_action: a warning on 'Increment', the first action of
+//   this file, since 'main_lints.dart' doesn't end with '_action'.
+// - action_file_name_starts_with_action: the same, since 'main_lints.dart' doesn't
+//   start with 'ACTION_'.
+//
+// No quick fix. Rename the file with the IDE, which also updates the imports.
+
+// Power features. Turn on these to make each use deliberate, with an '// ignore':
+//
+// - avoid_abort_dispatch: an info on 'abortDispatch' in 'OverridesNonReentrant' and
+//   'CallsSuperAbortDispatch'.
+// - avoid_wrap_reduce: an info on 'wrapReduce' in the wrap_reduce_return_type and
+//   dispatch_sync_async_action examples.
+
+// Mixin keys. Turn on missing_key_params for an info on 'NonReentrant' in
+// 'LoadUserCart', which has a field but doesn't override 'nonReentrantKeyParams'. So
+// 'LoadUserCart('A')' blocks 'LoadUserCart('B')'.
+
+class LoadUserCart extends AppAction with NonReentrant<AppState> {
+  final String userId;
+
+  LoadUserCart(this.userId);
+
+  @override
+  AppState? reduce() => null;
 }
