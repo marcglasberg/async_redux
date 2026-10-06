@@ -7,7 +7,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 29.1.0
+## 29.2.0
 
 * New package [async_redux_lints](https://pub.dev/packages/async_redux_lints): an
   analyzer plugin that helps AI agents develop with AsyncRedux and also reports, while
