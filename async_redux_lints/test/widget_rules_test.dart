@@ -14,7 +14,6 @@ void main() {
     defineReflectiveTests(RefreshIndicatorWithoutWaitTest);
     defineReflectiveTests(ThenOnDispatchAndWaitTest);
     defineReflectiveTests(ThenOnDispatchAndWaitStoreTest);
-    defineReflectiveTests(StreamOrTimerInWidgetTest);
   });
 }
 
@@ -607,110 +606,5 @@ class OtherAction extends ReduxAction<AppState> {
       lintAt(code, 'then((_)', length: 4),
       lintAt(code, 'then((_)', occurrence: 2, length: 4),
     ]);
-  }
-}
-
-@reflectiveTest
-class StreamOrTimerInWidgetTest extends _WidgetRuleTest {
-  @override
-  void setUp() {
-    rule = StreamOrTimerInWidgetRule();
-    super.setUp();
-  }
-
-  Future<void> test_widgetFieldAndParameter() async {
-    var code = '''$_header
-class W extends StatelessWidget {
-  final Stream<int> stream;
-  W(this.stream, {Timer? timer});
-
-  @override
-  Widget build(BuildContext context) => const SizedBox();
-}
-''';
-    await assertDiagnostics(code, [
-      lintAt(
-        code,
-        'stream;',
-        length: 6,
-        messageContainsAll: ["Avoid a field of type 'Stream' in widgets."],
-      ),
-      lintAt(
-        code,
-        'Timer? timer',
-        messageContainsAll: ["a constructor parameter of type 'Timer'"],
-      ),
-    ]);
-  }
-
-  Future<void> test_testFiles() async {
-    await assertNotReportedInTests('''$_header
-class W extends StatelessWidget {
-  final Stream<int> stream;
-  W(this.stream, {Timer? timer});
-
-  @override
-  Widget build(BuildContext context) => const SizedBox();
-}
-''');
-  }
-
-  Future<void> test_state() async {
-    var code = '''$_header
-class W extends StatefulWidget {
-  final Stream<int> stream;
-  W(this.stream);
-
-  @override
-  State<W> createState() => _WState();
-}
-
-class _WState extends State<W> {
-  StreamSubscription<int>? subscription;
-  Timer? timer;
-
-  @override
-  void initState() {
-    super.initState();
-    subscription = widget.stream.listen((_) {});
-    timer = Timer(Duration(seconds: 1), () {});
-    Timer.run(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) => const SizedBox();
-}
-''';
-    await assertDiagnostics(code, [
-      lintAt(code, 'stream;', length: 6),
-      lintAt(code, 'subscription;', length: 12),
-      lintAt(code, 'timer;', length: 5),
-      lintAt(
-        code,
-        'widget.stream.listen((_) {})',
-        messageContainsAll: ["Avoid listening to a 'Stream' in widgets."],
-      ),
-      lintAt(
-        code,
-        'Timer(Duration(seconds: 1), () {})',
-        messageContainsAll: ["Avoid creating a 'Timer' in widgets."],
-      ),
-      lintAt(code, 'Timer.run(() {})'),
-    ]);
-  }
-
-  Future<void> test_notWidget() async {
-    await assertNoDiagnostics('''$_header
-class Service {
-  final Stream<int> stream;
-  Timer? timer;
-  Service(this.stream);
-
-  void start() {
-    stream.listen((_) {});
-    timer = Timer(Duration(seconds: 1), () {});
-  }
-}
-''');
   }
 }

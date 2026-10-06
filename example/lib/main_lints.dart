@@ -48,7 +48,6 @@
 // ignore_for_file: async_redux_lints/context_read_in_build
 // ignore_for_file: async_redux_lints/refresh_indicator_without_wait
 // ignore_for_file: async_redux_lints/then_on_dispatch_and_wait
-// ignore_for_file: async_redux_lints/stream_or_timer_in_widget
 // ignore_for_file: async_redux_lints/user_exception_dialog_placement
 // ignore_for_file: async_redux_lints/navigator_key_not_set
 // ignore_for_file: async_redux_lints/debug_observer_in_release
@@ -1804,47 +1803,6 @@ class RefreshDemo extends StatelessWidget {
     // Fix: Will replace 'dispatch(...)' with 'await dispatchAndWait(...)'.
     dispatch(LoadUser());
   }
-}
-
-class Clock extends StatefulWidget {
-  // stream_or_timer_in_widget
-  // (A field of type 'Stream')
-  final Stream<int> ticks;
-
-  const Clock({
-    super.key,
-    required this.ticks,
-    // stream_or_timer_in_widget
-    // (A constructor parameter of type 'Stream')
-    Stream<String>? messages,
-  });
-
-  @override
-  State<Clock> createState() => _ClockState();
-}
-
-class _ClockState extends State<Clock> {
-  // stream_or_timer_in_widget
-  // (A field of type 'Timer')
-  Timer? timer;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // stream_or_timer_in_widget
-    // (Creating a 'Timer')
-    timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
-
-    // stream_or_timer_in_widget
-    // (Listening to a 'Stream')
-    widget.ticks.listen((_) => setState(() {}));
-
-    dispatch(Increment()); // OK: start the clock with an action instead.
-  }
-
-  @override
-  Widget build(BuildContext context) => const Text('Clock');
 }
 
 class UserExceptionDemo extends StatelessWidget {

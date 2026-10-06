@@ -295,8 +295,6 @@ class AsyncReduxLintsPlugin extends Plugin {
     registry.registerWarningRule(ThenOnDispatchAndWaitRule());
     registry.registerFixForRule(ThenOnDispatchAndWaitRule.code, UseThenIfCompletedOk.new);
 
-    registry.registerWarningRule(StreamOrTimerInWidgetRule());
-
     registry.registerWarningRule(TimerOrStreamNotInPropsRule());
 
     registry.registerLintRule(ActionWithoutToStringRule());

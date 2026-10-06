@@ -30,7 +30,6 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var store = Store<AppState>(initialState: AppState.initialState());
-    // ignore: async_redux_lints/stream_or_timer_in_widget
     store.onChange.listen(print);
 
     return MaterialApp(

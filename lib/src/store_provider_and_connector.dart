@@ -364,7 +364,6 @@ class _ConverterError extends Error {
 class _StoreStreamListenerState<St, Model> //
     extends State<_StoreStreamListener<St, Model>> {
   // The StoreConnector rebuilds from this stream of view-models.
-  // ignore: async_redux_lints/stream_or_timer_in_widget
   Stream<Model>? _stream;
   Model? _latestModel;
   _ConverterError? _latestError;
@@ -1223,7 +1222,6 @@ class _WidgetListensOnChange extends StatefulWidget {
 }
 
 class _WidgetListensOnChangeState extends State<_WidgetListensOnChange> {
-  // ignore: async_redux_lints/stream_or_timer_in_widget
   StreamSubscription? _subscription;
 
   @override
@@ -1248,7 +1246,6 @@ class _WidgetListensOnChangeState extends State<_WidgetListensOnChange> {
   }
 
   void _listen() {
-    // ignore: async_redux_lints/stream_or_timer_in_widget
     _subscription = widget.store.onChange.listen((state) {
       if (mounted) {
         setState(() {});

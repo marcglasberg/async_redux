@@ -182,7 +182,6 @@ package, and the files whose names end with `_test.dart`.
 - [`context_read_in_build`](#context_read_in_build) warning
 - [`refresh_indicator_without_wait`](#refresh_indicator_without_wait) warning
 - [`then_on_dispatch_and_wait`](#then_on_dispatch_and_wait) warning
-- [`stream_or_timer_in_widget`](#stream_or_timer_in_widget) info
 - [`user_exception_dialog_placement`](#user_exception_dialog_placement) error
 - [`navigator_key_not_set`](#navigator_key_not_set) warning
 - [`debug_observer_in_release`](#debug_observer_in_release) info
@@ -1616,29 +1615,6 @@ Use `thenIfCompletedOk` and `thenIfCompletedFailed`, or check `status.isComplete
 
 Quick fix: replace `then` with `thenIfCompletedOk`. It's offered when the result of
 `then` is not used, since `thenIfCompletedOk` returns the `ActionStatus`.
-
----
-
-### stream_or_timer_in_widget
-
-An info for a widget or `State` that creates a `Timer`, listens to a `Stream`, or has
-a field or constructor parameter of type `Stream`, `StreamSubscription` or `Timer`.
-AsyncRedux recommends starting and stopping streams and timers with actions, and
-keeping them in the store props:
-
-```dart
-class _ClockState extends State<Clock> {
-  Timer? timer;                                                   // Info
-
-  void initState() {
-    super.initState();
-    timer = Timer.periodic(Duration(seconds: 1), (_) => tick());  // Info
-    context.dispatch(StartClock());                               // OK
-  }
-}
-```
-
-Not reported in tests, where widgets often get a `Stream` that drives them.
 
 ---
 
