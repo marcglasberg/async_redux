@@ -40,6 +40,18 @@ class LoadUser extends ReduxAction<AppState> {
     ]);
   }
 
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$header
+class LoadUser extends ReduxAction<AppState> {
+  final int id;
+  LoadUser(this.id);
+
+  @override
+  AppState? reduce() => null;
+}
+''');
+  }
+
   Future<void> test_inheritedFieldsFromBaseAction() async {
     var code = '''$header
 abstract class LoadAction extends ReduxAction<AppState> {

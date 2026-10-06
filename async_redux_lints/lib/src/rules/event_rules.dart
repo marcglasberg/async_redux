@@ -138,6 +138,7 @@ class EventNotSpentInitiallyRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     registry.addInstanceCreationExpression(this, _NotSpentVisitor(this, context));
   }
 }
@@ -152,14 +153,7 @@ class _NotSpentVisitor extends SimpleAstVisitor<void> {
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     if (!isNotSpentEventCreation(node)) return;
     var where = _initialPlace(node);
-    if (where != null && !_isTestFile()) rule.reportAtNode(node, arguments: [where]);
-  }
-
-  bool _isTestFile() {
-    var file = context.currentUnit?.file;
-    if (file == null) return false;
-    return isInTestDirectory(context.package, file) ||
-        file.shortName.endsWith('_test.dart');
+    if (where != null) rule.reportAtNode(node, arguments: [where]);
   }
 
   /// Returns where [node] creates an initial event, like `in 'initialState'`, or null

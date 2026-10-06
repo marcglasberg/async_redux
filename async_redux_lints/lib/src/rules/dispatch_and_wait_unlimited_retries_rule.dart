@@ -7,6 +7,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
 
 import '../mixin_utils.dart';
+import '../package_files.dart';
 import '../redux_types.dart';
 
 /// Reports `dispatchAndWait` or `dispatchAndWaitAll` with an action that uses the
@@ -39,6 +40,7 @@ class DispatchAndWaitUnlimitedRetriesRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     var visitor = _Visitor(this);
     registry.addMethodInvocation(this, visitor);
     // Calling a getter of function type, like `ReduxAction.dispatchAndWait`.

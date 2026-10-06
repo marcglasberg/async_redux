@@ -42,6 +42,17 @@ class AvoidContextStateTest extends AsyncReduxWidgetRuleTest {
     super.setUp();
   }
 
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Text('\${context.state.counter}');
+  }
+}
+''');
+  }
+
   Future<void> test_directField() async {
     var code = '''$widgetHeader
 class W extends StatelessWidget {

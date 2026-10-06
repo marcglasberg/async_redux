@@ -51,6 +51,7 @@ class PreferImmutableCollectionsRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     registry.addCompilationUnit(
       this,
       _StateFieldVisitor(context, (field) {
@@ -186,6 +187,7 @@ class RouteInStateRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     registry.addCompilationUnit(
       this,
       _StateFieldVisitor(context, (field) {
@@ -245,6 +247,7 @@ class MissingInitialStateRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     registry.addInstanceCreationExpression(this, _InitialStateVisitor(this, context));
   }
 }
@@ -258,7 +261,7 @@ class _InitialStateVisitor extends SimpleAstVisitor<void> {
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     var storeType = node.staticType;
-    if (!isAsyncReduxClass(storeType, 'Store') || _isTestFile()) return;
+    if (!isAsyncReduxClass(storeType, 'Store')) return;
     var stateType = (storeType as InterfaceType).typeArguments.firstOrNull;
     if (stateType is! InterfaceType) return;
     var state = stateType.element;
@@ -303,13 +306,6 @@ class _InitialStateVisitor extends SimpleAstVisitor<void> {
         );
       }
     }
-  }
-
-  bool _isTestFile() {
-    var file = context.currentUnit?.file;
-    if (file == null) return false;
-    return isInTestDirectory(context.package, file) ||
-        file.shortName.endsWith('_test.dart');
   }
 
   /// Returns true if [element] is declared in the current package, and not in the SDK

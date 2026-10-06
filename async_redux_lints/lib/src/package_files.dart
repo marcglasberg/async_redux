@@ -37,6 +37,14 @@ final _isInTestDirectoryCache = Expando<Map<String, bool>>();
 bool isLibraryInTestDirectory(RuleContext context) =>
     isInTestDirectory(context.package, context.definingUnit.file);
 
+/// Returns true if the library being analyzed is test code: it's in a test directory
+/// of its package, like `test/`, or its file name ends with `_test.dart`.
+bool isTestLibrary(RuleContext context) {
+  var file = context.definingUnit.file;
+  return isInTestDirectory(context.package, file) ||
+      file.shortName.endsWith('_test.dart');
+}
+
 /// Returns true if the library being analyzed is in the `lib` directory of its
 /// package. Same as `context.isInLibDir`.
 bool isLibraryInLibDir(RuleContext context) {

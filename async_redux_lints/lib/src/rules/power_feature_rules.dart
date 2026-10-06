@@ -5,6 +5,7 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
 
+import '../package_files.dart';
 import '../redux_types.dart';
 
 /// Opt-in rule that reports every override of `abortDispatch` in an action. The docs
@@ -63,6 +64,7 @@ abstract class _PowerFeatureRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     registry.addMethodDeclaration(this, _Visitor(this));
   }
 }

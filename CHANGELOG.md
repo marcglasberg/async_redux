@@ -10,97 +10,64 @@ Sponsored by [MyText.ai](https://mytext.ai)
 ## 29.1.0
 
 * New package [async_redux_lints](https://pub.dev/packages/async_redux_lints): an
-  analyzer plugin that reports, while you type, AsyncRedux mistakes that would otherwise
-  only fail at runtime. Most come with a quick fix. See its README for how to install it.
-  Rules:
-
-  - `reduce_return_type`: Method `reduce` must return `St?` or `Future<St?>`.
-  - `before_return_type`: Method `before` must return `void` or `Future<void>`.
-  - `wrap_reduce_return_type`: Method `wrapReduce` must return `Future<St?>`.
-  - `reduce_without_await`: An async method `reduce` must pass through an `await` before
-    returning a non-null value.
-  - `dispatch_sync_async_action`: Method `dispatchSync` must not dispatch an async action.
-  - `wait_fail_invalid_argument`: Methods `isWaiting`, `isFailed`, `exceptionFor` and
-    `clearExceptionFor` must get only what they accept. For example, `isFailed` accepts
-    action types, but not actions.
-  - `wait_fail_never_matches`: Warns when `isWaiting`, `isFailed`, `exceptionFor` or
-    `clearExceptionFor` get something that never matches an action, like an abstract
-    action type.
-  - `incompatible_mixins`: An action must not combine mixins that can't be combined,
-    like `NonReentrant` with `Throttle`.
-  - `polling_with_caveat_mixin`: Mixins like `CheckInternet` or `NonReentrant` go in the
-    action returned by `createPollingAction`, not in the action with `Polling`.
-  - `avoid_context_state`: Use `context.select` instead of `context.state` while the
-    widget builds, and `context.read()` in callbacks like `onPressed`.
-  - `context_state_in_init_state`: `context.state`, `isWaiting`, `isFailed`,
-    `exceptionFor` and `clearExceptionFor` throw in `initState`.
-  - `context_in_dispose`: `context.state`, `context.read()` and others throw in
-    `dispose`, because the widget is no longer in the tree.
-  - `context_in_selector`: The selector of `context.select` and `context.event` must
-    only use its parameter, not the `context`.
-  - `select_outside_build`: `context.select` and `context.event` only work while the
-    widget builds, with the `BuildContext` of that widget, or in
-    `didChangeDependencies`. Not in callbacks like `onPressed`, in other `State`
-    methods, in builders that use another widget's `context`, or in the `itemBuilder`
-    of a list.
-  - `vm_field_not_in_equals`: Every field of a `Vm` must be in its `equals` list.
-  - `state_class_must_be_immutable`: The instance fields of a `@stateClass` class must
-    be final.
+  analyzer plugin that helps AI agents develop with AsyncRedux and also reports, while
+  you type, AsyncRedux mistakes that would otherwise only fail at runtime. Most come with
+  a quick fix. See its README for how to install it.
 
 * `context.select` and `context.event` now also work in `didChangeDependencies`.
   Breaking change: the `debug` parameter of `getSelect` and `getEvent` was removed.
   If you passed `debug: false`, just remove it.
 
-* New `@stateClass` annotation, for state classes like `AppState`, and classes used
-  inside the state. For now, it works like `@immutable`: the `async_redux_lints` plugin
-  reports a class with `@stateClass`, or a subtype of it, that has non-final fields.
+* New `@stateClass` annotation, that you should use to annotate all state classes like
+  `AppState`, and classes used inside the state. The `async_redux_lints` plugin reports
+  state classes that have non-final fields, that don't implement `==` and `hasCode` and
+  more. Prefer using `@stateClass` instead of `@immutable` for state classes, because the
+  linter is going to be more complete.
 
-* Fixed `exceptionFor` and `isFailed` with a list of action types. They only checked
-  the first type in the list. Also, `clearExceptionFor` with a list now always rebuilds
-  the widgets when it clears a failure.
-
-* Docs: `isFailed` accepts an action type or a list of action types, but not an
-  action. Passing an action returns `false`, and throws a `StoreException` after the
-  async gap.
+* Fixed bugs with `exceptionFor`, `isFailed` and `clearExceptionFor`.
 
 ## 29.0.0
 
 * Breaking change: Removed the following, which were already deprecated:
 
-  - `ErrorObserver`: Use `GlobalErrorObserver` instead.
-  - `DevelopmentErrorObserver`: Use `GlobalErrorObserverForDevelopment` instead.
-  - `SwallowErrorObserver`: Use `SwallowGlobalErrorObserver` instead.
-  - `GlobalWrapError`: Use `GlobalErrorObserver` instead.
-  - `GlobalWrapErrorDummy`: Use `GlobalErrorObserver` (for example,
-    `GlobalErrorObserverDummy`) instead.
-  - The `errorObserver` parameter of `Store` and `MockStore`: Use `globalErrorObserver`
-    instead.
-  - The `globalWrapError` parameter of `Store` and `MockStore`: Use `globalErrorObserver`
-    instead.
-  - `Store.dispatchAsync`: Use `dispatchAndWait` instead.
-  - `MockStore.dispatchAsync`: Use `dispatchAndWait` instead.
-  - `ReduxAction.dispatchAsync`: Use `dispatchAndWait` instead.
-  - `VmFactory.dispatchAsync`: Use `dispatchAndWait` instead.
-  - The `DispatchAsync` typedef: Use `DispatchAndWait` instead.
-  - `VmFactory.widget`: Use `connector` instead.
+    - `ErrorObserver`: Use `GlobalErrorObserver` instead.
+    - `DevelopmentErrorObserver`: Use `GlobalErrorObserverForDevelopment` instead.
+    - `SwallowErrorObserver`: Use `SwallowGlobalErrorObserver` instead.
+    - `GlobalWrapError`: Use `GlobalErrorObserver` instead.
+    - `GlobalWrapErrorDummy`: Use `GlobalErrorObserver` (for example,
+      `GlobalErrorObserverDummy`) instead.
+    - The `errorObserver` parameter of `Store` and `MockStore`: Use `globalErrorObserver`
+      instead.
+    - The `globalWrapError` parameter of `Store` and `MockStore`: Use
+      `globalErrorObserver`
+      instead.
+    - `Store.dispatchAsync`: Use `dispatchAndWait` instead.
+    - `MockStore.dispatchAsync`: Use `dispatchAndWait` instead.
+    - `ReduxAction.dispatchAsync`: Use `dispatchAndWait` instead.
+    - `VmFactory.dispatchAsync`: Use `dispatchAndWait` instead.
+    - The `DispatchAsync` typedef: Use `DispatchAndWait` instead.
+    - `VmFactory.widget`: Use `connector` instead.
 
 * Breaking change: Removed the following, which were used only for tests:
 
-  - `StoreTester`: Use the `Store` (or `MockStore`) directly instead, with
-    `dispatchAndWait`, `waitCondition`, `waitAllActions`, `waitActionType`,
-    `waitAllActionTypes` and the other wait methods.
-  - `TestErrorObserver`: Use the `Store` directly instead of `StoreTester`.
-  - `TestInfoList`: Use the `Store` directly instead of `StoreTester`.
-  - `StoreExceptionTimeout`: Use the `Store` directly instead of `StoreTester`.
-  - The `StateCondition` typedef: Use `Store.waitCondition` instead.
-  - `TestInfo` and the `TestInfoPrinter` typedef: Use `ActionObserver` and
-    `StateObserver` instead.
-  - The `testInfoPrinter` parameter of `Store` and `MockStore`: Use the `actionObservers`
-    and `stateObservers` parameters instead.
-  - `Store.testInfoPrinter`, `Store.initTestInfoPrinter`, `Store.initTestInfoController`
-    and `Store.createTestInfoSnapshot`: Use `ActionObserver` and `StateObserver` instead.
-  - `Store.onReduce`: Use `ActionObserver` and `StateObserver` instead, or `Store.onChange`
-    to listen to state changes.
+    - `StoreTester`: Use the `Store` (or `MockStore`) directly instead, with
+      `dispatchAndWait`, `waitCondition`, `waitAllActions`, `waitActionType`,
+      `waitAllActionTypes` and the other wait methods.
+    - `TestErrorObserver`: Use the `Store` directly instead of `StoreTester`.
+    - `TestInfoList`: Use the `Store` directly instead of `StoreTester`.
+    - `StoreExceptionTimeout`: Use the `Store` directly instead of `StoreTester`.
+    - The `StateCondition` typedef: Use `Store.waitCondition` instead.
+    - `TestInfo` and the `TestInfoPrinter` typedef: Use `ActionObserver` and
+      `StateObserver` instead.
+    - The `testInfoPrinter` parameter of `Store` and `MockStore`: Use the
+      `actionObservers`
+      and `stateObservers` parameters instead.
+    - `Store.testInfoPrinter`, `Store.initTestInfoPrinter`, `Store.initTestInfoController`
+      and `Store.createTestInfoSnapshot`: Use `ActionObserver` and `StateObserver`
+      instead.
+    - `Store.onReduce`: Use `ActionObserver` and `StateObserver` instead, or
+      `Store.onChange`
+      to listen to state changes.
 
 * Breaking change: `GlobalErrorObserver.action` is now nullable (`ReduxAction<St>?`).
   It's `null` when the error didn't come from an action, but from somewhere else, such
@@ -123,27 +90,29 @@ Sponsored by [MyText.ai](https://mytext.ai)
   `Persistor.persistDifference` would become an unhandled async error, which was not seen
   by the `GlobalErrorObserver`. Now:
 
-  - The error is first given to the new `Persistor.wrapError` method, which works the
-    same way as `ReduxAction.wrapError`: Return the error unaltered to keep it, return
-    another error to replace it (for example, a `UserException`), or return `null` to
-    swallow it. By default, it returns the error unaltered.
+    - The error is first given to the new `Persistor.wrapError` method, which works the
+      same way as `ReduxAction.wrapError`: Return the error unaltered to keep it, return
+      another error to replace it (for example, a `UserException`), or return `null` to
+      swallow it. By default, it returns the error unaltered.
 
-  - Then, the error is given to the `GlobalErrorObserver`, with a `null` action, so that
-    you can log it, or change it, or swallow it, the same way you do with action errors.
-    Here, `error` is the error after `Persistor.wrapError`, and `originalError` is the
-    error before it. If `Persistor.wrapError` returns `null`, the observer is not called.
+    - Then, the error is given to the `GlobalErrorObserver`, with a `null` action, so that
+      you can log it, or change it, or swallow it, the same way you do with action errors.
+      Here, `error` is the error after `Persistor.wrapError`, and `originalError` is the
+      error before it. If `Persistor.wrapError` returns `null`, the observer is not
+      called.
 
-  - If the error is a `UserException` (either thrown by the persistor, or returned by the
-    `GlobalErrorObserver`), it goes to the store's error queue, so that it can be shown
-    to the user, for example by the `UserExceptionDialog`. As usual, a `UserException`
-    with `noDialog` is not added to the queue.
+    - If the error is a `UserException` (either thrown by the persistor, or returned by
+      the
+      `GlobalErrorObserver`), it goes to the store's error queue, so that it can be shown
+      to the user, for example by the `UserExceptionDialog`. As usual, a `UserException`
+      with `noDialog` is not added to the queue.
 
-  - If the `GlobalErrorObserver` returns `null`, the error is swallowed.
+    - If the `GlobalErrorObserver` returns `null`, the error is swallowed.
 
-  - Any other error is still thrown as an unhandled async error, as before.
+    - Any other error is still thrown as an unhandled async error, as before.
 
-  - In any case, the store keeps working, and the persistor will keep persisting the
-    state in the future.
+    - In any case, the store keeps working, and the persistor will keep persisting the
+      state in the future.
 
 * New feature: The `Persistor` now has an `addError` method, to report errors even
   before the store is created. This is useful in `readState`, which is usually called
@@ -171,7 +140,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
   shown to the user. Other errors are thrown as unhandled async errors. Note these errors
   are not given to `Persistor.wrapError`, since you are adding them on purpose.
 
-* Breaking change: A `Persistor` must now be created with `extends Persistor`, and not with
+* Breaking change: A `Persistor` must now be created with `extends Persistor`, and not
+  with
   `implements Persistor`, since it now keeps its own private error queue.
 
 * Bug fix: The `UserExceptionDialog` now shows the errors that were already in the store's

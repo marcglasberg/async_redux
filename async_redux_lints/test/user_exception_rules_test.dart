@@ -374,6 +374,24 @@ class UserExceptionWithoutCauseTest extends AsyncReduxRuleTest {
     super.setUp();
   }
 
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$header
+class MyAction extends ReduxAction<AppState> {
+  final String text = '';
+
+  @override
+  AppState? reduce() {
+    try {
+      int.parse(text);
+    } catch (error) {
+      throw UserException('Please enter a valid number');
+    }
+    return null;
+  }
+}
+''');
+  }
+
   Future<void> test_catch() async {
     var code = '''$header
 class MyAction extends ReduxAction<AppState> {

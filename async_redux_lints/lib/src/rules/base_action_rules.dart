@@ -7,6 +7,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
 
+import '../package_files.dart';
 import '../redux_types.dart';
 
 /// Reports a concrete action that extends `ReduxAction<St>` directly, instead of the
@@ -38,6 +39,7 @@ class ExtendBaseActionRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     var visitor = _ExtendBaseActionVisitor(this);
     registry.addClassDeclaration(this, visitor);
     registry.addClassTypeAlias(this, visitor);
@@ -107,6 +109,7 @@ class DependenciesCastInActionRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     registry.addAsExpression(this, _CastVisitor(this));
   }
 }

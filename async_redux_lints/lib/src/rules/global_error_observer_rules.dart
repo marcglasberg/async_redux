@@ -8,6 +8,7 @@ import 'package:analyzer/dart/element/type_system.dart';
 import 'package:analyzer/error/error.dart';
 
 import '../error_types.dart';
+import '../package_files.dart';
 import '../widget_types.dart';
 
 /// Reports a dispatch inside a `GlobalErrorObserver` subclass. The docs say not to
@@ -161,6 +162,7 @@ class GlobalErrorObserverWithoutEnvironmentRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     registry.addInstanceCreationExpression(this, _StoreVisitor(this));
   }
 }

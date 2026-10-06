@@ -128,6 +128,10 @@ dart analyze $(git ls-files 'lib/*.dart' 'test/*.dart')
 Most rules are on by default. The ones marked opt-in are off until you
 [turn them on](#turning-rules-on-and-off).
 
+Some rules are not reported in tests, as noted in their descriptions. Tests are the
+files in the `test`, `integration_test`, `test_driver` and `testing` directories of a
+package, and the files whose names end with `_test.dart`.
+
 - [`reduce_return_type`](#reduce_return_type) error
 - [`before_return_type`](#before_return_type) error
 - [`wrap_reduce_return_type`](#wrap_reduce_return_type) error
@@ -447,6 +451,9 @@ Widget build(BuildContext context) {
 The rule is reported even when no quick fix is offered. When the widget really needs
 the whole state, for example when the state is an `int` that the widget shows, add
 `// ignore: async_redux_lints/avoid_context_state`.
+
+Not reported in tests, where widgets often show the state to check it, and rebuilds
+don't matter.
 
 Quick fixes:
 
@@ -945,11 +952,12 @@ class LoadUser extends AppAction { ... }             // OK
 
 Not reported for abstract classes, like the base action itself, or for actions with a
 generic state, like `class MyAction<St> extends ReduxAction<St>`, which can't extend
-an app's base action.
+an app's base action. Not reported in tests, which often declare small actions that
+extend `ReduxAction` directly.
 
 If your package doesn't have a base action, create one. Classes that extend
-`ReduxAction` directly are fine in tests, or in a package with a small example. To turn
-off the rule there, see [Turning rules on and off](#turning-rules-on-and-off).
+`ReduxAction` directly are also fine in a package with a small example. To turn off the
+rule there, see [Turning rules on and off](#turning-rules-on-and-off).
 
 Quick fix: extend the base action instead. The fix finds the abstract classes of your
 package that extend `ReduxAction<AppState>` directly, and offers one fix for each, up
@@ -980,6 +988,7 @@ class LoadUser extends AppAction {
 ```
 
 Casts in abstract classes, like the base action, and in mixins, are not reported.
+Neither are casts in tests, whose actions may not extend the base action.
 
 ---
 
@@ -1113,7 +1122,8 @@ try {
 
 Not reported when the `UserException` is created inside a closure, when it's itself
 the cause of another one, or when the `catch` clause or method calls `addCause`
-somewhere else, like on a variable.
+somewhere else, like on a variable. Not reported in tests, where fakes often replace
+errors on purpose.
 
 Quick fix: add `.addCause(error)`, using the name of the caught error. In
 `on FormatException { ... }`, the fix also adds `catch (error)`.
@@ -1171,7 +1181,8 @@ class LoadText extends AppAction with Retry, NonReentrant { ... } // OK
 
 Not reported when the action also has `Sequential`, or a mixin that can't be combined
 with `NonReentrant` or `Retry`, like `Throttle`, `Fresh` or `Polling`, or when it
-overrides `abortDispatch` itself.
+overrides `abortDispatch` itself. Not reported in tests, which often test `Retry`
+alone.
 
 Quick fix: add the `NonReentrant` mixin.
 
@@ -1192,6 +1203,9 @@ dispatch(LoadText());              // OK
 
 This also catches a `RefreshIndicator` whose spinner may never stop, with
 `onRefresh: () => context.dispatchAndWait(LoadText())`.
+
+Not reported in tests, where the action usually succeeds after a few retries, and a
+test that never completes times out.
 
 ---
 
@@ -1337,7 +1351,8 @@ class AppState {
 }
 ```
 
-Only the type of the field itself is checked, not its type arguments.
+Only the type of the field itself is checked, not its type arguments. Not reported in
+tests.
 
 The classes that hold state are:
 
@@ -1531,7 +1546,8 @@ class MyWidget extends StatelessWidget {
 
 Dispatching without the `context` needs a single `StoreProvider` in the app, which is
 almost always the case. Not reported in other classes, in static methods, or when the
-class, the library or the function declares its own `dispatch`.
+class, the library or the function declares its own `dispatch`. Not reported in tests
+either, which may create more than one `StoreProvider`.
 
 To dispatch with the `context` instead, turn this rule off and turn on the opt-in
 [prefer_dispatch_with_context](#prefer_dispatch_with_context).
@@ -1622,6 +1638,8 @@ class _ClockState extends State<Clock> {
 }
 ```
 
+Not reported in tests, where widgets often get a `Stream` that drives them.
+
 ---
 
 ### user_exception_dialog_placement
@@ -1691,7 +1709,8 @@ MaterialApp(navigatorKey: navigatorKey, home: HomePage());    // OK
 Keys are compared when they are variables, getters, or new `GlobalKey`s. Other keys,
 like `keys[0]`, are not reported. `navigatorKey: NavigateAction.navigatorKey` is
 always accepted. The `router` constructors, like `MaterialApp.router`, are not
-checked, since they don't have a `navigatorKey`.
+checked, since they don't have a `navigatorKey`. Not reported in tests, where a file
+often creates many apps, and only some of them navigate.
 
 Quick fix: add `navigatorKey: key` to the `MaterialApp`. Only offered when the key
 passed to `setNavigatorKey` is a variable or a getter.
@@ -1727,7 +1746,8 @@ class MyPersistor extends Persistor<AppState> { ... }    // OK
 ```
 
 This also reports a class that implements another persistor, like
-`implements MyPersistor`, unless it also extends one.
+`implements MyPersistor`, unless it also extends one. Not reported in tests, where
+mocks like `class MockPersistor extends Mock implements Persistor<AppState>` are common.
 
 Quick fix: change `implements` to `extends`. It's not offered when the class already
 extends another class.
@@ -1785,7 +1805,8 @@ This recognizes the result of `await persistor.readState()` kept in a variable, 
 then replaced in `if (initialState == null) { ... }`, with `initialState ??= ...`, or
 used in `initialState ?? ...`. It's not reported when the same function calls
 `saveInitialState` or `persistDifference`, or inside a `Persistor`, like a decorator
-that reads the state of another persistor.
+that reads the state of another persistor. Not reported in tests, which often create
+the store and the persistor differently from the app.
 
 Quick fix: add `await persistor.saveInitialState(initialState);` after the line that
 creates the state, changing `initialState ??= ...` into an `if`. Only offered when the
@@ -2040,7 +2061,7 @@ AsyncRedux docs call it "a power feature that you may not need". Most actions sh
 mixin instead, like `NonReentrant`, `Throttle`, `Fresh`, `Retry` or `Debounce`.
 
 Turn it on to make each override deliberate, and add an `// ignore` comment to the
-overrides you really need.
+overrides you really need. Not reported in tests.
 
 ---
 
@@ -2051,7 +2072,7 @@ AsyncRedux docs call it "a power feature that you may not need". Most actions sh
 mixin instead, like `NonReentrant`, `Throttle`, `Fresh`, `Retry` or `Debounce`.
 
 Turn it on to make each override deliberate, and add an `// ignore` comment to the
-overrides you really need.
+overrides you really need. Not reported in tests.
 
 ---
 
@@ -2068,6 +2089,8 @@ var store = Store<AppState>(
   environment: Environment.production, // Without it: Info
 );
 ```
+
+Not reported in tests.
 
 ---
 
@@ -2109,6 +2132,7 @@ An [opt-in](#turning-rules-on-and-off) info for a field named `currentRoute`, `r
 or `currentRouteName`, in a class that holds state. The AsyncRedux docs recommend getting
 the current route with `NavigateAction.getCurrentNavigatorRouteName(context)`, instead of
 keeping it in the state. It's opt-in, since it only looks at the name.
+Not reported in tests.
 
 The classes that hold state are:
 
@@ -2146,5 +2170,6 @@ class LoadUser extends AppAction { // Info, without the toString() below
 The fields inherited from your own classes and mixins count, and so does a `toString()`
 inherited from them, like one in the base action. The fields and `toString()` of
 AsyncRedux don't. It's opt-in, since not every app logs its actions.
+Not reported in tests.
 
 Quick fix: override `toString()` with all the fields, as in the example above.

@@ -8,6 +8,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
 
 import '../error_types.dart';
+import '../package_files.dart';
 import '../widget_types.dart';
 import 'context_access_visitor.dart';
 
@@ -331,6 +332,7 @@ class StreamOrTimerInWidgetRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     var visitor = _StreamOrTimerVisitor(this);
     registry.addInstanceCreationExpression(this, visitor);
     registry.addMethodInvocation(this, visitor);

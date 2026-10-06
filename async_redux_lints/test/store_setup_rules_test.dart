@@ -230,6 +230,21 @@ Widget app() => StoreProvider<AppState>(
     ]);
   }
 
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$setupHeader
+final navigatorKey = GlobalKey<NavigatorState>();
+
+void main() {
+  NavigateAction.setNavigatorKey(navigatorKey);
+}
+
+Widget app() => StoreProvider<AppState>(
+  store: store,
+  child: MaterialApp(home: HomePage()),
+);
+''');
+  }
+
   Future<void> test_differentKey() async {
     var code = '''$setupHeader
 final navigatorKey = GlobalKey<NavigatorState>();

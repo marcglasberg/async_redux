@@ -43,6 +43,13 @@ class ImplementsPersistorTest extends AsyncReduxRuleTest {
     super.setUp();
   }
 
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$header
+class MyPersistor implements Persistor<AppState> {
+$_persistorMembers}
+''');
+  }
+
   Future<void> test_implements() async {
     var code =
         '''$header
@@ -425,6 +432,19 @@ class InitialStateNotSavedTest extends AsyncReduxRuleTest {
   static const _persistor = '''
 class MyPersistor extends Persistor<AppState> {}
 ''';
+
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$header$_persistor
+Future<Store<AppState>> start() async {
+  var persistor = MyPersistor();
+  var initialState = await persistor.readState();
+  if (initialState == null) {
+    initialState = AppState();
+  }
+  return Store<AppState>(initialState: initialState);
+}
+''');
+  }
 
   Future<void> test_ifNull() async {
     var code = '''$header$_persistor

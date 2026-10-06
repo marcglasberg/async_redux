@@ -6,6 +6,7 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
+import '../package_files.dart';
 import '../redux_types.dart';
 import '../state_class_utils.dart';
 
@@ -38,6 +39,7 @@ class ActionWithoutToStringRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     registry.addClassDeclaration(this, _Visitor(this));
   }
 }

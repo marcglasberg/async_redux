@@ -169,6 +169,7 @@ class NavigatorKeyNotSetRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     registry.addCompilationUnit(this, _NavigatorKeyVisitor(this, context));
   }
 }
@@ -252,7 +253,7 @@ class DebugObserverInReleaseRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    if (isLibraryInTestDirectory(context)) return;
+    if (isTestLibrary(context)) return;
     registry.addInstanceCreationExpression(this, _DebugObserverVisitor(this));
   }
 }

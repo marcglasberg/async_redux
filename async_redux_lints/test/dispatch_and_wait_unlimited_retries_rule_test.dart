@@ -52,6 +52,14 @@ Future<void> f(Store<AppState> store) async {
     ]);
   }
 
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$header$_actions
+Future<void> f(Store<AppState> store) async {
+  await store.dispatchAndWait(Load());
+}
+''');
+  }
+
   Future<void> test_unlimitedRetryCheckInternet() async {
     var code = '''$header$_actions
 Future<void> f(Store<AppState> store) => store.dispatchAndWait(LoadWhenOnline());

@@ -96,6 +96,16 @@ class MyState {
     ]);
   }
 
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$header
+@stateClass
+class MyState {
+  final List<int> list;
+  MyState(this.list);
+}
+''');
+  }
+
   Future<void> test_immutableCollectionsAndOtherTypes() async {
     await assertNoDiagnostics('''$_ficImport
 $header
@@ -466,6 +476,16 @@ class MyState {
       lintAt(code, 'routeName;', length: 9),
       lintAt(code, '_currentRouteName;', length: 17),
     ]);
+  }
+
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$header
+@stateClass
+class MyState {
+  final String currentRoute;
+  MyState(this.currentRoute);
+}
+''');
   }
 
   Future<void> test_notState() async {

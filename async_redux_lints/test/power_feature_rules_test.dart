@@ -63,6 +63,10 @@ class AvoidAbortDispatchTest extends AsyncReduxRuleTest {
       lintAt(_code, 'abortDispatch', occurrence: 3),
     ]);
   }
+
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests(_code);
+  }
 }
 
 @reflectiveTest
@@ -79,5 +83,9 @@ class AvoidWrapReduceTest extends AsyncReduxRuleTest {
       lintAt(_code, 'wrapReduce', occurrence: 2),
       lintAt(_code, 'wrapReduce', occurrence: 3),
     ]);
+  }
+
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests(_code);
   }
 }

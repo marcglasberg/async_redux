@@ -1903,11 +1903,12 @@ class _UserExceptionInStateState extends State<UserExceptionInState> {
 class CounterFactory extends VmFactory<AppState, UserExceptionDemo, CounterVm> {
   @override
   CounterVm fromStore() {
-    // user_exception_outside_action
-    // (In a 'VmFactory')
-    // Fix: Will replace 'throw UserException(...)' with
-    // 'dispatch(UserExceptionAction(...))'.
-    if (state.counter < 0) throw const UserException('Negative counter');
+    if (state.counter < 0)
+      // user_exception_outside_action
+      // (In a 'VmFactory')
+      // Fix: Will replace 'throw UserException(...)' with
+      // 'dispatch(UserExceptionAction(...))'.
+      throw const UserException('Negative counter');
 
     return CounterVm(
       counter: state.counter,
@@ -1923,10 +1924,11 @@ class ValidatingVm extends Vm {
   ValidatingVm({required this.counter}) : super(equals: [counter]);
 
   void validate() {
-    // user_exception_outside_action
-    // (In a view-model)
-    // Fix: not available.
-    if (counter < 0) throw const UserException('Negative counter');
+    if (counter < 0)
+      // user_exception_outside_action
+      // (In a view-model)
+      // Fix: not available.
+      throw const UserException('Negative counter');
   }
 }
 
@@ -1939,11 +1941,16 @@ class UserExceptionInAfter extends AppAction {
 
   @override
   void after() {
-    // user_exception_outside_action
-    // (In 'after', which AsyncRedux doesn't catch to show the dialog)
-    // Fix: Will replace 'throw UserException(...)' with
-    // 'dispatch(UserExceptionAction(...))'.
-    if (state.counter > 100) throw const UserException('Counter too large');
+    if (state.counter > 100)
+      // user_exception_outside_action
+      // (In 'after', which AsyncRedux doesn't catch to show the dialog)
+      // Fix: Will replace 'throw UserException(...)' with
+      // 'dispatch(UserExceptionAction(...))'.
+      //
+      // after_throws
+      // (The error would only show up in the console)
+      // Fix: not available.
+      throw const UserException('Counter too large');
   }
 }
 

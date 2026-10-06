@@ -19,6 +19,15 @@ class ExtendBaseActionTest extends AsyncReduxRuleTest {
     super.setUp();
   }
 
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$header
+class LoadUser extends ReduxAction<AppState> {
+  @override
+  AppState? reduce() => null;
+}
+''');
+  }
+
   Future<void> test_extendsReduxAction() async {
     var code = '''$header
 class LoadUser extends ReduxAction<AppState> {
@@ -193,6 +202,18 @@ class Dependencies {}
 class Environment {}
 class Config {}
 ''';
+
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$header$_types
+class LoadUser extends ReduxAction<AppState> {
+  @override
+  AppState? reduce() {
+    print(store.dependencies as Dependencies);
+    return null;
+  }
+}
+''');
+  }
 
   Future<void> test_castInAction() async {
     var code = '''$header$_types

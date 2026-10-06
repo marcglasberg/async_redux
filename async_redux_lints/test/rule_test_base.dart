@@ -258,6 +258,25 @@ abstract class AsyncReduxRuleTest extends AnalysisRuleTest {
     );
   }
 
+  /// Expects the rule to report [code] in `lib/`, but not in test code: in the `test`
+  /// directory, or in a file whose name ends with `_test.dart`.
+  Future<void> assertNotReportedInTests(String code) async {
+    newFile(testFile.path, code);
+    var unitResult = await resolveFile(testFile.path);
+    var diagnostics = unitResult.diagnostics.where(
+      (diagnostic) => diagnostic.diagnosticCode.lowerCaseName == rule.name,
+    );
+    expect(diagnostics, isNotEmpty, reason: 'Must be reported in lib.');
+
+    for (var path in [
+      '$testPackageTestPath/helpers.dart',
+      '$testPackageLibPath/user_test.dart',
+    ]) {
+      newFile(path, code);
+      await assertNoDiagnosticsInFile(path);
+    }
+  }
+
   /// Applies the fix created by [producer] to the first diagnostic of the rule in
   /// [code], and expects the result to be [expected]. If [expected] is null,
   /// expects the fix not to be offered.

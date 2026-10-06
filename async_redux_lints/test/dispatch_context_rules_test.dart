@@ -61,6 +61,17 @@ class PreferDispatchWithoutContextTest extends _DispatchContextTest {
     super.setUp();
   }
 
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$_header
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(onTap: () => context.dispatch(Load()));
+  }
+}
+''');
+  }
+
   Future<void> test_statelessWidget() async {
     var code = '''$_header
 class W extends StatelessWidget {

@@ -7,6 +7,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
 import '../mixin_utils.dart';
+import '../package_files.dart';
 import '../redux_types.dart';
 import 'mixin_combination_rules.dart';
 
@@ -39,6 +40,7 @@ class RetryWithoutNonReentrantRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     var visitor = _Visitor(this);
     registry.addClassDeclaration(this, visitor);
     registry.addClassTypeAlias(this, visitor);

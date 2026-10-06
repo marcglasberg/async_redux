@@ -4,6 +4,7 @@ import 'package:analyzer/analysis_rule/rule_visitor_registry.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/error/error.dart';
 
+import '../package_files.dart';
 import '../widget_types.dart';
 import 'context_access_visitor.dart';
 
@@ -73,6 +74,7 @@ class AvoidContextStateRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     registerContextAccesses(this, registry, (node, access) {
       if (access != StateAccess.state) return;
       if (isInInitState(node) || isInDispose(node) || enclosingSelector(node) != null) {

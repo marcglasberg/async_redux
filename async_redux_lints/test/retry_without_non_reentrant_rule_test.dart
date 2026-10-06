@@ -37,6 +37,15 @@ class A extends ReduxAction<AppState> with Retry {
     ]);
   }
 
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$header
+class A extends ReduxAction<AppState> with Retry {
+  @override
+  AppState? reduce() => null;
+}
+''');
+  }
+
   Future<void> test_unlimitedRetries() async {
     var code = '''$header
 class A extends ReduxAction<AppState> with Retry, UnlimitedRetries {

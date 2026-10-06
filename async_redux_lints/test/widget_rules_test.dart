@@ -643,6 +643,18 @@ class W extends StatelessWidget {
     ]);
   }
 
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$_header
+class W extends StatelessWidget {
+  final Stream<int> stream;
+  W(this.stream, {Timer? timer});
+
+  @override
+  Widget build(BuildContext context) => const SizedBox();
+}
+''');
+  }
+
   Future<void> test_state() async {
     var code = '''$_header
 class W extends StatefulWidget {

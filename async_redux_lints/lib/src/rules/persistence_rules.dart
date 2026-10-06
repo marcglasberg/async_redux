@@ -51,6 +51,7 @@ class ImplementsPersistorRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     registry.addClassDeclaration(this, _ImplementsVisitor(this));
   }
 }
@@ -108,6 +109,7 @@ class ThrowInReadStateRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     registry.addMethodDeclaration(this, _ReadStateVisitor(this, context));
   }
 }
@@ -123,15 +125,7 @@ class _ReadStateVisitor extends SimpleAstVisitor<void> {
     if (node.name.lexeme != 'readState' || node.isStatic) return;
     var enclosing = node.declaredFragment?.element.enclosingElement;
     if (enclosing is! InterfaceElement || !isPersistor(enclosing)) return;
-    if (_isTestFile()) return;
     node.body.accept(_ThrowFinder(rule, context.typeSystem));
-  }
-
-  bool _isTestFile() {
-    var file = context.currentUnit?.file;
-    if (file == null) return false;
-    return isInTestDirectory(context.package, file) ||
-        file.shortName.endsWith('_test.dart');
   }
 }
 
@@ -190,6 +184,7 @@ class InitialStateNotSavedRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     registry.addMethodInvocation(this, _ReadStateCallVisitor(this));
   }
 }

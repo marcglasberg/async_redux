@@ -8,6 +8,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
 import '../error_types.dart';
+import '../package_files.dart';
 import '../widget_types.dart';
 import 'context_access_visitor.dart';
 
@@ -46,6 +47,7 @@ class PreferDispatchWithoutContextRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
+    if (isTestLibrary(context)) return;
     registerContextAccesses(this, registry, (node, access) {
       if (access != StateAccess.dispatch || node is! MethodInvocation) return;
       var target = node.target;

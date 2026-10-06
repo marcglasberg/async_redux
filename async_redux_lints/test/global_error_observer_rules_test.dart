@@ -239,6 +239,15 @@ var store = Store<AppState>(
     await assertDiagnostics(code, [lintAt(code, 'Store<AppState>')]);
   }
 
+  Future<void> test_testFiles() async {
+    await assertNotReportedInTests('''$_observer
+var store = Store<AppState>(
+  initialState: AppState(),
+  globalErrorObserver: (store) => MyObserver(),
+);
+''');
+  }
+
   Future<void> test_withEnvironment() async {
     await assertNoDiagnostics('''$_observer
 var store = Store<AppState>(
