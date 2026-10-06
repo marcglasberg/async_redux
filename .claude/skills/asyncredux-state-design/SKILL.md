@@ -128,7 +128,7 @@ For lists, sets, and maps, use the `fast_immutable_collections` package (by the 
 
 ```yaml
 dependencies:
-  fast_immutable_collections: ^10.0.0
+  fast_immutable_collections: ^12.0.0
 ```
 
 ### IList Example
