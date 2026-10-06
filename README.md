@@ -52,11 +52,13 @@ Created by [Marcelo Glasberg](https://github.com/marcglasberg)
 > Optionally use AsyncRedux with [Provider](https://pub.dev/packages/provider_for_redux)
 > or [Flutter Hooks](https://pub.dev/packages/flutter_hooks_async_redux)
 
-# Documentation
+# Documentation & AI
 
 ### Complete docs → **https://asyncredux.com**
 
-### Claude Code Skills → [Copy from the repo on GitHub](https://github.com/marcglasberg/async_redux/tree/main/.claude/skills)
+### Linter and Quick fixes → [async_redux_lints](https://pub.dev/packages/async_redux_lints)
+
+### Skills for Claude Code and Codex → [Copy from the repo on GitHub](https://github.com/marcglasberg/async_redux/tree/main/.claude/skills)
 
 &nbsp;
 

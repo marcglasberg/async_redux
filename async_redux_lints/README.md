@@ -1,12 +1,12 @@
 # async_redux_lints
 
-This is an analyzer plugin for [AsyncRedux](https://pub.dev/packages/async_redux).
+This is an analyzer plugin for [AsyncRedux](https://pub.dev/packages/async_redux)
+([asyncredux.com](https://asyncredux.com)).
 It checks for style issues and also mistakes that compile fine but fail at runtime.
 
-It's meant primarily for **AI agents**, like **Codex** and **Claude Code**,
-but it also shows errors as you type in the IDE: in IntelliJ, Android Studio and VS Code.
-Most errors come with a quick fix (for example, ALT+Enter in IntelliJ)
-that changes the code to fix the error.
+* Meant primarily for **AI agents**, like **Codex** and **Claude Code**
+* Shows lint errors as you type in the IDE: IntelliJ, Android Studio and VS Code.
+* Lots of quick fixes (for example, ALT+Enter in IntelliJ)
 
 ## How to install
 
