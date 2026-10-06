@@ -86,9 +86,15 @@ import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
 import 'package:equatable/equatable.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 void main() => runApp(
+      // navigator_key_not_set
+      // (No 'navigatorKey', but 'setUpNavigation' below calls
+      // 'NavigateAction.setNavigatorKey')
+      // Fix: Will add 'navigatorKey: navigatorKey'. It doesn't remove the 'const'.
       const MaterialApp(home: Text('Open this file in the IDE to see the lints.')),
     );
 
@@ -126,6 +132,13 @@ class AppState {
     this.maybeUser,
     required this.evt,
   });
+
+  static AppState initialState() => AppState(
+        counter: 0,
+        name: '',
+        user: User(name: '', age: 0),
+        evt: Evt.spent(),
+      );
 
   AppState copy(
           {int? counter, String? name, User? user, User? maybeUser, Evt<int>? evt}) =>
@@ -1226,6 +1239,108 @@ class CallsSuperAbortDispatch extends AppAction with NonReentrant<AppState> {
   AppState? reduce() => null;
 }
 
+class ParseCounter extends AppAction {
+  final String text;
+
+  ParseCounter(this.text);
+
+  @override
+  AppState? reduce() {
+    try {
+      return state.copy(counter: int.parse(text));
+    } catch (error) {
+      // user_exception_without_cause
+      // (In a 'catch', it replaces the error, but doesn't keep it)
+      // Fix: Will add '.addCause(error)'.
+      throw const UserException('Please enter a valid number');
+    }
+  }
+}
+
+class ParseCounterOn extends AppAction {
+  final String text;
+
+  ParseCounterOn(this.text);
+
+  @override
+  AppState? reduce() {
+    try {
+      return state.copy(counter: int.parse(text));
+    } on FormatException {
+      // user_exception_without_cause
+      // (In an 'on' clause without 'catch')
+      // Fix: Will add 'catch (error)' to the 'on' clause, and '.addCause(error)'.
+      throw const UserException('Please enter a valid number');
+    }
+  }
+}
+
+class ParseCounterWithCause extends AppAction {
+  final String text;
+
+  ParseCounterWithCause(this.text);
+
+  @override
+  AppState? reduce() {
+    try {
+      return state.copy(counter: int.parse(text));
+    } catch (error) {
+      throw const UserException('Please enter a valid number').addCause(error); // OK
+    }
+  }
+}
+
+class SaveName extends AppAction {
+  @override
+  Future<AppState?> reduce() async => state.copy(name: await fetchName());
+
+  @override
+  Object? wrapError(Object error, StackTrace stackTrace) =>
+      // user_exception_without_cause
+      // (In 'wrapError')
+      // Fix: Will add '.addCause(error)'.
+      const UserException('Could not save the name');
+}
+
+class ErrorObserverWithoutCause extends GlobalErrorObserver<AppState> {
+  @override
+  Object? observe() {
+    if (error is FormatException) {
+      // user_exception_without_cause
+      // (In the 'observe' method of a 'GlobalErrorObserver')
+      // Fix: Will add '.addCause(error)'.
+      return const UserException('Invalid number');
+    }
+    return error;
+  }
+}
+
+class DispatchingErrorObserver extends GlobalErrorObserver<AppState> {
+  @override
+  Object? observe() {
+    // dispatch_in_global_error_observer
+    // (The store is still processing the action that failed)
+    // Fix: not available.
+    store.dispatch(UserExceptionAction('Failed'));
+
+    Future.microtask(() => store.dispatch(Increment())); // OK: runs later.
+    return error;
+  }
+}
+
+class ThrowingErrorObserver extends GlobalErrorObserver<AppState> {
+  @override
+  Object? observe() {
+    if (error is FormatException) {
+      // throw_in_global_error_observer
+      // (AsyncRedux uses it like a returned error, but the docs recommend returning it)
+      // Fix: Will change 'throw' to 'return'.
+      throw const UserException('Invalid number').addCause(error);
+    }
+    return error; // OK
+  }
+}
+
 // retry_without_non_reentrant
 // (A new dispatch could run while this one retries)
 // Fix: Will change 'with Retry<AppState>' to 'with Retry<AppState>, NonReentrant'.
@@ -1359,6 +1474,206 @@ class LoadWhenOnline extends AppAction with CheckInternet<AppState> {
 
   @override
   AppState? reduce() => null;
+}
+
+@stateClass
+class Catalog {
+  // prefer_immutable_collections
+  // (A 'List' can be changed after it's created)
+  // Fix: Will change the type from 'List<String>' to 'IList<String>'.
+  final List<String> products;
+
+  // prefer_immutable_collections
+  // (The same for 'Map')
+  // Fix: Will change the type from 'Map<String, int>' to 'IMap<String, int>'.
+  final Map<String, int> prices;
+
+  final IList<Product> featured; // OK
+
+  Catalog({required this.products, required this.prices, required this.featured});
+
+  @override
+  bool operator ==(Object other) =>
+      other is Catalog &&
+      products == other.products &&
+      prices == other.prices &&
+      featured == other.featured;
+
+  @override
+  int get hashCode => Object.hash(products, prices, featured);
+}
+
+class Product {
+  // prefer_immutable_collections
+  // ('Product' isn't a '@stateClass', but 'Catalog' contains it. The same for 'Set')
+  // Fix: Will change the type from 'Set<String>' to 'ISet<String>'.
+  final Set<String> tags;
+
+  Product({required this.tags});
+
+  @override
+  bool operator ==(Object other) => other is Product && tags == other.tags;
+
+  @override
+  int get hashCode => tags.hashCode;
+}
+
+@stateClass
+class Session {
+  // non_state_object_in_state
+  // (A 'Timer' goes in the store props, with 'setProp')
+  // Fix: not available.
+  final Timer? timer;
+
+  // non_state_object_in_state
+  // (A 'TextEditingController' goes in the widget, controlled by an event in the state)
+  // Fix: not available.
+  final TextEditingController nameController;
+
+  // non_state_object_in_state
+  // (A 'GlobalKey' goes in the widget)
+  // Fix: not available.
+  final GlobalKey formKey;
+
+  // non_state_object_in_state
+  // (Type arguments are checked too)
+  // Fix: not available.
+  final IList<StreamSubscription<int>> listeners;
+
+  final void Function(Timer) onTick; // OK: holds a function.
+
+  Session({
+    this.timer,
+    required this.nameController,
+    required this.formKey,
+    required this.listeners,
+    required this.onTick,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is Session &&
+      timer == other.timer &&
+      nameController == other.nameController &&
+      formKey == other.formKey &&
+      listeners == other.listeners &&
+      onTick == other.onTick;
+
+  @override
+  int get hashCode => Object.hash(timer, nameController, formKey, listeners, onTick);
+}
+
+void missingInitialStateDemo() {
+  Store<Catalog>(
+    // missing_initial_state
+    // ('Catalog' doesn't have a static 'initialState()' method)
+    // Fix: not available.
+    initialState: Catalog(products: [], prices: {}, featured: const IList.empty()),
+  );
+
+  Store<AppState>(
+    // missing_initial_state
+    // (Uses a constructor, instead of 'AppState.initialState()')
+    // Fix: not available.
+    initialState: AppState(
+      counter: 0,
+      name: '',
+      user: User(name: '', age: 0),
+      evt: Evt.spent(),
+    ),
+  );
+
+  Store<AppState>(initialState: AppState.initialState()); // OK
+}
+
+@stateClass
+class SearchState {
+  // event_name_suffix
+  // (Doesn't end with 'Evt')
+  // Fix: Will rename it to 'clearTextEvt', in all files of the package, together with
+  // the parameters of this class that have the same name.
+  final Evt clearText;
+
+  // event_name_suffix
+  // (Ends with 'Event' instead of 'Evt')
+  // Fix: Will rename it to 'scrollEvt', in all files of the package, together with
+  // the parameters of this class that have the same name.
+  final Evt<int> scrollEvent;
+
+  final Evt<String> changeTextEvt; // OK
+
+  // event_not_spent_initially
+  // (In a field initializer)
+  // Fix: Will replace 'Evt()' with 'Evt.spent()'.
+  final Evt focusEvt = Evt();
+
+  SearchState({
+    required this.clearText,
+    required this.scrollEvent,
+    Evt<String>? changeTextEvt,
+  }) : changeTextEvt = changeTextEvt ??
+            // event_not_spent_initially
+            // (In a constructor)
+            // Fix: Will replace 'Evt()' with 'Evt<String>.spent()'.
+            Evt();
+
+  static SearchState initialState() => SearchState(
+        // event_not_spent_initially
+        // (In 'initialState', so it fires as soon as the app starts)
+        // Fix: Will replace 'Evt()' with 'Evt.spent()'.
+        clearText: Evt(),
+        // event_not_spent_initially
+        // (With a value)
+        // Fix: Will replace 'Evt(0)' with 'Evt<int>.spent()'.
+        scrollEvent: Evt(0),
+        changeTextEvt: Evt.spent(), // OK
+      );
+
+  Map<String, dynamic> toJson() => {
+        // event_persisted
+        // (In 'toJson')
+        // Fix: not available.
+        'clearText': clearText.isSpent,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      other is SearchState &&
+      clearText == other.clearText &&
+      scrollEvent == other.scrollEvent &&
+      changeTextEvt == other.changeTextEvt &&
+      focusEvt == other.focusEvt;
+
+  @override
+  int get hashCode => Object.hash(clearText, scrollEvent, changeTextEvt, focusEvt);
+}
+
+void eventInStoreDemo() {
+  Store<AppState>(
+    // event_not_spent_initially
+    // (In the 'initialState' argument of a 'Store')
+    // Fix: Will replace 'Evt(1)' with 'Evt<int>.spent()'.
+    initialState: AppState.initialState().copy(evt: Evt(1)),
+  );
+}
+
+class SearchPersistor extends Persistor<SearchState> {
+  @override
+  Future<SearchState?> readState() async => null;
+
+  @override
+  Future<void> deleteState() async {}
+
+  @override
+  Future<void> persistDifference({
+    required SearchState? lastPersistedState,
+    required SearchState newState,
+  }) async {
+    // event_persisted
+    // (In the 'persistDifference' method of a 'Persistor')
+    // Fix: not available.
+    describe(newState.scrollEvent.isSpent);
+  }
 }
 
 class DispatchDemo extends StatelessWidget {
@@ -1632,6 +1947,324 @@ class UserExceptionInAfter extends AppAction {
   }
 }
 
+final navigatorKey = GlobalKey<NavigatorState>();
+
+void setUpNavigation() => NavigateAction.setNavigatorKey(navigatorKey);
+
+List<Widget> userExceptionDialogDemo(Store<AppState> store, Widget home) => [
+      // user_exception_dialog_placement
+      // (Above the 'StoreProvider', so it can't read the errors from the store)
+      // Fix: not available.
+      UserExceptionDialog<AppState>(
+        child: StoreProvider<AppState>(
+          store: store,
+          child: MaterialApp(navigatorKey: navigatorKey, home: home),
+        ),
+      ),
+      StoreProvider<AppState>(
+        store: store,
+        // user_exception_dialog_placement
+        // (Above the 'MaterialApp', so it can't show dialogs)
+        // Fix: not available.
+        child: UserExceptionDialog<AppState>(
+          child: MaterialApp(navigatorKey: navigatorKey, home: home),
+        ),
+      ),
+      // navigator_key_not_set
+      // (The 'MaterialApp' below doesn't have a 'navigatorKey')
+      // Fix: Will add 'navigatorKey: navigatorKey'.
+      MaterialApp(
+        builder: (context, child) =>
+            // user_exception_dialog_placement
+            // (In the 'builder', above the 'Navigator', which needs a 'navigatorKey')
+            // Fix: not available.
+            UserExceptionDialog<AppState>(child: child!),
+      ),
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        builder: (context, child) => UserExceptionDialog<AppState>(
+          // user_exception_dialog_placement
+          // (In the 'builder', above the 'Navigator', so it can't use the local context)
+          // Fix: not available.
+          useLocalContext: true,
+          child: child!,
+        ),
+      ),
+      StoreProvider<AppState>(
+        store: store,
+        child: MaterialApp(
+          navigatorKey: navigatorKey,
+          home: UserExceptionDialog<AppState>(child: home), // OK: in the 'home'.
+        ),
+      ),
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        // OK: in the 'builder', with a 'navigatorKey'.
+        builder: (context, child) => UserExceptionDialog<AppState>(child: child!),
+      ),
+    ];
+
+List<Widget> navigatorKeyDemo(Widget home) => [
+      // navigator_key_not_set
+      // (No 'navigatorKey', but 'setUpNavigation' calls 'NavigateAction.setNavigatorKey')
+      // Fix: Will add 'navigatorKey: navigatorKey'.
+      MaterialApp(home: home),
+
+      // navigator_key_not_set
+      // (Not the key passed to 'NavigateAction.setNavigatorKey')
+      // Fix: not available.
+      MaterialApp(navigatorKey: GlobalKey<NavigatorState>(), home: home),
+
+      MaterialApp(navigatorKey: navigatorKey, home: home), // OK
+      MaterialApp(navigatorKey: NavigateAction.navigatorKey, home: home), // OK
+    ];
+
+void debugObserverDemo() {
+  Store<AppState>(
+    initialState: AppState.initialState(),
+    // debug_observer_in_release
+    // ('ConsoleActionObserver' is meant for development)
+    // Fix: not available.
+    actionObservers: [ConsoleActionObserver()],
+    // debug_observer_in_release
+    // ('DefaultModelObserver' too)
+    // Fix: not available.
+    modelObserver: DefaultModelObserver(),
+  );
+
+  Store<AppState>(
+    initialState: AppState.initialState(),
+    // debug_observer_in_release
+    // ('Log.printer' too)
+    // Fix: not available.
+    actionObservers: [Log.printer()],
+  );
+
+  Store<AppState>(
+    initialState: AppState.initialState(),
+    actionObservers: kReleaseMode ? null : [ConsoleActionObserver()], // OK
+    modelObserver: kDebugMode ? DefaultModelObserver() : null, // OK
+  );
+
+  Store<AppState>(
+    initialState: AppState.initialState(),
+    actionObservers: [if (kDebugMode) Log.printer()], // OK
+  );
+}
+
+class AppPersistor extends Persistor<AppState> {
+  @override
+  Future<AppState?> readState() async {
+    try {
+      return await fetchState();
+    } on FormatException catch (error) {
+      addError(const UserException('Could not read your data').addCause(error)); // OK
+      return null;
+    }
+  }
+
+  @override
+  Future<void> deleteState() async {}
+
+  @override
+  Future<void> persistDifference({
+    required AppState? lastPersistedState,
+    required AppState newState,
+  }) async {}
+}
+
+// implements_persistor
+// (The store relies on the code inherited from 'Persistor')
+// Fix: Will change 'implements' to 'extends'.
+class ImplementsPersistor implements Persistor<AppState> {
+  @override
+  Future<AppState?> readState() async => null;
+
+  @override
+  Future<void> deleteState() async {}
+
+  @override
+  Future<void> persistDifference({
+    required AppState? lastPersistedState,
+    required AppState newState,
+  }) async {}
+
+  @override
+  Future<void> saveInitialState(AppState state) async {}
+
+  @override
+  Duration? get throttle => null;
+
+  @override
+  Object? wrapError(Object error, StackTrace stackTrace) => error;
+
+  @override
+  void addError(Object error, [StackTrace? stackTrace]) {}
+
+  @override
+  (Object, StackTrace)? getAndRemoveFirstError() => null;
+}
+
+// implements_persistor
+// (Implements another persistor)
+// Fix: Will change 'implements' to 'extends'.
+abstract class ImplementsAppPersistor implements AppPersistor {}
+
+class ThrowingPersistor extends Persistor<AppState> {
+  @override
+  Future<AppState?> readState() async {
+    try {
+      return await fetchState();
+    } on FormatException catch (error) {
+      await deleteState();
+      // throw_in_read_state
+      // (It runs before the store exists, so the error can't be shown to the user)
+      // Fix: Will replace it with 'addError(...)' and 'return null'.
+      throw const UserException('Could not read your data').addCause(error);
+    } catch (error) {
+      // throw_in_read_state
+      // (A 'rethrow')
+      // Fix: Will replace it with 'addError(error)' and 'return null'.
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> deleteState() async {}
+
+  @override
+  Future<void> persistDifference({
+    required AppState? lastPersistedState,
+    required AppState newState,
+  }) async {}
+}
+
+Future<void> initialStateNotSavedDemo() async {
+  var persistor = AppPersistor();
+  var initialState = await persistor.readState();
+
+  if (initialState == null) {
+    describe('First run');
+    // initial_state_not_saved
+    // (The store considers its initial state already persisted, so it's only saved
+    // after the state changes)
+    // Fix: Will add 'await persistor.saveInitialState(initialState)'.
+    initialState = AppState.initialState();
+  }
+
+  Store<AppState>(initialState: initialState, persistor: persistor);
+}
+
+Future<void> initialStateNotSavedWithIfNullAssignmentDemo() async {
+  var persistor = AppPersistor();
+  var initialState = await persistor.readState();
+
+  // initial_state_not_saved
+  // (With '??=')
+  // Fix: Will change it to an 'if', and add
+  // 'await persistor.saveInitialState(initialState)'.
+  initialState ??= AppState.initialState();
+
+  Store<AppState>(initialState: initialState, persistor: persistor);
+}
+
+Future<void> initialStateNotSavedWithIfNullDemo() async {
+  var persistor = AppPersistor();
+
+  // initial_state_not_saved
+  // (With '??')
+  // Fix: not available.
+  var initialState = await persistor.readState() ?? AppState.initialState();
+
+  Store<AppState>(initialState: initialState, persistor: persistor);
+}
+
+Future<void> initialStateSavedDemo() async {
+  var persistor = AppPersistor();
+  var initialState = await persistor.readState();
+
+  if (initialState == null) {
+    initialState = AppState.initialState();
+    await persistor.saveInitialState(initialState); // OK
+  }
+
+  Store<AppState>(initialState: initialState, persistor: persistor);
+}
+
+class StartTimers extends AppAction {
+  final Stream<int> ticks;
+
+  StartTimers(this.ticks);
+
+  @override
+  AppState? reduce() {
+    // timer_or_stream_not_in_props
+    // (The 'Timer' can't be cancelled)
+    // Fix: not available.
+    Timer.periodic(const Duration(seconds: 5), (_) => dispatch(LoadUser()));
+
+    // timer_or_stream_not_in_props
+    // (The 'StreamSubscription' can't be cancelled)
+    // Fix: not available.
+    ticks.listen((_) => dispatch(Increment()));
+
+    // timer_or_stream_not_in_props
+    // (Kept in a variable, but not saved with 'setProp', or cancelled)
+    // Fix: not available.
+    var timer = Timer(const Duration(seconds: 5), () => dispatch(LoadUser()));
+    describe(timer.isActive);
+
+    var userTimer =
+        Timer.periodic(const Duration(seconds: 5), (_) => dispatch(LoadUser()));
+    setProp('userTimer', userTimer); // OK
+
+    Timer.run(() => dispatch(Increment())); // OK: doesn't return a 'Timer'.
+    return null;
+  }
+}
+
+// expect_without_waiting
+// (Only reported in files under 'test/', so it doesn't show in this file)
+// For example, in a test:
+//
+//   store.dispatch(LoadUser());                // Warning: 'LoadUser' is async.
+//   expect(store.state.name, 'Mary');
+//
+//   await store.dispatchAndWait(LoadUser());   // OK
+//   expect(store.state.name, 'Mary');
+//
+// Fix: Will replace 'store.dispatch(...)' with 'await store.dispatchAndWait(...)'.
+
+void vmCreateFromDemo(Store<AppState> store) {
+  var factory = CounterFactory();
+
+  // ignore: invalid_use_of_visible_for_testing_member
+  var vm1 = Vm.createFrom(store, factory);
+
+  // vm_create_from_reused_factory
+  // (Each factory instance can only be used once)
+  // Fix: not available.
+  // ignore: invalid_use_of_visible_for_testing_member
+  var vm2 = Vm.createFrom(store, factory);
+
+  // ignore: invalid_use_of_visible_for_testing_member
+  var vm3 = Vm.createFrom(store, CounterFactory()); // OK: a new factory.
+
+  describe([vm1, vm2, vm3]);
+}
+
+Future<void> actionStatusDemo(Store<AppState> store) async {
+  var status = await store.dispatchAndWait(LoadUser());
+
+  // action_status_details_in_production
+  // (Meant for tests and debugging. The same for 'hasFinishedMethodBefore' and
+  // 'hasFinishedMethodAfter')
+  // Fix: not available.
+  if (status.hasFinishedMethodReduce) describe('reduced');
+
+  if (status.isCompletedOk) describe('ok'); // OK
+}
+
 // =====================================================================================
 // Opt-in rules. They are off in this example, so these diagnostics don't show. To see
 // them, turn them on in the example's analysis_options.yaml.
@@ -1668,6 +2301,25 @@ class UserExceptionInAfter extends AppAction {
 // - avoid_wrap_reduce: an info on 'wrapReduce' in the wrap_reduce_return_type and
 //   dispatch_sync_async_action examples.
 
+// Store environment. Turn on global_error_observer_without_env for an info on the first
+// 'Store' of 'storesWithErrorObserver', which has a 'globalErrorObserver', but no
+// 'environment'. No quick fix.
+
+enum Environment { production, staging, test }
+
+void storesWithErrorObserver() {
+  Store<AppState>(
+    initialState: AppState.initialState(),
+    globalErrorObserver: (store) => GlobalErrorObserverDummy(),
+  );
+
+  Store<AppState>(
+    initialState: AppState.initialState(),
+    globalErrorObserver: (store) => GlobalErrorObserverDummy(),
+    environment: Environment.production, // OK
+  );
+}
+
 // Mixin keys. Turn on missing_key_params for an info on 'NonReentrant' in
 // 'LoadUserCart', which has a field but doesn't override 'nonReentrantKeyParams'. So
 // 'LoadUserCart('A')' blocks 'LoadUserCart('B')'.
@@ -1676,6 +2328,41 @@ class LoadUserCart extends AppAction with NonReentrant<AppState> {
   final String userId;
 
   LoadUserCart(this.userId);
+
+  @override
+  AppState? reduce() => null;
+}
+
+// The current route. Turn on route_in_state for an info on 'currentRoute' in
+// 'NavigationState'. Get the current route with
+// 'NavigateAction.getCurrentNavigatorRouteName(context)' instead. No quick fix.
+
+@stateClass
+class NavigationState {
+  final String currentRoute;
+
+  NavigationState({required this.currentRoute});
+
+  @override
+  bool operator ==(Object other) =>
+      other is NavigationState && currentRoute == other.currentRoute;
+
+  @override
+  int get hashCode => currentRoute.hashCode;
+}
+
+// Action logs. Turn on action_without_to_string for an info on 'LoadUserCart' above,
+// and on the other actions with fields, like 'ParseCounter', since the logs of
+// 'ConsoleActionObserver' wouldn't show their fields. Quick fix: override 'toString()'
+// with all the fields, like in 'LoadUserOrders'.
+
+class LoadUserOrders extends AppAction {
+  final String userId;
+
+  LoadUserOrders(this.userId);
+
+  @override
+  String toString() => '${super.toString()}(userId: $userId)';
 
   @override
   AppState? reduce() => null;
