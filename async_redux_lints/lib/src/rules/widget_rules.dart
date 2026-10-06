@@ -24,8 +24,7 @@ class DispatchInBuildRule extends AnalysisRule {
     "Don't dispatch actions while the widget builds. It dispatches again on every "
         "rebuild.",
     correctionMessage:
-        "Try dispatching from a callback like 'onPressed', from 'initState', or from "
-        "'StoreConnector.onInit'.",
+        "Try dispatching from a callback like 'onPressed', or from 'initState'.",
     severity: DiagnosticSeverity.WARNING,
   );
 

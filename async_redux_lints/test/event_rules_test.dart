@@ -4,14 +4,12 @@ import 'package:test/test.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 import 'rule_test_base.dart';
-import 'widget_rule_test_base.dart';
 
 void main() {
   defineReflectiveSuite(() {
     defineReflectiveTests(EventNameSuffixTest);
     defineReflectiveTests(EventNotSpentInitiallyTest);
     defineReflectiveTests(EventPersistedTest);
-    defineReflectiveTests(EventConsumedTwiceTest);
   });
   group('suggestedEventName', () {
     test('adds the suffix', () {
@@ -485,137 +483,5 @@ class NotAPersistor {
         messageContainsAll: ["'saveInitialState'"],
       ),
     ]);
-  }
-}
-
-@reflectiveTest
-class EventConsumedTwiceTest extends AsyncReduxWidgetRuleTest {
-  @override
-  void setUp() {
-    rule = EventConsumedTwiceRule();
-    super.setUp();
-  }
-
-  Future<void> test_consumedOnce() async {
-    await assertNoDiagnostics('''$widgetHeader
-class Other {
-  final Evt<int> evt = Evt<int>();
-}
-
-class Nested {
-  final Other a = Other();
-  final Other b = Other();
-}
-
-class W1 extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    context.event((state) => state.evt);
-    context.getEvent<Nested, int>((nested) => nested.a.evt);
-    context.getEvent<Nested, int>((nested) => nested.b.evt);
-    context.getEvent<Other, int>((other) => other.evt);
-    return const SizedBox();
-  }
-}
-''');
-  }
-
-  /// Each file of a library is checked on its own.
-  Future<void> test_consumedOnceInEachFileOfLibrary() async {
-    var partPath = '$testPackageLibPath/part.dart';
-    newFile(partPath, '''
-part of 'test.dart';
-
-class W2 extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    var value = context.event((state) => state.evt);
-    return Text('\$value');
-  }
-}
-''');
-    var header = widgetHeader.replaceFirst(
-      "import 'package:flutter/src/widgets/extras.dart';",
-      "import 'package:flutter/src/widgets/extras.dart';\n\npart 'part.dart';",
-    );
-    newFile(testFilePath, '''$header
-class W1 extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    var value = context.event((state) => state.evt);
-    return Text('\$value');
-  }
-}
-''');
-    await assertDiagnosticsInUnits([(testFilePath, []), (partPath, [])]);
-  }
-
-  Future<void> test_consumedTwice() async {
-    var code = '''$widgetHeader
-class W1 extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    var value = context.event((state) => state.evt);
-    return Text('\$value');
-  }
-}
-
-class W2 extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    var value = context.event((st) => (st.evt));
-    var other = context.getEvent<AppState, int>((st) => st.evt);
-    return Text('\$value \$other');
-  }
-}
-''';
-    var line = code.substring(0, code.indexOf('context.event')).split('\n').length;
-    await assertDiagnostics(code, [
-      lintAt(
-        code,
-        'context.event((st) => (st.evt))',
-        messageContainsAll: ["The event 'evt' is also consumed in line $line."],
-      ),
-      lintAt(code, 'context.getEvent<AppState, int>((st) => st.evt)'),
-    ]);
-  }
-
-  Future<void> test_nestedPath() async {
-    var code = '''$widgetHeader
-class Other {
-  final Evt<int> evt = Evt<int>();
-}
-
-class Nested {
-  final Other a = Other();
-}
-
-class W1 extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    context.getEvent<Nested, int>((nested) => nested.a.evt);
-    context.getEvent<Nested, int>((n) => n.a.evt);
-    return const SizedBox();
-  }
-}
-''';
-    await assertDiagnostics(code, [
-      lintAt(code, 'context.getEvent<Nested, int>((n) => n.a.evt)'),
-    ]);
-  }
-
-  Future<void> test_selectorNotComparable() async {
-    await assertNoDiagnostics('''$widgetHeader
-class W1 extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    context.event((state) {
-      return state.evt;
-    });
-    context.event((state) => state.evt);
-    return const SizedBox();
-  }
-}
-''');
   }
 }

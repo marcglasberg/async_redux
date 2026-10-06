@@ -8,17 +8,15 @@ import 'package:analyzer/error/error.dart';
 import '../widget_types.dart';
 
 /// Reports `context.select` and `context.event` where they can't be used. They only
-/// work while the widget builds, with the `BuildContext` of that widget. Otherwise,
-/// they throw a `FlutterError` in debug mode. These are reported:
+/// work while the widget builds, with the `BuildContext` of that widget, or in the
+/// `didChangeDependencies` method of a `State`. Otherwise, they throw a
+/// `FlutterError` in debug mode, or don't work as expected. These are reported:
 ///
 /// - Closures passed as a named argument that starts with `on`, like `onPressed`,
 ///   and closures passed to methods like `addPostFrameCallback`, `Timer` or
 ///   `setState`.
 /// - The `State` methods `initState`, `didUpdateWidget`, `activate`, `deactivate`,
-///   `dispose` and `reassemble`. Even with `debug: false`, which turns off the
-///   runtime check, they're not valid there.
-/// - The `State` method `didChangeDependencies`, unless `debug: false` is passed to
-///   `getSelect` or `getEvent`. AsyncRedux allows them there with `debug: false`.
+///   `dispose` and `reassemble`.
 /// - Builders that use the `BuildContext` of another widget, like
 ///   `Builder(builder: (_) => Text(context.select(...)))`, where `context` is the
 ///   parameter of the enclosing `build` method.
@@ -39,7 +37,8 @@ class SelectOutsideBuildRule extends AnalysisRule {
     : super(
         name: 'select_outside_build',
         description:
-            "Use 'context.select' and 'context.event' only while the widget builds.",
+            "Use 'context.select' and 'context.event' only while the widget builds, "
+            "or in 'didChangeDependencies'.",
       );
 
   @override
@@ -72,15 +71,11 @@ enum SelectProblemKind {
   /// A callback, like `onPressed`, or a closure passed to a method like `Timer`.
   callback,
 
-  /// A `State` method, like `initState`, but not `dispose` or
-  /// `didChangeDependencies`.
+  /// A `State` method, like `initState`, but not `dispose`.
   stateMethod,
 
   /// The `dispose` method of a `State`. The state can't be read there.
   dispose,
-
-  /// The `didChangeDependencies` method of a `State`, with the debug check on.
-  didChangeDependencies,
 
   /// A builder, using the `BuildContext` of another widget.
   otherContext,
@@ -97,7 +92,6 @@ SelectProblem? selectProblem(MethodInvocation node) {
   var access = stateAccessOfNode(node);
   if (access != StateAccess.select && access != StateAccess.event) return null;
   var isEvent = access == StateAccess.event;
-  var getSelect = isEvent ? 'getEvent' : 'getSelect';
   const whileBuilding = "which doesn't run while the widget builds";
 
   var notBuildingCode = notBuilding(node);
@@ -105,12 +99,7 @@ SelectProblem? selectProblem(MethodInvocation node) {
     var where = 'in ${notBuildingCode.description}, $whileBuilding';
     switch (notBuildingCode.stateMethod) {
       case 'didChangeDependencies':
-        if (isDebugCheckOn(node) != true) return null;
-        return (
-          kind: SelectProblemKind.didChangeDependencies,
-          where: "in 'didChangeDependencies' while the debug check is on",
-          correction: "Try passing 'debug: false' to '$getSelect'.",
-        );
+        return null;
       case 'dispose':
         return (
           kind: SelectProblemKind.dispose,
@@ -126,7 +115,7 @@ SelectProblem? selectProblem(MethodInvocation node) {
           : SelectProblemKind.stateMethod,
       where: where,
       correction: isEvent
-          ? "Try consuming the event in 'build'."
+          ? "Try consuming the event in 'build' or in 'didChangeDependencies'."
           : "Try using 'context.read()' instead.",
     );
   }
@@ -140,7 +129,9 @@ SelectProblem? selectProblem(MethodInvocation node) {
       where:
           "with the 'BuildContext' of another widget, because this builder doesn't "
           "run while that widget builds",
-      correction: "Try using the 'BuildContext' parameter of the builder.",
+      correction: function.isItemBuilder
+          ? "Try wrapping the item in a 'Builder', and using its 'BuildContext'."
+          : "Try using the 'BuildContext' parameter of the builder.",
     );
   }
   if (isOwnContext == true && function.isItemBuilder) {

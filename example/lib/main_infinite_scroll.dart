@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:async_redux/async_redux.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 
@@ -37,14 +38,14 @@ void main() {
 
 @immutable
 class AppState {
-  final List<String> numTrivia;
+  final IList<String> numTrivia;
 
   AppState({required this.numTrivia});
 
-  AppState copy({List<String>? numTrivia}) =>
+  AppState copy({IList<String>? numTrivia}) =>
       AppState(numTrivia: numTrivia ?? this.numTrivia);
 
-  static AppState initialState() => AppState(numTrivia: <String>[]);
+  static AppState initialState() => AppState(numTrivia: const IListConst([]));
 
   @override
   bool operator ==(Object other) =>
@@ -71,7 +72,7 @@ class MyApp extends StatelessWidget {
 class LoadMoreAction extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
-    List<String> list = List.from(state.numTrivia);
+    List<String> list = [];
     int start = state.numTrivia.length + 1;
 
     // Fetch 20 people concurrently.
@@ -87,7 +88,7 @@ class LoadMoreAction extends ReduxAction<AppState> {
       }
     }
 
-    return state.copy(numTrivia: list);
+    return state.copy(numTrivia: state.numTrivia.addAll(list));
   }
 }
 
@@ -108,7 +109,7 @@ class RefreshAction extends ReduxAction<AppState> {
       }
     }
 
-    return state.copy(numTrivia: list);
+    return state.copy(numTrivia: list.lock);
   }
 }
 
@@ -141,7 +142,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // Load more when scrolled to the bottom
     if (!isLoading &&
         _controller.position.maxScrollExtent == _controller.position.pixels) {
-      context.dispatch(LoadMoreAction());
+      dispatch(LoadMoreAction());
     }
   }
 
@@ -164,7 +165,7 @@ class _MyHomePageState extends State<MyHomePage> {
       body: numTrivia.isEmpty
           ? Container()
           : RefreshIndicator(
-              onRefresh: () => context.dispatchAndWait(RefreshAction()),
+              onRefresh: () => dispatchAndWait(RefreshAction()),
               child: ListView.builder(
                 controller: _controller,
                 itemCount: numTrivia.length + 1,

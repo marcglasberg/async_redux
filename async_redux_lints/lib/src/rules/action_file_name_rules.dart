@@ -7,6 +7,7 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
 
 import '../names.dart';
+import '../package_files.dart';
 import '../redux_types.dart';
 
 /// The ways to name the files that declare actions. Each one has its own opt-in rule,
@@ -165,7 +166,7 @@ class _Visitor extends SimpleAstVisitor<void> {
   void visitCompilationUnit(CompilationUnit node) {
     var file = context.currentUnit?.file;
     if (file == null) return;
-    if (context.package?.isInTestDirectory(file) ?? false) return;
+    if (isInTestDirectory(context.package, file)) return;
 
     var fileName = file.shortName;
     if (!fileName.endsWith('.dart')) return;

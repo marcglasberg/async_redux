@@ -363,6 +363,8 @@ class _ConverterError extends Error {
 
 class _StoreStreamListenerState<St, Model> //
     extends State<_StoreStreamListener<St, Model>> {
+  // The StoreConnector rebuilds from this stream of view-models.
+  // ignore: async_redux_lints/stream_or_timer_in_widget
   Stream<Model>? _stream;
   Model? _latestModel;
   _ConverterError? _latestError;
@@ -1221,10 +1223,33 @@ class _WidgetListensOnChange extends StatefulWidget {
 }
 
 class _WidgetListensOnChangeState extends State<_WidgetListensOnChange> {
+  // ignore: async_redux_lints/stream_or_timer_in_widget
+  StreamSubscription? _subscription;
+
   @override
   void initState() {
     super.initState();
-    widget.store.onChange.listen((state) {
+    _listen();
+  }
+
+  @override
+  void didUpdateWidget(_WidgetListensOnChange oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.store != oldWidget.store) {
+      _subscription?.cancel();
+      _listen();
+    }
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  void _listen() {
+    // ignore: async_redux_lints/stream_or_timer_in_widget
+    _subscription = widget.store.onChange.listen((state) {
       if (mounted) {
         setState(() {});
       }
@@ -1645,10 +1670,10 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// - [getSelect] to select specific parts of the state and rebuild only when those parts change.
   /// - [Event] class documentation for more details on event behavior and lifecycle.
   ///
-  R? getEvent<St, R>(Evt<R> Function(St state) selector, {bool debug = true}) {
-    _assertEvent(debug);
+  R? getEvent<St, R>(Evt<R> Function(St state) selector) {
+    _assertEvent();
 
-    var evt = getSelect<St, Evt<R>>(selector, debug: debug);
+    var evt = getSelect<St, Evt<R>>(selector);
     return evt.consume();
   }
 
@@ -1696,15 +1721,13 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// - [getRead] if you don't want the widget to rebuild automatically when
   ///   the state changes (use it with `context.read()`).
   ///
-  /// The [debug] parameter, when true (the default), will throw an error if you
-  /// try to use `context.select` outside the widget's `build` method. Set it to
-  /// false to also allow usage in `didChangeDependencies`. Use this with care:
-  /// once the debug check is off, invalid usage in methods like `initState` will
-  /// no longer be detected.
+  /// Use it in the widget's `build` method, or in the `didChangeDependencies` method
+  /// of a `State`. In debug mode, using it elsewhere, like in callbacks such as
+  /// `onPressed`, throws an error.
   ///
-  R getSelect<St, R>(R Function(St state) selector, {bool debug = true}) {
+  R getSelect<St, R>(R Function(St state) selector) {
     if (_isMock) return selector(_store.state as St);
-    _assertSelect(debug);
+    _assertSelect();
 
     // Get the InheritedElement WITHOUT creating a dependency yet.
     final inheritedElement =
@@ -1780,7 +1803,12 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
     return selected;
   }
 
-  void _assertSelect(bool debug) {
+  /// Returns true if this context is building, or if the widgets are being built,
+  /// which includes `didChangeDependencies`, and the builders of `LayoutBuilder` and
+  /// of lists. Callbacks like `onPressed`, timers and post-frame callbacks run later.
+  bool get _debugIsBuilding => debugDoingBuild || (owner?.debugBuilding ?? false);
+
+  void _assertSelect() {
     assert(() {
       final widget = this.widget;
 
@@ -1806,14 +1834,11 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
             ');\n');
       }
 
-      // Check we're in a build method.
-      if (debug &&
-          !debugDoingBuild &&
-          widget is! LayoutBuilder &&
-          widget is! SliverLayoutBuilder) {
+      // Check we're in a build method, or in didChangeDependencies.
+      if (!_debugIsBuilding) {
         throw FlutterError(
             'Tried to use `context.select` (or `context.getSelect`) '
-            'outside the widget `build` method.'
+            'outside the widget `build` method and `didChangeDependencies`.'
             '\n\n'
             'See also: `context.read()` which you can use in `initState` and events handlers, '
             'because it will not rebuild widgets automatically when the state changes.\n');
@@ -1831,7 +1856,7 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
     }());
   }
 
-  void _assertEvent(bool debug) {
+  void _assertEvent() {
     assert(() {
       final widget = this.widget;
 
@@ -1858,19 +1883,11 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
             ');\n');
       }
 
-      // Check we're in a build method.
-      if (debug &&
-          !debugDoingBuild &&
-          widget is! LayoutBuilder &&
-          widget is! SliverLayoutBuilder) {
+      // Check we're in a build method, or in didChangeDependencies.
+      if (!_debugIsBuilding) {
         throw FlutterError(
             'Tried to use `context.event` (or `context.getEvent`) '
-            'outside the widget `build` method.'
-            '\n\n'
-            'Note: If you also want to allow the usage in '
-            '`didChangeDependencies`, set `debug` to false in `context.getEvent`. '
-            'Use with care, as invalid usage in methods like `initState` will '
-            'no longer be detected once the debug check is off.\n');
+            'outside the widget `build` method and `didChangeDependencies`.\n');
       }
 
       // Check for nested select calls.

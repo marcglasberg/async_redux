@@ -7,6 +7,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
 import '../mixin_utils.dart';
+import '../package_files.dart';
 
 /// Reports an override of `internetOnOffSimulation`, in code under `lib/`, that
 /// returns `true` or `false`. It's meant for tests, and makes the action ignore the
@@ -36,7 +37,7 @@ class InternetSimulationInProductionRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    if (!context.isInLibDir) return;
+    if (!isLibraryInLibDir(context)) return;
     registry.addMethodDeclaration(this, _Visitor(this));
   }
 }

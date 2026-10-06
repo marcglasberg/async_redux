@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var store = Store<AppState>(initialState: AppState(counter: 0));
+    var store = Store<AppState>(initialState: AppState.initialState());
     // ignore: async_redux_lints/stream_or_timer_in_widget
     store.onChange.listen(print);
 
@@ -104,6 +104,8 @@ class AppState {
   final int counter;
 
   AppState({required this.counter});
+
+  static AppState initialState() => AppState(counter: 0);
 
   AppState copy({int? counter}) => AppState(counter: counter ?? this.counter);
 

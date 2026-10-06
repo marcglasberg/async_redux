@@ -431,7 +431,7 @@ class Action6ACompleted extends ReduxAction<AppState> {
 
 class Action6BCompleted extends ReduxAction<AppState> {
   @override
-  // ignore: async_redux_lints/reduce_without_await
+  // ignore: async_redux_lints/reduce_without_await, async_redux_lints/prefer_return_null
   Future<AppState?> reduce() async => state;
 }
 
@@ -447,6 +447,7 @@ class Action6BUncompleted extends ReduxAction<AppState> {
   @override
   Future<AppState?> reduce() async {
     await microtask;
+    // ignore: async_redux_lints/prefer_return_null
     return state;
   }
 }
@@ -457,7 +458,7 @@ class Action7Completed extends ReduxAction<AppState> {
   @override
   Future<AppState?> reduce() async {
     assertUncompletedFuture();
-    // ignore: async_redux_lints/reduce_without_await
+    // ignore: async_redux_lints/reduce_without_await, async_redux_lints/prefer_return_null
     return state;
   }
 }
@@ -467,6 +468,7 @@ class Action7Uncompleted extends ReduxAction<AppState> {
   Future<AppState?> reduce() async {
     await microtask;
     assertUncompletedFuture();
+    // ignore: async_redux_lints/prefer_return_null
     return state;
   }
 }
@@ -479,7 +481,7 @@ class MyAsyncAction extends ReduxAction<AppState> {
     states.add(AppState('a1'));
     await microtask;
     states.add(AppState('a2'));
-    return state;
+    return null;
   }
 }
 

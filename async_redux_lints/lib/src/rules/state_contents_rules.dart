@@ -7,6 +7,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
 
+import '../package_files.dart';
 import '../names.dart';
 import '../redux_types.dart';
 import '../state_contents.dart';
@@ -307,7 +308,7 @@ class _InitialStateVisitor extends SimpleAstVisitor<void> {
   bool _isTestFile() {
     var file = context.currentUnit?.file;
     if (file == null) return false;
-    return (context.package?.isInTestDirectory(file) ?? false) ||
+    return isInTestDirectory(context.package, file) ||
         file.shortName.endsWith('_test.dart');
   }
 
@@ -317,6 +318,6 @@ class _InitialStateVisitor extends SimpleAstVisitor<void> {
     if (isFromAsyncRedux(element)) return false;
     var package = context.package;
     if (package == null) return element.library == context.libraryElement;
-    return package.contains(element.library.firstFragment.source);
+    return isInPackage(element.library, package);
   }
 }

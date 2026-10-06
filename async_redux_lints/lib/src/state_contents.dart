@@ -6,6 +6,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/workspace/workspace.dart';
 
 import 'base_classes.dart';
+import 'package_files.dart';
 import 'redux_types.dart';
 import 'source_text.dart';
 import 'state_class_utils.dart';
@@ -100,7 +101,7 @@ List<StateField> _computeStateFields(CompilationUnit unit, RuleContext context) 
 /// when its file also declares, or imports, the class that contains it.
 ///
 /// Only the classes of [declared], which are declared in [unit], matter to the
-/// caller. Finding the `Store` types of [unit] means visiting the whole unit, so they
+/// caller. Finding the `Store` types of [unit] means visiting the unit, so they
 /// are only searched when they can change the result for [declared]: when some of
 /// [declared] don't hold state otherwise, and [unit] may refer to `Store`.
 Set<InterfaceElement> stateClassesIn(
@@ -112,13 +113,10 @@ Set<InterfaceElement> stateClassesIn(
   if (library == null) return const {};
   var package = context.package;
 
-  var isOwnLibrary = <LibraryElement, bool>{};
   bool isOwnClass(InterfaceElement element) {
     if (isFromAsyncRedux(element)) return false;
     if (package == null) return element.library == library;
-    return isOwnLibrary[element.library] ??= package.contains(
-      element.library.firstFragment.source,
-    );
+    return isInPackage(element.library, package);
   }
 
   var result = <InterfaceElement>{};
@@ -159,7 +157,7 @@ Set<InterfaceElement> stateClassesIn(
   // their contents in it.
   if (!declared.every(result.contains) && _mayReferToStore(unit, context, library)) {
     addWithContents([
-      for (var type in _storeStateTypesIn(unit))
+      for (var type in _storeStateTypesIn(unit, context, library))
         if (isOwnClass(type.element)) type.element,
     ]);
   }
@@ -180,21 +178,37 @@ List<InterfaceType> _visibleActionStateTypes(
 ];
 
 /// Returns the `St` types of the `Store` types and `Store` creations in [unit].
-List<InterfaceType> _storeStateTypesIn(CompilationUnit unit) {
-  var collector = _StoreTypeCollector();
+///
+/// Visiting the whole unit is slow. When [library] can't see a type alias of `Store`,
+/// the code can only refer to a `Store` type with the name `Store`. Then only the nodes
+/// whose text contains that name are visited.
+List<InterfaceType> _storeStateTypesIn(
+  CompilationUnit unit,
+  RuleContext context,
+  LibraryElement library,
+) {
+  var current = context.currentUnit;
+  var storeOffsets =
+      (current != null && current.unit == unit && !_seesStoreAlias(library))
+      ? nameOffsets(current.content, 'Store')
+      : null;
+  var collector = _StoreTypeCollector(storeOffsets);
   unit.accept(collector);
   return collector.stateTypes;
 }
 
 /// Returns true if [unit] may refer to the `Store` class of AsyncRedux: its text uses
-/// the name `Store`, or [library], or a library it imports, declares a type alias of
-/// `Store`, which has another name.
+/// the name `Store`, or [library] can see a type alias of `Store`, which has another
+/// name.
 bool _mayReferToStore(
   CompilationUnit unit,
   RuleContext context,
   LibraryElement library,
-) =>
-    mayContainName(context, unit, 'Store') ||
+) => mayContainName(context, unit, 'Store') || _seesStoreAlias(library);
+
+/// Returns true if [library] declares a type alias of `Store`, or imports a library
+/// that exports one.
+bool _seesStoreAlias(LibraryElement library) =>
     library.typeAliases.any(_aliasesStore) ||
     library.fragments.any(
       (fragment) => fragment.libraryImports.any((import) {
@@ -258,8 +272,37 @@ bool isAsyncReduxClass(DartType? type, String name) =>
     type is InterfaceType && type.element.name == name && isFromAsyncRedux(type.element);
 
 /// Collects the `St` of the `Store<St>` types and `Store` creations in a unit.
-class _StoreTypeCollector extends RecursiveAstVisitor<void> {
+class _StoreTypeCollector extends UnifyingAstVisitor<void> {
+  /// The offsets of the name `Store` in the text of the unit, in increasing order, or
+  /// null to visit the whole unit. A node is only visited, with its children, when its
+  /// text contains one of them, since the others can't contain a `Store` type.
+  final List<int>? storeOffsets;
+
   final stateTypes = <InterfaceType>[];
+
+  _StoreTypeCollector(this.storeOffsets);
+
+  @override
+  void visitNode(AstNode node) {
+    if (storeOffsets case var offsets? when !_hasOffsetIn(offsets, node)) return;
+    super.visitNode(node);
+  }
+
+  /// Returns true if one of [offsets] is in the text of [node].
+  static bool _hasOffsetIn(List<int> offsets, AstNode node) {
+    // Binary search of the first offset at, or after, the start of the node.
+    var low = 0;
+    var high = offsets.length;
+    while (low < high) {
+      var middle = (low + high) >> 1;
+      if (offsets[middle] < node.offset) {
+        low = middle + 1;
+      } else {
+        high = middle;
+      }
+    }
+    return low < offsets.length && offsets[low] < node.end;
+  }
 
   @override
   void visitNamedType(NamedType node) {

@@ -2,6 +2,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/workspace/workspace.dart';
 
+import 'package_files.dart';
 import 'redux_types.dart';
 
 /// Returns true if [candidate] is a base class that a class extending [superType]
@@ -76,7 +77,7 @@ Iterable<LibraryElement> visiblePackageLibraries(
         for (var export in fragment.libraryExports) export.exportedLibrary,
       ];
       for (var other in libraries) {
-        if (other == null || !package.contains(other.firstFragment.source)) continue;
+        if (other == null || !isInPackage(other, package)) continue;
         if (visited.add(other)) pending.add(other);
       }
     }

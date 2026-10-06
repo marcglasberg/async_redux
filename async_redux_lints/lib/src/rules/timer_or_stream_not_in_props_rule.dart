@@ -116,16 +116,24 @@ Expression _outermost(Expression expression) {
 bool _isVariableKept(Element? element, AstNode node) {
   var variable = _variableOf(element);
   if (variable == null) return true;
-  var finder = _KeptReferenceFinder(variable);
   // A local variable can only be used inside the method or function that declares it.
   var scope = (variable is LocalVariableElement)
       ? node.thisOrAncestorMatching(
           (node) => node is ClassMember || node is CompilationUnitMember,
         )
       : null;
-  (scope ?? node.root).accept(finder);
-  return finder.found;
+  return _keptVariablesIn(scope ?? node.root).contains(variable);
 }
+
+/// Returns the variables and fields that have a read in [scope] that stores, cancels
+/// or passes on their value.
+///
+/// A file, or a method, may create several timers and subscriptions, so each scope is
+/// only visited once, for all of them, and the result is cached.
+Set<Element> _keptVariablesIn(AstNode scope) =>
+    _keptVariablesCache[scope] ??= (_KeptReferenceFinder()..visit(scope)).kept;
+
+final _keptVariablesCache = Expando<Set<Element>>();
 
 /// Returns the variable of [element], which is a variable, or the getter or setter
 /// of a field or top-level variable.
@@ -135,17 +143,17 @@ Element? _variableOf(Element? element) => switch (element) {
   _ => null,
 };
 
-/// Finds a read of [variable] that stores, cancels or passes on its value.
+/// Finds the variables that have a read that stores, cancels or passes on their value.
 class _KeptReferenceFinder extends RecursiveAstVisitor<void> {
-  final Element variable;
-  var found = false;
+  final kept = <Element>{};
 
-  _KeptReferenceFinder(this.variable);
+  void visit(AstNode scope) => scope.accept(this);
 
   @override
   void visitSimpleIdentifier(SimpleIdentifier node) {
-    if (found || node.inDeclarationContext()) return;
-    if (_variableOf(node.element) != variable) return;
+    if (node.inDeclarationContext()) return;
+    var variable = _variableOf(node.element);
+    if (variable == null || kept.contains(variable)) return;
 
     // `x`, `this.x` or `Class.x`.
     Expression reference = node;
@@ -157,7 +165,7 @@ class _KeptReferenceFinder extends RecursiveAstVisitor<void> {
     reference = _outermost(reference);
 
     var referenceParent = reference.parent;
-    found = switch (referenceParent) {
+    var keeps = switch (referenceParent) {
       // `x.cancel()` or `x?.cancel()`.
       MethodInvocation(:var target, :var methodName) =>
         target == reference && methodName.name == 'cancel',
@@ -171,6 +179,7 @@ class _KeptReferenceFinder extends RecursiveAstVisitor<void> {
       // variable, or added to a collection.
       _ => true,
     };
+    if (keeps) kept.add(variable);
   }
 }
 

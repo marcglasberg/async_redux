@@ -512,8 +512,10 @@ void main() {
 
 class AppState {
   final bool liked;
+  // ignore: async_redux_lints/prefer_immutable_collections
   final Map<String, bool> items;
   final int serverRevision;
+  // ignore: async_redux_lints/prefer_immutable_collections
   final Map<String, int> serverRevisions;
 
   AppState({

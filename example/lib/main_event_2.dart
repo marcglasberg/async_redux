@@ -17,20 +17,8 @@ late Store<AppState> store;
 /// or perform any other one-time operation.
 ///
 /// However, here we consume the events in the `didChangeDependencies()` method
-/// of the stateful widget, instead of in the `build()` method.
-///
-/// To allow that, we need to turn off the debug mode of the `getEvent()` method,
-/// as shown in the extension method below:
-///
-/// ```dart
-/// extension BuildContextExtension on BuildContext {
-///   R? event<R>(Evt<R> Function(AppState state) selector) =>
-///       getEvent<AppState, R>(selector, debug: false);
-/// }
-/// ```
-///
-/// Use with care, as invalid usage in methods like `initState` will
-/// no longer be detected once the debug check is off.
+/// of the stateful widget, instead of in the `build()` method. When an event
+/// changes, `didChangeDependencies()` runs again, before `build()`.
 ///
 void main() {
   var state = AppState.initialState();
@@ -211,5 +199,5 @@ extension BuildContextExtension on BuildContext {
   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
 
   R? event<R>(Evt<R> Function(AppState state) selector) =>
-      getEvent<AppState, R>(selector, debug: false);
+      getEvent<AppState, R>(selector);
 }

@@ -111,6 +111,8 @@ class AsyncReduxLintsPlugin extends Plugin {
     registry.registerWarningRule(AvoidContextStateRule());
     registry.registerFixForRule(AvoidContextStateRule.code, UseContextSelect.new);
     registry.registerFixForRule(AvoidContextStateRule.code, UseContextRead.new);
+    registry.registerFixForRule(AvoidContextStateRule.code, WrapItemInBuilder.new);
+    registry.registerFixForRule(AvoidContextStateRule.code, UseBuilderContext.new);
 
     registry.registerWarningRule(ContextStateInInitStateRule());
     registry.registerFixForRule(ContextStateInInitStateRule.code, UseContextRead.new);
@@ -123,6 +125,7 @@ class AsyncReduxLintsPlugin extends Plugin {
     registry.registerWarningRule(SelectOutsideBuildRule());
     registry.registerFixForRule(SelectOutsideBuildRule.code, ReplaceSelectWithRead.new);
     registry.registerFixForRule(SelectOutsideBuildRule.code, UseBuilderContext.new);
+    registry.registerFixForRule(SelectOutsideBuildRule.code, WrapItemInBuilder.new);
 
     registry.registerWarningRule(VmFieldNotInEqualsRule());
     registry.registerFixForRule(VmFieldNotInEqualsRule.code, AddFieldToVmEquals.new);
@@ -256,7 +259,6 @@ class AsyncReduxLintsPlugin extends Plugin {
     registry.registerFixForRule(EventNotSpentInitiallyRule.code, UseSpentEvent.new);
 
     registry.registerWarningRule(EventPersistedRule());
-    registry.registerWarningRule(EventConsumedTwiceRule());
 
     registry.registerWarningRule(ImplementsPersistorRule());
     registry.registerFixForRule(ImplementsPersistorRule.code, ExtendPersistor.new);

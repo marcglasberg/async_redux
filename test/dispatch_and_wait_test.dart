@@ -331,6 +331,7 @@ class IncrementSyncAfterFails extends ReduxAction<State> {
 
   @override
   void after() {
+    // ignore: async_redux_lints/after_throws, async_redux_lints/user_exception_outside_action
     throw const UserException('After failed');
   }
 }
@@ -365,6 +366,7 @@ class IncrementAsyncAfterFails extends ReduxAction<State> {
 
   @override
   Future<void> after() async {
+    // ignore: async_redux_lints/after_throws, async_redux_lints/user_exception_outside_action
     throw const UserException('After failed');
   }
 }

@@ -35,6 +35,7 @@ void main() {
 
     expect(store.state.count, 1);
     var action = ActionThatRetriesUnlimitedAndFails();
+    // ignore: async_redux_lints/dispatch_and_wait_unlimited_retries
     await store.dispatchAndWait(action);
     expect(action.attempts, 7);
     expect(action.log, '01234567');
@@ -91,6 +92,7 @@ class State {
   String toString() => 'State($count)';
 }
 
+// ignore: async_redux_lints/retry_without_non_reentrant
 class ActionThatRetriesAndSucceeds extends ReduxAction<State> with Retry {
   @override
   Duration get initialDelay => const Duration(milliseconds: 10);
@@ -108,6 +110,7 @@ class ActionThatRetriesAndSucceeds extends ReduxAction<State> with Retry {
   }
 }
 
+// ignore: async_redux_lints/retry_without_non_reentrant
 class ActionThatRetriesAndFails extends ReduxAction<State> with Retry {
   @override
   Duration get initialDelay => const Duration(milliseconds: 10);
@@ -122,6 +125,7 @@ class ActionThatRetriesAndFails extends ReduxAction<State> with Retry {
   }
 }
 
+// ignore: async_redux_lints/retry_without_non_reentrant
 class ActionThatRetriesButSucceedsTheFirstTry extends ReduxAction<State> with Retry {
   @override
   Duration get initialDelay => const Duration(milliseconds: 10);
@@ -138,6 +142,7 @@ class ActionThatRetriesButSucceedsTheFirstTry extends ReduxAction<State> with Re
   }
 }
 
+// ignore: async_redux_lints/retry_without_non_reentrant
 class ActionThatRetriesUnlimitedAndFails extends ReduxAction<State> with Retry, UnlimitedRetries {
   @override
   Duration get initialDelay => const Duration(milliseconds: 10);

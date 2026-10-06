@@ -50,4 +50,19 @@ void main() {
       );
     });
   });
+
+  group('nameOffsets', () {
+    test('finds every whole word', () {
+      expect(nameOffsets('Store', 'Store'), [0]);
+      expect(nameOffsets('Store<A> s = Store();', 'Store'), [0, 13]);
+      expect(nameOffsets('StoreStore Store AppStore\nStore', 'Store'), [11, 26]);
+      expect(nameOffsets('(Store)(Store)', 'Store'), [1, 8]);
+      expect(nameOffsets('é😀Store😀é Store', 'Store'), [3, 12]);
+    });
+
+    test('finds nothing', () {
+      expect(nameOffsets('', 'Store'), isEmpty);
+      expect(nameOffsets('StoreProvider AppStore _Store', 'Store'), isEmpty);
+    });
+  });
 }

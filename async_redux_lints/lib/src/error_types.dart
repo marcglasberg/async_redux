@@ -129,51 +129,59 @@ bool _catches(CatchClause clause, DartType? type, TypeSystem typeSystem) {
 
 /// Returns true if [node] declares a local variable, parameter or local function
 /// called [name].
-bool declaresLocalName(AstNode node, String name) {
-  var finder = _DeclarationFinder(name);
-  node.accept(finder);
-  return finder.found;
+///
+/// A method can be asked about several names, like once for each dispatch in a large
+/// `build` method, so the names that [node] declares are collected once, and cached.
+bool declaresLocalName(AstNode node, String name) =>
+    (_declaredNamesCache[node] ??= _declaredNames(node)).contains(name);
+
+final _declaredNamesCache = Expando<Set<String>>();
+
+Set<String> _declaredNames(AstNode node) {
+  var collector = _DeclarationCollector();
+  node.accept(collector);
+  return collector.names;
 }
 
-class _DeclarationFinder extends RecursiveAstVisitor<void> {
-  final String name;
-  bool found = false;
-
-  _DeclarationFinder(this.name);
+/// Collects the names of the local variables, parameters and local functions.
+class _DeclarationCollector extends RecursiveAstVisitor<void> {
+  final names = <String>{};
 
   @override
   void visitVariableDeclaration(VariableDeclaration node) {
-    if (node.name.lexeme == name) found = true;
+    names.add(node.name.lexeme);
     super.visitVariableDeclaration(node);
   }
 
   @override
   void visitFormalParameterList(FormalParameterList node) {
-    if (node.parameters.any((p) => p.name?.lexeme == name)) found = true;
+    for (var parameter in node.parameters) {
+      if (parameter.name case var name?) names.add(name.lexeme);
+    }
     super.visitFormalParameterList(node);
   }
 
   @override
   void visitCatchClauseParameter(CatchClauseParameter node) {
-    if (node.name.lexeme == name) found = true;
+    names.add(node.name.lexeme);
     super.visitCatchClauseParameter(node);
   }
 
   @override
   void visitDeclaredIdentifier(DeclaredIdentifier node) {
-    if (node.name.lexeme == name) found = true;
+    names.add(node.name.lexeme);
     super.visitDeclaredIdentifier(node);
   }
 
   @override
   void visitDeclaredVariablePattern(DeclaredVariablePattern node) {
-    if (node.name.lexeme == name) found = true;
+    names.add(node.name.lexeme);
     super.visitDeclaredVariablePattern(node);
   }
 
   @override
   void visitFunctionDeclaration(FunctionDeclaration node) {
-    if (node.name.lexeme == name) found = true;
+    names.add(node.name.lexeme);
     super.visitFunctionDeclaration(node);
   }
 }

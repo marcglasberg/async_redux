@@ -72,7 +72,7 @@ void main() async {
 
   // If no persisted state exists, create the default initial state and save it.
   if (initialState == null) {
-    initialState = AppState(isLiked: false);
+    initialState = AppState.initialState();
     await persistor.saveInitialState(initialState);
   }
 
@@ -103,6 +103,8 @@ class AppState {
 
   AppState({required this.isLiked, IMap<String, int>? serverRevisionMap})
       : serverRevisionMap = serverRevisionMap ?? const IMapConst({});
+
+  static AppState initialState() => AppState(isLiked: false);
 
   @useResult
   AppState copy({bool? isLiked, IMap<String, int>? serverRevisionMap}) => AppState(

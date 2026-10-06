@@ -30,8 +30,9 @@ import '../widget_types.dart';
 /// variable is named after its path. If that name is already used, a number is
 /// added, starting at 2, like `userName2`.
 ///
-/// Only offered where the widget builds, since `context.select` throws in callbacks.
-class UseContextSelect extends ResolvedCorrectionProducer {
+/// Only offered where the widget builds, and in `didChangeDependencies`, since
+/// `context.select` throws in callbacks.
+class UseContextSelect extends ResolvedCorrectionProducer with _SelectReplacement {
   static const _kind = FixKind(
     'async_redux_lints.fix.useContextSelect',
     DartFixKindPriority.standard,
@@ -49,16 +50,38 @@ class UseContextSelect extends ResolvedCorrectionProducer {
   @override
   Future<void> compute(ChangeBuilder builder) async {
     var access = _stateOrReadAccess(node);
-    if (access == null || !canUseSelect(access, stateAccessTarget(access))) return;
+    if (access == null) return;
+    var target = stateAccessTarget(access);
+    if (!canUseSelect(access, target) && !isInDidChangeDependencies(access, target)) {
+      return;
+    }
+    var edits = selectEdits(access);
+    if (edits == null) return;
+    await builder.addDartFileEdit(file, edits);
+  }
+}
+
+/// Replaces a `context.state` or `context.read()` access with `context.select`, as
+/// described in [UseContextSelect].
+mixin _SelectReplacement on ResolvedCorrectionProducer {
+  /// Returns a function that adds the edits that replace [access] with
+  /// `context.select`, or null if it can't be replaced.
+  ///
+  /// The `context` of `context.select` is [targetText], or the `context` of [access]
+  /// if it's null.
+  void Function(DartFileEditBuilder)? selectEdits(
+    Expression access, {
+    String? targetText,
+  }) {
     var isAsyncReduxMethod = _isAsyncReduxMethod(access);
-    if (!isAsyncReduxMethod && _extensionMethod(access, 'select') == null) return;
+    if (!isAsyncReduxMethod && _extensionMethod(access, 'select') == null) return null;
 
     var target = stateAccessTarget(access);
     var stateType = access.staticType;
     var usage = _stateUsage(access);
-    if (target == null || stateType == null || usage == null) return;
+    if (target == null || stateType == null || usage == null) return null;
 
-    var targetText = utils.getNodeText(target);
+    targetText ??= utils.getNodeText(target);
     void writeSelect(DartEditBuilder builder, _GetterPath path) {
       builder.write('$targetText.');
       if (isAsyncReduxMethod) {
@@ -78,11 +101,10 @@ class UseContextSelect extends ResolvedCorrectionProducer {
     var statement = usage.statement;
     if (statement == null) {
       var path = usage.paths.single;
-      if (path.type == null) return;
-      await builder.addDartFileEdit(file, (builder) {
+      if (path.type == null) return null;
+      return (builder) {
         builder.addReplacement(range.node(path.nodes.last), (b) => writeSelect(b, path));
-      });
-      return;
+      };
     }
 
     // var state = context.state;
@@ -93,7 +115,7 @@ class UseContextSelect extends ResolvedCorrectionProducer {
     // path as a prefix uses the variable of the shorter one.
     var selected = <_GetterPath>[];
     for (var path in usage.paths) {
-      if (path.type == null) return;
+      if (path.type == null) return null;
       var hasShorterPrefix = usage.paths.any(
         (other) => other.names.length < path.names.length && other.isPrefixOf(path),
       );
@@ -115,7 +137,7 @@ class UseContextSelect extends ResolvedCorrectionProducer {
     var hasType = list.type != null;
     var separator = '${utils.endOfLine}${utils.getLinePrefix(statement.offset)}';
 
-    await builder.addDartFileEdit(file, (builder) {
+    return (builder) {
       builder.addReplacement(range.node(statement), (builder) {
         var isFirst = true;
         for (var path in selected) {
@@ -138,7 +160,7 @@ class UseContextSelect extends ResolvedCorrectionProducer {
           names[prefix]!,
         );
       }
-    });
+    };
   }
 
   /// Returns true if a new local variable named [name], declared instead of
@@ -220,10 +242,9 @@ class _NameUseFinder extends GeneralizingAstVisitor<void> {
 /// Replaces `context.state` with `context.read()`, and `context.getState<St>()` with
 /// `context.getRead<St>()`.
 ///
-/// Only offered in code that doesn't run while the widget builds, like callbacks,
-/// but not in `dispose`, where `context.read()` throws too, or in
-/// `didChangeDependencies`, which runs when the dependencies change. For
-/// `context.state`, not offered if the extension that declares `state` doesn't
+/// Only offered in code that doesn't run while the widget builds, like callbacks and
+/// `didChangeDependencies`, but not in `dispose`, where `context.read()` throws too.
+/// For `context.state`, not offered if the extension that declares `state` doesn't
 /// declare `read`.
 class UseContextRead extends ResolvedCorrectionProducer {
   static const _kind = FixKind(
@@ -249,12 +270,8 @@ class UseContextRead extends ResolvedCorrectionProducer {
   Future<void> compute(ChangeBuilder builder) async {
     var access = _stateAccess(node);
     if (access == null || enclosingSelector(access) != null) return;
-    var stateMethod = notBuilding(access)?.stateMethod;
-    if (notBuilding(access) == null ||
-        stateMethod == 'dispose' ||
-        stateMethod == 'didChangeDependencies') {
-      return;
-    }
+    var notBuildingCode = notBuilding(access);
+    if (notBuildingCode == null || notBuildingCode.stateMethod == 'dispose') return;
     var target = stateAccessTarget(access);
     if (target == null) return;
 
@@ -478,8 +495,7 @@ class _ReferenceFinder extends RecursiveAstVisitor<void> {
 /// not offered if the extension that declares `select` doesn't declare `read`.
 ///
 /// Only offered in callbacks, and in `State` methods other than `dispose`, where
-/// `context.read()` throws too, and `didChangeDependencies`, which runs when the
-/// dependencies change.
+/// `context.read()` throws too.
 class ReplaceSelectWithRead extends ResolvedCorrectionProducer {
   static const _kind = FixKind(
     'async_redux_lints.fix.replaceSelectWithRead',
@@ -614,17 +630,26 @@ class _ParameterReferenceFinder extends RecursiveAstVisitor<void> {
   }
 }
 
-/// Replaces the `context` of a `context.select` or `context.event` in a builder,
-/// when it's the `BuildContext` of another widget, with the `BuildContext` parameter
-/// of the builder. Not offered if that parameter is a wildcard, like `_`.
-class UseBuilderContext extends ResolvedCorrectionProducer {
+/// Fixes a `context.select`, `context.event` or `context.state` in a builder, like
+/// `Builder(builder: (inner) => ...)`, whose `context` is the `BuildContext` of
+/// another widget, by using the `BuildContext` parameter of the builder instead.
+/// Replaces `context.select(...)` with `inner.select(...)`, and `context.state.name`
+/// with `inner.select((st) => st.name)`, like [UseContextSelect].
+///
+/// If that parameter is a wildcard, like in `Builder(builder: (_) => ...)`, renames it
+/// to the name of the `context`, like `Builder(builder: (context) => ...)`. Then all
+/// the uses of `context` in the builder refer to the builder's `BuildContext`.
+///
+/// Not offered in the `itemBuilder` of a list, whose `BuildContext` belongs to the
+/// list. See [WrapItemInBuilder].
+class UseBuilderContext extends ResolvedCorrectionProducer with _SelectReplacement {
   static const _kind = FixKind(
     'async_redux_lints.fix.useBuilderContext',
     DartFixKindPriority.standard,
-    "Use the builder's '{0}'",
+    '{0}',
   );
 
-  String _name = '';
+  String _message = '';
 
   UseBuilderContext({required super.context});
 
@@ -635,26 +660,205 @@ class UseBuilderContext extends ResolvedCorrectionProducer {
   FixKind get fixKind => _kind;
 
   @override
-  List<String> get fixArguments => [_name];
+  List<String> get fixArguments => [_message];
 
   @override
   Future<void> compute(ChangeBuilder builder) async {
-    var invocation = node.thisOrAncestorOfType<MethodInvocation>();
-    while (invocation != null && selectProblem(invocation) == null) {
-      invocation = invocation.parent?.thisOrAncestorOfType<MethodInvocation>();
+    // context.state
+    Expression? access = _stateAccess(node);
+    var isState = access != null;
+    BuildFunction? function;
+    if (access != null) {
+      function = enclosingBuildFunction(access);
+      if (function == null || isContextOf(stateAccessTarget(access), function) != false) {
+        return;
+      }
+    } else {
+      // context.select(...) or context.event(...)
+      var invocation = node.thisOrAncestorOfType<MethodInvocation>();
+      while (invocation != null && selectProblem(invocation) == null) {
+        invocation = invocation.parent?.thisOrAncestorOfType<MethodInvocation>();
+      }
+      if (invocation == null) return;
+      if (selectProblem(invocation)?.kind != SelectProblemKind.otherContext) return;
+      access = invocation;
+      function = enclosingBuildFunction(invocation, throughClosures: true);
     }
-    if (invocation == null) return;
-    if (selectProblem(invocation)?.kind != SelectProblemKind.otherContext) return;
+    if (function == null || function.isItemBuilder) return;
 
-    var target = invocation.target;
-    var function = enclosingBuildFunction(invocation, throughClosures: true);
-    var name = function?.context?.name;
-    if (target == null || name == null || name.startsWith('_')) return;
+    var target = stateAccessTarget(access);
+    if (target is! SimpleIdentifier) return;
+    var closure =
+        access.thisOrAncestorMatching(
+              (node) => node is FunctionExpression && isBuilder(node),
+            )
+            as FunctionExpression?;
+    var parameter = closure?.parameters?.parameters
+        .where((p) => p.declaredFragment?.element == function!.context)
+        .firstOrNull;
+    var parameterName = parameter?.name;
+    if (parameterName == null) return;
 
-    _name = name;
+    // (_) => ..., becomes (context) => ...
+    var isWildcard = RegExp(r'^_+$').hasMatch(parameterName.lexeme);
+    var name = isWildcard ? target.name : parameterName.lexeme;
+
+    void Function(DartFileEditBuilder)? selectEdit;
+    if (isState) {
+      selectEdit = selectEdits(access, targetText: name);
+      if (selectEdit == null) return;
+    }
+
+    var wildcard = parameterName.lexeme;
+    _message = switch ((isWildcard, isState)) {
+      (true, true) =>
+        "Rename the builder's '$wildcard' to '$name', and use 'context.select'",
+      (true, false) => "Rename the builder's '$wildcard' to '$name'",
+      (false, true) => "Use 'context.select' with the builder's '$name'",
+      (false, false) => "Use the builder's '$name'",
+    };
+
     await builder.addDartFileEdit(file, (builder) {
-      builder.addSimpleReplacement(range.node(target), name);
+      if (isWildcard) builder.addSimpleReplacement(range.token(parameterName), name);
+      if (selectEdit != null) {
+        selectEdit(builder);
+      } else if (!isWildcard) {
+        builder.addSimpleReplacement(range.node(target), name);
+      }
     });
+  }
+}
+
+/// Wraps the item built by the `itemBuilder` of a list in a `Builder`, so that the
+/// `context` of a `context.state`, `context.select` or `context.event` in the item
+/// is the item's `BuildContext`, not the list's:
+/// `itemBuilder: (context, index) => Builder(builder: (context) => Text(...))`.
+/// The `Builder` names its `BuildContext` like the `context` used in the item. For
+/// `context.state`, also replaces it with `context.select`, like [UseContextSelect].
+///
+/// Also offered when the item uses the `context` of the widget that builds the list,
+/// like `itemBuilder: (_, index) => Text(context.state.name)`. Then the `Builder`
+/// is named after that `context`, so all its uses in the item refer to the
+/// `Builder`'s `BuildContext`:
+/// `itemBuilder: (_, index) => Builder(builder: (context) => Text(...))`.
+///
+/// Not offered if the item may be null, like in `index < 3 ? Text('') : null`,
+/// since the `builder` of a `Builder` can't return null, if the `itemBuilder` is
+/// async, or if its block body doesn't end with a `return`.
+class WrapItemInBuilder extends ResolvedCorrectionProducer with _SelectReplacement {
+  static const _wrapKind = FixKind(
+    'async_redux_lints.fix.wrapItemInBuilder',
+    DartFixKindPriority.standard,
+    "Wrap the item in a 'Builder'",
+  );
+
+  static const _wrapAndSelectKind = FixKind(
+    'async_redux_lints.fix.wrapItemInBuilderAndUseSelect',
+    DartFixKindPriority.standard,
+    "Wrap the item in a 'Builder', and use 'context.select'",
+  );
+
+  FixKind _kind = _wrapKind;
+
+  WrapItemInBuilder({required super.context});
+
+  @override
+  CorrectionApplicability get applicability => CorrectionApplicability.singleLocation;
+
+  @override
+  FixKind get fixKind => _kind;
+
+  @override
+  Future<void> compute(ChangeBuilder builder) async {
+    // context.state
+    Expression? access = _stateAccess(node);
+    void Function(DartFileEditBuilder)? edits;
+    if (access != null) {
+      var function = enclosingBuildFunction(access);
+      if (function == null ||
+          !function.isItemBuilder ||
+          isContextOf(stateAccessTarget(access), function) == null) {
+        return;
+      }
+      edits = selectEdits(access);
+      if (edits == null) return;
+      _kind = _wrapAndSelectKind;
+    } else {
+      // context.select(...) or context.event(...)
+      access =
+          node.thisOrAncestorMatching((node) {
+                if (node is! MethodInvocation) return false;
+                var kind = selectProblem(node)?.kind;
+                return kind == SelectProblemKind.itemBuilder ||
+                    (kind == SelectProblemKind.otherContext &&
+                        enclosingBuildFunction(
+                          node,
+                          throughClosures: true,
+                        )!.isItemBuilder);
+              })
+              as Expression?;
+      if (access == null) return;
+      _kind = _wrapKind;
+    }
+
+    var itemBuilder =
+        access.thisOrAncestorMatching(
+              (node) => node is FunctionExpression && isBuilder(node),
+            )
+            as FunctionExpression?;
+    var target = stateAccessTarget(access);
+    var contextName = target is SimpleIdentifier ? target.name : null;
+    var body = itemBuilder?.body;
+    if (contextName == null || body == null || !body.isSynchronous || body.isGenerator) {
+      return;
+    }
+
+    // (context, index) => Text(...)
+    // becomes: (context, index) => Builder(builder: (context) => Text(...))
+    // (context, index) { ... }
+    // becomes: (context, index) => Builder(builder: (context) { ... })
+    int start, end;
+    if (body is ExpressionFunctionBody) {
+      if (!_isNonNullable(body.expression)) return;
+      start = body.functionDefinition.offset;
+      end = body.expression.end;
+    } else if (body is BlockFunctionBody) {
+      var statements = body.block.statements;
+      if (statements.lastOrNull is! ReturnStatement) return;
+      var finder = _ReturnFinder();
+      body.block.accept(finder);
+      if (!finder.returns.every((r) => _isNonNullable(r.expression))) return;
+      start = body.block.offset;
+      end = body.block.end;
+    } else {
+      return;
+    }
+
+    await builder.addDartFileEdit(file, (builder) {
+      builder.addSimpleInsertion(start, '=> Builder(builder: ($contextName) ');
+      edits?.call(builder);
+      builder.addSimpleInsertion(end, ')');
+    });
+  }
+
+  bool _isNonNullable(Expression? expression) {
+    var type = expression?.staticType;
+    return type != null && typeSystem.isNonNullable(type);
+  }
+}
+
+/// Finds the `return` statements of a function body, but not of the functions
+/// declared in it.
+class _ReturnFinder extends RecursiveAstVisitor<void> {
+  final returns = <ReturnStatement>[];
+
+  @override
+  void visitFunctionExpression(FunctionExpression node) {}
+
+  @override
+  void visitReturnStatement(ReturnStatement node) {
+    returns.add(node);
+    super.visitReturnStatement(node);
   }
 }
 

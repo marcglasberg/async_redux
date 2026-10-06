@@ -13,6 +13,8 @@ import 'context_access_visitor.dart';
 /// While the widget builds, `context.select((st) => st.field)` only rebuilds it when
 /// that field changes. In callbacks like `onPressed`, and in `State` methods like
 /// `didUpdateWidget`, `context.read()` reads the state without rebuilding the widget.
+/// In `didChangeDependencies`, `context.state` also makes it run again on any state
+/// change, so `context.select` and `context.read()` are suggested.
 ///
 /// Not reported where `context.state` is an error, which other rules report: in
 /// `initState`, in `dispose`, and in selectors.
@@ -31,7 +33,29 @@ class AvoidContextStateRule extends AnalysisRule {
   static const _useSelectInBuilder =
       "Try using 'context.select', in a 'Builder' or in a separate widget.";
 
+  static const _useSelectWithBuilderContext =
+      "This 'context' belongs to the enclosing widget, not to the builder, so "
+      "'context.select' can't be used with it. Try using 'context.select' with the "
+      "'BuildContext' parameter of the builder.";
+
+  static const _useSelectInItemBuilderWithBuilderContext =
+      "This 'context' belongs to the enclosing widget, not to the item, so "
+      "'context.select' can't be used with it. Try wrapping the item in a 'Builder', "
+      "which gives it its own 'BuildContext', and using 'context.select' with it.";
+
+  static const _useSelectInItemBuilder =
+      "The 'BuildContext' of an 'itemBuilder' belongs to the list, not to the item. "
+      "Here, 'context.state' and 'context.select' would rebuild the whole list, and "
+      "'context.read()' wouldn't rebuild the item when the state changes. Try "
+      "wrapping the item in a 'Builder', which gives it its own 'BuildContext', and "
+      "using 'context.select' with it.";
+
   static const _useRead = "Try using 'context.read()', which doesn't rebuild the widget.";
+
+  static const _useSelectOrReadInDidChangeDependencies =
+      "In 'didChangeDependencies', it also makes 'didChangeDependencies' run again. "
+      "Try using 'context.select', so that it runs again only when the selected part "
+      "of the state changes, or 'context.read()', if it doesn't need to run again.";
 
   static const _useSelectOrRead =
       "Try using 'context.select' if this runs while the widget builds, or "
@@ -58,9 +82,17 @@ class AvoidContextStateRule extends AnalysisRule {
       String correction;
       if (canUseSelect(node, stateAccessTarget(node))) {
         correction = _useSelect;
-      } else if (enclosingBuildFunction(node) != null) {
+      } else if (isInDidChangeDependencies(node, stateAccessTarget(node))) {
+        correction = _useSelectOrReadInDidChangeDependencies;
+      } else if (enclosingBuildFunction(node) case var function?) {
         // The itemBuilder of a list, or the context of another widget.
-        correction = _useSelectInBuilder;
+        var isOwnContext = isContextOf(stateAccessTarget(node), function);
+        correction = switch ((function.isItemBuilder, isOwnContext)) {
+          (true, true) => _useSelectInItemBuilder,
+          (true, false) => _useSelectInItemBuilderWithBuilderContext,
+          (false, false) => _useSelectWithBuilderContext,
+          _ => _useSelectInBuilder,
+        };
       } else if (notBuildingCode != null &&
           notBuildingCode.stateMethod != 'didChangeDependencies') {
         correction = _useRead;

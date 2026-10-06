@@ -1,6 +1,81 @@
+// ignore_for_file: always_declare_return_types, async_redux_lints/reduce_return_type
+// ignore_for_file: async_redux_lints/before_return_type
+// ignore_for_file: async_redux_lints/wrap_reduce_return_type
+// ignore_for_file: async_redux_lints/reduce_without_await
+// ignore_for_file: async_redux_lints/dispatch_sync_async_action
+// ignore_for_file: async_redux_lints/incompatible_mixins
+// ignore_for_file: async_redux_lints/polling_with_caveat_mixin
+// ignore_for_file: async_redux_lints/wait_fail_invalid_argument
+// ignore_for_file: async_redux_lints/wait_fail_never_matches
+// ignore_for_file: async_redux_lints/avoid_context_state
+// ignore_for_file: async_redux_lints/context_state_in_init_state
+// ignore_for_file: async_redux_lints/context_in_dispose
+// ignore_for_file: async_redux_lints/context_in_selector
+// ignore_for_file: async_redux_lints/select_outside_build
+// ignore_for_file: async_redux_lints/vm_field_not_in_equals
+// ignore_for_file: async_redux_lints/copy_missing_field
+// ignore_for_file: async_redux_lints/state_class_must_be_immutable
+// ignore_for_file: async_redux_lints/state_class_missing_equality
+// ignore_for_file: async_redux_lints/equality_missing_field
+// ignore_for_file: async_redux_lints/equality_missing_inherited_field
+// ignore_for_file: async_redux_lints/equatable_props_missing_field
+// ignore_for_file: async_redux_lints/extend_base_action
+// ignore_for_file: async_redux_lints/dependencies_cast_in_action
+// ignore_for_file: async_redux_lints/prefer_return_null
+// ignore_for_file: async_redux_lints/stale_state_after_await
+// ignore_for_file: async_redux_lints/after_throws
+// ignore_for_file: async_redux_lints/missing_super_in_mixin_override
+// ignore_for_file: async_redux_lints/user_exception_outside_action
+// ignore_for_file: async_redux_lints/user_exception_without_cause
+// ignore_for_file: async_redux_lints/dispatch_in_global_error_observer
+// ignore_for_file: async_redux_lints/throw_in_global_error_observer
+// ignore_for_file: async_redux_lints/retry_without_non_reentrant
+// ignore_for_file: async_redux_lints/dispatch_and_wait_unlimited_retries
+// ignore_for_file: async_redux_lints/sequential_deadlock
+// ignore_for_file: async_redux_lints/sequential_before_super_not_first
+// ignore_for_file: async_redux_lints/sequential_after_super_not_in_finally
+// ignore_for_file: async_redux_lints/polling_action_restarts_polling
+// ignore_for_file: async_redux_lints/server_push_associated_action
+// ignore_for_file: async_redux_lints/internet_simulation_in_production
+// ignore_for_file: async_redux_lints/prefer_immutable_collections
+// ignore_for_file: async_redux_lints/non_state_object_in_state
+// ignore_for_file: async_redux_lints/missing_initial_state
+// ignore_for_file: async_redux_lints/event_name_suffix
+// ignore_for_file: async_redux_lints/event_not_spent_initially
+// ignore_for_file: async_redux_lints/event_persisted
+// ignore_for_file: async_redux_lints/dispatch_in_build
+// ignore_for_file: async_redux_lints/prefer_dispatch_without_context
+// ignore_for_file: async_redux_lints/context_read_in_build
+// ignore_for_file: async_redux_lints/refresh_indicator_without_wait
+// ignore_for_file: async_redux_lints/then_on_dispatch_and_wait
+// ignore_for_file: async_redux_lints/stream_or_timer_in_widget
+// ignore_for_file: async_redux_lints/user_exception_dialog_placement
+// ignore_for_file: async_redux_lints/navigator_key_not_set
+// ignore_for_file: async_redux_lints/debug_observer_in_release
+// ignore_for_file: async_redux_lints/implements_persistor
+// ignore_for_file: async_redux_lints/throw_in_read_state
+// ignore_for_file: async_redux_lints/initial_state_not_saved
+// ignore_for_file: async_redux_lints/timer_or_stream_not_in_props
+// ignore_for_file: async_redux_lints/expect_without_waiting
+// ignore_for_file: async_redux_lints/vm_create_from_reused_factory
+// ignore_for_file: async_redux_lints/action_status_details_in_production
+// ignore_for_file: async_redux_lints/action_name_ends_with_action
+// ignore_for_file: async_redux_lints/action_name_ends_with_underscore_action
+// ignore_for_file: async_redux_lints/action_name_without_action
+// ignore_for_file: async_redux_lints/action_file_name_ends_with_action
+// ignore_for_file: async_redux_lints/action_file_name_starts_with_action
+// ignore_for_file: async_redux_lints/prefer_dispatch_with_context
+// ignore_for_file: async_redux_lints/avoid_abort_dispatch
+// ignore_for_file: async_redux_lints/avoid_wrap_reduce
+// ignore_for_file: async_redux_lints/global_error_observer_without_env
+// ignore_for_file: async_redux_lints/missing_key_params
+// ignore_for_file: async_redux_lints/route_in_state
+// ignore_for_file: async_redux_lints/action_without_to_string
+
 // Demonstrates the diagnostics of the `async_redux_lints` analyzer plugin. Each
-// diagnostic is marked with a comment on the line before it, like
-// `// Error: rule_name`, and each variant of a rule is shown separately.
+// diagnostic is marked with a comment right above the line it underlines: the rule
+// name, then what the problem is (in parentheses, when needed), then a `Fix:` line
+// that says what the quick fix changes. Each variant of a rule is shown separately.
 //
 // This file is not meant to run. Open it in the IDE to see the diagnostics, and
 // press Alt+Enter on them to see the quick fixes. See async_redux_lints/README.md.
@@ -16,10 +91,6 @@ import 'package:flutter/material.dart';
 void main() => runApp(
       const MaterialApp(home: Text('Open this file in the IDE to see the lints.')),
     );
-
-// =====================================================================================
-// The app's state, actions and BuildContext extension. These have no diagnostics.
-// =====================================================================================
 
 @stateClass
 class User {
@@ -123,37 +194,43 @@ Future<AppState?> fetchState() async => null;
 
 void describe(Object? value) => print(value);
 
-// =====================================================================================
-// reduce_return_type (error)
-// =====================================================================================
-
 class ReduceReturnsFutureOr extends AppAction {
-  // Error: reduce_return_type. FutureOr<AppState?>.
-  // Quick fixes: change to 'AppState?', or to 'Future<AppState?>'.
   @override
+  // reduce_return_type
+  // ('reduce' can't return 'FutureOr')
+  // Fix: Will change the return type from 'FutureOr<AppState?>' to 'AppState?'.
+  // Fix: Will change the return type from 'FutureOr<AppState?>' to 'Future<AppState?>',
+  // and add 'async'.
   FutureOr<AppState?> reduce() => null;
 }
 
 class ReduceReturnsNullableFuture extends AppAction {
-  // Error: reduce_return_type. Future<AppState?>?.
   @override
+  // reduce_return_type
+  // ('reduce' can't return a nullable Future)
+  // Fix: Will change the return type from 'Future<AppState?>?' to 'AppState?'.
+  // Fix: Will change the return type from 'Future<AppState?>?' to 'Future<AppState?>',
+  // and add 'async'.
   Future<AppState?>? reduce() => null;
 }
 
 class ReduceWithoutReturnType extends AppAction {
-  // Error: reduce_return_type. No return type, which Dart infers as FutureOr.
   @override
+  // reduce_return_type
+  // (No return type, which Dart infers as FutureOr)
+  // Fix: Will add the return type 'Future<AppState?>'.
+  //
+  // always_declare_return_types
+  // ('reduce' has no return type)
+  // Fix: Will add the return type 'Future<Null>'.
   reduce() async => null;
 }
 
-// =====================================================================================
-// before_return_type (error)
-// =====================================================================================
-
 class BeforeReturnsFutureOr extends AppAction {
-  // Error: before_return_type. FutureOr<void>.
-  // Quick fixes: change to 'void', or to 'Future<void>'.
   @override
+  // before_return_type
+  // ('before' can't return 'FutureOr')
+  // Fix: Will change the return type from 'FutureOr<void>' to 'Future<void>'.
   FutureOr<void> before() async {}
 
   @override
@@ -161,22 +238,26 @@ class BeforeReturnsFutureOr extends AppAction {
 }
 
 class BeforeWithoutReturnType extends AppAction {
-  // Error: before_return_type. No return type.
   @override
+  // before_return_type
+  // (No return type, which Dart infers as FutureOr)
+  // Fix: Will add the return type 'Future<void>'.
+  //
+  // always_declare_return_types
+  // ('before' has no return type)
+  // Fix: Will add the return type 'Future<void>'.
   before() async {}
 
   @override
   AppState? reduce() => null;
 }
 
-// =====================================================================================
-// wrap_reduce_return_type (error)
-// =====================================================================================
-
 class WrapReduceReturnsState extends AppAction {
-  // Error: wrap_reduce_return_type. Returns 'AppState?', which throws at runtime.
-  // Quick fix: change to 'Future<AppState?>'.
   @override
+  // wrap_reduce_return_type
+  // ('wrapReduce' must return a Future, or AsyncRedux throws at runtime)
+  // Fix: Will change the return type from 'AppState?' to 'Future<AppState?>', and add
+  // 'async'.
   AppState? wrapReduce(Reducer<AppState> reduce) => null;
 
   @override
@@ -184,26 +265,24 @@ class WrapReduceReturnsState extends AppAction {
 }
 
 class WrapReduceReturnsFutureOr extends AppAction {
-  // Error: wrap_reduce_return_type. Returns 'FutureOr<AppState?>', so AsyncRedux never
-  // calls it.
   @override
+  // wrap_reduce_return_type
+  // ('wrapReduce' can't return 'FutureOr', or AsyncRedux never calls it)
+  // Fix: Will change the return type from 'FutureOr<AppState?>' to 'Future<AppState?>',
+  // and add 'async'.
   FutureOr<AppState?> wrapReduce(Reducer<AppState> reduce) => null;
 
   @override
   AppState? reduce() => null;
 }
 
-// =====================================================================================
-// reduce_without_await (error)
-// Quick fixes: add 'await microtask;' to the start of 'reduce', or make 'reduce' sync
-// (only when it has no 'await' at all).
-// =====================================================================================
-
 class ReturnsBeforeAwait extends AppAction {
   @override
   Future<AppState?> reduce() async {
     if (state.counter == 0) return null; // OK: returns null.
-    // Error: reduce_without_await. A non-null value, before any await.
+    // reduce_without_await
+    // (Returns before passing through an 'await', so state changes may be lost)
+    // Fix: Will add 'await microtask;' to the start of 'reduce'.
     if (state.counter > 10) return state.copy(counter: 0);
     var name = await fetchName();
     return state.copy(name: name); // OK: after an await.
@@ -213,7 +292,9 @@ class ReturnsBeforeAwait extends AppAction {
 class ReturnsFutureWithoutAwait extends AppAction {
   @override
   Future<AppState?> reduce() async {
-    // Error: reduce_without_await. Returns a Future without awaiting it.
+    // reduce_without_await
+    // (Returns a Future without awaiting it)
+    // Fix: Will add 'await microtask;' to the start of 'reduce'.
     return fetchState();
   }
 }
@@ -225,7 +306,9 @@ class AwaitOnlyInLoop extends AppAction {
     for (var i = 0; i < state.counter; i++) {
       name = await fetchName();
     }
-    // Error: reduce_without_await. The loop may run zero times.
+    // reduce_without_await
+    // (The loop may not run, so it may return without an 'await')
+    // Fix: Will add 'await microtask;' to the start of 'reduce'.
     return state.copy(name: name);
   }
 }
@@ -235,7 +318,9 @@ class AwaitInOneBranch extends AppAction {
   Future<AppState?> reduce() async {
     var name = state.name;
     if (name.isEmpty) name = await fetchName();
-    // Error: reduce_without_await. The await only runs in one branch.
+    // reduce_without_await
+    // (The 'await' only runs in one branch)
+    // Fix: Will add 'await microtask;' to the start of 'reduce'.
     return state.copy(name: name);
   }
 }
@@ -244,7 +329,9 @@ class AwaitAfterOr extends AppAction {
   @override
   Future<AppState?> reduce() async {
     var ok = state.counter > 0 || (await fetchName()).isNotEmpty;
-    // Error: reduce_without_await. The await after '||' may not run.
+    // reduce_without_await
+    // (The '||' may skip the 'await')
+    // Fix: Will add 'await microtask;' to the start of 'reduce'.
     return ok ? state.copy(counter: 0) : null;
   }
 }
@@ -256,18 +343,14 @@ class AwaitInsideTry extends AppAction {
     try {
       name = await fetchName();
     } catch (_) {}
-    // Error: reduce_without_await. The catch may run before the await.
+    // reduce_without_await
+    // (The catch may run before the await)
+    // Fix: Will add 'await microtask;' to the start of 'reduce'.
     return state.copy(name: name);
   }
 }
 
-// =====================================================================================
-// dispatch_sync_async_action (error)
-// Quick fixes: replace with 'dispatch', or with 'dispatchAndWait'.
-// =====================================================================================
-
-class LoadUserWithCheckInternet extends AppAction
-    with CheckInternet<AppState> {
+class LoadUserWithCheckInternet extends AppAction with CheckInternet<AppState> {
   @override
   AppState? reduce() => null;
 }
@@ -283,47 +366,56 @@ class AsyncWrapReduce extends AppAction {
 void dispatchSyncDemo(Store<AppState> store) {
   store.dispatchSync(Increment()); // OK: a sync action.
 
-  // Error: dispatch_sync_async_action. 'reduce' returns a Future.
+  // dispatch_sync_async_action
+  // ('reduce' returns a Future)
+  // Fix: Will replace 'dispatchSync' with 'dispatch'.
+  // Fix: Will replace 'dispatchSync' with 'dispatchAndWait'.
   store.dispatchSync(LoadUser());
 
-  // Error: dispatch_sync_async_action. 'before' (from 'CheckInternet') returns a
-  // Future.
+  // dispatch_sync_async_action
+  // ('before' (from 'CheckInternet') returns a Future)
+  // Fix: Will replace 'dispatchSync' with 'dispatch'.
+  // Fix: Will replace 'dispatchSync' with 'dispatchAndWait'.
   store.dispatchSync(LoadUserWithCheckInternet());
 
-  // Error: dispatch_sync_async_action. 'wrapReduce' returns a Future.
+  // dispatch_sync_async_action
+  // ('wrapReduce' returns a Future)
+  // Fix: Will replace 'dispatchSync' with 'dispatch'.
+  // Fix: Will replace 'dispatchSync' with 'dispatchAndWait'.
   store.dispatchSync(AsyncWrapReduce());
 }
 
-// =====================================================================================
-// incompatible_mixins (error). See mixin_compatibility.md for all combinations.
-// The analyzer also reports these as 'private_collision_in_mixin_application', with a
-// message that names a private '_cannot_combine_mixins_...' method. The lint explains
-// which mixins conflict.
-// =====================================================================================
-
-// Error: incompatible_mixins. On 'Throttle': can't be combined with 'NonReentrant'.
 class NonReentrantAndThrottle extends AppAction
-    with NonReentrant<AppState>, Throttle<AppState> {
+    with
+        NonReentrant<AppState>,
+        // incompatible_mixins
+        // ('Throttle' can't be combined with 'NonReentrant')
+        // Fix: not available.
+        // ignore: private_collision_in_mixin_application
+        Throttle<AppState> {
   @override
   AppState? reduce() => null;
 }
 
 abstract class NonReentrantBase extends AppAction with NonReentrant<AppState> {}
 
-// Error: incompatible_mixins. A mixin inherited from the base action counts too.
-class InheritedNonReentrantAndFresh extends NonReentrantBase with Fresh<AppState> {
+class InheritedNonReentrantAndFresh extends NonReentrantBase
+    with
+        // incompatible_mixins
+        // ('Fresh' can't be combined with 'NonReentrant', inherited from the base action)
+        // Fix: not available.
+        // ignore: private_collision_in_mixin_application
+        Fresh<AppState> {
   @override
   AppState? reduce() => null;
 }
 
-// =====================================================================================
-// polling_with_caveat_mixin (error)
-// =====================================================================================
-
 class PollWithSequential extends AppAction
-    // Error: polling_with_caveat_mixin. 'Sequential' goes in the polling action.
     with
         Polling<AppState>,
+        // polling_with_caveat_mixin
+        // ('Sequential' goes in the polling action)
+        // Fix: not available.
         Sequential<AppState> {
   @override
   final Poll poll;
@@ -338,9 +430,11 @@ class PollWithSequential extends AppAction
 }
 
 class PollWithCheckInternet extends AppAction
-    // Error: polling_with_caveat_mixin. 'CheckInternet' goes in the polling action.
     with
         Polling<AppState>,
+        // polling_with_caveat_mixin
+        // ('CheckInternet' goes in the polling action)
+        // Fix: not available.
         CheckInternet<AppState> {
   @override
   final Poll poll;
@@ -354,61 +448,64 @@ class PollWithCheckInternet extends AppAction
   AppState? reduce() => null;
 }
 
-// =====================================================================================
-// wait_fail_invalid_argument (error)
-// Quick fix: replace the action with its type.
-// =====================================================================================
-
 void waitFailInvalidDemo(BuildContext context, Store<AppState> store) {
   var action = LoadUser();
 
-  // Error: wait_fail_invalid_argument. 'isWaiting' doesn't accept a String.
+  // wait_fail_invalid_argument
+  // ('isWaiting' doesn't accept a String)
+  // Fix: not available.
   context.isWaiting('LoadUser');
 
-  // Error: wait_fail_invalid_argument. 'isFailed' doesn't accept an action.
+  // wait_fail_invalid_argument
+  // ('isFailed' doesn't accept an action)
+  // Fix: Will replace 'LoadUser()' with 'LoadUser'.
   context.isFailed(LoadUser());
 
-  // Error: wait_fail_invalid_argument. An action in the list.
+  // wait_fail_invalid_argument
+  // (An action in the list)
+  // Fix: Will replace 'action' with 'action.runtimeType'.
   store.exceptionFor([Increment, action]);
 
-  // Error: wait_fail_invalid_argument. On the store, with a variable.
+  // wait_fail_invalid_argument
+  // (On the store, with a variable)
+  // Fix: Will replace 'action' with 'action.runtimeType'.
   store.clearExceptionFor(action);
 
   context.isWaiting(action); // OK: 'isWaiting' accepts actions.
   context.isFailed([LoadUser, Increment]); // OK: a list of action types.
 }
 
-// =====================================================================================
-// wait_fail_never_matches (warning)
-// =====================================================================================
-
 void waitFailNeverMatchesDemo(BuildContext context) {
-  // Warning: wait_fail_never_matches. Not an action type.
+  // wait_fail_never_matches
+  // (Not an action type)
+  // Fix: not available.
   context.isWaiting(AppState);
 
-  // Warning: wait_fail_never_matches. An abstract action type.
+  // wait_fail_never_matches
+  // (An abstract action type)
+  // Fix: not available.
   context.isFailed(AppAction);
 
-  // Warning: wait_fail_never_matches. A sync action type, in 'isWaiting'.
+  // wait_fail_never_matches
+  // (A sync action type, in 'isWaiting')
+  // Fix: not available.
   context.isWaiting(Increment);
 
-  // Warning: wait_fail_never_matches. A new action, never dispatched.
-  // Quick fix: replace it with its type.
+  // wait_fail_never_matches
+  // (A new action, never dispatched)
+  // Fix: Will replace 'LoadUser()' with 'LoadUser'.
   context.isWaiting(LoadUser());
 
   context.isFailed(Increment); // OK: a sync action can fail.
 }
 
-// =====================================================================================
-// avoid_context_state (info)
-// =====================================================================================
-
 class StateOneField extends StatelessWidget {
   const StateOneField({super.key});
 
-  // Info: avoid_context_state. In 'build'.
-  // Quick fix: 'context.select((st) => st.counter)'.
   @override
+  // avoid_context_state
+  // (In 'build')
+  // Fix: Will replace 'context.state.counter' with 'context.select((st) => st.counter)'.
   Widget build(BuildContext context) => Text('${context.state.counter}');
 }
 
@@ -417,8 +514,11 @@ class StateDeepPaths extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Info: avoid_context_state. A variable used through getters.
-    // Quick fix: one select per path, 'userName' and 'userAge'.
+    // avoid_context_state
+    // (A variable used through getters)
+    // Fix: Will replace 'state.user.name' with 'userName', and 'state.user.age' with
+    // 'userAge', declared as 'final userName = context.select((st) => st.user.name);'
+    // and 'final userAge = context.select((st) => st.user.age);'.
     final state = context.state;
     return Text('${state.user.name} ${state.user.age}');
   }
@@ -429,8 +529,10 @@ class StatePathPrefix extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Info: avoid_context_state. 'state.user' is a prefix of 'state.user.name'.
-    // Quick fix: a single 'user' select, and 'user.name'.
+    // avoid_context_state
+    // ('state.user' is a prefix of 'state.user.name')
+    // Fix: Will replace 'state.user' with 'user', declared as
+    // 'final user = context.select((st) => st.user);'.
     final state = context.state;
     describe(state.user);
     return Text(state.user.name);
@@ -443,8 +545,10 @@ class StateNameClash extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var userName = 'Guest';
-    // Info: avoid_context_state. The name 'userName' is already used.
-    // Quick fix: 'userName2'.
+    // avoid_context_state
+    // (The name 'userName' is already used)
+    // Fix: Will replace 'state.user.name' with 'userName2', declared as
+    // 'final userName2 = context.select((st) => st.user.name);'.
     final state = context.state;
     return Text(state.user.name + userName);
   }
@@ -455,8 +559,11 @@ class StateMethodAndNullAware extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Info: avoid_context_state. The paths stop at methods and at '?.'.
-    // Quick fix: 'name' (then 'name.trim()') and 'maybeUser' (then 'maybeUser?.name').
+    // avoid_context_state
+    // (The paths stop at methods and at '?.')
+    // Fix: Will replace 'state.name' with 'name', and 'state.maybeUser' with
+    // 'maybeUser', declared as 'final name = context.select((st) => st.name);' and
+    // 'final maybeUser = context.select((st) => st.maybeUser);'.
     final state = context.state;
     return Text(state.name.trim() + (state.maybeUser?.name ?? ''));
   }
@@ -467,7 +574,9 @@ class StateWholeState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Info: avoid_context_state. The whole state is used. No quick fix.
+    // avoid_context_state
+    // (The whole state is used)
+    // Fix: not available.
     final state = context.state;
     describe(state);
     return Text(state.name);
@@ -479,8 +588,9 @@ class StateInCallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ElevatedButton(
-        // Info: avoid_context_state. In a callback.
-        // Quick fix: 'context.read()'.
+        // avoid_context_state
+        // (In a callback)
+        // Fix: Will replace 'context.state' with 'context.read()'.
         onPressed: () => describe(context.state.counter),
         child: const Text('Print'),
       );
@@ -489,8 +599,9 @@ class StateInCallback extends StatelessWidget {
 class StateInHelperMethod extends StatelessWidget {
   const StateInHelperMethod({super.key});
 
-  // Info: avoid_context_state. In a helper method, which may or may not run while the
-  // widget builds. No quick fix.
+  // avoid_context_state
+  // (In a helper method, which may or may not run while the widget builds)
+  // Fix: not available.
   Widget buildHeader(BuildContext context) => Text(context.state.name);
 
   @override
@@ -502,8 +613,10 @@ class StateInItemBuilder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView.builder(
-        // Info: avoid_context_state. In an 'itemBuilder', where 'context.select' can't be
-        // used. No quick fix. Use 'context.select' in a 'Builder', or a separate widget.
+        // avoid_context_state
+        // (In an 'itemBuilder', whose 'BuildContext' belongs to the list)
+        // Fix: Will wrap the item in a 'Builder', and replace 'context.state.name' with
+        // 'context.select((st) => st.name)'.
         itemBuilder: (context, index) => Text(context.state.name),
       );
 }
@@ -513,15 +626,13 @@ class StateWithContextOfAnotherWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Builder(
-        // Info: avoid_context_state. The 'context' of 'build', inside a builder. No fix.
+        // avoid_context_state
+        // (The 'context' of 'build', inside a builder)
+        // Fix: Will rename '_' to 'context', and replace 'context.state.name' with
+        // 'context.select((st) => st.name)'.
         builder: (_) => Text(context.state.name),
       );
 }
-
-// =====================================================================================
-// State methods: context_state_in_init_state (error), context_in_dispose (error),
-// select_outside_build (error), and avoid_context_state (info).
-// =====================================================================================
 
 class LifecycleDemo extends StatefulWidget {
   const LifecycleDemo({super.key});
@@ -535,24 +646,35 @@ class _LifecycleDemoState extends State<LifecycleDemo> {
   void initState() {
     super.initState();
 
-    // Error: context_state_in_init_state. Quick fix: 'context.read()'.
+    // context_state_in_init_state
+    // (The widget can't depend on the store before 'initState' completes)
+    // Fix: Will replace 'context.state' with 'context.read()'.
     describe(context.state.counter);
 
-    // Error: context_state_in_init_state. No quick fix.
+    // context_state_in_init_state
+    // ('isWaiting' also depends on the store)
+    // Fix: not available.
     describe(context.isWaiting(LoadUser));
 
-    // Error: select_outside_build. Quick fix: 'context.read().counter'.
+    // select_outside_build
+    // ('initState' doesn't run while the widget builds)
+    // Fix: Will replace 'context.select((st) => st.counter)' with
+    // 'context.read().counter'.
     describe(context.select((st) => st.counter));
 
     describe(context.read().counter); // OK.
     dispatch(LoadUser()); // OK.
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Info: avoid_context_state. In a closure that runs later.
-      // Quick fix: 'context.read()'.
+      // avoid_context_state
+      // (In a closure that runs later)
+      // Fix: Will replace 'context.state' with 'context.read()'.
       describe(context.state.counter);
 
-      // Error: select_outside_build. In a closure passed to 'addPostFrameCallback'.
+      // select_outside_build
+      // (In a closure passed to 'addPostFrameCallback')
+      // Fix: Will replace 'context.select((st) => st.counter)' with
+      // 'context.read().counter'.
       describe(context.select((st) => st.counter));
     });
   }
@@ -561,14 +683,14 @@ class _LifecycleDemoState extends State<LifecycleDemo> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Error: select_outside_build. Only allowed here with 'debug: false', which the
-    // 'select' of BuildContextExtension doesn't pass.
+    // OK: 'didChangeDependencies' runs again when the counter changes.
     describe(context.select((st) => st.counter));
 
-    // OK: 'debug: false' allows it in 'didChangeDependencies'.
-    describe(context.getSelect<AppState, int>((st) => st.counter, debug: false));
-
-    // Info: avoid_context_state. No quick fix here.
+    // avoid_context_state
+    // (In 'didChangeDependencies', it runs again on any state change)
+    // Fix: Will replace 'context.state.counter' with
+    // 'context.select((st) => st.counter)'.
+    // Fix: Will replace 'context.state' with 'context.read()'.
     describe(context.state.counter);
   }
 
@@ -576,17 +698,24 @@ class _LifecycleDemoState extends State<LifecycleDemo> {
   void didUpdateWidget(LifecycleDemo oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Error: select_outside_build. Even with 'debug: false', which only turns off
-    // the runtime check. Quick fix: 'context.getRead<AppState>().counter'.
-    describe(context.getSelect<AppState, int>((st) => st.counter, debug: false));
+    // select_outside_build
+    // (In 'didUpdateWidget', which doesn't run while the widget builds)
+    // Fix: Will replace the 'getSelect(...)' call with
+    // 'context.getRead<AppState>().counter'.
+    describe(context.getSelect<AppState, int>((st) => st.counter));
 
-    // Info: avoid_context_state. Quick fix: 'context.read()'.
+    // avoid_context_state
+    // (In 'didUpdateWidget', which doesn't run while the widget builds)
+    // Fix: Will replace 'context.state' with 'context.read()'.
     describe(context.state.counter);
   }
 
   void increment() {
     setState(() {
-      // Error: select_outside_build. In a closure passed to 'setState'.
+      // select_outside_build
+      // (In a closure passed to 'setState')
+      // Fix: Will replace 'context.select((st) => st.counter)' with
+      // 'context.read().counter'.
       describe(context.select((st) => st.counter));
     });
   }
@@ -599,22 +728,34 @@ class _LifecycleDemoState extends State<LifecycleDemo> {
 
   @override
   void dispose() {
-    // Error: context_in_dispose.
+    // context_in_dispose
+    // (The widget is no longer in the tree)
+    // Fix: not available.
     describe(context.read().counter);
 
-    // Error: context_in_dispose.
+    // context_in_dispose
+    // ('context.state' doesn't work either)
+    // Fix: not available.
     describe(context.state.counter);
 
-    // Error: context_in_dispose.
+    // context_in_dispose
+    // ('context.isWaiting' doesn't work either)
+    // Fix: not available.
     describe(context.isWaiting(LoadUser));
 
-    // Error: context_in_dispose.
+    // context_in_dispose
+    // ('context.getEnvironment' doesn't work either)
+    // Fix: not available.
     describe(context.getEnvironment<AppState>());
 
-    // Error: context_in_dispose. Also in closures inside 'dispose'.
+    // context_in_dispose
+    // (Also in closures inside 'dispose')
+    // Fix: not available.
     Future.microtask(() => describe(context.read()));
 
-    // Error: select_outside_build. No quick fix, since 'context.read()' throws too.
+    // select_outside_build
+    // ('context.read()' throws here too)
+    // Fix: not available.
     describe(context.select((st) => st.counter));
 
     dispatch(Increment()); // OK: dispatching works in 'dispose'.
@@ -625,16 +766,15 @@ class _LifecycleDemoState extends State<LifecycleDemo> {
   Widget build(BuildContext context) => const Text('Lifecycle');
 }
 
-// =====================================================================================
-// select_outside_build (error), outside of State methods
-// =====================================================================================
-
 class SelectInCallback extends StatelessWidget {
   const SelectInCallback({super.key});
 
   @override
   Widget build(BuildContext context) => ElevatedButton(
-        // Error: select_outside_build. Quick fix: 'context.read().counter'.
+        // select_outside_build
+        // (The 'onPressed' callback doesn't run while the widget builds)
+        // Fix: Will replace 'context.select((st) => st.counter)' with
+        // 'context.read().counter'.
         onPressed: () => describe(context.select((st) => st.counter)),
         child: const Text('Print'),
       );
@@ -645,7 +785,9 @@ class EventInCallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ElevatedButton(
-        // Error: select_outside_build. Events must be consumed in 'build'. No quick fix.
+        // select_outside_build
+        // (Events must be consumed in 'build')
+        // Fix: not available.
         onPressed: () => describe(context.event((st) => st.evt)),
         child: const Text('Print'),
       );
@@ -658,13 +800,15 @@ class SelectWithContextOfAnotherWidget extends StatelessWidget {
   Widget build(BuildContext context) => Column(
         children: [
           Builder(
-            // Error: select_outside_build. The 'context' of 'build', in a builder.
-            // Quick fix: use the builder's 'inner'.
+            // select_outside_build
+            // (The 'context' of 'build', in a builder)
+            // Fix: Will replace 'context' with the builder's 'inner'.
             builder: (inner) => Text(context.select((st) => st.name)),
           ),
           Builder(
-            // Error: select_outside_build. No quick fix, since the builder's
-            // 'BuildContext' is '_'.
+            // select_outside_build
+            // (The 'context' of 'build', in a builder whose 'BuildContext' is '_')
+            // Fix: Will rename '_' to 'context'.
             builder: (_) => Text(context.select((st) => st.name)),
           ),
           Builder(
@@ -685,7 +829,9 @@ class SelectWithContextOfState extends StatefulWidget {
 class _SelectWithContextOfStateState extends State<SelectWithContextOfState> {
   @override
   Widget build(BuildContext buildContext) => Builder(
-        // Error: select_outside_build. The 'context' of the State, in a builder.
+        // select_outside_build
+        // (The 'context' of the State, in a builder)
+        // Fix: Will replace 'context' with the builder's 'inner'.
         builder: (inner) => Text(context.select((st) => st.name)),
       );
 }
@@ -695,8 +841,9 @@ class SelectInItemBuilder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView.builder(
-        // Error: select_outside_build. The 'BuildContext' of an 'itemBuilder' belongs to
-        // the list.
+        // select_outside_build
+        // (The 'BuildContext' of an 'itemBuilder' belongs to the list)
+        // Fix: Will wrap the item in a 'Builder'.
         itemBuilder: (context, index) => Text(context.select((st) => st.name)),
       );
 }
@@ -712,28 +859,32 @@ class SelectInItemBuilderWithBuilder extends StatelessWidget {
       );
 }
 
-// =====================================================================================
-// context_in_selector (error)
-// =====================================================================================
-
 class ContextInSelector extends StatelessWidget {
   const ContextInSelector({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Error: context_in_selector. Quick fix: replace it with 'st'.
+    // context_in_selector
+    // (The selector must only use its parameter)
+    // Fix: Will replace 'context.state' with 'st'.
     var name = context.select((st) => context.state.name);
 
-    // Error: context_in_selector. Quick fix: replace it with 'st'.
+    // context_in_selector
+    // (The selector must only use its parameter)
+    // Fix: Will replace 'context.read()' with 'st'.
     var counter = context.select((st) => context.read().counter);
 
     var user = context.select((st) {
-      // Error: context_in_selector. A nested 'select' throws.
+      // context_in_selector
+      // (A nested 'select' throws)
+      // Fix: not available.
       return context.select((s) => s.user);
     });
 
     var value = context.event((st) {
-      // Error: context_in_selector. In the selector of 'context.event'.
+      // context_in_selector
+      // (In the selector of 'context.event')
+      // Fix: not available.
       if (context.isWaiting(LoadUser)) describe('waiting');
       return st.evt;
     });
@@ -742,15 +893,12 @@ class ContextInSelector extends StatelessWidget {
   }
 }
 
-// =====================================================================================
-// vm_field_not_in_equals (warning)
-// Quick fixes: add the field to 'equals', or add all missing fields.
-// =====================================================================================
-
 class CounterVm extends Vm {
   final int counter;
 
-  // Warning: vm_field_not_in_equals.
+  // vm_field_not_in_equals
+  // ('description' is missing from 'equals', so changing it doesn't rebuild)
+  // Fix: Will add 'description' to 'equals'.
   final String description;
 
   final VoidCallback onIncrement; // OK: functions can't be in 'equals'.
@@ -763,16 +911,13 @@ class CounterVm extends Vm {
 }
 
 class NoEqualsVm extends Vm {
-  // Warning: vm_field_not_in_equals. Without 'equals', all fields are missing.
+  // vm_field_not_in_equals
+  // (Without 'equals', all fields are missing)
+  // Fix: Will add ': super(equals: [counter])' to the constructor.
   final int counter;
 
   NoEqualsVm({required this.counter});
 }
-
-// =====================================================================================
-// copy_missing_field (warning)
-// Quick fix: add the missing fields to the copy method.
-// =====================================================================================
 
 @stateClass
 class CopyMissingField {
@@ -782,8 +927,10 @@ class CopyMissingField {
 
   CopyMissingField({required this.counter, this.name = '', this.waiting = false});
 
-  // Warning: copy_missing_field. 'name' has no parameter, and 'waiting' has one but
-  // doesn't use it.
+  // copy_missing_field
+  // ('name' has no parameter, and 'waiting' has one but doesn't use it)
+  // Fix: Will add the parameter 'String? name' to 'copy', and pass
+  // 'name: name ?? this.name' to the constructor. It doesn't change 'waiting'.
   CopyMissingField copy({int? counter, bool? waiting}) =>
       CopyMissingField(counter: counter ?? this.counter, waiting: false);
 
@@ -798,12 +945,10 @@ class CopyMissingField {
   int get hashCode => Object.hash(counter, name, waiting);
 }
 
-// =====================================================================================
-// state_class_must_be_immutable (warning)
-// =====================================================================================
-
-// Warning: state_class_must_be_immutable. 'counter' isn't final.
 @stateClass
+// state_class_must_be_immutable
+// ('counter' isn't final)
+// Fix: not available.
 class MutableState {
   int counter;
 
@@ -829,7 +974,9 @@ abstract class ImmutableBase {
   int get hashCode => counter.hashCode;
 }
 
-// Warning: state_class_must_be_immutable. Subclasses of a '@stateClass' are checked.
+// state_class_must_be_immutable
+// (Subclasses of a '@stateClass' are checked)
+// Fix: not available.
 class MutableSubclass extends ImmutableBase {
   String name;
 
@@ -843,12 +990,10 @@ class MutableSubclass extends ImmutableBase {
   int get hashCode => Object.hash(counter, name);
 }
 
-// =====================================================================================
-// state_class_missing_equality (warning). No quick fix.
-// =====================================================================================
-
-// Warning: state_class_missing_equality. Has fields, but no '==' and 'hashCode'.
 @stateClass
+// state_class_missing_equality
+// (Has fields, but no '==' and 'hashCode')
+// Fix: not available.
 class NoEquality {
   final int counter;
 
@@ -868,17 +1013,14 @@ class EqualityBase {
   int get hashCode => counter.hashCode;
 }
 
-// Warning: state_class_missing_equality. The inherited '==' doesn't know 'name'.
+// state_class_missing_equality
+// (The inherited '==' doesn't know 'name')
+// Fix: not available.
 class InheritsEquality extends EqualityBase {
   final String name;
 
   InheritsEquality({required super.counter, required this.name});
 }
-
-// =====================================================================================
-// equality_missing_field (warning)
-// Quick fix: add the missing fields.
-// =====================================================================================
 
 @stateClass
 class EqualityMissingField {
@@ -892,8 +1034,10 @@ class EqualityMissingField {
     required this.loading,
   });
 
-  // Warning: equality_missing_field. 'counter' is missing from '=='.
   @override
+  // equality_missing_field
+  // ('counter' is missing from '==')
+  // Fix: Will add '&& counter == other.counter' to '=='.
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is EqualityMissingField &&
@@ -901,15 +1045,12 @@ class EqualityMissingField {
           waiting == other.waiting &&
           loading == other.loading;
 
-  // Warning: equality_missing_field. 'waiting' is missing from 'hashCode'.
   @override
+  // equality_missing_field
+  // ('waiting' is missing from 'hashCode')
+  // Fix: Will add 'waiting' to 'Object.hash(...)'.
   int get hashCode => Object.hash(counter, loading);
 }
-
-// =====================================================================================
-// equality_missing_inherited_field (warning)
-// Quick fix: add 'super == other' and 'super.hashCode', or the inherited fields.
-// =====================================================================================
 
 @stateClass
 class InheritedFieldBase {
@@ -930,19 +1071,18 @@ class InheritedFieldSub extends InheritedFieldBase {
 
   InheritedFieldSub({required super.counter, required this.name});
 
-  // Warning: equality_missing_inherited_field. Doesn't call 'super == other'.
   @override
+  // equality_missing_inherited_field
+  // (Doesn't call 'super == other')
+  // Fix: Will add '&& super == other' to '=='.
   bool operator ==(Object other) => other is InheritedFieldSub && name == other.name;
 
-  // Warning: equality_missing_inherited_field. Doesn't use 'super.hashCode'.
   @override
+  // equality_missing_inherited_field
+  // (Doesn't use 'super.hashCode')
+  // Fix: Will add '^ super.hashCode' to 'hashCode'.
   int get hashCode => name.hashCode;
 }
-
-// =====================================================================================
-// equatable_props_missing_field (warning)
-// Quick fix: add the missing fields to 'props', and '...super.props'.
-// =====================================================================================
 
 @stateClass
 class EquatableState extends Equatable {
@@ -951,8 +1091,10 @@ class EquatableState extends Equatable {
 
   const EquatableState({required this.counter, required this.name});
 
-  // Warning: equatable_props_missing_field. 'name' is missing.
   @override
+  // equatable_props_missing_field
+  // ('name' is missing from 'props')
+  // Fix: Will add 'name' to 'props'.
   List<Object?> get props => [counter];
 }
 
@@ -962,14 +1104,16 @@ class EquatableSub extends EquatableState {
   const EquatableSub(
       {required super.counter, required super.name, required this.waiting});
 
-  // Warning: equatable_props_missing_field. The inherited 'props' are missing. Add
-  // '...super.props'.
   @override
+  // equatable_props_missing_field
+  // (The inherited 'props' are missing)
+  // Fix: Will add '...super.props' to the start of 'props'.
   List<Object?> get props => [waiting];
 }
 
-// Warning: equatable_props_missing_field. Declares a field, but not 'props', so the
-// inherited 'props' doesn't have it.
+// equatable_props_missing_field
+// (Declares a field, but not 'props', so the inherited 'props' doesn't have it)
+// Fix: not available.
 class EquatableWithoutProps extends EquatableState {
   final bool loading;
 
@@ -980,12 +1124,9 @@ class EquatableWithoutProps extends EquatableState {
   });
 }
 
-// =====================================================================================
-// extend_base_action (info)
-// Quick fix: extend 'AppAction' instead.
-// =====================================================================================
-
-// Info: extend_base_action. Extends 'ReduxAction<AppState>' instead of 'AppAction'.
+// extend_base_action
+// (Extends 'ReduxAction<AppState>' directly, instead of the base action)
+// Fix: Will replace 'ReduxAction<AppState>' with 'AppAction'.
 class ExtendsReduxAction extends ReduxAction<AppState> {
   @override
   AppState? reduce() => null;
@@ -997,14 +1138,12 @@ class GenericAction<St> extends ReduxAction<St> {
   St? reduce() => null;
 }
 
-// =====================================================================================
-// dependencies_cast_in_action (info)
-// =====================================================================================
-
 class CastsDependencies extends AppAction {
   @override
   AppState? reduce() {
-    // Info: dependencies_cast_in_action. Use the 'dependencies' getter of 'AppAction'.
+    // dependencies_cast_in_action
+    // (Use the 'dependencies' getter of 'AppAction')
+    // Fix: not available.
     var deps = store.dependencies as Dependencies;
     describe(deps.apiUrl);
 
@@ -1013,32 +1152,26 @@ class CastsDependencies extends AppAction {
   }
 }
 
-// =====================================================================================
-// prefer_return_null (info)
-// Quick fix: return 'null'.
-// =====================================================================================
-
 class ReturnsUnchangedState extends AppAction {
   @override
   AppState? reduce() {
-    // Info: prefer_return_null. Returning 'null' means the state didn't change.
+    // prefer_return_null
+    // (Returning 'null' means the state didn't change)
+    // Fix: Will replace 'state' with 'null'.
     if (state.counter == 0) return state;
     return state.copy(counter: 0);
   }
 }
-
-// =====================================================================================
-// stale_state_after_await (warning)
-// Quick fix: use 'state' instead.
-// =====================================================================================
 
 class UsesStaleState extends AppAction {
   @override
   Future<AppState?> reduce() async {
     var oldState = state;
     var name = await fetchName();
-    // Warning: stale_state_after_await. Other actions may have changed the state
-    // during the 'await', and these changes would be lost.
+    // stale_state_after_await
+    // (Other actions may have changed the state during the 'await', and these changes
+    // would be lost)
+    // Fix: Will replace 'oldState' with 'state'.
     return oldState.copy(name: name);
   }
 }
@@ -1052,17 +1185,15 @@ class ReadsStateAgain extends AppAction {
   }
 }
 
-// =====================================================================================
-// after_throws (warning)
-// =====================================================================================
-
 class ThrowsInAfter extends AppAction {
   @override
   AppState? reduce() => null;
 
   @override
   void after() {
-    // Warning: after_throws. The error would only show up in the console.
+    // after_throws
+    // (The error would only show up in the console)
+    // Fix: not available.
     if (state.counter < 0) throw Exception('Negative counter');
 
     try {
@@ -1073,14 +1204,11 @@ class ThrowsInAfter extends AppAction {
   }
 }
 
-// =====================================================================================
-// missing_super_in_mixin_override (error)
-// =====================================================================================
-
 class OverridesNonReentrant extends AppAction with NonReentrant<AppState> {
-  // Error: missing_super_in_mixin_override. 'NonReentrant' doesn't work without
-  // 'super.abortDispatch()'.
   @override
+  // missing_super_in_mixin_override
+  // ('NonReentrant' doesn't work without 'super.abortDispatch()')
+  // Fix: not available.
   bool abortDispatch() => state.counter > 10;
 
   @override
@@ -1098,12 +1226,9 @@ class CallsSuperAbortDispatch extends AppAction with NonReentrant<AppState> {
   AppState? reduce() => null;
 }
 
-// =====================================================================================
-// retry_without_non_reentrant (info)
-// Quick fix: add the 'NonReentrant' mixin.
-// =====================================================================================
-
-// Info: retry_without_non_reentrant. A new dispatch could run while this one retries.
+// retry_without_non_reentrant
+// (A new dispatch could run while this one retries)
+// Fix: Will change 'with Retry<AppState>' to 'with Retry<AppState>, NonReentrant'.
 class RetryWithoutNonReentrant extends AppAction with Retry<AppState> {
   @override
   Future<AppState?> reduce() async => state.copy(name: await fetchName());
@@ -1115,10 +1240,6 @@ class RetryWithNonReentrant extends AppAction
   Future<AppState?> reduce() async => state.copy(name: await fetchName()); // OK
 }
 
-// =====================================================================================
-// dispatch_and_wait_unlimited_retries (warning)
-// =====================================================================================
-
 class RetryForever extends AppAction
     with Retry<AppState>, UnlimitedRetries<AppState>, NonReentrant<AppState> {
   @override
@@ -1126,16 +1247,13 @@ class RetryForever extends AppAction
 }
 
 Future<void> waitsForRetryForever(Store<AppState> store) async {
-  // Warning: dispatch_and_wait_unlimited_retries. It may never complete.
+  // dispatch_and_wait_unlimited_retries
+  // (It may never complete)
+  // Fix: not available.
   await store.dispatchAndWait(RetryForever());
 
   store.dispatch(RetryForever()); // OK: doesn't wait.
 }
-
-// =====================================================================================
-// sequential_deadlock (error)
-// Quick fix: use 'dispatch' instead, without waiting.
-// =====================================================================================
 
 class SequentialChild extends AppAction with Sequential<AppState> {
   @override
@@ -1145,7 +1263,9 @@ class SequentialChild extends AppAction with Sequential<AppState> {
 class SequentialParent extends AppAction with Sequential<AppState> {
   @override
   Future<AppState?> reduce() async {
-    // Error: sequential_deadlock. 'SequentialChild' only runs after this action ends.
+    // sequential_deadlock
+    // ('SequentialChild' only runs after this action ends)
+    // Fix: Will change 'await dispatchAndWait(...)' to 'dispatch(...)'.
     await dispatchAndWait(SequentialChild());
 
     dispatch(SequentialChild()); // OK: runs after this action ends.
@@ -1153,14 +1273,11 @@ class SequentialParent extends AppAction with Sequential<AppState> {
   }
 }
 
-// =====================================================================================
-// sequential_before_super_not_first (error),
-// sequential_after_super_not_in_finally (info)
-// =====================================================================================
-
 class SequentialWithBeforeAndAfter extends AppAction with Sequential<AppState> {
-  // Error: sequential_before_super_not_first. 'describe' runs before the action's turn.
   @override
+  // sequential_before_super_not_first
+  // ('describe' runs before the action's turn)
+  // Fix: not available.
   Future<void> before() async {
     describe('dispatched');
     await super.before();
@@ -1169,7 +1286,9 @@ class SequentialWithBeforeAndAfter extends AppAction with Sequential<AppState> {
   @override
   void after() {
     describe('finished');
-    // Info: sequential_after_super_not_in_finally. Not called if 'describe' throws.
+    // sequential_after_super_not_in_finally
+    // (Not called if 'describe' throws)
+    // Fix: not available.
     super.after();
   }
 
@@ -1197,33 +1316,27 @@ class SequentialWithBeforeAndAfterOk extends AppAction with Sequential<AppState>
   AppState? reduce() => null;
 }
 
-// =====================================================================================
-// polling_action_restarts_polling (warning)
-// Quick fix: use 'Poll.once'.
-// =====================================================================================
-
 class PollPrices extends AppAction with Polling<AppState> {
   @override
   final Poll poll;
 
   PollPrices({this.poll = Poll.once});
 
-  // Warning: polling_action_restarts_polling. Each tick would restart the timer.
   @override
+  // polling_action_restarts_polling
+  // (Each tick would restart the timer)
+  // Fix: Will replace 'Poll.runNowAndRestart' with 'Poll.once'.
   ReduxAction<AppState> createPollingAction() => PollPrices(poll: Poll.runNowAndRestart);
 
   @override
   AppState? reduce() => null;
 }
 
-// =====================================================================================
-// server_push_associated_action (error)
-// =====================================================================================
-
 class PushName extends AppAction with ServerPush<AppState> {
-  // Error: server_push_associated_action. 'LoadUser' doesn't use
-  // 'OptimisticSyncWithPush'.
   @override
+  // server_push_associated_action
+  // ('LoadUser' doesn't use 'OptimisticSyncWithPush')
+  // Fix: not available.
   Type associatedAction() => LoadUser;
 
   @override
@@ -1237,23 +1350,16 @@ class PushName extends AppAction with ServerPush<AppState> {
       null;
 }
 
-// =====================================================================================
-// internet_simulation_in_production (warning)
-// =====================================================================================
-
 class LoadWhenOnline extends AppAction with CheckInternet<AppState> {
-  // Warning: internet_simulation_in_production. Ignores the real connection.
   @override
+  // internet_simulation_in_production
+  // (Ignores the real connection)
+  // Fix: not available.
   bool? get internetOnOffSimulation => false;
 
   @override
   AppState? reduce() => null;
 }
-
-// =====================================================================================
-// prefer_dispatch_without_context (info). The opposite of the opt-in
-// prefer_dispatch_with_context.
-// =====================================================================================
 
 class DispatchDemo extends StatelessWidget {
   const DispatchDemo({super.key});
@@ -1261,8 +1367,10 @@ class DispatchDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      // Info: prefer_dispatch_without_context. Quick fix: remove 'context.'.
       ElevatedButton(
+        // prefer_dispatch_without_context
+        // (The 'context.' isn't needed to call 'dispatch' in a widget)
+        // Fix: Will replace 'context.dispatch' with 'dispatch'.
         onPressed: () => context.dispatch(Increment()),
         child: const Text('Increment'),
       ),
@@ -1270,7 +1378,257 @@ class DispatchDemo extends StatelessWidget {
         onPressed: () => dispatch(Increment()), // OK.
         child: const Text('Increment'),
       ),
+      ElevatedButton(
+        onPressed: () {
+          // then_on_dispatch_and_wait
+          // (The callback also runs when the action fails)
+          // Fix: Will replace 'then' with 'thenIfCompletedOk'.
+          dispatchAndWait(LoadUser()).then((_) => Navigator.pop(context));
+        },
+        child: const Text('Load user'),
+      ),
+      ElevatedButton(
+        onPressed: () {
+          dispatchAndWait(LoadUser())
+              .thenIfCompletedOk((_) => Navigator.pop(context)); // OK.
+        },
+        child: const Text('Load user'),
+      ),
     ]);
+  }
+}
+
+class DispatchInBuildDemo extends StatelessWidget {
+  const DispatchInBuildDemo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // dispatch_in_build
+    // (It dispatches again on every rebuild)
+    dispatch(LoadUser());
+
+    return Column(children: [
+      Builder(builder: (context) {
+        // dispatch_in_build
+        // (Builder closures also run while the widget builds)
+        dispatch(LoadUser());
+        return const Text('Builder');
+      }),
+      ElevatedButton(
+        onPressed: () => dispatch(LoadUser()), // OK: dispatching in a callback.
+        child: const Text('Load user'),
+      ),
+    ]);
+  }
+}
+
+class ContextReadInBuildDemo extends StatelessWidget {
+  const ContextReadInBuildDemo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // context_read_in_build
+    // (The widget doesn't rebuild when the name changes)
+    // Fix: Will replace 'context.read().user.name' with
+    // 'context.select((st) => st.user.name)'.
+    var name = context.read().user.name;
+
+    var age = context.select((st) => st.user.age); // OK.
+
+    return ListView.builder(
+      itemCount: 3,
+      itemBuilder: (context, index) {
+        // context_read_in_build
+        // ('context.select' can't be used in an 'itemBuilder', so the message suggests
+        // a 'Builder' or a separate widget)
+        var counter = context.read().counter;
+        return Text('$name $age $counter $index');
+      },
+    );
+  }
+}
+
+class RefreshDemo extends StatelessWidget {
+  const RefreshDemo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      RefreshIndicator(
+        onRefresh: () async {
+          // refresh_indicator_without_wait
+          // (The spinner disappears before the user loads)
+          // Fix: Will replace 'dispatch(...)' with 'await dispatchAndWait(...)'.
+          dispatch(LoadUser());
+        },
+        child: ListView(),
+      ),
+      RefreshIndicator(
+        onRefresh: () async {
+          // refresh_indicator_without_wait
+          // ('dispatchAll' can't be waited for)
+          // Fix: Will replace 'dispatchAll(...)' with 'await dispatchAndWaitAll(...)'.
+          dispatchAll([LoadUser(), Increment()]);
+        },
+        child: ListView(),
+      ),
+      RefreshIndicator(
+        onRefresh: _refresh, // The method below is checked too.
+        child: ListView(),
+      ),
+      RefreshIndicator(
+        onRefresh: () => dispatchAndWait(LoadUser()), // OK.
+        child: ListView(),
+      ),
+    ]);
+  }
+
+  Future<void> _refresh() async {
+    // refresh_indicator_without_wait
+    // (The dispatch is in a method passed as 'onRefresh')
+    // Fix: Will replace 'dispatch(...)' with 'await dispatchAndWait(...)'.
+    dispatch(LoadUser());
+  }
+}
+
+class Clock extends StatefulWidget {
+  // stream_or_timer_in_widget
+  // (A field of type 'Stream')
+  final Stream<int> ticks;
+
+  const Clock({
+    super.key,
+    required this.ticks,
+    // stream_or_timer_in_widget
+    // (A constructor parameter of type 'Stream')
+    Stream<String>? messages,
+  });
+
+  @override
+  State<Clock> createState() => _ClockState();
+}
+
+class _ClockState extends State<Clock> {
+  // stream_or_timer_in_widget
+  // (A field of type 'Timer')
+  Timer? timer;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // stream_or_timer_in_widget
+    // (Creating a 'Timer')
+    timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+
+    // stream_or_timer_in_widget
+    // (Listening to a 'Stream')
+    widget.ticks.listen((_) => setState(() {}));
+
+    dispatch(Increment()); // OK: start the clock with an action instead.
+  }
+
+  @override
+  Widget build(BuildContext context) => const Text('Clock');
+}
+
+class UserExceptionDemo extends StatelessWidget {
+  const UserExceptionDemo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      ElevatedButton(
+        // user_exception_outside_action
+        // (In a widget, AsyncRedux can't catch it to show the dialog)
+        // Fix: Will replace 'throw UserException(...)' with
+        // 'context.dispatch(UserExceptionAction(...))'.
+        onPressed: () => throw const UserException('Invalid'),
+        child: const Text('Save'),
+      ),
+      ElevatedButton(
+        onPressed: () => dispatch(UserExceptionAction('Invalid')), // OK.
+        child: const Text('Save'),
+      ),
+      ElevatedButton(
+        onPressed: () {
+          try {
+            throw const UserException('Invalid'); // OK: caught below.
+          } catch (error) {
+            describe(error);
+          }
+        },
+        child: const Text('Save'),
+      ),
+    ]);
+  }
+}
+
+class UserExceptionInState extends StatefulWidget {
+  const UserExceptionInState({super.key});
+
+  @override
+  State<UserExceptionInState> createState() => _UserExceptionInStateState();
+}
+
+class _UserExceptionInStateState extends State<UserExceptionInState> {
+  void _save() {
+    // user_exception_outside_action
+    // (In a 'State')
+    // Fix: Will replace 'throw UserException(...)' with
+    // 'context.dispatch(UserExceptionAction(...))'.
+    throw const UserException('Invalid');
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      ElevatedButton(onPressed: _save, child: const Text('Save'));
+}
+
+class CounterFactory extends VmFactory<AppState, UserExceptionDemo, CounterVm> {
+  @override
+  CounterVm fromStore() {
+    // user_exception_outside_action
+    // (In a 'VmFactory')
+    // Fix: Will replace 'throw UserException(...)' with
+    // 'dispatch(UserExceptionAction(...))'.
+    if (state.counter < 0) throw const UserException('Negative counter');
+
+    return CounterVm(
+      counter: state.counter,
+      description: 'Counter',
+      onIncrement: () => dispatch(Increment()),
+    );
+  }
+}
+
+class ValidatingVm extends Vm {
+  final int counter;
+
+  ValidatingVm({required this.counter}) : super(equals: [counter]);
+
+  void validate() {
+    // user_exception_outside_action
+    // (In a view-model)
+    // Fix: not available.
+    if (counter < 0) throw const UserException('Negative counter');
+  }
+}
+
+class UserExceptionInAfter extends AppAction {
+  @override
+  AppState? reduce() {
+    if (state.counter < 0) throw const UserException('Negative counter'); // OK.
+    return null;
+  }
+
+  @override
+  void after() {
+    // user_exception_outside_action
+    // (In 'after', which AsyncRedux doesn't catch to show the dialog)
+    // Fix: Will replace 'throw UserException(...)' with
+    // 'dispatch(UserExceptionAction(...))'.
+    if (state.counter > 100) throw const UserException('Counter too large');
   }
 }
 

@@ -48,7 +48,7 @@ late Store<AppState> store;
 
 void main() {
   store = Store<AppState>(
-    initialState: AppState(isLiked: false),
+    initialState: AppState.initialState(),
     // ignore: async_redux_lints/debug_observer_in_release
     actionObservers: [ConsoleActionObserver()],
   );
@@ -59,6 +59,8 @@ class AppState {
   final bool isLiked;
 
   AppState({required this.isLiked});
+
+  static AppState initialState() => AppState(isLiked: false);
 
   @useResult
   AppState copy({bool? isLiked}) => AppState(isLiked: isLiked ?? this.isLiked);

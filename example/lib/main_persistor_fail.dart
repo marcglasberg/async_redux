@@ -406,7 +406,7 @@ class MyHomePage extends StatelessWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.dispatch(IncrementAction()),
+        onPressed: () => dispatch(IncrementAction()),
         child: const Icon(Icons.add),
       ),
     );

@@ -7,6 +7,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
 
+import '../package_files.dart';
 import '../redux_types.dart';
 import '../source_text.dart';
 import 'dispatch_sync_async_action_rule.dart';
@@ -45,7 +46,7 @@ class ExpectWithoutWaitingRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    if (!context.isInTestDirectory) return;
+    if (!isLibraryInTestDirectory(context)) return;
     var library = context.libraryElement;
     if (library == null) return;
     registry.addMethodInvocation(this, _ExpectWithoutWaitingVisitor(this, library));
@@ -69,33 +70,36 @@ class _ExpectWithoutWaitingVisitor extends SimpleAstVisitor<void> {
     if (actionAsyncReason(actionType, library) == null) return;
 
     var store = node.realTarget!.toSource();
-    var events = _eventsAfter(statement, store);
-    if (events.firstOrNull != _Event.expect) return;
-    // Checks the state again after waiting, so the first check is on purpose.
-    var wait = events.indexOf(_Event.wait);
-    if (wait != -1 && events.indexOf(_Event.expect, wait) != -1) return;
+    if (!_checksStateWithoutWaiting(statement, store)) return;
 
     rule.reportAtNode(node, arguments: [actionType.element.displayName, store]);
   }
 
-  /// Returns the waits, and the `expect` calls that read `[store].state`, in the
-  /// statements that follow [statement] in its block, and then in the statements that
-  /// follow each enclosing statement, up to the function body.
-  static List<_Event> _eventsAfter(Statement statement, String store) {
+  /// Returns true if the first event after [statement] is an `expect` that reads
+  /// `[store].state`, and the test doesn't later wait, and check the state again,
+  /// which means the first check is on purpose.
+  ///
+  /// The events are the waits, and the `expect` calls that read `[store].state`, in
+  /// the statements that follow [statement] in its block, and then in the statements
+  /// that follow each enclosing statement, up to the function body. The search stops
+  /// as soon as the result is known.
+  static bool _checksStateWithoutWaiting(Statement statement, String store) {
     var collector = _EventCollector(store);
     AstNode current = statement;
-    while (true) {
+    while (!collector.isDone) {
       var parent = current.parent;
       if (parent is Block) {
         var statements = parent.statements;
         var index = statements.indexOf(current as Statement);
         for (var following in statements.skip(index + 1)) {
           following.accept(collector);
+          if (collector.isDone) break;
         }
       }
-      if (parent is! Statement) return collector.events;
+      if (parent is! Statement) break;
       current = parent;
     }
+    return collector.checksStateWithoutWaiting;
   }
 }
 
@@ -120,18 +124,60 @@ ExpressionStatement? unwaitedStoreDispatchStatement(MethodInvocation node) {
 bool _isStore(Element element) =>
     element is InterfaceElement && element.name == 'Store' && isFromAsyncRedux(element);
 
-enum _Event { wait, expect }
+/// What the events seen so far by an [_EventCollector] mean.
+enum _Events {
+  /// No events yet.
+  none,
 
-/// Collects, in the order they run, the waits, and the `expect` calls that read
-/// `[store].state`. Doesn't look inside closures.
+  /// The first event is an `expect`, and there was no wait after it yet.
+  expectFirst,
+
+  /// The first event is an `expect`, and there was a wait after it.
+  waitAfterExpect,
+
+  /// Not reported, whatever comes next. Either the first event is a wait, or the test
+  /// waits after the first `expect`, and checks the state again.
+  notReported,
+}
+
+/// Visits, in the order they run, the waits, and the `expect` calls that read
+/// `[store].state`. Doesn't look inside closures. Stops visiting when [isDone].
 class _EventCollector extends GeneralizingAstVisitor<void> {
   /// The methods of `FakeAsync` that let time pass.
   static const _fakeAsyncWaits = {'elapse', 'flushMicrotasks', 'flushTimers'};
 
   final String store;
-  final events = <_Event>[];
+  var _events = _Events.none;
 
   _EventCollector(this.store);
+
+  /// True if more events can't change [checksStateWithoutWaiting].
+  bool get isDone => _events == _Events.notReported;
+
+  /// True if the first event is an `expect`, and no `expect` follows a wait after it.
+  bool get checksStateWithoutWaiting =>
+      _events == _Events.expectFirst || _events == _Events.waitAfterExpect;
+
+  void _wait() {
+    _events = switch (_events) {
+      _Events.none => _Events.notReported,
+      _Events.expectFirst => _Events.waitAfterExpect,
+      var events => events,
+    };
+  }
+
+  void _expect() {
+    _events = switch (_events) {
+      _Events.none => _Events.expectFirst,
+      _Events.waitAfterExpect => _Events.notReported,
+      var events => events,
+    };
+  }
+
+  @override
+  void visitNode(AstNode node) {
+    if (!isDone) super.visitNode(node);
+  }
 
   @override
   void visitFunctionExpression(FunctionExpression node) {}
@@ -142,25 +188,26 @@ class _EventCollector extends GeneralizingAstVisitor<void> {
   @override
   void visitAwaitExpression(AwaitExpression node) {
     super.visitAwaitExpression(node);
-    events.add(_Event.wait);
+    _wait();
   }
 
   @override
   void visitForStatement(ForStatement node) {
-    if (node.awaitKeyword != null) events.add(_Event.wait);
+    if (node.awaitKeyword != null) _wait();
     super.visitForStatement(node);
   }
 
   @override
   void visitMethodInvocation(MethodInvocation node) {
     super.visitMethodInvocation(node);
+    if (isDone) return;
     var name = node.methodName.name;
     if (node.target != null && _fakeAsyncWaits.contains(name)) {
-      events.add(_Event.wait);
+      _wait();
     } else if (node.target == null && name == 'expect') {
       var finder = _StateReadFinder(store);
       node.argumentList.accept(finder);
-      if (finder.readsState) events.add(_Event.expect);
+      if (finder.readsState) _expect();
     }
   }
 }
@@ -379,7 +426,7 @@ class ActionStatusDetailsInProductionRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    if (!context.isInLibDir) return;
+    if (!isLibraryInLibDir(context)) return;
     // AsyncRedux itself sets and reads them.
     var library = context.libraryElement;
     if (library == null || isFromAsyncRedux(library)) return;

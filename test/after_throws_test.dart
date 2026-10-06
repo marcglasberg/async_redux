@@ -65,6 +65,7 @@ class ActionA extends ReduxAction<String> {
   @override
   void after() {
     info.add('A.after state="$state"');
+    // ignore: async_redux_lints/after_throws
     throw "some-error";
   }
 }

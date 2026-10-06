@@ -893,6 +893,7 @@ class RecordingObserver extends GlobalErrorObserver<int> {
 /// and dependencies, to check they are available to the observer.
 class ConfigObserver extends GlobalErrorObserver<int> {
   @override
+  // ignore: async_redux_lints/user_exception_without_cause
   Object? observe() => UserException('${store.configuration} ${store.dependencies}');
 }
 

@@ -138,7 +138,7 @@ class IncrementAndGetDescriptionAction extends ReduxAction<AppState>
 
     return (error is UserException)
         ? error
-        : const UserException('Failed to load.');
+        : const UserException('Failed to load.').addCause(error);
   }
 }
 

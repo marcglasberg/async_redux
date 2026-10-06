@@ -10,6 +10,7 @@ import 'package:analyzer/dart/element/type_system.dart';
 import 'package:analyzer/error/error.dart';
 
 import '../error_types.dart';
+import '../package_files.dart';
 import '../redux_types.dart';
 
 /// Returns true if [element] is the `Persistor` of AsyncRedux, or a class that
@@ -129,7 +130,7 @@ class _ReadStateVisitor extends SimpleAstVisitor<void> {
   bool _isTestFile() {
     var file = context.currentUnit?.file;
     if (file == null) return false;
-    return (context.package?.isInTestDirectory(file) ?? false) ||
+    return isInTestDirectory(context.package, file) ||
         file.shortName.endsWith('_test.dart');
   }
 }

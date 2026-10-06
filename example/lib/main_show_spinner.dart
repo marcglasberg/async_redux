@@ -11,7 +11,7 @@ late Store<AppState> store;
 /// This example shows a counter and a button.
 /// When the button is tapped, the counter will increment asynchronously.
 void main() {
-  store = Store<AppState>(initialState: AppState(counter: 0, something: 0));
+  store = Store<AppState>(initialState: AppState.initialState());
   runApp(MyApp());
 }
 
@@ -92,6 +92,8 @@ class AppState {
     required this.counter,
     required this.something,
   });
+
+  static AppState initialState() => AppState(counter: 0, something: 0);
 
   @override
   String toString() => 'AppState{counter: $counter}';

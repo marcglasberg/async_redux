@@ -234,23 +234,23 @@ void main() {
 class AppState {
   final String name;
   final int age;
-  final Event<String> nameChangedEvent;
+  final Event<String> nameChangedEvt;
 
   AppState({
     required this.name,
     required this.age,
-    Event<String>? nameChangedEvent,
-  }) : nameChangedEvent = nameChangedEvent ?? Event<String>.spent();
+    Event<String>? nameChangedEvt,
+  }) : nameChangedEvt = nameChangedEvt ?? Event<String>.spent();
 
   AppState copy({
     String? name,
     int? age,
-    Event<String>? nameChangedEvent,
+    Event<String>? nameChangedEvt,
   }) =>
       AppState(
         name: name ?? this.name,
         age: age ?? this.age,
-        nameChangedEvent: nameChangedEvent ?? this.nameChangedEvent,
+        nameChangedEvt: nameChangedEvt ?? this.nameChangedEvt,
       );
 
   @override
@@ -260,10 +260,10 @@ class AppState {
           runtimeType == other.runtimeType &&
           name == other.name &&
           age == other.age &&
-          nameChangedEvent == other.nameChangedEvent;
+          nameChangedEvt == other.nameChangedEvt;
 
   @override
-  int get hashCode => name.hashCode ^ age.hashCode ^ nameChangedEvent.hashCode;
+  int get hashCode => name.hashCode ^ age.hashCode ^ nameChangedEvt.hashCode;
 }
 
 // Define extension for BuildContext
@@ -329,7 +329,7 @@ class ChangeNameWithEvent extends ReduxAction<AppState> {
   @override
   AppState reduce() => state.copy(
         name: newName,
-        nameChangedEvent: Event<String>(newName),
+        nameChangedEvt: Event<String>(newName),
       );
 }
 
@@ -384,24 +384,32 @@ class MyConnector extends StatelessWidget {
     return MyWidget(
       // ignore: async_redux_lints/avoid_context_state
       name: context.state.name,
+      // ignore: async_redux_lints/context_read_in_build
       nameFromRead: context.read().name,
       nameFromSelect: context.select((AppState state) => state.name),
-      nameFromEvent: context.event((AppState state) => state.nameChangedEvent),
+      nameFromEvent: context.event((AppState state) => state.nameChangedEvt),
+      // ignore: async_redux_lints/prefer_dispatch_without_context
       onChange: () => context.dispatch(ChangeName('John')),
+      // ignore: async_redux_lints/prefer_dispatch_without_context
       onDispatchAll: () => context.dispatchAll([
         ChangeName('Updated'),
         ChangeAge(42),
       ]),
+      // ignore: async_redux_lints/prefer_dispatch_without_context
       onDispatchSync: () => context.dispatchSync(ChangeName('Sync')),
       onDispatchAndWait: () async {
+        // ignore: async_redux_lints/prefer_dispatch_without_context
         await context.dispatchAndWait(WaitAndChangeAge(10));
+        // ignore: async_redux_lints/prefer_dispatch_without_context
         context.dispatch(DuplicateAge());
       },
       onDispatchAndWaitAll: () async {
+        // ignore: async_redux_lints/prefer_dispatch_without_context
         await context.dispatchAndWaitAll([
           WaitAndChangeAge(5),
           ChangeName('AsyncAll'),
         ]);
+        // ignore: async_redux_lints/prefer_dispatch_without_context
         context.dispatch(DuplicateAge());
       },
       environment: context.env,

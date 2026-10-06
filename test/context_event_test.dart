@@ -545,8 +545,8 @@ void main() {
     testWidgets('Event.from - consuming from multiple events',
         (WidgetTester tester) async {
       final initialState = AppStateWithTwoEvents(
-        event1: Event<String>.spent(),
-        event2: Event<String>.spent(),
+        event1Evt: Event<String>.spent(),
+        event2Evt: Event<String>.spent(),
         counter: 0,
       );
 
@@ -560,7 +560,7 @@ void main() {
             child: Scaffold(
               body: Builder(builder: (context) {
                 var combined = context.getEvent<AppStateWithTwoEvents, String>(
-                    (state) => Event.from(state.event1, state.event2));
+                    (state) => Event.from(state.event1Evt, state.event2Evt));
                 values.add(combined);
                 return Text('Combined: ${combined ?? "none"}');
               }),
@@ -777,24 +777,24 @@ class AppStateWithListEvent {
 }
 
 class AppStateWithTwoEvents {
-  final Event<String> event1;
-  final Event<String> event2;
+  final Event<String> event1Evt;
+  final Event<String> event2Evt;
   final int counter;
 
   AppStateWithTwoEvents({
-    required this.event1,
-    required this.event2,
+    required this.event1Evt,
+    required this.event2Evt,
     required this.counter,
   });
 
   AppStateWithTwoEvents copyWith({
-    Event<String>? event1,
-    Event<String>? event2,
+    Event<String>? event1Evt,
+    Event<String>? event2Evt,
     int? counter,
   }) {
     return AppStateWithTwoEvents(
-      event1: event1 ?? this.event1,
-      event2: event2 ?? this.event2,
+      event1Evt: event1Evt ?? this.event1Evt,
+      event2Evt: event2Evt ?? this.event2Evt,
       counter: counter ?? this.counter,
     );
   }
@@ -803,17 +803,18 @@ class AppStateWithTwoEvents {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is AppStateWithTwoEvents &&
-        other.event1 == event1 &&
-        other.event2 == event2 &&
+        other.event1Evt == event1Evt &&
+        other.event2Evt == event2Evt &&
         other.counter == counter;
   }
 
   @override
-  int get hashCode => Object.hash(event1, event2, counter);
+  int get hashCode => Object.hash(event1Evt, event2Evt, counter);
 }
 
 class AppStateWithMappedEvent {
   final Event<int> indexEvt;
+  // ignore: async_redux_lints/prefer_immutable_collections
   final List<String> users;
   final int counter;
 
@@ -898,7 +899,7 @@ class SetEvent1Action extends ReduxAction<AppStateWithTwoEvents> {
 
   @override
   AppStateWithTwoEvents reduce() {
-    return state.copyWith(event1: Event<String>(value));
+    return state.copyWith(event1Evt: Event<String>(value));
   }
 }
 
@@ -908,7 +909,7 @@ class SetEvent2Action extends ReduxAction<AppStateWithTwoEvents> {
 
   @override
   AppStateWithTwoEvents reduce() {
-    return state.copyWith(event2: Event<String>(value));
+    return state.copyWith(event2Evt: Event<String>(value));
   }
 }
 

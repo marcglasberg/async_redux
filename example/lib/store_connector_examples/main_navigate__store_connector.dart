@@ -7,7 +7,7 @@ final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   NavigateAction.setNavigatorKey(navigatorKey);
-  store = Store<AppState>(initialState: AppState());
+  store = Store<AppState>(initialState: AppState.initialState());
   runApp(MyApp());
 }
 
@@ -16,7 +16,9 @@ final routes = {
   "/myRoute": (BuildContext context) => Page2Connector(),
 };
 
-class AppState {}
+class AppState {
+  static AppState initialState() => AppState();
+}
 
 class MyApp extends StatelessWidget {
   @override

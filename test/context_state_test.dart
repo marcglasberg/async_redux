@@ -119,6 +119,7 @@ void main() {
             child: Scaffold(
               body: Builder(builder: (context) {
                 buildCount++;
+                // ignore: async_redux_lints/context_read_in_build
                 var state = context.read();
                 return Text('Name: ${state.name}');
               }),
@@ -263,6 +264,7 @@ void main() {
                   // Widget using context.read()
                   Builder(builder: (context) {
                     readBuildCount++;
+                    // ignore: async_redux_lints/context_read_in_build
                     var state = context.read();
                     return Text('Read: ${state.name}');
                   }),
@@ -318,6 +320,7 @@ void main() {
                   }),
                   Builder(builder: (context) {
                     readBuildCount++;
+                    // ignore: async_redux_lints/context_read_in_build
                     return Text('Read Counter: ${context.read().counter}');
                   }),
                 ],

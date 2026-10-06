@@ -57,14 +57,14 @@ class UserExceptionDialog<St> extends StatelessWidget {
       vm: () => _Factory<St>(),
       builder: (context, vm) {
         //
-        Event<UserException>? errorEvent = //
+        Event<UserException>? errorEvt = //
             (_Factory._errorEvents.isEmpty) //
                 ? null
                 : _Factory._errorEvents.removeFirst();
 
         return _UserExceptionDialogWidget(
           child,
-          errorEvent,
+          errorEvt,
           onShowUserExceptionDialog,
           useLocalContext,
           () => StoreProvider.backdoorInheritedWidget<St>(context).getAndRemoveFirstError(),
@@ -76,7 +76,7 @@ class UserExceptionDialog<St> extends StatelessWidget {
 
 class _UserExceptionDialogWidget extends StatefulWidget {
   final Widget child;
-  final Event<UserException>? errorEvent;
+  final Event<UserException>? errorEvt;
   final ShowUserExceptionDialog onShowUserExceptionDialog;
   final bool useLocalContext;
 
@@ -85,7 +85,7 @@ class _UserExceptionDialogWidget extends StatefulWidget {
 
   _UserExceptionDialogWidget(
     this.child,
-    this.errorEvent,
+    this.errorEvt,
     ShowUserExceptionDialog? onShowUserExceptionDialog,
     this.useLocalContext,
     this.getAndRemoveFirstError,
@@ -190,7 +190,7 @@ class _UserExceptionDialogState extends State<_UserExceptionDialogWidget> {
   /// Errors may have been added to the error queue before this widget was mounted
   /// (for example, errors added by the Persistor while reading the state, or errors
   /// thrown by actions dispatched before the app started). The first one is already
-  /// in [_UserExceptionDialogWidget.errorEvent], and the others are still in the queue.
+  /// in [_UserExceptionDialogWidget.errorEvt], and the others are still in the queue.
   /// Since the store may not change again soon, we show them all now.
   @override
   void initState() {
@@ -198,7 +198,7 @@ class _UserExceptionDialogState extends State<_UserExceptionDialogWidget> {
 
     var userExceptions = <UserException>[];
 
-    UserException? userException = widget.errorEvent?.consume();
+    UserException? userException = widget.errorEvt?.consume();
     while (userException != null) {
       userExceptions.add(userException);
       userException = widget.getAndRemoveFirstError();
@@ -216,7 +216,7 @@ class _UserExceptionDialogState extends State<_UserExceptionDialogWidget> {
   void didUpdateWidget(_UserExceptionDialogWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    UserException? userException = widget.errorEvent?.consume();
+    UserException? userException = widget.errorEvt?.consume();
 
     if (userException != null)
       WidgetsBinding.instance.addPostFrameCallback((_) {

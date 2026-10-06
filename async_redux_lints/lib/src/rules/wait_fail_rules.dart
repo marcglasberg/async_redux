@@ -41,19 +41,8 @@ class WaitFailInvalidArgumentRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    var library = context.libraryElement;
-    if (library == null) return;
-    registry.addMethodInvocation(
-      this,
-      _Visitor(
-        _WaitFailChecker(
-          library,
-          context.typeProvider,
-          context.typeSystem,
-          onInvalid: (node, arguments) => reportAtNode(node, arguments: arguments),
-        ),
-      ),
-    );
+    var checker = _sharedChecker(this, registry, context);
+    checker?.onInvalid = (node, arguments) => reportAtNode(node, arguments: arguments);
   }
 }
 
@@ -88,21 +77,38 @@ class WaitFailNeverMatchesRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    var library = context.libraryElement;
-    if (library == null) return;
-    registry.addMethodInvocation(
-      this,
-      _Visitor(
-        _WaitFailChecker(
-          library,
-          context.typeProvider,
-          context.typeSystem,
-          onNeverMatches: (node, arguments) => reportAtNode(node, arguments: arguments),
-        ),
-      ),
-    );
+    var checker = _sharedChecker(this, registry, context);
+    checker?.onNeverMatches = (node, arguments) =>
+        reportAtNode(node, arguments: arguments);
   }
 }
+
+/// Returns the checker shared by the rules of [registry], or null if there's no
+/// library.
+///
+/// Both rules check the same arguments, so they share a single visitor and checker for
+/// each registry, which checks each argument once, and then reports with the callback
+/// of each rule. Errors thrown by the checker are attributed to the first rule.
+_WaitFailChecker? _sharedChecker(
+  AnalysisRule rule,
+  RuleVisitorRegistry registry,
+  RuleContext context,
+) {
+  var library = context.libraryElement;
+  if (library == null) return null;
+  var visitor = _visitors[registry];
+  if (visitor == null) {
+    visitor = _visitors[registry] = _Visitor(
+      _WaitFailChecker(library, context.typeProvider, context.typeSystem),
+    );
+    registry.addMethodInvocation(rule, visitor);
+  }
+  return visitor.checker;
+}
+
+/// The shared visitor of each registry. The plugin creates a new registry for each
+/// analysis of a library.
+final _visitors = Expando<_Visitor>();
 
 class _Visitor extends SimpleAstVisitor<void> {
   final _WaitFailChecker checker;
@@ -154,16 +160,14 @@ class _WaitFailChecker {
   final LibraryElement library;
   final TypeProvider typeProvider;
   final TypeSystem typeSystem;
-  final _Report? onInvalid;
-  final _Report? onNeverMatches;
 
-  _WaitFailChecker(
-    this.library,
-    this.typeProvider,
-    this.typeSystem, {
-    this.onInvalid,
-    this.onNeverMatches,
-  });
+  /// Reports for `wait_fail_invalid_argument`, or null if that rule is off.
+  _Report? onInvalid;
+
+  /// Reports for `wait_fail_never_matches`, or null if that rule is off.
+  _Report? onNeverMatches;
+
+  _WaitFailChecker(this.library, this.typeProvider, this.typeSystem);
 
   void checkArgument(String methodName, Expression argument) {
     var check = _Check(this, methodName);
@@ -228,6 +232,8 @@ class _Check {
 
     if (isInvalid(type)) {
       reportInvalid(expression, type);
+    } else if (checker.onNeverMatches == null) {
+      return;
     } else if (expression is TypeLiteral) {
       _typeLiteral(expression);
     } else if (acceptsActions &&

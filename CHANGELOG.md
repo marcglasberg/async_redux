@@ -39,13 +39,17 @@ Sponsored by [MyText.ai](https://mytext.ai)
   - `context_in_selector`: The selector of `context.select` and `context.event` must
     only use its parameter, not the `context`.
   - `select_outside_build`: `context.select` and `context.event` only work while the
-    widget builds, with the `BuildContext` of that widget. Not in callbacks like
-    `onPressed`, in `State` methods other than `didChangeDependencies` (with
-    `debug: false`), in builders that use another widget's `context`, or in the
-    `itemBuilder` of a list.
+    widget builds, with the `BuildContext` of that widget, or in
+    `didChangeDependencies`. Not in callbacks like `onPressed`, in other `State`
+    methods, in builders that use another widget's `context`, or in the `itemBuilder`
+    of a list.
   - `vm_field_not_in_equals`: Every field of a `Vm` must be in its `equals` list.
   - `state_class_must_be_immutable`: The instance fields of a `@stateClass` class must
     be final.
+
+* `context.select` and `context.event` now also work in `didChangeDependencies`.
+  Breaking change: the `debug` parameter of `getSelect` and `getEvent` was removed.
+  If you passed `debug: false`, just remove it.
 
 * New `@stateClass` annotation, for state classes like `AppState`, and classes used
   inside the state. For now, it works like `@immutable`: the `async_redux_lints` plugin

@@ -1,6 +1,4 @@
-import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 
@@ -268,6 +266,14 @@ bool canUseSelect(AstNode node, Expression? target) {
       isContextOf(target, function) == true;
 }
 
+/// Returns true if [node] is in the `didChangeDependencies` method of a `State`, and
+/// [target], the `context` of a state access, is the `context` of that `State`.
+/// `context.select` and `context.event` work there, and make `didChangeDependencies`
+/// run again when the selected value changes.
+bool isInDidChangeDependencies(AstNode node, Expression? target) =>
+    notBuilding(node)?.stateMethod == 'didChangeDependencies' &&
+    isContextOf(target, BuildFunction._(null, isStateBuild: true)) == true;
+
 /// Returns true if [closure] builds the items of a list, like the `itemBuilder` of
 /// `ListView.builder`, or the `builder` of a `SliverChildBuilderDelegate`. Its
 /// `BuildContext` is the list's.
@@ -469,121 +475,4 @@ FunctionExpression? enclosingSelector(AstNode node) {
     if (access == StateAccess.select || access == StateAccess.event) return ancestor;
   }
   return null;
-}
-
-/// Returns true if the debug check of the `context.select` or `context.event`
-/// [invocation] is on, which is the default. Returns false if `debug: false` is
-/// passed to `getSelect` or `getEvent`, either by the [invocation] or by the
-/// `BuildContext` extension method it calls. Returns null if it's not known.
-bool? isDebugCheckOn(MethodInvocation invocation) {
-  var element = invocation.methodName.element?.baseElement;
-  if (element is! ExecutableElement) return null;
-
-  // context.getSelect<AppState, int>((st) => st.counter, debug: false)
-  if (isAsyncReduxLibrary(element.library)) {
-    var debug = _namedArgument(invocation.argumentList, 'debug');
-    return debug == null ? true : _booleanValue(debug);
-  }
-
-  // R select<R>(R Function(AppState state) selector) =>
-  //     getSelect<AppState, R>(selector, debug: false);
-  var debugArgument = _debugArgumentCache[element];
-  if (debugArgument == null) {
-    debugArgument = _debugArgumentOf(element);
-    // Not cached when the declaration can't be parsed, which may be temporary.
-    if (debugArgument == null) return null;
-    _debugArgumentCache[element] = debugArgument;
-  }
-
-  var parameter = debugArgument.parameter;
-  if (parameter == null) return debugArgument.value;
-  var argument = _namedArgument(invocation.argumentList, parameter);
-  if (argument != null) return _booleanValue(argument);
-  return debugArgument.parameterDefault;
-}
-
-/// How a `BuildContext` extension method of the app, like `select`, passes `debug` to
-/// `getSelect` or `getEvent`.
-class _DebugArgument {
-  /// The value it passes, or null if it's not known, or it passes [parameter].
-  final bool? value;
-
-  /// The name of its own named parameter that it passes as `debug`, if any.
-  final String? parameter;
-
-  /// The default value of [parameter], or null if it's not known.
-  final bool? parameterDefault;
-
-  const _DebugArgument({this.value, this.parameter, this.parameterDefault});
-
-  static const unknown = _DebugArgument();
-}
-
-/// The [_DebugArgument] of each extension method. Finding it requires parsing the
-/// library of the extension, so it's done only once for each method. When the file
-/// of the extension changes, the analyzer creates new elements for its library, so
-/// the cached values of the old elements are not used anymore.
-final _debugArgumentCache = Expando<_DebugArgument>();
-
-/// Returns how [element], an extension method of the app, passes `debug` to
-/// `getSelect` or `getEvent`, or null if its declaration can't be parsed.
-_DebugArgument? _debugArgumentOf(ExecutableElement element) {
-  var declaration = _parsedDeclaration(element);
-  if (declaration == null) return null;
-  if (declaration is! MethodDeclaration) return _DebugArgument.unknown;
-  var finder = _GetSelectFinder();
-  declaration.body.accept(finder);
-  var getSelect = finder.invocations.singleOrNull;
-  if (getSelect == null) return _DebugArgument.unknown;
-
-  var debug = _namedArgument(getSelect.argumentList, 'debug');
-  if (debug == null) return const _DebugArgument(value: true);
-  if (debug is! SimpleIdentifier) return _DebugArgument(value: _booleanValue(debug));
-
-  // R select<R>(..., {bool debug = true}) => getSelect(..., debug: debug);
-  var parameter = declaration.parameters?.parameters
-      .where((parameter) => parameter.name?.lexeme == debug.name)
-      .singleOrNull;
-  if (parameter == null || !parameter.isNamed) return _DebugArgument.unknown;
-  var defaultValue = parameter.defaultClause?.value;
-  return _DebugArgument(
-    parameter: debug.name,
-    parameterDefault: defaultValue == null ? null : _booleanValue(defaultValue),
-  );
-}
-
-Expression? _namedArgument(ArgumentList arguments, String name) => arguments.arguments
-    .whereType<NamedArgument>()
-    .where((argument) => argument.name.lexeme == name)
-    .firstOrNull
-    ?.argumentExpression;
-
-bool? _booleanValue(Expression expression) =>
-    expression is BooleanLiteral ? expression.value : null;
-
-/// Returns the parsed declaration of [element], which may be in another library.
-AstNode? _parsedDeclaration(Element element) {
-  var library = element.library;
-  var session = element.session;
-  if (library == null || session == null) return null;
-  try {
-    var result = session.getParsedLibraryByElement(library);
-    if (result is! ParsedLibraryResult) return null;
-    return result.getFragmentDeclaration(element.firstFragment)?.node;
-  } catch (_) {
-    // The session may be outdated while the code is being edited.
-    return null;
-  }
-}
-
-/// Finds the calls to `getSelect` and `getEvent` in unresolved code.
-class _GetSelectFinder extends RecursiveAstVisitor<void> {
-  final invocations = <MethodInvocation>[];
-
-  @override
-  void visitMethodInvocation(MethodInvocation node) {
-    var name = node.methodName.name;
-    if (name == 'getSelect' || name == 'getEvent') invocations.add(node);
-    super.visitMethodInvocation(node);
-  }
 }

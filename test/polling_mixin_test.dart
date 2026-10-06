@@ -2227,11 +2227,9 @@ class RealClockPollAction extends ReduxAction<AppState> with Polling {
 
 /// Note `Throttle` reads the real wall clock, so this is tested without
 /// `fakeAsync`.
-class RealClockThrottledPollAction
-    extends ReduxAction<AppState> // ignore: async_redux_lints/polling_with_caveat_mixin
-    with
-        Throttle,
-        Polling {
+class RealClockThrottledPollAction extends ReduxAction<AppState>
+    // ignore: async_redux_lints/polling_with_caveat_mixin
+    with Throttle, Polling {
   @override
   final Poll poll;
 
@@ -2334,11 +2332,9 @@ class OfflineAwareWorker extends ReduxAction<AppState> with AbortWhenNoInternet 
 }
 
 /// The controller itself checks the internet, which is the problematic setup.
-class CheckInternetPollAction
-    extends ReduxAction<AppState> // ignore: async_redux_lints/polling_with_caveat_mixin
-    with
-        CheckInternet,
-        Polling {
+class CheckInternetPollAction extends ReduxAction<AppState>
+    // ignore: async_redux_lints/polling_with_caveat_mixin
+    with CheckInternet, Polling {
   @override
   final Poll poll;
 
@@ -2555,11 +2551,9 @@ class SimpleWorkerAction extends ReduxAction<AppState> {
   AppState reduce() => state.copy(count: state.count + 1);
 }
 
-class NonReentrantPollAction
-    extends ReduxAction<AppState> // ignore: async_redux_lints/polling_with_caveat_mixin
-    with
-        NonReentrant,
-        Polling {
+class NonReentrantPollAction extends ReduxAction<AppState>
+    // ignore: async_redux_lints/polling_with_caveat_mixin
+    with NonReentrant, Polling {
   @override
   final Poll poll;
 
@@ -2990,6 +2984,7 @@ class PollingWithOptimisticCommandAction extends ReduxAction<AppState>
   Future<Object?> sendCommandToServer(Object? optimisticValue) async => null;
 
   @override
+  // ignore: async_redux_lints/missing_super_in_mixin_override
   Future<AppState?> reduce() async {
     await microtask;
     return state.copy(count: state.count + 1);
@@ -3030,6 +3025,7 @@ class PollingWithOptimisticSyncAction extends ReduxAction<AppState>
   Future<Object?> sendValueToServer(Object? optimisticValue) async => null;
 
   @override
+  // ignore: async_redux_lints/missing_super_in_mixin_override
   Future<AppState?> reduce() async {
     await microtask;
     return state.copy(count: state.count + 1);
@@ -3078,6 +3074,7 @@ class PollingWithOptimisticSyncWithPushAction extends ReduxAction<AppState>
       null;
 
   @override
+  // ignore: async_redux_lints/missing_super_in_mixin_override
   Future<AppState?> reduce() async {
     await microtask;
     return state.copy(count: state.count + 1);
@@ -3103,6 +3100,7 @@ class PollingWithServerPushAction extends ReduxAction<AppState>
       PollingWithServerPushAction(poll: Poll.once);
 
   @override
+  // ignore: async_redux_lints/server_push_associated_action
   Type associatedAction() => SimplePollAction;
 
   @override
@@ -3116,5 +3114,6 @@ class PollingWithServerPushAction extends ReduxAction<AppState>
   int getServerRevisionFromState(Object? key) => -1;
 
   @override
+  // ignore: async_redux_lints/missing_super_in_mixin_override
   AppState reduce() => state.copy(count: state.count + 1);
 }

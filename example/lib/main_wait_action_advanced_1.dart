@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:async_redux/async_redux.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 
@@ -30,13 +31,13 @@ void main() {
 /// The app state contains a [wait] object of type [Wait].
 @immutable
 class AppState {
-  final Map<int, String> descriptions;
+  final IMap<int, String> descriptions;
   final Wait wait;
 
   AppState({required this.descriptions, required this.wait});
 
   /// The copy method has a named [wait] parameter of type [Wait].
-  AppState copy({int? counter, Map<int, String>? descriptions, Wait? wait}) =>
+  AppState copy({int? counter, IMap<int, String>? descriptions, Wait? wait}) =>
       AppState(
         descriptions: descriptions ?? this.descriptions,
         wait: wait ?? this.wait,
@@ -44,7 +45,7 @@ class AppState {
 
   /// The [wait] parameter is instantiated to `Wait()`.
   static AppState initialState() => AppState(
-        descriptions: {},
+        descriptions: const IMapConst({}),
         wait: Wait(),
       );
 
@@ -85,10 +86,7 @@ class GetDescriptionAction extends ReduxAction<AppState> {
 
     await Future.delayed(const Duration(seconds: 2)); // Adds some more delay.
 
-    Map<int, String> newDescriptions = Map.of(state.descriptions);
-    newDescriptions[index] = description;
-
-    return state.copy(descriptions: newDescriptions);
+    return state.copy(descriptions: state.descriptions.add(index, description));
   }
 
   // The wait starts here. We use the index as a wait-flag reference.

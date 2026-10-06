@@ -317,7 +317,9 @@ class Event<T> {
 /// Event<String> combinedEvt = EventMultiple(localMessageEvt, remoteMessageEvt);
 /// ```
 class EventMultiple<T> extends Event<T> {
+  // ignore: async_redux_lints/event_name_suffix
   Event<T> evt1;
+  // ignore: async_redux_lints/event_name_suffix
   Event<T> evt2;
 
   EventMultiple(Event? evt1, Event? evt2)

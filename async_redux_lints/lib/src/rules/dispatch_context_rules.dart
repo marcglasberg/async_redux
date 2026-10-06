@@ -130,8 +130,12 @@ bool _isWidgetDispatch(Element? element) {
 /// no other declaration with the same name, like a method of the class, a top-level
 /// function or a local variable, would be called instead.
 bool _canDispatchWithoutContext(MethodInvocation node) {
-  var method = node.thisOrAncestorOfType<MethodDeclaration>();
-  if (method == null || method.isStatic) return false;
+  // Same as `thisOrAncestorOfType`, which is slower, since it checks a generic type.
+  AstNode? method = node;
+  while (method != null && method is! MethodDeclaration) {
+    method = method.parent;
+  }
+  if (method is! MethodDeclaration || method.isStatic) return false;
   var element = method.declaredFragment?.element.enclosingElement;
   if (element is! InterfaceElement) return false;
 
@@ -144,7 +148,8 @@ bool _canDispatchWithoutContext(MethodInvocation node) {
     return false;
   }
 
-  var unit = node.thisOrAncestorOfType<CompilationUnit>()?.declaredFragment;
+  var root = node.root;
+  var unit = (root is CompilationUnit) ? root.declaredFragment : null;
   if (unit == null) return false;
   var isImported = unit.accessibleExtensions.any(
     (extension) =>

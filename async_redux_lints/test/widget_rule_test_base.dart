@@ -7,9 +7,8 @@ import 'package:flutter/widgets.dart';
 extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   St getState<St>() => throw 0;
   St getRead<St>() => throw 0;
-  R getSelect<St, R>(R Function(St state) selector, {bool debug = true}) => throw 0;
-  R? getEvent<St, R>(Evt<R> Function(St state) selector, {bool debug = true}) =>
-      throw 0;
+  R getSelect<St, R>(R Function(St state) selector) => throw 0;
+  R? getEvent<St, R>(Evt<R> Function(St state) selector) => throw 0;
   bool isWaiting(Object actionOrTypeOrList) => throw 0;
   bool isFailed(Object actionTypeOrList) => throw 0;
   Object? exceptionFor(Object actionTypeOrList) => throw 0;

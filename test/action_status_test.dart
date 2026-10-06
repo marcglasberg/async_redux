@@ -342,6 +342,7 @@ class MyAction extends ReduxAction<String> {
 
   @override
   void after() {
+    // ignore: async_redux_lints/after_throws, async_redux_lints/user_exception_outside_action
     if (whenToThrow == When.after) throw const UserException("During after");
     info.add('3');
   }
@@ -367,6 +368,7 @@ class MyActionWithWrapError extends ReduxAction<String> {
 
   @override
   void after() {
+    // ignore: async_redux_lints/after_throws, async_redux_lints/user_exception_outside_action
     if (whenToThrow == When.after) throw const UserException("During after");
     info.add('3');
   }
@@ -380,7 +382,7 @@ class MyAbortAction extends ReduxAction<String> {
   bool abortDispatch() => true;
 
   @override
-  String reduce() => state;
+  String? reduce() => null;
 }
 
 class MyGlobalErrorObserver<St> extends GlobalErrorObserver<St> {

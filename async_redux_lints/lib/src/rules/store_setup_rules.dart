@@ -6,6 +6,7 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
+import '../package_files.dart';
 import '../source_text.dart';
 import '../widget_types.dart';
 
@@ -251,7 +252,7 @@ class DebugObserverInReleaseRule extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    if (context.isInTestDirectory) return;
+    if (isLibraryInTestDirectory(context)) return;
     registry.addInstanceCreationExpression(this, _DebugObserverVisitor(this));
   }
 }

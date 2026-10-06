@@ -630,6 +630,7 @@ void main() {
     var store = Store<State>(initialState: State(0));
 
     expect(
+      // ignore: async_redux_lints/dispatch_and_wait_unlimited_retries
       () => store.dispatchAndWait(SequentialWithUnlimitedRetryCheckInternetAction()),
       throwsA(isA<AssertionError>().having(
         (error) => error.message,

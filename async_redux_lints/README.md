@@ -173,7 +173,6 @@ Most rules are on by default. The ones marked opt-in are off until you
 - [`event_name_suffix`](#event_name_suffix) info
 - [`event_not_spent_initially`](#event_not_spent_initially) warning
 - [`event_persisted`](#event_persisted) warning
-- [`event_consumed_twice`](#event_consumed_twice) warning
 - [`dispatch_in_build`](#dispatch_in_build) warning
 - [`prefer_dispatch_without_context`](#prefer_dispatch_without_context) info
 - [`context_read_in_build`](#context_read_in_build) warning
@@ -478,12 +477,43 @@ Quick fixes:
   The fix is not offered when the state itself is used, like in `print(state)`, or
   where `context.select` can't be used: in the `itemBuilder` of a list, or with the
   `context` of another widget.
+- In the `itemBuilder` of a list, whose `BuildContext` belongs to the list, not to the
+  item: wrap the item in a `Builder`, which gives it its own `BuildContext`, and replace
+  `context.state` with `context.select`, as above:
+
+  ```dart
+  itemBuilder: (context, index) => Text(context.state.name),
+
+  // Becomes:
+  itemBuilder: (context, index) =>
+      Builder(builder: (context) => Text(context.select((st) => st.name))),
+  ```
+
+  When the item uses the `context` of the widget that builds the list, like in
+  `itemBuilder: (_, index) => Text(context.state.name)`, the `Builder` is named after
+  it: `Builder(builder: (context) => ...)`. The fix is not offered when the item may be
+  null, since the `builder` of a `Builder` can't return null, or when a block body
+  doesn't end with a `return`.
+- In a builder that uses the `context` of another widget: use the builder's own
+  `BuildContext`, and replace `context.state` with `context.select`, as above. If the
+  builder's parameter is a wildcard, it's renamed:
+
+  ```dart
+  Builder(builder: (_) => Text(context.state.name)),
+
+  // Becomes:
+  Builder(builder: (context) => Text(context.select((st) => st.name))),
+  ```
 - In callbacks, like `onPressed`, in closures passed to methods like
   `addPostFrameCallback`, and in the `State` methods `didUpdateWidget`, `activate`,
   `deactivate` and `reassemble`: replace `context.state` with `context.read()`, and
   `context.getState<AppState>()` with `context.getRead<AppState>()`.
-- Elsewhere, like in helper methods, closures that are not callbacks or builders, or
-  `didChangeDependencies`, no fix is offered.
+- In `didChangeDependencies`, where `context.state` also makes `didChangeDependencies`
+  run again on any state change: replace it with `context.select`, so that it runs
+  again only when the selected part changes, or with `context.read()`, so that it
+  doesn't run again.
+- Elsewhere, like in helper methods, or closures that are not callbacks or builders,
+  no fix is offered.
 
 In `initState`, `dispose` and selectors, `context.state` is an error, reported by
 [context_state_in_init_state](#context_state_in_init_state),
@@ -577,9 +607,11 @@ packages like `provider` are not reported. The `getState`, `getRead`, `getSelect
 
 ### select_outside_build
 
-An error for `context.select` and `context.event` where the widget is not building. They
-only work while the widget builds, with the `BuildContext` of that widget. Otherwise, they
-throw a `FlutterError` in debug mode:
+An error for `context.select` and `context.event` where they can't be used. They work
+while the widget builds, with the `BuildContext` of that widget, and in
+`didChangeDependencies`, which runs again when the selected value changes. Elsewhere,
+they throw a `FlutterError` in debug mode, like in callbacks, or don't work as expected,
+like in `didUpdateWidget`, which doesn't run again when the selected value changes:
 
 ```dart
 ElevatedButton(
@@ -595,19 +627,7 @@ The rule reports them in:
   `Future.microtask`, `Future.delayed`, `Timer`, `Timer.periodic`, `then`,
   `catchError`, `whenComplete`, `listen`, `addListener` and `setState`.
 - The `State` methods `initState`, `didUpdateWidget`, `activate`, `deactivate`,
-  `dispose` and `reassemble`. They're reported even when `debug: false` is passed to
-  `getSelect` or `getEvent`, which turns off the runtime check.
-- The `State` method `didChangeDependencies`, unless `debug: false` is passed to
-  `getSelect` or `getEvent`. AsyncRedux allows them there with `debug: false`. The rule
-  finds `debug: false` in your `BuildContext` extension, or at the call:
-
-  ```dart
-  extension BuildContextExtension on BuildContext {
-    R? event<R>(Evt<R> Function(AppState state) selector) =>
-        getEvent<AppState, R>(selector, debug: false);
-  }
-  ```
-
+  `dispose` and `reassemble`.
 - Builders that use the `BuildContext` of another widget. The builder runs after that
   widget builds:
 
@@ -627,13 +647,18 @@ the widget builds, so they're not reported. Neither are closures like
 
 Quick fixes:
 
-- In callbacks, and in `State` methods other than `dispose` and
-  `didChangeDependencies`: replace `context.select((st) => st.counter)` with
-  `context.read().counter`. For `context.getSelect`, it uses
-  `context.getRead<AppState>()`. The fix is not offered when your `BuildContext`
-  extension doesn't declare `read()`, or for `context.event`.
+- In callbacks, and in `State` methods other than `dispose`: replace
+  `context.select((st) => st.counter)` with `context.read().counter`. For
+  `context.getSelect`, it uses `context.getRead<AppState>()`. The fix is not offered
+  when your `BuildContext` extension doesn't declare `read()`, or for `context.event`.
 - In a builder that uses the `BuildContext` of another widget: use the builder's own
-  `BuildContext`, unless it's a wildcard, like `_`.
+  `BuildContext`. If it's a wildcard, like in `Builder(builder: (_) => ...)`, it's
+  renamed, like `Builder(builder: (context) => ...)`. Not offered in the `itemBuilder`
+  of a list.
+- In the `itemBuilder` of a list: wrap the item in a `Builder`, like
+  `itemBuilder: (context, index) => Builder(builder: (context) => ...)`. This also
+  works when the item uses the `context` of the widget that builds the list. Not
+  offered when the item may be null, or when a block body doesn't end with a `return`.
 
 `context.select` and `context.event` come from the `BuildContext` extension recommended by
 AsyncRedux. They're recognized by their names, when the extension's library imports
@@ -1466,30 +1491,6 @@ Map<String, dynamic> toJson() => {
 ```
 
 When the state is read back, create its events with `Evt.spent()`.
-
----
-
-### event_consumed_twice
-
-A warning for a state event consumed by more than one `context.event(...)` in the same
-file. Each event can be consumed by only one widget. The first one to consume it gets
-its value, and the others don't see it:
-
-```dart
-// In widget A
-var clear = context.event((state) => state.clearTextEvt);
-// In widget B
-var clear = context.event((state) => state.clearTextEvt); // Warning
-```
-
-Use a separate event for each widget instead. The selectors are compared by the fields
-they read, like `state.user.nameEvt`, so selectors with a block body, or that do more
-than read fields, are not compared. The rule sees one file at a time, so it doesn't
-catch two widgets in different files.
-
-`context.event` comes from the `BuildContext` extension recommended by AsyncRedux. It's
-recognized by its name, when the extension's library imports `async_redux`. The `getEvent`
-method of AsyncRedux is also recognized.
 
 ---
 

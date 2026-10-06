@@ -18,6 +18,11 @@ bool mayContainName(RuleContext context, CompilationUnit unit, String name) {
 bool containsName(String text, String name) =>
     (_searches[name] ??= _NameSearch(name)).isIn(text);
 
+/// Returns the offsets, in increasing order, where [text] contains the ASCII identifier
+/// [name], not as part of a longer word.
+List<int> nameOffsets(String text, String name) =>
+    (_searches[name] ??= _NameSearch(name)).offsetsIn(text);
+
 final _searches = <String, _NameSearch>{};
 
 /// Finds an ASCII name in a text, as a whole word, with the Boyer-Moore-Horspool
@@ -38,18 +43,34 @@ class _NameSearch {
   }
 
   /// Returns true if [text] contains [name], not as part of a longer word.
-  bool isIn(String text) {
+  bool isIn(String text) => _indexIn(text, 0) != -1;
+
+  /// Returns the offsets where [text] contains [name], not as part of a longer word.
+  List<int> offsetsIn(String text) => [
+    for (
+      var start = _indexIn(text, 0);
+      start != -1;
+      start = _indexIn(text, start + name.length)
+    )
+      start,
+  ];
+
+  /// Returns the offset of the first [name] in [text], not as part of a longer word,
+  /// that starts at [from] or later. Returns -1 if there is none.
+  int _indexIn(String text, int from) {
     var length = name.length;
     var lastOfName = name.codeUnitAt(length - 1);
     // The index of the last code unit of the part of the text being compared.
-    var end = length - 1;
+    var end = from + length - 1;
     while (end < text.length) {
       var codeUnit = text.codeUnitAt(end);
-      if (codeUnit == lastOfName && _isAt(text, end - length + 1)) return true;
+      if (codeUnit == lastOfName && _isAt(text, end - length + 1)) {
+        return end - length + 1;
+      }
       // A code unit that isn't ASCII isn't in the name, so the search skips past it.
       end += (codeUnit < 128) ? _skip[codeUnit] : length;
     }
-    return false;
+    return -1;
   }
 
   /// Returns true if [name] is in [text] at [start], with no word characters around

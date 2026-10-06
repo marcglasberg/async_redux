@@ -274,17 +274,6 @@ class _WState extends State<W> {
 }
 ''';
 
-  /// The [widgetHeader], with `debug: false` in `select` and `event`.
-  static final debugOffHeader = widgetHeader
-      .replaceFirst(
-        'getSelect<AppState, R>(selector)',
-        'getSelect<AppState, R>(selector, debug: false)',
-      )
-      .replaceFirst(
-        'getEvent<AppState, R>(selector)',
-        'getEvent<AppState, R>(selector, debug: false)',
-      );
-
   Future<void> test_event_onTap() async {
     var code = '''$widgetHeader
 class W extends StatelessWidget {
@@ -299,6 +288,8 @@ class W extends StatelessWidget {
         code,
         'context.event((st) => st.evt)',
         messageContainsAll: ["'event' can't be used in the 'onTap' callback"],
+        correctionContains:
+            "Try consuming the event in 'build' or in 'didChangeDependencies'.",
       ),
     ]);
     await assertFix(code, ReplaceSelectWithRead.new, null);
@@ -313,65 +304,21 @@ class W extends StatelessWidget {
 ''');
   }
 
-  Future<void> test_didChangeDependencies_debugOn() async {
-    var code = stateWith(
-      'didChangeDependencies()',
-      'print(context.select((st) => st.counter)); print(context.event((st) => st.evt));',
-    );
-    await assertDiagnostics(code, [
-      lintAt(
-        code,
-        'context.select((st) => st.counter)',
-        messageContainsAll: ["'select' can't be used in 'didChangeDependencies'"],
-      ),
-      lintAt(code, 'context.event((st) => st.evt)'),
-    ]);
-    await assertFix(code, ReplaceSelectWithRead.new, null);
-  }
-
-  Future<void> test_didChangeDependencies_debugOff_isIgnored() async {
+  Future<void> test_didChangeDependencies_isIgnored() async {
     await assertNoDiagnostics(
       stateWith(
         'didChangeDependencies()',
         'print(context.select((st) => st.counter)); '
-            'print(context.event((st) => st.evt));',
-        header: debugOffHeader,
+            'print(context.event((st) => st.evt)); '
+            'print(context.getSelect<AppState, int>((st) => st.counter));',
       ),
     );
   }
 
-  Future<void> test_didChangeDependencies_getSelect() async {
-    var code = stateWith(
-      'didChangeDependencies()',
-      'print(context.getSelect<AppState, int>((st) => st.counter, debug: false)); '
-          'print(context.getSelect<AppState, int>((st) => st.counter, debug: true));',
-    );
-    await assertDiagnostics(code, [
-      lintAt(code, 'context.getSelect<AppState, int>((st) => st.counter, debug: true)'),
-    ]);
-  }
-
-  Future<void> test_didChangeDependencies_debugParameter() async {
-    var header = widgetHeader.replaceFirst(
-      'R select<R>(R Function(AppState state) selector) => '
-          'getSelect<AppState, R>(selector);',
-      'R select<R>(R Function(AppState state) selector, {bool debug = true}) =>\n'
-          '      getSelect<AppState, R>(selector, debug: debug);',
-    );
-    var code = stateWith(
-      'didChangeDependencies()',
-      'print(context.select((st) => st.counter, debug: false)); '
-          'print(context.select((st) => st.name));',
-      header: header,
-    );
-    await assertDiagnostics(code, [lintAt(code, 'context.select((st) => st.name)')]);
-  }
-
-  Future<void> test_didUpdateWidget_debugOff() async {
+  Future<void> test_didUpdateWidget() async {
     var code = stateWith(
       'didUpdateWidget(W oldWidget)',
       'print(context.select((st) => st.counter));',
-      header: debugOffHeader,
     );
     await assertDiagnostics(code, [
       lintAt(
@@ -468,7 +415,7 @@ class W extends StatelessWidget {
     );
   }
 
-  Future<void> test_contextOfAnotherWidget_wildcard_noFix() async {
+  Future<void> test_contextOfAnotherWidget_wildcard() async {
     var code = '''$widgetHeader
 class W extends StatelessWidget {
   @override
@@ -478,7 +425,41 @@ class W extends StatelessWidget {
 }
 ''';
     await assertDiagnostics(code, [lintAt(code, 'context.event((st) => st.evt)')]);
+    await assertFix(
+      code,
+      UseBuilderContext.new,
+      code.replaceFirst('(_) =>', '(context) =>'),
+    );
+  }
+
+  Future<void> test_contextOfAnotherWidget_itemBuilder() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemBuilder: (ctx, index) => Text(context.select((st) => st.name)),
+    );
+  }
+}
+''';
+    await assertDiagnostics(code, [
+      lintAt(
+        code,
+        'context.select((st) => st.name)',
+        correctionContains: "Try wrapping the item in a 'Builder'",
+      ),
+    ]);
     await assertFix(code, UseBuilderContext.new, null);
+    await assertFix(
+      code,
+      WrapItemInBuilder.new,
+      code.replaceFirst(
+        '(ctx, index) => Text(context.select((st) => st.name))',
+        '(ctx, index) => Builder(builder: (context) => '
+            'Text(context.select((st) => st.name)))',
+      ),
+    );
   }
 
   Future<void> test_contextOfState_inBuilder() async {
@@ -524,6 +505,45 @@ class W extends StatelessWidget {
       lintAt(code, 'context.event((st) => st.evt)'),
     ]);
     await assertFix(code, ReplaceSelectWithRead.new, null);
+    await assertFix(
+      code,
+      WrapItemInBuilder.new,
+      code.replaceFirst(
+        '(context, index) => Text(context.select((st) => st.name))',
+        '(context, index) => Builder(builder: (context) => '
+            'Text(context.select((st) => st.name)))',
+      ),
+    );
+  }
+
+  Future<void> test_itemBuilder_nestedClosure() async {
+    var code = '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemBuilder: (context, index) {
+        var names = [1, 2].map((i) => context.select((st) => st.name)).first;
+        return Text(names);
+      },
+    );
+  }
+}
+''';
+    await assertDiagnostics(code, [lintAt(code, 'context.select((st) => st.name)')]);
+    await assertFix(code, WrapItemInBuilder.new, '''$widgetHeader
+class W extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemBuilder: (context, index) => Builder(builder: (context) {
+        var names = [1, 2].map((i) => context.select((st) => st.name)).first;
+        return Text(names);
+      }),
+    );
+  }
+}
+''');
   }
 
   Future<void> test_sliverChildBuilderDelegate() async {

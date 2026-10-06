@@ -1258,6 +1258,7 @@ void main() {
 // -----------------------------------------------------------------------------
 
 class AppState {
+  // ignore: async_redux_lints/prefer_immutable_collections
   final List<String> items;
 
   AppState({required this.items});

@@ -453,7 +453,9 @@ class AppState {
 }
 
 class AppStateItems {
+  // ignore: async_redux_lints/prefer_immutable_collections
   final Map<String, bool> likedById;
+  // ignore: async_redux_lints/prefer_immutable_collections
   final Map<String, int> serverRevById;
 
   AppStateItems({required this.likedById, required this.serverRevById});
