@@ -602,9 +602,9 @@ class Store<St> {
   /// await dispatchAndWait(SellAction('TSLA'));
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
-  /// // Wait until some action of a given type is dispatched.
-  /// dispatch(DoALotOfStuffAction());
-  /// var action = store.waitActionType(ChangeNameAction);
+  /// // Dispatches an action and waits until no action of its type is in progress.
+  /// dispatch(ChangeNameAction("Bill"));
+  /// var action = await store.waitActionType(ChangeNameAction);
   /// expect(action, isA<ChangeNameAction>());
   /// expect(action.status.isCompleteOk, isTrue);
   /// expect(store.state.name, 'Bill');
@@ -756,9 +756,9 @@ class Store<St> {
   /// await dispatchAndWait(SellAction('TSLA'));
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
-  /// // Wait until some action of a given type is dispatched.
-  /// dispatch(DoALotOfStuffAction());
-  /// var action = store.waitActionType(ChangeNameAction);
+  /// // Dispatches an action and waits until no action of its type is in progress.
+  /// dispatch(ChangeNameAction("Bill"));
+  /// var action = await store.waitActionType(ChangeNameAction);
   /// expect(action, isA<ChangeNameAction>());
   /// expect(action.status.isCompleteOk, isTrue);
   /// expect(store.state.name, 'Bill');
@@ -894,9 +894,9 @@ class Store<St> {
   /// await dispatchAndWait(SellAction('TSLA'));
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
-  /// // Wait until some action of a given type is dispatched.
-  /// dispatch(DoALotOfStuffAction());
-  /// var action = store.waitActionType(ChangeNameAction);
+  /// // Dispatches an action and waits until no action of its type is in progress.
+  /// dispatch(ChangeNameAction("Bill"));
+  /// var action = await store.waitActionType(ChangeNameAction);
   /// expect(action, isA<ChangeNameAction>());
   /// expect(action.status.isCompleteOk, isTrue);
   /// expect(store.state.name, 'Bill');
@@ -1007,9 +1007,9 @@ class Store<St> {
   /// await dispatchAndWait(SellAction('TSLA'));
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
-  /// // Wait until some action of a given type is dispatched.
-  /// dispatch(DoALotOfStuffAction());
-  /// var action = store.waitActionType(ChangeNameAction);
+  /// // Dispatches an action and waits until no action of its type is in progress.
+  /// dispatch(ChangeNameAction("Bill"));
+  /// var action = await store.waitActionType(ChangeNameAction);
   /// expect(action, isA<ChangeNameAction>());
   /// expect(action.status.isCompleteOk, isTrue);
   /// expect(store.state.name, 'Bill');
@@ -1110,9 +1110,9 @@ class Store<St> {
   /// await dispatchAndWait(SellAction('TSLA'));
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
-  /// // Wait until some action of a given type is dispatched.
-  /// dispatch(DoALotOfStuffAction());
-  /// var action = store.waitActionType(ChangeNameAction);
+  /// // Dispatches an action and waits until no action of its type is in progress.
+  /// dispatch(ChangeNameAction("Bill"));
+  /// var action = await store.waitActionType(ChangeNameAction);
   /// expect(action, isA<ChangeNameAction>());
   /// expect(action.status.isCompleteOk, isTrue);
   /// expect(store.state.name, 'Bill');
@@ -1231,9 +1231,9 @@ class Store<St> {
   /// await dispatchAndWait(SellAction('TSLA'));
   /// expect(store.state.portfolio.containsAll('IBM', 'TSLA'), isFalse);
   ///
-  /// // Wait until some action of a given type is dispatched.
-  /// dispatch(DoALotOfStuffAction());
-  /// var action = store.waitActionType(ChangeNameAction);
+  /// // Dispatches an action and waits until no action of its type is in progress.
+  /// dispatch(ChangeNameAction("Bill"));
+  /// var action = await store.waitActionType(ChangeNameAction);
   /// expect(action, isA<ChangeNameAction>());
   /// expect(action.status.isCompleteOk, isTrue);
   /// expect(store.state.name, 'Bill');
