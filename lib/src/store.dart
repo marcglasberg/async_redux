@@ -1498,6 +1498,9 @@ class Store<St> {
   /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
   /// of these actions, even if it changes the state.
   ///
+  /// If some sync actions throw, all actions are still dispatched, and only then the error
+  /// of the first one that threw is rethrown.
+  ///
   /// See also:
   /// - [dispatch] which dispatches both sync and async actions.
   /// - [dispatchAndWait] which dispatches both sync and async actions, and returns a Future.
@@ -1506,9 +1509,24 @@ class Store<St> {
   /// - [dispatchAndWaitAllActions] which dispatches an action then waits for all actions to finish.
   ///
   List<ReduxAction<St>> dispatchAll(List<ReduxAction<St>> actions, {bool notify = true}) {
+    // A sync action may throw synchronously. Keep the first error, so that all actions are
+    // still dispatched before it is rethrown.
+    Object? firstError;
+    StackTrace? firstStackTrace;
+
     for (var action in actions) {
-      dispatch(action, notify: notify);
+      try {
+        dispatch(action, notify: notify);
+      } catch (error, stackTrace) {
+        if (firstError == null) {
+          firstError = error;
+          firstStackTrace = stackTrace;
+        }
+      }
     }
+
+    if (firstError != null) Error.throwWithStackTrace(firstError, firstStackTrace!);
+
     return actions;
   }
 
@@ -1622,15 +1640,14 @@ class Store<St> {
 
     bool theUIHasAlreadyUpdated = false;
 
-    if (fallible) {
-      // Dispatch is starting, so we remove the action from the list of failed actions.
-      var removedAction = _failedActions.remove(action.runtimeType);
+    // Dispatch is starting, so we always remove the action from the list of failed actions,
+    // even if nobody checked it yet. Otherwise, checking it later would show a stale error.
+    var removedAction = _failedActions.remove(action.runtimeType);
 
-      // Then we notify the UI. Note we don't notify if the action was never checked.
-      if (removedAction != null) {
-        theUIHasAlreadyUpdated = true;
-        _changeController.add(state);
-      }
+    // Then we notify the UI. Note we don't notify if the action was never checked.
+    if (fallible && removedAction != null) {
+      theUIHasAlreadyUpdated = true;
+      _changeController.add(state);
     }
 
     // Add the action to the list of actions in progress.

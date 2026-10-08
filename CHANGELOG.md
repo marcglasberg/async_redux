@@ -14,6 +14,14 @@ Sponsored by [MyText.ai](https://mytext.ai)
   actions. Now all actions are always dispatched and waited for, and only then the error
   of a failed action is thrown.
 
+* Fix: When a sync action in `dispatchAll()` failed, the actions after it in the list
+  were never dispatched. Now all actions are always dispatched, and only then the error
+  of the first failed sync action is thrown.
+
+* Fix: `isFailed` and `exceptionFor` kept returning an old error after the action was
+  dispatched again, if they had not been called for that action before. Now dispatching
+  an action always clears its failed state.
+
 ## 29.2.0
 
 * New package [async_redux_lints](https://pub.dev/packages/async_redux_lints): an

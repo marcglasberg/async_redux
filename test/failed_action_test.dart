@@ -48,6 +48,50 @@ void main() {
   });
 
   Bdd(feature)
+      .scenario(
+          'Dispatching an action again clears its failed state, even if nobody checked it.')
+      .given('A SYNC action that failed, and nobody called `isFailed` or `exceptionFor`.')
+      .when('The action is dispatched again and succeeds.')
+      .and('Only then `isFailed` and `exceptionFor` are called for it.')
+      .then('The action is not failed, and has no exception.')
+      .run((_) async {
+    final store = Store<State>(initialState: State(1));
+
+    // Fails, but nobody checks it.
+    store.dispatch(SyncActionThatFails(true));
+
+    // Succeeds, and only now we check it.
+    store.dispatch(SyncActionThatFails(false));
+
+    expect(store.isFailed(SyncActionThatFails), false);
+    expect(store.exceptionFor(SyncActionThatFails), null);
+  });
+
+  Bdd(feature)
+      .scenario(
+          'The failed state is cleared when the action is dispatched again, not when it ends.')
+      .given('An ASYNC action that failed, and nobody called `isFailed` or `exceptionFor`.')
+      .when('The action is dispatched again, and is still running.')
+      .then('The action is not failed, and has no exception.')
+      .and('If it fails again, it is failed again, with the new exception.')
+      .run((_) async {
+    final store = Store<State>(initialState: State(1));
+
+    // Fails, but nobody checks it.
+    await store.dispatchAndWait(AsyncActionThatFails(true));
+
+    // Dispatched again. While it runs, it's not failed.
+    var future = store.dispatchAndWait(AsyncActionThatFails(true));
+    expect(store.isFailed(AsyncActionThatFails), false);
+    expect(store.exceptionFor(AsyncActionThatFails), null);
+
+    // It fails again.
+    await future;
+    expect(store.isFailed(AsyncActionThatFails), true);
+    expect(store.exceptionFor(AsyncActionThatFails), const UserException('Yes, it failed.'));
+  });
+
+  Bdd(feature)
       .scenario('Checking if an ASYNC action has failed.')
       .given('An ASYNC action.')
       .when('The action is dispatched twice with `dispatch(action)`.')
