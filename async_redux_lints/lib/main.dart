@@ -27,6 +27,7 @@ import 'src/rules/action_file_name_rules.dart';
 import 'src/rules/action_name_rules.dart';
 import 'src/rules/action_without_to_string_rule.dart';
 import 'src/rules/after_throws_rule.dart';
+import 'src/rules/async_mixin_in_sync_action_rule.dart';
 import 'src/rules/avoid_context_state_rule.dart';
 import 'src/rules/base_action_rules.dart';
 import 'src/rules/copy_missing_field_rule.dart';
@@ -225,6 +226,8 @@ class AsyncReduxLintsPlugin extends Plugin {
     registry.registerFixForRule(RetryWithoutNonReentrantRule.code, AddNonReentrant.new);
 
     registry.registerWarningRule(DispatchAndWaitUnlimitedRetriesRule());
+
+    registry.registerWarningRule(AsyncMixinInSyncActionRule());
 
     registry.registerWarningRule(SequentialDeadlockRule());
     registry.registerFixForRule(

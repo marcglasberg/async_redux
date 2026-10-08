@@ -165,6 +165,7 @@ package, and the files whose names end with `_test.dart`.
 - [`throw_in_global_error_observer`](#throw_in_global_error_observer) info
 - [`retry_without_non_reentrant`](#retry_without_non_reentrant) info
 - [`dispatch_and_wait_unlimited_retries`](#dispatch_and_wait_unlimited_retries) warning
+- [`async_mixin_in_sync_action`](#async_mixin_in_sync_action) warning
 - [`sequential_deadlock`](#sequential_deadlock) error
 - [`sequential_before_super_not_first`](#sequential_before_super_not_first) error
 - [`sequential_after_super_not_in_finally`](#sequential_after_super_not_in_finally) info
@@ -1205,6 +1206,32 @@ This also catches a `RefreshIndicator` whose spinner may never stop, with
 
 Not reported in tests, where the action usually succeeds after a few retries, and a
 test that never completes times out.
+
+---
+
+### async_mixin_in_sync_action
+
+A warning for an action whose `reduce` is sync, but that uses a mixin meant for async
+work: `CheckInternet`, `NoDialog`, `AbortWhenNoInternet`, `UnlimitedRetryCheckInternet`,
+`NonReentrant`, `Retry` or `UnlimitedRetries`. A sync reducer does no network calls,
+can't be dispatched again before it finishes, and usually fails again the same way
+when retried. These mixins also make the action async, so it can't be dispatched with
+`dispatchSync`:
+
+```dart
+// Warning on NonReentrant.
+class Increment extends AppAction with NonReentrant {
+  AppState? reduce() => state.copy(counter: state.counter + 1);
+}
+
+// OK.
+class LoadText extends AppAction with NonReentrant {
+  Future<AppState?> reduce() async { ... }
+}
+```
+
+Not reported when the action overrides `before` or `wrapReduce` itself, since they may
+do the async work, or in tests, which often use sync actions to test the mixins.
 
 ---
 

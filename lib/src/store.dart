@@ -1534,6 +1534,9 @@ class Store<St> {
   /// If you pass the [notify] parameter as `false`, widgets will not necessarily rebuild because
   /// of these actions, even if they change the state.
   ///
+  /// If some actions fail, all actions are still dispatched and waited for, and only then
+  /// the Future completes with the error of one of the failed actions.
+  ///
   /// Note: While the state change from the action's reducers will have been applied when the
   /// Future resolves, other independent processes that the action may have started may still
   /// be in progress.
@@ -1552,7 +1555,15 @@ class Store<St> {
     var futures = <Future<ActionStatus>>[];
 
     for (var action in actions) {
-      futures.add(dispatchAndWait(action, notify: notify));
+      // A sync action may throw synchronously. Turn it into a failed future, so that
+      // all actions are still dispatched and waited for, before the error is rethrown.
+      Future<ActionStatus> future;
+      try {
+        future = dispatchAndWait(action, notify: notify);
+      } catch (error, stackTrace) {
+        future = Future.error(error, stackTrace);
+      }
+      futures.add(future);
     }
     await Future.wait(futures);
 

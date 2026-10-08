@@ -7,6 +7,13 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 29.2.1
+
+* Fix: When a sync action in `dispatchAndWaitAll()` failed, the actions after it in the
+  list were never dispatched, and the error was thrown without waiting for the other
+  actions. Now all actions are always dispatched and waited for, and only then the error
+  of a failed action is thrown.
+
 ## 29.2.0
 
 * New package [async_redux_lints](https://pub.dev/packages/async_redux_lints): an
