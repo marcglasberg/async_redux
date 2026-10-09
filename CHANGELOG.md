@@ -7,7 +7,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
-## 29.2.1
+## 29.2.2
 
 * Fix: When a sync action in `dispatchAndWaitAll()` failed, the actions after it in the
   list were never dispatched, and the error was thrown without waiting for the other
