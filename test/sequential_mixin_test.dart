@@ -315,6 +315,42 @@ void main() {
     expect(store.internalMixinProps.sequentialQueueMap, isEmpty);
   });
 
+  Bdd(feature)
+      .scenario('Clearing the internal mixin props discards the actions waiting in the queue.')
+      .given('A slow action holding the queue, and two actions waiting behind it.')
+      .when('store.internalMixinProps.clear() is called, and another action is dispatched.')
+      .then('The two waiting actions are aborted without running.')
+      .and('The slow action still finishes normally.')
+      .and('The new action does not wait for the slow one.')
+      .run((_) async {
+    var store = Store<State>(initialState: State(0));
+
+    var running = SlowAction('A', millis: 40);
+    var waitingB = SlowAction('B', millis: 1);
+    var waitingC = OtherAction('C', millis: 1);
+
+    var f1 = store.dispatchAndWait(running);
+    var f2 = store.dispatchAndWait(waitingB);
+    var f3 = store.dispatchAndWait(waitingC);
+    expect(waitingB.isWaitingInSequentialQueue, isTrue);
+
+    store.internalMixinProps.clear();
+    var f4 = store.dispatchAndWait(SlowAction('D', millis: 1));
+
+    var statuses = await Future.wait([f1, f2, f3, f4]);
+
+    expect(statuses[0].isCompletedOk, isTrue);
+    expect(statuses[1].originalError, isA<AbortDispatchException>());
+    expect(statuses[2].originalError, isA<AbortDispatchException>());
+    expect(statuses[3].isCompletedOk, isTrue);
+    expect(waitingB.wasDiscardedFromSequentialQueue, isTrue);
+    expect(waitingC.wasDiscardedFromSequentialQueue, isTrue);
+    expect(running.wasDiscardedFromSequentialQueue, isFalse);
+    expect(log, ['A start', 'D start', 'D end', 'A end']);
+    expect(store.state.count, 2);
+    expect(store.internalMixinProps.sequentialQueueMap, isEmpty);
+  });
+
   // ==========================================================================
   // Case 13: Retry while holding the queue
   // ==========================================================================

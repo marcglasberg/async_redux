@@ -7,6 +7,21 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 29.2.3
+
+* Fix: `store.internalMixinProps.clear()` (and `store.shutdown()`, which calls it) now
+  discards the actions waiting in the `Sequential` queues. They are aborted without
+  running, with an `AbortDispatchException`, and their `wasDiscardedFromSequentialQueue`
+  is `true`, the same as when a failed action discards its queue with
+  `discardQueueOnError`. Before, they still ran in order after the reset.
+  This means that, for example, when you reset during logout, the actions queued by the
+  previous user don't run afterwards. Actions that are already running keep running,
+  and actions dispatched after the reset still start a new queue.
+
+* Fix: Throttle's `removeLockOnError` now tracks lock ownership so a failed action only
+  removes the lock it originally took, not a newer lock taken by a subsequent action after
+  the throttle period expired.
+
 ## 29.2.2
 
 * Fix: When a sync action in `dispatchAndWaitAll()` failed, the actions after it in the
@@ -18,9 +33,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
   were never dispatched. Now all actions are always dispatched, and only then the error
   of the first failed sync action is thrown.
 
-* Fix: `isFailed` and `exceptionFor` kept returning an old error after the action was
-  dispatched again, if they had not been called for that action before. Now dispatching
-  an action always clears its failed state.
+* Fix: a situation where `isFailed` and `exceptionFor` kept returning an old error after
+  the action was dispatched again.
 
 ## 29.2.0
 

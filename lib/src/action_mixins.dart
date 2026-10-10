@@ -309,18 +309,18 @@ mixin NonReentrant<St> on ReduxAction<St> {
   ///
   /// ```dart
   /// class SaveUser extends ReduxAction<AppState> with NonReentrant {
-  ///   final String oderId;
-  ///   SaveUser(this.oderId);
+  ///   final String userId;
+  ///   SaveUser(this.userId);
   ///
-  ///   Object? computeNonReentrantKey() => orderId;
+  ///   Object? computeNonReentrantKey() => userId;
   ///   ...
   /// }
   ///
   /// class DeleteUser extends ReduxAction<AppState> with NonReentrant {
-  ///   final String oderId;
-  ///   DeleteUser(this.oderId);
+  ///   final String userId;
+  ///   DeleteUser(this.userId);
   ///
-  ///   Object? computeNonReentrantKey() => orderId;
+  ///   Object? computeNonReentrantKey() => userId;
   ///   ...
   /// }
   /// ```
@@ -746,7 +746,7 @@ mixin UnlimitedRetries<St> on Retry<St> {
 ///   AppState applyValueToState(AppState state, Object? value)
 ///     => state.copy(todoList: state.todoList.add(newTodo));
 ///
-///   // Contact the server to send the command (save the Todo). I
+///   // Contact the server to send the command (save the Todo).
 ///   @override
 ///   Future<Todo> sendCommandToServer(Object? newTodo) async => await saveTodo(newTodo);
 ///
@@ -788,11 +788,11 @@ mixin UnlimitedRetries<St> on Retry<St> {
 ///
 /// ```dart
 /// class SaveTodo extends AppAction with OptimisticCommand {
-///   final String orderId;
-///   SaveTodo(this.orderId);
+///   final String todoId;
+///   SaveTodo(this.todoId);
 ///
 ///   @override
-///   Object? nonReentrantKeyParams() => orderId;
+///   Object? nonReentrantKeyParams() => todoId;
 ///   ...
 /// }
 /// ```
@@ -1008,8 +1008,8 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
   ///   [getValueFromState]) at the moment we are deciding whether to reload.
   ///
   /// * [lastAppliedValue] is the last value this action applied for the same
-  ///   state slice. It is the optimistic value on success, or the rollback value
-  ///   if rollback was applied.
+  ///   state slice. It is the optimistic value, or the value from the server
+  ///   response if it was applied, or the rollback value if rollback was applied.
   ///
   /// * [optimisticValue] is the value returned by [optimisticValue] and applied
   ///   optimistically by this dispatch.
@@ -1022,11 +1022,12 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
   ///   on failure.
   ///
   /// Default behavior:
-  /// Returns true, meaning: If [reloadFromServer] is implemented, we reload.
+  /// Returns true only on error (when [error] is not `null`), meaning: If
+  /// [reloadFromServer] is implemented, we reload only when the command fails.
   ///
-  /// Override this method if you want to skip reloading in some cases.
-  /// For example, reload only on error, or skip reload when the value already
-  /// changed to something else. For example:
+  /// Override this method if you want to reload in other cases. For example,
+  /// return true to also reload on success, or skip reload when the value
+  /// already changed to something else. For example:
   ///
   /// ```dart
   /// bool shouldReload(...) => currentValue == lastAppliedValue;
@@ -1106,18 +1107,18 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
   ///
   /// ```dart
   /// class SaveUser extends ReduxAction<AppState> with OptimisticCommand {
-  ///   final String oderId;
-  ///   SaveUser(this.oderId);
+  ///   final String userId;
+  ///   SaveUser(this.userId);
   ///
-  ///   Object? computeNonReentrantKey() => orderId;
+  ///   Object? computeNonReentrantKey() => userId;
   ///   ...
   /// }
   ///
   /// class DeleteUser extends ReduxAction<AppState> with OptimisticCommand {
-  ///   final String oderId;
-  ///   DeleteUser(this.oderId);
+  ///   final String userId;
+  ///   DeleteUser(this.userId);
   ///
-  ///   Object? computeNonReentrantKey() => orderId;
+  ///   Object? computeNonReentrantKey() => userId;
   ///   ...
   /// }
   /// ```
@@ -1420,7 +1421,9 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 /// ```
 ///
 /// Now, if the action fails, it will remove the lock and allow the action to
-/// be dispatched again right away. Note, this currently implemented in the
+/// be dispatched again right away. It only removes the lock this action took:
+/// If its throttle period ended while it was running, and a newer action took
+/// a new lock, that newer lock is kept. Note, this is currently implemented in the
 /// [after] method, which means you can override it to customize this behavior
 /// (just remember to call `super.after()`):
 ///
@@ -1478,9 +1481,8 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 /// - Other mixins or classes that override [abortDispatch] should call
 ///   `super.abortDispatch()` only as their last step, when they don't want to abort.
 /// - It should not be combined with [Fresh], [NonReentrant] or [UnlimitedRetryCheckInternet].
-/// - It can be combined with [Sequential]. Note the throttle period is
-///   measured from when the action finishes, so it starts counting after the
-///   action's turn in the queue, and not from the dispatch.
+/// - It can be combined with [Sequential]. Note the throttle period starts
+///   when the action is dispatched, and not when it gets its turn in the queue.
 ///
 mixin Throttle<St> on ReduxAction<St> {
   //
@@ -1523,7 +1525,7 @@ mixin Throttle<St> on ReduxAction<St> {
 
     // If should ignore the throttle, then set a new expiry and allow dispatch.
     if (ignoreThrottle) {
-      _throttleLockMap[lock] = _expiringLockFrom(now);
+      _takeLock(lock, now);
       return false;
     }
 
@@ -1531,7 +1533,7 @@ mixin Throttle<St> on ReduxAction<St> {
 
     // If there is no lock, or it has expired, set a new expiry and allow.
     if (expiresAt == null || !expiresAt.isAfter(now)) {
-      _throttleLockMap[lock] = _expiringLockFrom(now);
+      _takeLock(lock, now);
       return false;
     }
 
@@ -1539,7 +1541,24 @@ mixin Throttle<St> on ReduxAction<St> {
     return true;
   }
 
-  DateTime _expiringLockFrom(DateTime now) => now.add(Duration(milliseconds: throttle));
+  /// The lock this action took, and its expiry, so that [_removeOwnLock]
+  /// doesn't remove a newer lock with the same value, taken by another action.
+  Object? _ownLock;
+  DateTime? _ownLockExpiresAt;
+
+  void _takeLock(Object? lock, DateTime now) {
+    final expiresAt = now.add(Duration(milliseconds: throttle));
+    _throttleLockMap[lock] = expiresAt;
+    _ownLock = lock;
+    _ownLockExpiresAt = expiresAt;
+  }
+
+  /// Removes the lock this action took, if it's still there.
+  void _removeOwnLock() {
+    if (_ownLockExpiresAt != null &&
+        identical(_throttleLockMap[_ownLock], _ownLockExpiresAt))
+      _throttleLockMap.remove(_ownLock);
+  }
 
   /// Remove locks whose expiry time is in the past or now.
   void _prune() {
@@ -1553,7 +1572,7 @@ mixin Throttle<St> on ReduxAction<St> {
     try {
       super.after();
     } finally {
-      if (removeLockOnError && (status.originalError != null)) removeLock();
+      if (removeLockOnError && (status.originalError != null)) _removeOwnLock();
       _prune();
     }
   }
@@ -2067,7 +2086,7 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
 ///
 /// ```dart
 /// class LoadInformation extends ReduxAction<AppState> with Fresh {
-///    int freshFor = 500; // Here!
+///    int freshFor = 5000; // Here!
 ///    ...
 /// }
 /// ```
@@ -2098,15 +2117,16 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
 ///
 /// ## When the action fails
 ///
-/// If an action that uses [Fresh] throws an error, the mixin tries to behave
-/// as if that failing run did not make the key stay fresh for longer.
+/// If an action that uses [Fresh] throws an error, it behaves as if that
+/// failing run did not make the key fresh.
 ///
 /// In practice:
-/// * If there was no fresh entry for that key before the action started,
-///   the key is cleared. You can dispatch the action again right away.
-/// * If there was already a fresh time stored for that key, that time is kept.
-/// * If another action using the same key finished after this one started and
-///   changed the fresh time, that newer fresh time is kept as is.
+/// * The key the action made fresh is cleared, so you can dispatch the action
+///   again right away. This is also true for a forced run ([ignoreFresh]):
+///   if it fails, the key becomes stale, even if it was fresh before the
+///   forced run.
+/// * If another action using the same key started after this one (for
+///   example, a forced run), that newer fresh period is kept as is.
 ///
 /// This means:
 /// * Errors never extend the fresh time by themselves.
@@ -2165,10 +2185,12 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
 /// - Other mixins or classes that override [abortDispatch] should call
 ///   `super.abortDispatch()` only as their last step, when they don't want to abort.
 /// - It should not be combined with [Throttle], [NonReentrant],
-///   [UnlimitedRetryCheckInternet] or [OptimisticCommand].
+///   [UnlimitedRetryCheckInternet], [OptimisticCommand], [OptimisticSync],
+///   [OptimisticSyncWithPush] or [ServerPush].
 /// - It can be combined with [Sequential]. Note the fresh period starts when
-///   the action finishes, so it starts counting after the action's turn in
-///   the queue, and not from the dispatch.
+///   the action is dispatched, and not when it gets its turn in the queue.
+///   If the action is discarded from the queue (see
+///   [Sequential.discardQueueOnError]), its key is cleared, since it never ran.
 ///
 mixin Fresh<St> on ReduxAction<St> {
   //
@@ -2186,7 +2208,7 @@ mixin Fresh<St> on ReduxAction<St> {
   ///
   /// // This does NOT run, because the previous LoadText is still fresh.
   /// dispatch(LoadText(url: 'https://another-url.com'));
-  /// ```dart
+  /// ```
   ///
   /// You can override [freshKeyParams] so that actions of the SAME TYPE
   /// but with different parameters do not affect each other's freshness.
@@ -2195,7 +2217,7 @@ mixin Fresh<St> on ReduxAction<St> {
   /// ```dart
   /// class LoadText extends ReduxAction<AppState> with Fresh {
   ///   final String url;
-  ///   LoadText(this.url);
+  ///   LoadText({required this.url});
   ///
   ///   // The fresh-key includes the url.
   ///   Object? freshKeyParams() => url;
@@ -2570,17 +2592,17 @@ void _incompatible<T1, T2>(Object instance) {
 ///
 ///   // Apply the optimistic value to the state
 ///   @override
-///   AppState applyOptimisticValueToState(bool isLiked) =>
+///   AppState applyOptimisticValueToState(AppState state, bool isLiked) =>
 ///       state.copyWith(items: state.items.setLiked(itemId, isLiked));
 ///
 ///   // Apply the server response to the state (can be different from optimistic)
 ///   @override
-///   AppState? applyServerResponseToState(Object? serverResponse) =>
+///   AppState? applyServerResponseToState(AppState state, Object serverResponse) =>
 ///       state.copyWith(items: state.items.setLiked(itemId, serverResponse as bool));
 ///
 ///   // Read the current value from state (used to detect if follow-up needed)
 ///   @override
-///   Object? getValueFromState(AppState state) => state.items[itemId].liked;
+///   bool getValueFromState(AppState state) => state.items[itemId].liked;
 ///
 ///   // Send the value to the server, optionally return server-confirmed value
 ///   @override
@@ -2611,8 +2633,11 @@ void _incompatible<T1, T2>(Object instance) {
 /// - You want to confirm the server accepted the change
 /// - The server returns the current state after the update
 ///
-/// If the server response differs from the current optimistic state when the
-/// state stabilizes, a follow-up request will be sent automatically.
+/// The server response is treated as the truth: it's applied as is, and doesn't
+/// start a follow-up request, even if it's different from the value that was
+/// sent. When the state stabilizes, it holds the value that was just sent, so
+/// a different response means the server changed or rejected that value, and
+/// sending the response back to the server would not tell it anything new.
 ///
 /// ## Error handling
 ///
@@ -2651,7 +2676,7 @@ void _incompatible<T1, T2>(Object instance) {
 ///     // Only rollback if the state still reflects our optimistic update.
 ///     // If the user made another change, don't overwrite it.
 ///     if (getValueFromState(state) == optimisticValue) {
-///       return applyOptimisticValueToState(state, initialValue);
+///       return applyOptimisticValueToState(state, getValueFromState(initialState));
 ///     }
 ///   }
 ///   return null;
@@ -2715,6 +2740,13 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
   /// ```dart
   /// Object? optimisticSyncKeyParams() => (userId, itemId);
   /// ```
+  ///
+  /// Important: If the action changes a different part of the state depending
+  /// on its fields, make the key depend on them too. Otherwise, while
+  /// `ToggleLike('A')` has a request in flight, `ToggleLike('B')` changes the
+  /// state but doesn't send its own request (the key is locked). And the
+  /// follow-up of `ToggleLike('A')` only reads item A from the state, so
+  /// item B may never be sent to the server.
   ///
   /// See also: [computeOptimisticSyncKey], which uses this method by default to
   /// build the key.
@@ -2882,10 +2914,10 @@ mixin OptimisticSync<St, T> on ReduxAction<St> {
   ///   dispatch(UserExceptionAction('The server request failed', reason: 'Info reloaded.'));
   ///
   ///   // 2. Immediately rollback to the initial state before the action.
-  ///   dispatchState(state.copy(info: await api.loadInfo());
+  ///   dispatchState(state.copy(isLiked: getValueFromState(initialState)));
   ///
   ///   // 3. Then, to be sure, reload the value from the database.
-  ///   return state.copy(isLiked: getValueFromState(initialState));
+  ///   return state.copy(info: await api.loadInfo());
   /// }
   /// ```
   ///
@@ -3292,6 +3324,13 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
   /// ```dart
   /// Object? optimisticSyncKeyParams() => (userId, itemId);
   /// ```
+  ///
+  /// Important: If the action changes a different part of the state depending
+  /// on its fields, make the key depend on them too. Otherwise, while
+  /// `ToggleLike('A')` has a request in flight, `ToggleLike('B')` changes the
+  /// state but doesn't send its own request (the key is locked). And the
+  /// follow-up of `ToggleLike('A')` only reads item A from the state, so
+  /// item B may never be sent to the server.
   ///
   /// See also: [computeOptimisticSyncKey], which uses this method by default to
   /// build the key.
@@ -4678,9 +4717,11 @@ mixin Polling<St> on ReduxAction<St> {
 ///   You can also check [isWaitingInSequentialQueue] on the action itself.
 ///
 /// - Calling `store.internalMixinProps.clear()` (or `store.shutdown()`) resets
-///   the queues. Actions that are already waiting will still run in order, but
+///   the queues. Actions that are waiting in the queues are discarded: they are
+///   aborted without running, as if a failed action had discarded the queue (see
+///   [discardQueueOnError]). Actions that are already running keep running, and
 ///   actions dispatched after the reset start a new queue and won't wait for
-///   the old ones. Note this also resets the internal state of all other mixins.
+///   them. Note this also resets the internal state of all other mixins.
 ///
 /// # Combining with other mixins
 ///
@@ -4807,7 +4848,9 @@ mixin Sequential<St> on ReduxAction<St> {
   bool _isWaitingInSequentialQueue = false;
 
   /// Returns `true` if this action was aborted because a previous action in
-  /// the same queue failed and returned `true` from [discardQueueOnError].
+  /// the same queue failed and returned `true` from [discardQueueOnError], or
+  /// because the queues were reset with `store.internalMixinProps.clear()` (or
+  /// `store.shutdown()`) while it was waiting.
   bool get wasDiscardedFromSequentialQueue => _wasDiscardedFromSequentialQueue;
   bool _wasDiscardedFromSequentialQueue = false;
 

@@ -2719,6 +2719,10 @@ class _InternalMixinProps {
 
   /// Removes the locks for Throttle, Debounce, Fresh, NonReentrant,
   /// OptimisticSync, OptimisticSyncWithPush, Polling, and Sequential.
+  ///
+  /// For Sequential, the actions waiting in the queues are discarded: they
+  /// are aborted without running, as if a failed action had discarded its
+  /// queue. Actions that are already running keep running.
   void clear() {
     throttleLockMap.clear();
     freshKeyMap.clear();
@@ -2728,6 +2732,20 @@ class _InternalMixinProps {
     optimisticSyncWithPushRevisionMap.clear();
     for (final cycle in pollingMap.values) cycle.timer?.cancel();
     pollingMap.clear();
+    _discardSequentialQueues();
+  }
+
+  /// Discards the actions waiting in all Sequential queues (all but the first
+  /// of each queue, which is running). They are removed from their queue
+  /// before being released, so that the running action doesn't release them
+  /// again when it finishes.
+  void _discardSequentialQueues() {
+    for (final queue in sequentialQueueMap.values) {
+      if (queue.length <= 1) continue;
+      final waiting = queue.sublist(1);
+      queue.removeRange(1, queue.length);
+      for (final completer in waiting) completer.complete(true);
+    }
     sequentialQueueMap.clear();
   }
 }

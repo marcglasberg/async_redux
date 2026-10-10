@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:async_redux/async_redux.dart';
 import 'package:bdd_framework/bdd_framework.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -89,6 +91,82 @@ void main() {
     await store.dispatch(ThrottleActionB());
     expect(store.state.count, 2);
   });
+
+  Bdd(feature)
+      .scenario('With removeLockOnError, a failed action removes its lock')
+      .given('An action with the Throttle mixin and removeLockOnError true')
+      .when('The action fails')
+      .then('It can be dispatched again right away')
+      .run((_) async {
+    //
+    var store = Store<AppState>(initialState: AppState(0));
+    var done = Completer<void>()..complete();
+
+    await store.dispatchAndWait(SlowFailingAction(done, fail: true));
+    await store.dispatchAndWait(SlowFailingAction(done, fail: false));
+    expect(store.state.count, 1);
+  });
+
+  Bdd(feature)
+      .scenario('With removeLockOnError, a failed action does not remove '
+          'the lock of a newer action')
+      .given('An action with the Throttle mixin and removeLockOnError true')
+      .and('The action takes longer than the throttle period, and then fails')
+      .and('A second action took a new lock after the first period ended')
+      .when('A third action is dispatched within the period of the second')
+      .then('The third action is aborted')
+      .run((_) async {
+    //
+    var store = Store<AppState>(initialState: AppState(0));
+    var completer = Completer<void>();
+    var done = Completer<void>()..complete();
+
+    var failing = SlowFailingAction(completer, fail: true);
+    store.dispatch(failing);
+
+    // The first throttle period ends, so this one runs and takes a new lock.
+    await Future.delayed(const Duration(milliseconds: 150));
+    await store.dispatchAndWait(SlowFailingAction(done, fail: false));
+    expect(store.state.count, 1);
+
+    // The first action fails, which must not remove the lock of the second.
+    completer.complete();
+    await store.waitAllActions([failing]);
+    expect(failing.status.originalError, isA<UserException>());
+
+    await store.dispatchAndWait(SlowFailingAction(done, fail: false));
+    expect(store.state.count, 1);
+  });
+
+  Bdd(feature)
+      .scenario('With removeLockOnError, a failed action does not remove '
+          'the lock of a newer action that ignored the throttle')
+      .given('An action with the Throttle mixin and removeLockOnError true')
+      .and('While it runs, a second action ignores the throttle, '
+          'and takes a new lock')
+      .when('The first action fails, and then a third action is dispatched')
+      .then('The third action is aborted')
+      .run((_) async {
+    //
+    var store = Store<AppState>(initialState: AppState(0));
+    var completer = Completer<void>();
+    var done = Completer<void>()..complete();
+
+    var failing = SlowFailingAction(completer, fail: true);
+    store.dispatch(failing);
+
+    await store
+        .dispatchAndWait(SlowFailingAction(done, fail: false, force: true));
+    expect(store.state.count, 1);
+
+    // The first action fails, which must not remove the lock of the second.
+    completer.complete();
+    await store.waitAllActions([failing]);
+    expect(failing.status.originalError, isA<UserException>());
+
+    await store.dispatchAndWait(SlowFailingAction(done, fail: false));
+    expect(store.state.count, 1);
+  });
 }
 
 // A simple state that holds a count.
@@ -158,6 +236,31 @@ class ThrottleActionB extends ReduxAction<AppState> with Throttle {
 
   @override
   AppState reduce() {
+    return state.copy(count: state.count + 1);
+  }
+}
+
+// An action that waits for the completer, and then fails or increments the state.
+class SlowFailingAction extends ReduxAction<AppState> with Throttle {
+  final Completer<void> completer;
+  final bool fail;
+  final bool force;
+
+  SlowFailingAction(this.completer, {required this.fail, this.force = false});
+
+  @override
+  int throttle = 100;
+
+  @override
+  bool removeLockOnError = true;
+
+  @override
+  bool get ignoreThrottle => force;
+
+  @override
+  Future<AppState> reduce() async {
+    await completer.future;
+    if (fail) throw const UserException('Failed');
     return state.copy(count: state.count + 1);
   }
 }
