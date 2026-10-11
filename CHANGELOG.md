@@ -11,12 +11,8 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 * Fix: `store.internalMixinProps.clear()` (and `store.shutdown()`, which calls it) now
   discards the actions waiting in the `Sequential` queues. They are aborted without
-  running, with an `AbortDispatchException`, and their `wasDiscardedFromSequentialQueue`
-  is `true`, the same as when a failed action discards its queue with
-  `discardQueueOnError`. Before, they still ran in order after the reset.
-  This means that, for example, when you reset during logout, the actions queued by the
-  previous user don't run afterwards. Actions that are already running keep running,
-  and actions dispatched after the reset still start a new queue.
+  running. Now, when you reset during logout, the actions queued by the previous user
+  don't run afterwards.
 
 * Fix: Throttle's `removeLockOnError` now tracks lock ownership so a failed action only
   removes the lock it originally took, not a newer lock taken by a subsequent action after
@@ -27,19 +23,13 @@ Sponsored by [MyText.ai](https://mytext.ai)
   saved state was the one before the undo, until the next state change.
 
 * Fix: `deleteStateFromPersistence()`, `saveInitialStateInPersistence()` and
-  `readStateFromPersistence()` (and their cloud-sync versions) now wait for a running save
-  to finish first. Before, the running save could finish later and put the deleted state
-  back, or overwrite the initial state. And the read could return the state before that
-  save, while the save then changed the last persisted state, so the next save got the
-  wrong `lastPersistedState`. State changes made while they run are saved after they
-  finish.
-
-* Fix: `persistAndPausePersistor()` (and `persistAndPauseCloudSync()`) called while a save
-  is running now saves the current state as soon as that save finishes. Before, it was
-  only saved when the persistor was resumed.
+  `readStateFromPersistence()` now wait for a running save to finish first.
 
 * Fix: A `PersistAction` dispatched while a save is running now saves the state as soon
-  as that save finishes, ignoring the throttle. Before, it waited for the throttle.
+  as that save finishes, ignoring the throttle. 
+
+* Fix: `persistAndPausePersistor()` called while a save is running now saves the state
+  at the time of the call as soon as that save finishes, and then stays paused.
 
 ## 29.2.2
 

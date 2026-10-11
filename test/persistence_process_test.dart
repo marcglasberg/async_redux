@@ -862,6 +862,103 @@ void main() {
     expect(p.saves.length, 1);
   });
 
+  Bdd(feature)
+      .scenario('persistAndPausePersistor while a save is running does not save the '
+          'state changes made after it was called.')
+      .given('A persistor with no throttle.')
+      .and('The state changed, and its save is running.')
+      .when('persistAndPausePersistor is called.')
+      .and('The state changes again, before the running save finishes.')
+      .then('When the running save finishes, nothing else is saved.')
+      .and('When the persistor is resumed, the newest state is saved.')
+      .run((_) async {
+    var (s0, s1, s2) = (S(0), S(1), S(2));
+    var p = ControlledPersistor(stored: s0);
+    var store = Store<S>(initialState: s0, persistor: p);
+
+    store.dispatch(SetState(s1));
+    store.persistAndPausePersistor();
+    store.dispatch(SetState(s2));
+
+    await p.finish(0);
+    expect(p.saves.length, 1);
+    expect(p.stored, same(s1));
+
+    store.resumePersistor();
+    await pumpEventQueue();
+    expect(p.saves.length, 2);
+    expect(p.saves[1].lastPersistedState, same(s1));
+    expect(p.saves[1].newState, same(s2));
+  });
+
+  Bdd(feature)
+      .scenario('persistAndPausePersistor while a save is running saves the state it was '
+          'called with, not a later one.')
+      .given('A persistor with no throttle.')
+      .and('The state changed, and its save is running.')
+      .and('The state changed again, while the save is running.')
+      .when('persistAndPausePersistor is called.')
+      .and('The state changes again, before the running save finishes.')
+      .then('When the running save finishes, the state at the time of the call is saved.')
+      .and('Nothing else is saved, until the persistor is resumed.')
+      .run((_) async {
+    var (s0, s1, s2, s3) = (S(0), S(1), S(2), S(3));
+    var p = ControlledPersistor(stored: s0);
+    var store = Store<S>(initialState: s0, persistor: p);
+
+    store.dispatch(SetState(s1));
+    store.dispatch(SetState(s2));
+    store.persistAndPausePersistor();
+    store.dispatch(SetState(s3));
+
+    await p.finish(0);
+    expect(p.saves.length, 2);
+    expect(p.saves[1].lastPersistedState, same(s1));
+    expect(p.saves[1].newState, same(s2));
+
+    await p.finish(1);
+    expect(p.saves.length, 2);
+    expect(p.stored, same(s2));
+
+    store.resumePersistor();
+    await pumpEventQueue();
+    expect(p.saves.length, 3);
+    expect(p.saves[2].lastPersistedState, same(s2));
+    expect(p.saves[2].newState, same(s3));
+  });
+
+  Bdd(feature)
+      .scenario('persistAndPausePersistor while a save is running, and then resumed '
+          'before the save finishes.')
+      .given('A persistor with no throttle.')
+      .and('The state changed, and its save is running.')
+      .and('The state changed again, while the save is running.')
+      .when('persistAndPausePersistor is called.')
+      .and('The state changes again.')
+      .and('The persistor is resumed, before the running save finishes.')
+      .then('When the running save finishes, the state at the time of the call is saved.')
+      .and('When that save finishes, the newest state is saved.')
+      .run((_) async {
+    var (s0, s1, s2, s3) = (S(0), S(1), S(2), S(3));
+    var p = ControlledPersistor(stored: s0);
+    var store = Store<S>(initialState: s0, persistor: p);
+
+    store.dispatch(SetState(s1));
+    store.dispatch(SetState(s2));
+    store.persistAndPausePersistor();
+    store.dispatch(SetState(s3));
+    store.resumePersistor();
+
+    await p.finish(0);
+    expect(p.saves.length, 2);
+    expect(p.saves[1].newState, same(s2));
+
+    await p.finish(1);
+    expect(p.saves.length, 3);
+    expect(p.saves[2].lastPersistedState, same(s2));
+    expect(p.saves[2].newState, same(s3));
+  });
+
   // ==========================================================================
   // Reading, deleting, and saving the initial state, through the store.
   // ==========================================================================

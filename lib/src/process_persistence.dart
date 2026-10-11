@@ -35,6 +35,10 @@ class ProcessPersistence<St> {
   /// True if [persistAndPause] was called while a persistence operation was running.
   bool _isPersistAndPauseWaiting = false;
 
+  /// The newest state when [persistAndPause] was called while a persistence operation
+  /// was running. It's persisted when the operation finishes, if not yet persisted.
+  late St _stateToPersistAndPause;
+
   /// Called when [Persistor.persistDifference] throws an error, after the error was processed
   /// by [Persistor.wrapError] (and only if it didn't return `null`). The [error] is the
   /// wrapped error, and [originalError] is the error before [Persistor.wrapError].
@@ -104,10 +108,20 @@ class ProcessPersistence<St> {
     _isPersistActionWaiting = false;
     isANewStateAvailable = false;
 
-    // If persistAndPause was called while the operation was running, persist now,
-    // ignoring the throttle and the pause.
-    if (persistAndPauseWaiting)
-      _persistIfNotYetPersisted();
+    // If persistAndPause was called while the operation was running, persist now the
+    // state it was called with, ignoring the throttle and the pause. State changes made
+    // after it was called are only persisted when the persistor is resumed.
+    if (persistAndPauseWaiting &&
+        !identical(lastPersistedState, _stateToPersistAndPause)) {
+      _persist(DateTime.now().toUtc(), _stateToPersistAndPause);
+
+      // If the state changed after persistAndPause was called, check again when this
+      // save finishes, in case the persistor was resumed.
+      if (!identical(_stateToPersistAndPause, newestState)) {
+        isANewStateAvailable = true;
+        _isPersistActionWaiting = persistActionWaiting;
+      }
+    }
     //
     // If the state may have changed while the operation was running, persist it if
     // necessary. If a PersistAction was dispatched meanwhile, ignore the throttle.
@@ -261,8 +275,9 @@ class ProcessPersistence<St> {
   ///
   /// When [persistAndPause] is called, if no persistence process is running, it will
   /// immediately start a new persistence process (ignoring [throttle]). If one is currently
-  /// running, it will not be affected, and the newest state will be persisted as soon as
-  /// it finishes (if it's not yet persisted).
+  /// running, it will not be affected, and the state at the time of the call will be
+  /// persisted as soon as it finishes (if it's not yet persisted). State changes made
+  /// after the call are not persisted until [resume] is called.
   ///
   /// Then, the Persistor will not start another persistence process, until method [resume] is
   /// called.
@@ -275,9 +290,12 @@ class ProcessPersistence<St> {
 
     _cancelTimer();
 
-    if (isPersisting)
-      _isPersistAndPauseWaiting = true;
-    else
+    if (isPersisting) {
+      if (isInit) {
+        _isPersistAndPauseWaiting = true;
+        _stateToPersistAndPause = newestState;
+      }
+    } else
       _persistIfNotYetPersisted();
   }
 

@@ -448,11 +448,12 @@ class Store<St> {
   ///
   /// When [persistAndPausePersistor] is called, if no persistence process is running, it
   /// will immediately start a new persistence process (ignoring [Persistor.throttle]).
-  /// If one is currently running, it will not be affected, and the current state will be
-  /// persisted as soon as it finishes (if it's not yet persisted).
+  /// If one is currently running, it will not be affected, and the state at the time of
+  /// the call will be persisted as soon as it finishes (if it's not yet persisted).
   ///
   /// Then, the Persistor will not start another persistence process, until method
-  /// [resumePersistor] is called.
+  /// [resumePersistor] is called. State changes made after the call are only persisted
+  /// when it's resumed.
   ///
   /// Note: A persistence process starts when the [Persistor.persistDifference] method is called,
   /// and finishes when the future returned by that method completes.
@@ -466,11 +467,12 @@ class Store<St> {
   ///
   /// When [persistAndPauseCloudSync] is called, if no cloud save process is running, it
   /// will immediately start a new save process (ignoring [CloudSync.throttle]).
-  /// If one is currently running, it will not be affected, and the current state will be
-  /// saved as soon as it finishes (if it's not yet saved).
+  /// If one is currently running, it will not be affected, and the state at the time of
+  /// the call will be saved as soon as it finishes (if it's not yet saved).
   ///
   /// Then, the CloudSync will not start another cloud save process, until method
-  /// [resumeCloudSync] is called.
+  /// [resumeCloudSync] is called. State changes made after the call are only saved
+  /// when it's resumed.
   ///
   /// Note: A cloud save process starts when the [CloudSync.persistDifference] method is called,
   /// and finishes when the future returned by that method completes.
