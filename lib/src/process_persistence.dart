@@ -26,6 +26,15 @@ class ProcessPersistence<St> {
   bool isPaused;
   bool isInit;
 
+  /// Completes when the persistence operation currently running finishes.
+  Completer<void>? _operationFinished;
+
+  /// True if a [PersistAction] was dispatched while a persistence operation was running.
+  bool _isPersistActionWaiting = false;
+
+  /// True if [persistAndPause] was called while a persistence operation was running.
+  bool _isPersistAndPauseWaiting = false;
+
   /// Called when [Persistor.persistDifference] throws an error, after the error was processed
   /// by [Persistor.wrapError] (and only if it didn't return `null`). The [error] is the
   /// wrapped error, and [originalError] is the error before [Persistor.wrapError].
@@ -36,34 +45,73 @@ class ProcessPersistence<St> {
   Duration get throttle => persistor.throttle ?? const Duration();
 
   /// Same as [Persistor.saveInitialState] but will remember [initialState] as the [lastPersistedState].
-  Future<void> saveInitialState(St initialState) async {
-    lastPersistedState = initialState;
-    try {
-      return await persistor.saveInitialState(initialState);
-    } finally {
-      processAddedErrors();
-    }
-  }
+  /// If a save is running, waits for it to finish first, so that it can't overwrite the
+  /// [initialState] later.
+  Future<void> saveInitialState(St initialState) => _runAlone(() async {
+        lastPersistedState = initialState;
+        await persistor.saveInitialState(initialState);
+      });
 
   /// Same as [Persistor.readState] but will remember the read state as the [lastPersistedState].
+  /// If a save is running, waits for it to finish first, so that it reads the saved state,
+  /// and so that the save can't change the [lastPersistedState] later.
   Future<St?> readState() async {
-    try {
-      St? state = await persistor.readState();
+    St? state;
+    await _runAlone(() async {
+      state = await persistor.readState();
       lastPersistedState = state;
-      return state;
-    } finally {
-      processAddedErrors();
-    }
+    });
+    return state;
   }
 
   /// Same as [Persistor.deleteState] but will clear the [lastPersistedState].
-  Future<void> deleteState() async {
-    lastPersistedState = null;
+  /// If a save is running, waits for it to finish first, so that it can't put the deleted
+  /// state back later.
+  Future<void> deleteState() => _runAlone(() async {
+        lastPersistedState = null;
+        await persistor.deleteState();
+      });
+
+  /// Runs the [operation] when no other persistence operation is running, so that they
+  /// don't overlap. While it runs, state changes are not saved. They are saved when it
+  /// finishes, if necessary.
+  Future<void> _runAlone(Future<void> Function() operation) async {
+    while (isPersisting) await _operationFinished!.future;
+    _startOperation();
     try {
-      return await persistor.deleteState();
+      await operation();
     } finally {
-      processAddedErrors();
+      _finishOperation();
     }
+  }
+
+  void _startOperation() {
+    isPersisting = true;
+    _operationFinished = Completer<void>();
+  }
+
+  void _finishOperation() {
+    isPersisting = false;
+    _operationFinished!.complete();
+    _operationFinished = null;
+
+    processAddedErrors();
+
+    bool persistAndPauseWaiting = _isPersistAndPauseWaiting;
+    bool persistActionWaiting = _isPersistActionWaiting;
+    bool newStateAvailable = isANewStateAvailable;
+    _isPersistAndPauseWaiting = false;
+    _isPersistActionWaiting = false;
+    isANewStateAvailable = false;
+
+    // If persistAndPause was called while the operation was running, persist now,
+    // ignoring the throttle and the pause.
+    if (persistAndPauseWaiting)
+      _persistIfNotYetPersisted();
+    //
+    // If the state may have changed while the operation was running, persist it if
+    // necessary. If a PersistAction was dispatched meanwhile, ignore the throttle.
+    else if (newStateAvailable) _process(isPersistAction: persistActionWaiting);
   }
 
   /// Processes the errors added by [Persistor.addError], removing them from the persistor.
@@ -85,6 +133,7 @@ class ProcessPersistence<St> {
   }
 
   /// 1) If we're still persisting the last time, don't persist no matter what.
+  ///    Instead, check again when it finishes.
   /// 2) If throttle period is done (or if action is PersistAction), persist.
   /// 3) If throttle period is NOT done, create a timer to persist as soon as it finishes.
   ///
@@ -97,14 +146,23 @@ class ProcessPersistence<St> {
   ) {
     isInit = true;
     newestState = newState;
+    return _process(isPersistAction: action is PersistAction);
+  }
 
-    if (isPaused || identical(lastPersistedState, newState)) return false;
-
+  bool _process({required bool isPersistAction}) {
+    //
     // 1) If we're still persisting the last time, don't persist no matter what.
+    // Instead, check again when it finishes. This is done even if the newest state is
+    // the last persisted state, since the running process will change the last
+    // persisted state when it finishes.
     if (isPersisting) {
       isANewStateAvailable = true;
+      if (isPersistAction && !isPaused) _isPersistActionWaiting = true;
       return false;
     }
+    //
+    else if (isPaused || identical(lastPersistedState, newestState))
+      return false;
     //
     else {
       //
@@ -114,7 +172,7 @@ class ProcessPersistence<St> {
       if ( //
           (now.difference(lastPersistTime) >= throttle) //
               ||
-              (action is PersistAction) //
+              isPersistAction //
           ) {
         _cancelTimer();
         _persist(now, newestState);
@@ -130,7 +188,7 @@ class ProcessPersistence<St> {
 
           timer = Timer(asSoonAsThrottleFinishes, () {
             timer = null;
-            process(null, newestState);
+            _process(isPersistAction: false);
           });
         }
         return false;
@@ -146,7 +204,7 @@ class ProcessPersistence<St> {
   }
 
   void _persist(DateTime now, newState) async {
-    isPersisting = true;
+    _startOperation();
     lastPersistTime = now;
     isANewStateAvailable = false;
 
@@ -179,15 +237,8 @@ class ProcessPersistence<St> {
     }
     //
     finally {
-      isPersisting = false;
-
-      processAddedErrors();
-
       // If a new state became available while the present state was saving, save again.
-      if (isANewStateAvailable) {
-        isANewStateAvailable = false;
-        process(null, newestState);
-      }
+      _finishOperation();
     }
   }
 
@@ -208,9 +259,10 @@ class ProcessPersistence<St> {
   /// temporarily.
   ///
   ///
-  /// When [persistAndPause] is called, this will not affect the current persistence process, if
-  /// one is currently running. If no persistence process was running, it will immediately start a
-  /// new persistence process (ignoring [throttle]).
+  /// When [persistAndPause] is called, if no persistence process is running, it will
+  /// immediately start a new persistence process (ignoring [throttle]). If one is currently
+  /// running, it will not be affected, and the newest state will be persisted as soon as
+  /// it finishes (if it's not yet persisted).
   ///
   /// Then, the Persistor will not start another persistence process, until method [resume] is
   /// called.
@@ -223,9 +275,14 @@ class ProcessPersistence<St> {
 
     _cancelTimer();
 
-    if (isInit &&
-        !isPersisting &&
-        !identical(lastPersistedState, newestState)) {
+    if (isPersisting)
+      _isPersistAndPauseWaiting = true;
+    else
+      _persistIfNotYetPersisted();
+  }
+
+  void _persistIfNotYetPersisted() {
+    if (isInit && !identical(lastPersistedState, newestState)) {
       var now = DateTime.now().toUtc();
       _persist(now, newestState);
     }
@@ -234,6 +291,6 @@ class ProcessPersistence<St> {
   /// Resumes persistence by the [Persistor], after calling [pause] or [persistAndPause].
   void resume() {
     isPaused = false;
-    if (isInit) process(null, newestState);
+    if (isInit) _process(isPersistAction: false);
   }
 }

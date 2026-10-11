@@ -446,9 +446,10 @@ class Store<St> {
   /// Persists the current state (if it's not yet persisted), then pauses the [Persistor]
   /// temporarily.
   ///
-  /// When [persistAndPausePersistor] is called, this will not affect the current persistence
-  /// process, if one is currently running. If no persistence process was running, it will
-  /// immediately start a new persistence process (ignoring [Persistor.throttle]).
+  /// When [persistAndPausePersistor] is called, if no persistence process is running, it
+  /// will immediately start a new persistence process (ignoring [Persistor.throttle]).
+  /// If one is currently running, it will not be affected, and the current state will be
+  /// persisted as soon as it finishes (if it's not yet persisted).
   ///
   /// Then, the Persistor will not start another persistence process, until method
   /// [resumePersistor] is called.
@@ -463,9 +464,10 @@ class Store<St> {
   /// Saves the current state (if it's not yet saved) to the cloud, then pauses
   /// the [CloudSync] temporarily.
   ///
-  /// When [persistAndPauseCloudSync] is called, this will not affect the current cloud save
-  /// process, if one is currently running. If no cloud save process was running, it will
-  /// immediately start a new save process (ignoring [CloudSync.throttle]).
+  /// When [persistAndPauseCloudSync] is called, if no cloud save process is running, it
+  /// will immediately start a new save process (ignoring [CloudSync.throttle]).
+  /// If one is currently running, it will not be affected, and the current state will be
+  /// saved as soon as it finishes (if it's not yet saved).
   ///
   /// Then, the CloudSync will not start another cloud save process, until method
   /// [resumeCloudSync] is called.
@@ -490,27 +492,43 @@ class Store<St> {
   }
 
   /// Asks the [Persistor] to save the [initialState] in the local persistence.
+  /// If a save is running, it waits for it to finish first, so that it can't overwrite
+  /// the [initialState] later.
   Future<void> saveInitialStateInPersistence(St initialState) async =>
       _processPersistence?.saveInitialState(initialState);
 
   /// Asks the [CloudSync] to save the [initialState] in the cloud.
+  /// If a save is running, it waits for it to finish first, so that it can't overwrite
+  /// the [initialState] later.
   Future<void> saveInitialStateInCloud(St initialState) async =>
       _processCloudSync?.saveInitialState(initialState);
 
   /// Asks the [Persistor] to read the state from the local persistence.
   /// Important: If you use this, you MUST put this state into the store.
   /// The Persistor will assume that's the case, and will not work properly otherwise.
+  ///
+  /// If a save is running, it waits for it to finish first, so that it reads the saved
+  /// state. State changes made while the state is being read are saved after it's read.
   Future<St?> readStateFromPersistence() async => _processPersistence?.readState();
 
   /// Asks the [CloudSync] to read the state from the cloud.
   /// Important: If you use this, you MUST put this state into the store.
   /// The CloudSync will assume that's the case, and will not work properly otherwise.
+  ///
+  /// If a save is running, it waits for it to finish first, so that it reads the saved
+  /// state. State changes made while the state is being read are saved after it's read.
   Future<St?> readStateFromCloudSync() async => _processCloudSync?.readState();
 
-  /// Asks the [Persistor] to delete the saved state from the cloud.
+  /// Asks the [Persistor] to delete the saved state from the local persistence.
+  /// If a save is running, it waits for it to finish first, so that it can't put the
+  /// deleted state back. State changes made while the state is being deleted are saved
+  /// after it's deleted.
   Future<void> deleteStateFromPersistence() async => _processPersistence?.deleteState();
 
   /// Asks the [CloudSync] to delete the saved state from the cloud.
+  /// If a save is running, it waits for it to finish first, so that it can't put the
+  /// deleted state back. State changes made while the state is being deleted are saved
+  /// after it's deleted.
   Future<void> deleteStateFromCloud() async => _processCloudSync?.deleteState();
 
   /// Gets, from the [Persistor], the last state that was saved to the local persistence.

@@ -250,6 +250,10 @@ class PersistException implements Exception {
   int get hashCode => error.hashCode;
 }
 
+/// Dispatch this action to persist the state right away, ignoring the [Persistor.throttle].
+/// If a save is running, the state is persisted as soon as it finishes (still ignoring the
+/// throttle). It does nothing if the state is already persisted, or if the persistor
+/// is paused.
 class PersistAction<St> extends ReduxAction<St> {
   @override
   St? reduce() => null;

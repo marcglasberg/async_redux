@@ -22,6 +22,25 @@ Sponsored by [MyText.ai](https://mytext.ai)
   removes the lock it originally took, not a newer lock taken by a subsequent action after
   the throttle period expired.
 
+* Fix: If the state went back to the last persisted state object (for example, with an
+  undo) while a save was running, it was not saved again when that save finished. So the
+  saved state was the one before the undo, until the next state change.
+
+* Fix: `deleteStateFromPersistence()`, `saveInitialStateInPersistence()` and
+  `readStateFromPersistence()` (and their cloud-sync versions) now wait for a running save
+  to finish first. Before, the running save could finish later and put the deleted state
+  back, or overwrite the initial state. And the read could return the state before that
+  save, while the save then changed the last persisted state, so the next save got the
+  wrong `lastPersistedState`. State changes made while they run are saved after they
+  finish.
+
+* Fix: `persistAndPausePersistor()` (and `persistAndPauseCloudSync()`) called while a save
+  is running now saves the current state as soon as that save finishes. Before, it was
+  only saved when the persistor was resumed.
+
+* Fix: A `PersistAction` dispatched while a save is running now saves the state as soon
+  as that save finishes, ignoring the throttle. Before, it waited for the throttle.
+
 ## 29.2.2
 
 * Fix: When a sync action in `dispatchAndWaitAll()` failed, the actions after it in the
