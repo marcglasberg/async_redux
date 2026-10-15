@@ -13,14 +13,18 @@ import 'package:http/http.dart';
 
 late Store<AppState> store;
 
-/// This example shows how to use [WaitAction] in advanced ways.
-/// For this to work, the [AppState] must have a [wait] field of type [Wait],
-/// and this field must be in the [AppState.copy] method as a named parameter.
+/// This example shows how to use the action's `statusKey` to tell apart the actions
+/// of the same class, in `context.isWaiting()`.
 ///
-/// 10 buttons are shown. When a button is clicked it will be
-/// replaced by a downloaded text description. Each button shows a progress
-/// indicator while its description is downloading. The screen title shows
-/// the text "Downloading..." if any of the buttons is currently downloading.
+/// 10 buttons are shown. When a button is clicked it will be replaced by a downloaded
+/// text description. Each button shows a progress indicator while its own description
+/// is downloading. The screen title shows the text "Downloading..." if any of the
+/// buttons is currently downloading.
+///
+/// The action that downloads a description has an `index`, and its `statusKey` is that
+/// index. So, `context.isWaiting(GetDescriptionAction, statusKey: index)` is true only
+/// while the description of that index is downloading, while
+/// `context.isWaiting(GetDescriptionAction)` is true while any description is.
 ///
 void main() {
   var state = AppState.initialState();
@@ -28,37 +32,26 @@ void main() {
   runApp(MyApp());
 }
 
-/// The app state contains a [wait] object of type [Wait].
 @immutable
 class AppState {
   final IMap<int, String> descriptions;
-  final Wait wait;
 
-  AppState({required this.descriptions, required this.wait});
+  AppState({required this.descriptions});
 
-  /// The copy method has a named [wait] parameter of type [Wait].
-  AppState copy({int? counter, IMap<int, String>? descriptions, Wait? wait}) =>
-      AppState(
-        descriptions: descriptions ?? this.descriptions,
-        wait: wait ?? this.wait,
-      );
+  AppState copy({IMap<int, String>? descriptions}) =>
+      AppState(descriptions: descriptions ?? this.descriptions);
 
-  /// The [wait] parameter is instantiated to `Wait()`.
-  static AppState initialState() => AppState(
-        descriptions: const IMapConst({}),
-        wait: Wait(),
-      );
+  static AppState initialState() => AppState(descriptions: const IMapConst({}));
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is AppState &&
           runtimeType == other.runtimeType &&
-          descriptions == other.descriptions &&
-          wait == other.wait;
+          descriptions == other.descriptions;
 
   @override
-  int get hashCode => descriptions.hashCode ^ wait.hashCode;
+  int get hashCode => descriptions.hashCode;
 }
 
 class MyApp extends StatelessWidget {
@@ -71,9 +64,15 @@ class MyApp extends StatelessWidget {
 }
 
 class GetDescriptionAction extends ReduxAction<AppState> {
-  int index;
+  final int index;
 
   GetDescriptionAction(this.index);
+
+  /// The status key is the index. It must come from the action's own fields, and never
+  /// change. Then, `context.isWaiting(GetDescriptionAction, statusKey: index)` is true
+  /// only while the action for this index is running.
+  @override
+  Object? get statusKey => index;
 
   @override
   Future<AppState> reduce() async {
@@ -88,14 +87,6 @@ class GetDescriptionAction extends ReduxAction<AppState> {
 
     return state.copy(descriptions: state.descriptions.add(index, description));
   }
-
-  // The wait starts here. We use the index as a wait-flag reference.
-  @override
-  void before() => dispatch(WaitAction.add(index));
-
-  // The wait ends here. We remove the index from the wait-flag references.
-  @override
-  void after() => dispatch(WaitAction.remove(index));
 }
 
 class MyItem extends StatelessWidget {
@@ -108,13 +99,12 @@ class MyItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use context.select to get the description and waiting state for this specific index
+    // Use context.select to get the description for this specific index.
     var description =
         context.select((AppState state) => state.descriptions[index] ?? "");
 
-    /// If index is waiting, `state.wait.isWaiting(index)` returns true.
-    var waiting =
-        context.select((AppState state) => state.wait.isWaiting(index));
+    /// True only while the action for this index is running.
+    var waiting = context.isWaiting(GetDescriptionAction, statusKey: index);
 
     Widget contents;
 
@@ -149,8 +139,8 @@ class MyHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    /// If there is any waiting, `state.wait.isWaitingAny` will return true.
-    var waiting = context.select((AppState state) => state.wait.isWaitingAny);
+    /// Without a statusKey, true while the action is running for ANY index.
+    var waiting = context.isWaiting(GetDescriptionAction);
 
     return Stack(
       children: [
@@ -158,7 +148,7 @@ class MyHomePage extends StatelessWidget {
           appBar: AppBar(
               title: Text(waiting
                   ? "Downloading..."
-                  : "Advanced WaitAction Example 1")),
+                  : "Advanced Is Waiting Example 1")),
           body: ListView.builder(
             itemCount: 10,
             itemBuilder: (context, index) => MyItem(index: index),

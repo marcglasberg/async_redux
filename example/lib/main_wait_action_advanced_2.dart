@@ -13,9 +13,17 @@ import 'package:http/http.dart';
 
 late Store<AppState> store;
 
-/// This example is the same as the one in `main_wait_action_advanced_1.dart`.
-/// However, instead of only using flags in the [WaitAction], it uses both
-/// flags and references.
+/// This example is similar to the one in `main_wait_action_advanced_1.dart`.
+/// However, each row now has two buttons: one downloads the character's name, and the
+/// other its height. Both use the same action, `GetFieldAction`, with an `index` and a
+/// `field`. So the action's `statusKey` is a composite key, the record `(index, field)`:
+///
+/// ```
+/// Object? get statusKey => (index, field);
+/// ```
+///
+/// Records are compared by content, so `context.isWaiting(GetFieldAction,
+/// statusKey: (index, 'name'))` is true only while the name of that index is downloading.
 ///
 void main() {
   var state = AppState.initialState();
@@ -23,40 +31,25 @@ void main() {
   runApp(MyApp());
 }
 
-/// The app state contains a [wait] object of type [Wait].
 @immutable
 class AppState {
-  final IMap<int, String> descriptions;
-  final Wait wait;
+  /// The downloaded values, by `(index, field)`.
+  final IMap<(int, String), String> values;
 
-  AppState({
-    required this.descriptions,
-    required this.wait,
-  });
+  AppState({required this.values});
 
-  /// The copy method has a named [wait] parameter of type [Wait].
-  AppState copy({int? counter, IMap<int, String>? descriptions, Wait? wait}) =>
-      AppState(
-        descriptions: descriptions ?? this.descriptions,
-        wait: wait ?? this.wait,
-      );
+  AppState copy({IMap<(int, String), String>? values}) =>
+      AppState(values: values ?? this.values);
 
-  /// The [wait] parameter is instantiated to `Wait()`.
-  static AppState initialState() => AppState(
-        descriptions: const IMapConst({}),
-        wait: Wait(),
-      );
+  static AppState initialState() => AppState(values: const IMapConst({}));
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is AppState &&
-          runtimeType == other.runtimeType &&
-          descriptions == other.descriptions &&
-          wait == other.wait;
+      other is AppState && runtimeType == other.runtimeType && values == other.values;
 
   @override
-  int get hashCode => descriptions.hashCode ^ wait.hashCode;
+  int get hashCode => values.hashCode;
 }
 
 class MyApp extends StatelessWidget {
@@ -68,10 +61,16 @@ class MyApp extends StatelessWidget {
       ));
 }
 
-class GetDescriptionAction extends ReduxAction<AppState> {
-  int index;
+class GetFieldAction extends ReduxAction<AppState> {
+  final int index;
+  final String field;
 
-  GetDescriptionAction(this.index);
+  GetFieldAction(this.index, this.field);
+
+  /// A composite status key: a record with the index and the field. Records are
+  /// compared by content, so a new `(index, field)` created in the widget matches it.
+  @override
+  Object? get statusKey => (index, field);
 
   @override
   Future<AppState> reduce() async {
@@ -80,20 +79,12 @@ class GetDescriptionAction extends ReduxAction<AppState> {
       Uri.parse("https://swapi.dev/api/people/$index/"),
     );
     Map<String, dynamic> json = jsonDecode(response.body);
-    String description = json['name'] ?? 'Unknown character';
+    String value = json[field]?.toString() ?? 'Unknown';
 
     await Future.delayed(const Duration(seconds: 2)); // Adds some more delay.
 
-    return state.copy(descriptions: state.descriptions.add(index, description));
+    return state.copy(values: state.values.add((index, field), value));
   }
-
-  // The wait starts here. We use the index as a wait-flag reference.
-  @override
-  void before() => dispatch(WaitAction.add("button-download", ref: index));
-
-  // The wait ends here. We remove the index from the wait-flag references.
-  @override
-  void after() => dispatch(WaitAction.remove("button-download", ref: index));
 }
 
 class MyItem extends StatelessWidget {
@@ -106,35 +97,50 @@ class MyItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use context.select to get the description and waiting state for this specific index
-    var description =
-        context.select((AppState state) => state.descriptions[index] ?? "");
+    return Container(
+      height: 70,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          MyField(index: index, field: 'name'),
+          MyField(index: index, field: 'height'),
+        ],
+      ),
+    );
+  }
+}
 
-    /// If index is waiting, `state.wait.isWaiting("button-download", ref: index)` returns true.
-    var waiting = context.select((AppState state) =>
-        state.wait.isWaiting("button-download", ref: index));
+class MyField extends StatelessWidget {
+  final int index;
+  final String field;
 
-    Widget contents;
+  MyField({required this.index, required this.field, Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Use context.select to get the value for this specific index and field.
+    var value = context.select((AppState state) => state.values[(index, field)] ?? "");
+
+    /// True only while the action for this index AND field is running.
+    var waiting = context.isWaiting(GetFieldAction, statusKey: (index, field));
 
     if (waiting)
-      contents = _progressIndicator();
-    else if (description.isNotEmpty)
-      contents = _indexDescription(description);
+      return _progressIndicator();
+    else if (value.isNotEmpty)
+      return _value(value);
     else
-      contents = _button(context);
-
-    return Container(height: 70, child: Center(child: contents));
+      return _button(context);
   }
 
   MaterialButton _button(BuildContext context) => MaterialButton(
         color: Colors.blue,
-        child: Text("CLICK $index",
+        child: Text("${field.toUpperCase()} $index",
             style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
-        onPressed: () => dispatch(GetDescriptionAction(index)),
+        onPressed: () => dispatch(GetFieldAction(index, field)),
       );
 
-  Text _indexDescription(String description) => Text(description,
-      style: const TextStyle(fontSize: 15), textAlign: TextAlign.center);
+  Text _value(String value) =>
+      Text(value, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center);
 
   CircularProgressIndicator _progressIndicator() =>
       const CircularProgressIndicator(
@@ -147,8 +153,8 @@ class MyHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    /// If there is any waiting, `state.wait.isWaitingAny` will return true.
-    var waiting = context.select((AppState state) => state.wait.isWaitingAny);
+    /// Without a statusKey, true while the action is running for ANY index and field.
+    var waiting = context.isWaiting(GetFieldAction);
 
     return Stack(
       children: [
@@ -156,7 +162,7 @@ class MyHomePage extends StatelessWidget {
           appBar: AppBar(
               title: Text(waiting
                   ? "Downloading..."
-                  : "Advanced WaitAction Example 2")),
+                  : "Advanced Is Waiting Example 2")),
           body: ListView.builder(
             itemCount: 10,
             itemBuilder: (context, index) => MyItem(index: index),

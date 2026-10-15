@@ -7,6 +7,73 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
 
+## 29.3.0
+
+* New **`statusKey`** getter on actions, to tell apart the actions of the same class in
+  `isWaiting`, `isFailed`, `exceptionFor` and `clearExceptionFor` (in the store, in actions,
+  in `context.isWaiting()` and the other `BuildContext` extensions, and in view-models).
+  Override it to return a value made from the action's own fields, like
+  `Object? get statusKey => userId;`, and pass the same value in the new named parameter:
+  `context.isWaiting(LoadUser, statusKey: userId)`. Without the parameter, the methods
+  consider all actions of the type, as before. The key must always return the same value for
+  the same action. Use a record, like `(userId, cartId)`, for a composite key.
+
+  - `clearExceptionFor(LoadUser, statusKey: userId)` clears one key, and
+    `clearExceptionFor(LoadUser)` clears all keys of the type. New `clearAllExceptions()`
+    (store and action) clears all types. `store.internalMixinProps.clear()` (the usual
+    logout call) and `store.shutdown()` now call it, so the failures of the previous user
+    don't stay in memory.
+  - For each failure, the store keeps only the action type, its `statusKey` and the error.
+    Without `statusKey` there is at most one record per action class; with it, one per key
+    that failed, replaced when the same key fails again and removed when an action with that
+    key is dispatched again.
+
+* **Deprecated** `Wait`, `WaitAction`, `WaitOperation` and `WaitReducer`. Use `statusKey`
+  instead: the "flag" is the action type, and the "ref" is the `statusKey`. Where you had
+  `dispatch(WaitAction.add(index))` in `before` and `dispatch(WaitAction.remove(index))` in
+  `after`, now you only write `Object? get statusKey => index;` in the action, and where you
+  had `state.wait.isWaiting(index)` you write `context.isWaiting(MyAction, statusKey: index)`.
+  Nothing needs to be added to the state, and nothing is left behind when the action fails.
+  The `Wait` classes still work, but will be removed in a future version.
+
+* Fix: a widget that calls only `isFailed` or `exceptionFor` (not `isWaiting`) for an action
+  type is now rebuilt when an action of that type fails with a `UserException.noDialog`, or
+  with any error that is not a `UserException`. Before, it was only rebuilt when the
+  exception opened a dialog, or when the widget also called `isWaiting`.
+
+* New `shouldRetry(error, attempt)` method in the `Retry` and `UnlimitedRetryCheckInternet`
+  mixins, to give up retrying on some errors. By default, every error is retried, including
+  `UserException`s. Override `shouldRetry` to return `false` for errors that will fail again
+  anyway (like a 404 or a 401), and the action fails right away with that error. It's called
+  after each failed attempt that still has retries left, with the error and the attempt
+  number (starting at 1). With `UnlimitedRetryCheckInternet`, it's the only way to stop a
+  permanent error from being retried forever, and it's not called when there is no internet.
+  With `OptimisticCommand` combined with `Retry`, it's called after each failed
+  `sendCommandToServer`, and the command then rolls back and fails right away.
+
+  ```dart
+  class LoadUser extends ReduxAction<AppState> with Retry {
+    @override
+    bool shouldRetry(Object error, int attempt) => error is! NotFoundException;
+    ...
+  }
+  ```
+
+* Fix: The `Retry` and `UnlimitedRetryCheckInternet` mixins, and `OptimisticCommand` combined
+  with `Retry`, no longer retry an `AbortDispatchException`. Before, an action that aborted
+  itself by throwing an `AbortDispatchException` from `reduce` (or from `sendCommandToServer`)
+  was retried like any other error. Now it's aborted right away, and `shouldRetry` is not
+  called for it.
+
+* Fix: `isFailed` is now `true` when the action failed with **any** error. Note, 
+  `exceptionFor` still returns only a `UserException`, or `null` for other errors.
+  Errors swallowed by `wrapError` or the `GlobalErrorObserver`, and
+  `AbortDispatchException`, still don't count as failures.
+
+* The store now keeps, for each failed action type, only the error, instead of the whole
+  action object. The action and everything it holds can now be garbage collected as soon as
+  it finishes.
+
 ## 29.2.3
 
 * Fix: `store.internalMixinProps.clear()` (and `store.shutdown()`, which calls it) now

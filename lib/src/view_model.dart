@@ -387,10 +387,16 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// dispatch(BuyAction());
   /// if (isWaiting([BuyAction, SellAction])) { // Show a spinner }
   /// ```
-  bool isWaiting(Object actionOrTypeOrList) =>
-      _store.isWaiting(actionOrTypeOrList);
+  ///
+  /// Pass [statusKey] to consider only the actions with that [ReduxAction.statusKey]:
+  /// `isWaiting(LoadUser, statusKey: userId)`.
+  bool isWaiting(Object actionOrTypeOrList, {Object? statusKey}) =>
+      _store.isWaiting(actionOrTypeOrList, statusKey: statusKey);
 
-  /// Returns true if an action of the given type failed with a [UserException].
+  /// Returns true if an action of the given type failed, with any error, not only with a
+  /// [UserException]. Use [exceptionFor] to get the error, if it was a [UserException].
+  /// An error swallowed by `wrapError` or the `GlobalErrorObserver` (they returned null),
+  /// and an [AbortDispatchException], don't count as failures.
   ///
   /// [actionTypeOrList] can be an action [Type], or an Iterable of action types, in
   /// which case it returns true if any of them failed. Note it does NOT accept an
@@ -398,16 +404,25 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
-  bool isFailed(Object actionTypeOrList) => _store.isFailed(actionTypeOrList);
+  ///
+  /// Pass [statusKey] to consider only the failures with that [ReduxAction.statusKey]:
+  /// `isFailed(LoadUser, statusKey: userId)`.
+  bool isFailed(Object actionTypeOrList, {Object? statusKey}) =>
+      _store.isFailed(actionTypeOrList, statusKey: statusKey);
 
-  /// Returns the [UserException] of the [actionTypeOrList] that failed.
+  /// Returns the [UserException] of the [actionTypeOrList] that failed. Returns null if
+  /// it didn't fail, or if it failed with an error that is not a [UserException] (in
+  /// that case, [isFailed] is still true).
   ///
   /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
-  UserException? exceptionFor(Object actionTypeOrList) =>
-      _store.exceptionFor(actionTypeOrList);
+  ///
+  /// Pass [statusKey] to get the exception of the failure with that
+  /// [ReduxAction.statusKey]: `exceptionFor(LoadUser, statusKey: userId)`.
+  UserException? exceptionFor(Object actionTypeOrList, {Object? statusKey}) =>
+      _store.exceptionFor(actionTypeOrList, statusKey: statusKey);
 
   /// Removes the given [actionTypeOrList] from the list of action types that failed.
   ///
@@ -418,8 +433,12 @@ abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
-  void clearExceptionFor(Object actionTypeOrList) =>
-      _store.clearExceptionFor(actionTypeOrList);
+  ///
+  /// Pass [statusKey] to clear only the failure with that [ReduxAction.statusKey]:
+  /// `clearExceptionFor(LoadUser, statusKey: userId)`. Without it, all the failures of
+  /// the type are cleared, whatever their keys.
+  void clearExceptionFor(Object actionTypeOrList, {Object? statusKey}) =>
+      _store.clearExceptionFor(actionTypeOrList, statusKey: statusKey);
 
   /// Returns a future which will complete when the given state [condition] is true.
   /// If the condition is already true when the method is called, the future completes immediately.

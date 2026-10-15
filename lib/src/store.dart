@@ -1372,7 +1372,7 @@ class Store<St> {
   /// Properties used internally by the provided mixins.
   /// You should not use this directly.
   @internal
-  final internalMixinProps = _InternalMixinProps();
+  late final internalMixinProps = _InternalMixinProps(onClear: clearAllExceptions);
 
   /// If you are running tests, you can change [forceInternetOnOffSimulation] to
   /// simulate the internet connection as ON or OFF for the provided mixins
@@ -1660,12 +1660,13 @@ class Store<St> {
 
     bool theUIHasAlreadyUpdated = false;
 
-    // Dispatch is starting, so we always remove the action from the list of failed actions,
-    // even if nobody checked it yet. Otherwise, checking it later would show a stale error.
-    var removedAction = _failedActions.remove(action.runtimeType);
+    // Dispatch is starting, so we always remove the failure of this action type and
+    // statusKey, even if nobody checked it yet. Otherwise, checking it later would show a
+    // stale error.
+    bool removedFailure = _removeFailure(action.runtimeType, action.statusKey);
 
     // Then we notify the UI. Note we don't notify if the action was never checked.
-    if (fallible && removedAction != null) {
+    if (fallible && removedFailure) {
       theUIHasAlreadyUpdated = true;
       _changeController.add(state);
     }
@@ -1750,15 +1751,20 @@ class Store<St> {
   /// dispatch(BuyAction());
   /// if (store.isWaiting([BuyAction, SellAction])) { // Show a spinner }
   /// ```
-  bool isWaiting(Object actionOrTypeOrList) {
+  ///
+  /// Pass [statusKey] to consider only the actions of the type with that
+  /// [ReduxAction.statusKey]: `isWaiting(LoadUser, statusKey: userId)`. Without it, all
+  /// actions of the type are considered, whatever their keys. The [statusKey] is not used
+  /// when you pass an ACTION, since then that exact action is checked.
+  bool isWaiting(Object actionOrTypeOrList, {Object? statusKey}) {
     //
     // 1) If a type was passed:
     if (actionOrTypeOrList is Type) {
       _awaitableActions.add(actionOrTypeOrList);
-      return _actionsInProgress.any((action) => action.runtimeType == actionOrTypeOrList);
+      return _isWaitingType(actionOrTypeOrList, statusKey);
     }
     //
-    // 2) If an action was passed:
+    // 2) If an action was passed (the statusKey is not used: that action is checked):
     else if (actionOrTypeOrList is ReduxAction) {
       _awaitableActions.add(actionOrTypeOrList.runtimeType);
       return _actionsInProgress.contains(actionOrTypeOrList);
@@ -1774,10 +1780,9 @@ class Store<St> {
         if (actionOrType is Type) {
           _awaitableActions.add(actionOrType);
 
-          // 3.2.1) Is waiting if any of the actions in progress has that exact type.
-          if (!isWaiting)
-            isWaiting =
-                _actionsInProgress.any((action) => action.runtimeType == actionOrType);
+          // 3.2.1) Is waiting if any of the actions in progress has that exact type
+          // (and the statusKey, if given).
+          if (!isWaiting) isWaiting = _isWaitingType(actionOrType, statusKey);
         }
         //
         // 3.3) If it's an action.
@@ -1814,7 +1819,15 @@ class Store<St> {
     }
   }
 
-  /// Returns true if an action of the given type failed with a [UserException].
+  /// Returns true if some action in progress has the exact [type], and, when [statusKey]
+  /// is not null, also that [ReduxAction.statusKey].
+  bool _isWaitingType(Type type, Object? statusKey) => _actionsInProgress.any((action) =>
+      action.runtimeType == type && (statusKey == null || action.statusKey == statusKey));
+
+  /// Returns true if an action of the given type failed, with any error, not only with a
+  /// [UserException]. Use [exceptionFor] to get the error, if it was a [UserException].
+  /// An error swallowed by `wrapError` or the `GlobalErrorObserver` (they returned null),
+  /// and an [AbortDispatchException], don't count as failures.
   ///
   /// [actionTypeOrList] can be an action [Type], or an Iterable of action types, in
   /// which case it returns true if any of them failed. Note it does NOT accept an
@@ -1822,9 +1835,52 @@ class Store<St> {
   /// and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
-  bool isFailed(Object actionTypeOrList) => exceptionFor(actionTypeOrList) != null;
+  ///
+  /// Pass [statusKey] to consider only the failures with that [ReduxAction.statusKey]:
+  /// `isWaiting(LoadUser, statusKey: userId)`. Without it, all actions of the type are
+  /// considered, whatever their keys.
+  bool isFailed(Object actionTypeOrList, {Object? statusKey}) {
+    //
+    // 1) If a type was passed:
+    if (actionTypeOrList is Type) {
+      _actionsWeCanCheckFailed.add(actionTypeOrList);
+      return _hasFailure(actionTypeOrList, statusKey);
+    }
+    //
+    // 2) If a list was passed:
+    else if (actionTypeOrList is Iterable) {
+      bool result = false;
+      for (var actionType in actionTypeOrList) {
+        if (actionType is Type) {
+          // Doesn't stop at the first failure, because all types must be added here.
+          _actionsWeCanCheckFailed.add(actionType);
+          if (_hasFailure(actionType, statusKey)) result = true;
+        } else {
+          Future.microtask(() {
+            throw StoreException(
+                "You can't do isFailed([${actionTypeOrList.runtimeType}]), "
+                "but only an action Type, or a List of types.");
+          });
+        }
+      }
+      return result;
+    }
+    // 3) If something different was passed, it's an error. We show the error after the
+    // async gap, so we don't interrupt the code. But we return false.
+    else {
+      Future.microtask(() {
+        throw StoreException(
+            "You can't do isFailed(${actionTypeOrList.runtimeType}), "
+            "but only an action Type, or a List of types.");
+      });
 
-  /// Returns the [UserException] of the [actionTypeOrList] that failed.
+      return false;
+    }
+  }
+
+  /// Returns the [UserException] of the [actionTypeOrList] that failed. Returns null if
+  /// it didn't fail, or if it failed with an error that is not a [UserException] (in
+  /// that case, [isFailed] is still true).
   ///
   /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
   /// of object will return null and throw a [StoreException] after the async gap.
@@ -1833,14 +1889,17 @@ class Store<St> {
   /// failed, or null if none failed.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
-  UserException? exceptionFor(Object actionTypeOrList) {
+  ///
+  /// Pass [statusKey] to get the exception of the failure with that
+  /// [ReduxAction.statusKey]: `exceptionFor(LoadUser, statusKey: userId)`. Without it, if
+  /// actions with different keys failed, you get the [UserException] of the most recent
+  /// failure.
+  UserException? exceptionFor(Object actionTypeOrList, {Object? statusKey}) {
     //
     // 1) If a type was passed:
     if (actionTypeOrList is Type) {
       _actionsWeCanCheckFailed.add(actionTypeOrList);
-      var action = _failedActions[actionTypeOrList];
-      var error = action?.status.wrappedError;
-      return (error is UserException) ? error : null;
+      return _userExceptionFor(actionTypeOrList, statusKey);
     }
     //
     // 2) If a list was passed:
@@ -1850,10 +1909,7 @@ class Store<St> {
         if (actionType is Type) {
           // Doesn't stop at the first exception, because all types must be added here.
           _actionsWeCanCheckFailed.add(actionType);
-          if (result == null) {
-            var error = _failedActions[actionType]?.status.wrappedError;
-            if (error is UserException) result = error;
-          }
+          result ??= _userExceptionFor(actionType, statusKey);
         } else {
           Future.microtask(() {
             throw StoreException(
@@ -1886,12 +1942,15 @@ class Store<St> {
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
-  void clearExceptionFor(Object actionTypeOrList) {
+  ///
+  /// Pass [statusKey] to clear only the failure with that [ReduxAction.statusKey]:
+  /// `clearExceptionFor(LoadUser, statusKey: userId)`. Without it, all the failures of
+  /// the type are cleared, whatever their keys.
+  void clearExceptionFor(Object actionTypeOrList, {Object? statusKey}) {
     //
     // 1) If a type was passed:
     if (actionTypeOrList is Type) {
-      var result = _failedActions.remove(actionTypeOrList);
-      if (result != null) _changeController.add(state);
+      if (_clearFailures(actionTypeOrList, statusKey)) _changeController.add(state);
     }
     //
     // 2) If a list was passed:
@@ -1899,7 +1958,7 @@ class Store<St> {
       bool removedAny = false;
       for (var actionType in actionTypeOrList) {
         if (actionType is Type) {
-          if (_failedActions.remove(actionType) != null) removedAny = true;
+          if (_clearFailures(actionType, statusKey)) removedAny = true;
         } else {
           Future.microtask(() {
             throw StoreException(
@@ -1920,6 +1979,68 @@ class Store<St> {
       });
     }
   }
+
+  /// Clears the failures of all action types, so that [isFailed] is false and
+  /// [exceptionFor] is null for all of them. The widgets that use them are rebuilt.
+  ///
+  /// You rarely need to call this yourself, since `store.internalMixinProps.clear()`
+  /// (which you call on logout) and [shutdown] already call it. The failures kept for
+  /// actions with a [ReduxAction.statusKey] (one per key that failed) are also released
+  /// here.
+  void clearAllExceptions() {
+    if (_failedActions.isEmpty) return;
+    _failedActions.clear();
+    _changeController.add(state);
+  }
+
+  /// Returns true if some action of the exact [type] failed, and, when [statusKey] is not
+  /// null, with that [ReduxAction.statusKey].
+  bool _hasFailure(Type type, Object? statusKey) {
+    var failures = _failedActions[type];
+    if (failures == null) return false;
+    if (statusKey == null) return true;
+    return failures.any((failure) => failure.statusKey == statusKey);
+  }
+
+  /// The [UserException] of the failure of [type] with [statusKey]. When [statusKey] is
+  /// null, the [UserException] of the most recent failure of the type, skipping the
+  /// failures with other kinds of errors. Returns null if there is none.
+  UserException? _userExceptionFor(Type type, Object? statusKey) {
+    var failures = _failedActions[type];
+    if (failures == null) return null;
+    for (int i = failures.length - 1; i >= 0; i--) {
+      var failure = failures[i];
+      if (statusKey != null && failure.statusKey != statusKey) continue;
+      var error = failure.error;
+      if (error is UserException) return error;
+      if (statusKey != null) return null;
+    }
+    return null;
+  }
+
+  /// Records a failure, replacing the previous one of the same [type] and [statusKey].
+  void _addFailure(Type type, Object? statusKey, Object error) {
+    _removeFailure(type, statusKey);
+    (_failedActions[type] ??= []).add(_Failure(statusKey, error));
+  }
+
+  /// Removes the failure of the exact [type] and [statusKey]. Returns true if there was
+  /// one.
+  bool _removeFailure(Type type, Object? statusKey) {
+    var failures = _failedActions[type];
+    if (failures == null) return false;
+    var index = failures.indexWhere((failure) => failure.statusKey == statusKey);
+    if (index == -1) return false;
+    failures.removeAt(index);
+    if (failures.isEmpty) _failedActions.remove(type);
+    return true;
+  }
+
+  /// Removes the failure of [type] with [statusKey], or all the failures of [type] when
+  /// [statusKey] is null. Returns true if something was removed.
+  bool _clearFailures(Type type, Object? statusKey) => (statusKey == null)
+      ? _failedActions.remove(type) != null
+      : _removeFailure(type, statusKey);
 
   /// We check the return type of methods `before` and `reduce` to decide if the
   /// reducer is synchronous or asynchronous. It's important to run the reducer
@@ -2231,17 +2352,21 @@ class Store<St> {
   /// This helps to know when to rebuild to make [isWaiting] work.
   final Set<Type> _awaitableActions = HashSet<Type>.identity();
 
-  /// The async actions that have failed recently.
-  /// When an action fails by throwing an UserException, it's added to this map (indexed by its
-  /// action type), and removed when it's dispatched.
-  /// Use [isFailed], [exceptionFor] and [clearExceptionFor] to know if you should display
-  /// some error message due to an action failure.
+  /// The failures of the actions that have failed recently, indexed by the action type.
+  /// When an action fails with any error (that was not swallowed, and is not an
+  /// `AbortDispatchException`), its error is added here together with the action's
+  /// `statusKey`. Only the type, the key and the error are kept, not the action, so that
+  /// it doesn't stay in memory. A failure is removed when an action of the same type and
+  /// `statusKey` is dispatched again, by [clearExceptionFor], or by [clearAllExceptions]
+  /// (which `internalMixinProps.clear()` and [shutdown] call). Use [isFailed],
+  /// [exceptionFor] and [clearExceptionFor] to know if you should display some error
+  /// message due to an action failure.
   ///
   /// Note: Throwing an UserException can show a modal dialog to the user, and also show the error
   /// as a message in the UI. If you don't want to show the dialog you can use the `noDialog`
   /// getter in the error message: `throw UserException('Invalid input').noDialog`.
   ///
-  final Map<Type, ReduxAction<St>> _failedActions = HashMap<Type, ReduxAction<St>>();
+  final Map<Type, List<_Failure>> _failedActions = HashMap<Type, List<_Failure>>();
 
   /// Async actions that we may put into [_failedActions].
   /// This helps to know when to rebuild to make [isWaiting] work.
@@ -2293,8 +2418,11 @@ class Store<St> {
 
     action._status = action._status.copy(wrappedError: errorOrNull);
 
-    // Memorizes the action that failed. We'll remove it when it's dispatched again.
-    _failedActions[action.runtimeType] = action;
+    // Memorizes the failure (action type, statusKey and error). It's removed when an
+    // action of the same type and statusKey is dispatched again. An error that was
+    // swallowed (null), or an abort, doesn't count as a failure.
+    if (errorOrNull != null && errorOrNull is! AbortDispatchException)
+      _addFailure(action.runtimeType, action.statusKey, errorOrNull);
 
     afterWasRun.value = true;
     _after(action);
@@ -2369,7 +2497,12 @@ class Store<St> {
 
     // If we'll not be notifying, it's possible we need to trigger the change controller, when the
     // action is awaitable (that is to say, when we have already called `isWaiting` for this action).
-    if (_awaitableActions.contains(action.runtimeType) && ((error != null) || !notify)) {
+    // Also when the action failed and we have already called `isFailed` or `exceptionFor`
+    // for it, so that the widgets showing the failure are rebuilt (a UserException that
+    // opens a dialog already notified, but a `noDialog` one or any other error did not).
+    bool awaitable = _awaitableActions.contains(action.runtimeType);
+    bool fallible = _actionsWeCanCheckFailed.contains(action.runtimeType);
+    if ((awaitable && ((error != null) || !notify)) || (fallible && (error != null))) {
       _changeController.add(state);
     }
 
@@ -2708,6 +2841,12 @@ typedef OptimisticSyncWithPushRevisionEntry = ({
 /// Some properties used by the Mixins. These are scoped to the store, so they
 /// reset when the store is recreated, for example during tests.
 class _InternalMixinProps {
+  /// Called at the end of [clear]. The store uses it to also clear the failures it keeps
+  /// for `isFailed` and `exceptionFor`.
+  final void Function()? onClear;
+
+  _InternalMixinProps({this.onClear});
+
   final Map<Object?, DateTime> throttleLockMap = {};
   final Map<Object?, (DateTime, Object)> freshKeyMap = {};
   final Map<Object?, int> debounceLockMap = {};
@@ -2753,6 +2892,7 @@ class _InternalMixinProps {
     for (final cycle in pollingMap.values) cycle.timer?.cancel();
     pollingMap.clear();
     _discardSequentialQueues();
+    onClear?.call();
   }
 
   /// Discards the actions waiting in all Sequential queues (all but the first
@@ -2957,4 +3097,13 @@ class GlobalErrorObserverForDevelopment<St> extends GlobalErrorObserver<St> {
 class SwallowGlobalErrorObserver<St> extends GlobalErrorObserver<St> {
   @override
   Object? observe() => null;
+}
+
+/// One failure kept for [Store.isFailed] and [Store.exceptionFor]: the action's
+/// `statusKey` and its error.
+class _Failure {
+  final Object? statusKey;
+  final Object error;
+
+  _Failure(this.statusKey, this.error);
 }

@@ -13,28 +13,16 @@ import 'package:http/http.dart';
 late Store<AppState> store;
 
 /// This example is the same as the one in `main_before_and_after.dart`.
-/// However, instead of declaring a `MyWaitAction`, it uses the build-in
-/// [WaitAction].
-///
-/// For this to work, the [AppState] must have a [wait] field of type [Wait],
-/// and this field must be in the [AppState.copy] method as a named parameter.
-///
-/// While the async process is running, the action's `before` method will
-/// add the action itself as a wait-flag reference:
+/// However, instead of declaring a `MyWaitAction` that puts a boolean flag in the
+/// state, the view-model factory simply asks the store if the action is running:
 ///
 /// ```
-/// void before() => dispatch(WaitAction.add(this));
+/// isWaiting: isWaiting(IncrementAndGetDescriptionAction),
 /// ```
 ///
-/// The [ViewModel] will read this info from `state.wait.isWaitingAny` to
-/// turn on the modal barrier.
-///
-/// When the async process finishes, the action's before method will
-/// remove the action from the wait-flag set:
-///
-/// ```
-/// void after() => dispatch(WaitAction.remove(this));
-/// ```
+/// While the async action `IncrementAndGetDescriptionAction` is running, `isWaiting`
+/// is true, and the widget shows a modal barrier. Nothing needs to be added to the
+/// state, and nothing needs to be cleaned up when the action finishes or fails.
 ///
 void main() {
   var state = AppState.initialState();
@@ -42,32 +30,22 @@ void main() {
   runApp(MyApp());
 }
 
-/// The app state contains a [wait] object of type [Wait].
 @immutable
 class AppState {
   final int counter;
   final String description;
-  final Wait wait;
 
   AppState({
     required this.counter,
     required this.description,
-    required this.wait,
   });
 
-  /// The copy method has a named [wait] parameter of type [Wait].
-  AppState copy({int? counter, String? description, Wait? wait}) => AppState(
+  AppState copy({int? counter, String? description}) => AppState(
         counter: counter ?? this.counter,
         description: description ?? this.description,
-        wait: wait ?? this.wait,
       );
 
-  /// The [wait] parameter is instantiated to `Wait()`.
-  static AppState initialState() => AppState(
-        counter: 0,
-        description: "",
-        wait: Wait(),
-      );
+  static AppState initialState() => AppState(counter: 0, description: "");
 
   @override
   bool operator ==(Object other) =>
@@ -75,11 +53,10 @@ class AppState {
       other is AppState &&
           runtimeType == other.runtimeType &&
           counter == other.counter &&
-          description == other.description &&
-          wait == other.wait;
+          description == other.description;
 
   @override
-  int get hashCode => counter.hashCode ^ description.hashCode ^ wait.hashCode;
+  int get hashCode => counter.hashCode ^ description.hashCode;
 }
 
 class MyApp extends StatelessWidget {
@@ -90,19 +67,7 @@ class MyApp extends StatelessWidget {
       );
 }
 
-/// Use it like this:
-/// `class MyAction extends ReduxAction<AppState> with WithWaitState`
-mixin WithWaitState implements ReduxAction<AppState> {
-  // Wait starts here. Add the action itself (`this`) as a wait-flag reference.
-  @override
-  void before() => dispatch(WaitAction.add(this));
-
-  // Wait ends here. Remove the action from the wait-flag references.
-  @override
-  void after() => dispatch(WaitAction.remove(this));
-}
-
-class IncrementAndGetDescriptionAction extends ReduxAction<AppState> with WithWaitState {
+class IncrementAndGetDescriptionAction extends ReduxAction<AppState> {
   @override
   Future<AppState> reduce() async {
     dispatch(IncrementAction(amount: 1));
@@ -156,7 +121,7 @@ class Factory extends VmFactory<AppState, MyHomePageConnector, ViewModel> {
 
         /// While action `IncrementAndGetDescriptionAction` is running,
         /// [isWaiting] will be true.
-        isWaiting: state.wait.isWaitingForType<IncrementAndGetDescriptionAction>(),
+        isWaiting: isWaiting(IncrementAndGetDescriptionAction),
 
         onIncrement: () => dispatch(IncrementAndGetDescriptionAction()),
       );
@@ -196,7 +161,7 @@ class MyHomePage extends StatelessWidget {
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(title: const Text('Wait Action Example')),
+          appBar: AppBar(title: const Text('Is Waiting Example')),
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

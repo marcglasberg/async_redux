@@ -1,6 +1,8 @@
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
+// ignore_for_file: deprecated_member_use_from_same_package
+
 import 'package:flutter/widgets.dart';
 
 import '../async_redux.dart';
@@ -41,6 +43,10 @@ import '../async_redux.dart';
 /// 5) Don't use the [WaitAction], but instead create your own `MyWaitAction`
 /// that uses the [Wait] object in whatever way you want.
 ///
+@Deprecated('Use the `statusKey` getter of the action, and the `statusKey` parameter of '
+    '`isWaiting`, `isFailed`, `exceptionFor` and `clearExceptionFor`. The "flag" is the '
+    'action type, and the "ref" is the `statusKey`. '
+    'See https://asyncredux.com/flutter/miscellaneous/advanced-waiting')
 class WaitAction<St> extends ReduxAction<St> {
   //
 
@@ -199,6 +205,10 @@ class WaitAction<St> extends ReduxAction<St> {
       'ref: ${ref.toStringLimited()})';
 }
 
+@Deprecated('Use the `statusKey` getter of the action, and the `statusKey` parameter of '
+    '`isWaiting`, `isFailed`, `exceptionFor` and `clearExceptionFor`. The "flag" is the '
+    'action type, and the "ref" is the `statusKey`. '
+    'See https://asyncredux.com/flutter/miscellaneous/advanced-waiting')
 typedef WaitReducer<St> = St? Function(
   St? state,
   WaitOperation operation,

@@ -88,6 +88,7 @@ class ConsoleActionObserver<St> extends ActionObserver<St> {
   /// Callback that chooses the color to print in the console.
   static String Function(ReduxAction action) color = //
       (ReduxAction action) => //
+          // ignore: deprecated_member_use_from_same_package
           (action is WaitAction || action is NavigateAction) //
               ? green
               : yellow;

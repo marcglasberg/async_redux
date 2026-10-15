@@ -391,6 +391,22 @@ class LoadText extends Action with Retry, UnlimitedRetries {
 }
 ```
 
+By default, every error is retried, including `UserException`s. To give up on errors
+that will fail again anyway (like a 404 or a 401), override `shouldRetry`. The action
+then fails right away with that error:
+
+```dart
+class LoadText extends Action with Retry {
+  @override
+  bool shouldRetry(Object error, int attempt) => error is! NotFoundException;
+   ...
+}
+```
+
+`shouldRetry` also works with `UnlimitedRetryCheckInternet` (see below), where it's the
+only way to stop an action that would otherwise retry forever, and with
+`OptimisticCommand` combined with `Retry`.
+
 &nbsp;
 
 ## UnlimitedRetryCheckInternet

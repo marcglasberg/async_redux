@@ -13,9 +13,17 @@ import 'package:http/http.dart';
 
 late Store<AppState> store;
 
-/// This example is the same as the one in `main_wait_action_advanced_1__store_connector.dart`.
-/// However, instead of only using flags in the [WaitAction], it uses both
-/// flags and references.
+/// This example is similar to the one in `main_wait_action_advanced_1__store_connector.dart`.
+/// However, each row now has two buttons: one downloads the character's name, and the
+/// other its height. Both use the same action, `GetFieldAction`, with an `index` and a
+/// `field`. So the action's `statusKey` is a composite key, the record `(index, field)`:
+///
+/// ```
+/// Object? get statusKey => (index, field);
+/// ```
+///
+/// Records are compared by content, so `isWaiting(GetFieldAction, statusKey: (index, 'name'))`
+/// in the view-model factory is true only while the name of that index is downloading.
 ///
 void main() {
   var state = AppState.initialState();
@@ -23,39 +31,25 @@ void main() {
   runApp(MyApp());
 }
 
-/// The app state contains a [wait] object of type [Wait].
 @immutable
 class AppState {
-  final IMap<int, String> descriptions;
-  final Wait wait;
+  /// The downloaded values, by `(index, field)`.
+  final IMap<(int, String), String> values;
 
-  AppState({
-    required this.descriptions,
-    required this.wait,
-  });
+  AppState({required this.values});
 
-  /// The copy method has a named [wait] parameter of type [Wait].
-  AppState copy({int? counter, IMap<int, String>? descriptions, Wait? wait}) => AppState(
-        descriptions: descriptions ?? this.descriptions,
-        wait: wait ?? this.wait,
-      );
+  AppState copy({IMap<(int, String), String>? values}) =>
+      AppState(values: values ?? this.values);
 
-  /// The [wait] parameter is instantiated to `Wait()`.
-  static AppState initialState() => AppState(
-        descriptions: const IMapConst({}),
-        wait: Wait(),
-      );
+  static AppState initialState() => AppState(values: const IMapConst({}));
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is AppState &&
-          runtimeType == other.runtimeType &&
-          descriptions == other.descriptions &&
-          wait == other.wait;
+      other is AppState && runtimeType == other.runtimeType && values == other.values;
 
   @override
-  int get hashCode => descriptions.hashCode ^ wait.hashCode;
+  int get hashCode => values.hashCode;
 }
 
 class MyApp extends StatelessWidget {
@@ -67,33 +61,30 @@ class MyApp extends StatelessWidget {
       ));
 }
 
-class GetDescriptionAction extends ReduxAction<AppState> {
-  int index;
+class GetFieldAction extends ReduxAction<AppState> {
+  final int index;
+  final String field;
 
-  GetDescriptionAction(this.index);
+  GetFieldAction(this.index, this.field);
+
+  /// A composite status key: a record with the index and the field. Records are
+  /// compared by content, so a new `(index, field)` created in the factory matches it.
+  @override
+  Object? get statusKey => (index, field);
 
   @override
   Future<AppState> reduce() async {
-
     // Then, we start and wait for some asynchronous process.
     Response response = await get(
       Uri.parse("https://swapi.dev/api/people/$index/"),
     );
     Map<String, dynamic> json = jsonDecode(response.body);
-    String description = json['name'] ?? 'Unknown character';
+    String value = json[field]?.toString() ?? 'Unknown';
 
     await Future.delayed(const Duration(seconds: 2)); // Adds some more delay.
 
-    return state.copy(descriptions: state.descriptions.add(index, description));
+    return state.copy(values: state.values.add((index, field), value));
   }
-
-  // The wait starts here. We use the index as a wait-flag reference.
-  @override
-  void before() => dispatch(WaitAction.add("button-download", ref: index));
-
-  // The wait ends here. We remove the index from the wait-flag references.
-  @override
-  void after() => dispatch(WaitAction.remove("button-download", ref: index));
 }
 
 /// This widget is a connector. It connects the store to "dumb-widget".
@@ -105,7 +96,7 @@ class MyHomePageConnector extends StatelessWidget {
     return StoreConnector<AppState, PageViewModel>(
       vm: () => PageVmFactory(this),
       builder: (BuildContext context, PageViewModel vm) => MyHomePage(
-        onGetDescription: vm.onGetDescription,
+        onGetField: vm.onGetField,
         waiting: vm.waiting,
       ),
     );
@@ -118,108 +109,109 @@ class PageVmFactory extends VmFactory<AppState, MyHomePageConnector, PageViewMod
 
   @override
   PageViewModel fromStore() => PageViewModel(
-        /// If there is any waiting, `state.wait.isWaitingAny` will return true.
-        waiting: state.wait.isWaitingAny,
+        /// Without a statusKey, true while the action is running for ANY index and field.
+        waiting: isWaiting(GetFieldAction),
 
-        onGetDescription: (int index) => dispatch(GetDescriptionAction(index)),
+        onGetField: (int index, String field) => dispatch(GetFieldAction(index, field)),
       );
 }
 
 class PageViewModel extends Vm {
   final bool waiting;
-  final void Function(int) onGetDescription;
+  final void Function(int, String) onGetField;
 
   PageViewModel({
     required this.waiting,
-    required this.onGetDescription,
+    required this.onGetField,
   }) : super(equals: [waiting]);
 }
 
 /// This widget is a connector. It connects the store to "dumb-widget".
-class MyItemConnector extends StatelessWidget {
+class MyFieldConnector extends StatelessWidget {
   final int index;
-  final void Function(int) onGetDescription;
+  final String field;
+  final void Function(int, String) onGetField;
 
-  MyItemConnector({
+  MyFieldConnector({
     required this.index,
-    required this.onGetDescription,
+    required this.field,
+    required this.onGetField,
     Key? key,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AppState, ItemViewModel>(
-      vm: () => ItemVmFactory(this),
-      builder: (BuildContext context, ItemViewModel vm) => MyItem(
-        description: vm.description,
+    return StoreConnector<AppState, FieldViewModel>(
+      vm: () => FieldVmFactory(this),
+      builder: (BuildContext context, FieldViewModel vm) => MyField(
+        value: vm.value,
         waiting: vm.waiting,
         index: index,
-        onGetDescription: onGetDescription,
+        field: field,
+        onGetField: onGetField,
       ),
     );
   }
 }
 
 /// Factory that creates a view-model for the StoreConnector.
-class ItemVmFactory extends VmFactory<AppState, MyItemConnector, ItemViewModel> {
-  ItemVmFactory(connector) : super(connector);
+class FieldVmFactory extends VmFactory<AppState, MyFieldConnector, FieldViewModel> {
+  FieldVmFactory(connector) : super(connector);
 
   @override
-  ItemViewModel fromStore() => ItemViewModel(
-        description: state.descriptions[connector.index] ?? "",
+  FieldViewModel fromStore() => FieldViewModel(
+        value: state.values[(connector.index, connector.field)] ?? "",
 
-        /// If index is waiting, `state.wait.isWaiting(index)` returns true.
-        waiting: state.wait.isWaiting("button-download", ref: connector.index),
+        /// True only while the action for this index AND field is running.
+        waiting: isWaiting(GetFieldAction, statusKey: (connector.index, connector.field)),
       );
 }
 
 /// The view-model holds the part of the Store state the dumb-widget needs.
-class ItemViewModel extends Vm {
-  final String description;
+class FieldViewModel extends Vm {
+  final String value;
   final bool waiting;
 
-  ItemViewModel({
-    required this.description,
+  FieldViewModel({
+    required this.value,
     required this.waiting,
-  }) : super(equals: [description, waiting]);
+  }) : super(equals: [value, waiting]);
 }
 
-class MyItem extends StatelessWidget {
-  final String description;
+class MyField extends StatelessWidget {
+  final String value;
   final bool waiting;
   final int index;
-  final void Function(int) onGetDescription;
+  final String field;
+  final void Function(int, String) onGetField;
 
-  MyItem({
-    required this.description,
+  MyField({
+    required this.value,
     required this.waiting,
     required this.index,
-    required this.onGetDescription,
+    required this.field,
+    required this.onGetField,
   });
 
   @override
   Widget build(BuildContext context) {
-    Widget contents;
-
     if (waiting)
-      contents = _progressIndicator();
-    else if (description.isNotEmpty)
-      contents = _indexDescription();
+      return _progressIndicator();
+    else if (value.isNotEmpty)
+      return _value();
     else
-      contents = _button();
-
-    return Container(height: 70, child: Center(child: contents));
+      return _button();
   }
 
   MaterialButton _button() => MaterialButton(
         color: Colors.blue,
-        child:
-            Text("CLICK $index", style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
-        onPressed: () => onGetDescription(index),
+        child: Text("${field.toUpperCase()} $index",
+            style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
+        onPressed: () => onGetField(index, field),
       );
 
-  Text _indexDescription() =>
-      Text(description, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center);
+  Text _value() =>
+      Text(value, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center);
 
   CircularProgressIndicator _progressIndicator() => const CircularProgressIndicator(
         valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
@@ -228,12 +220,12 @@ class MyItem extends StatelessWidget {
 
 class MyHomePage extends StatelessWidget {
   final bool waiting;
-  final void Function(int) onGetDescription;
+  final void Function(int, String) onGetField;
 
   MyHomePage({
     Key? key,
     required this.waiting,
-    required this.onGetDescription,
+    required this.onGetField,
   }) : super(key: key);
 
   @override
@@ -241,12 +233,19 @@ class MyHomePage extends StatelessWidget {
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(title: Text(waiting ? "Downloading..." : "Advanced WaitAction Example 2")),
+          appBar: AppBar(
+              title: Text(waiting ? "Downloading..." : "Advanced Is Waiting Example 2")),
           body: ListView.builder(
             itemCount: 10,
-            itemBuilder: (context, index) => MyItemConnector(
-              index: index,
-              onGetDescription: onGetDescription,
+            itemBuilder: (context, index) => Container(
+              height: 70,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  MyFieldConnector(index: index, field: 'name', onGetField: onGetField),
+                  MyFieldConnector(index: index, field: 'height', onGetField: onGetField),
+                ],
+              ),
             ),
           ),
         ),

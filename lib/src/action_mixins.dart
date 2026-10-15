@@ -435,6 +435,12 @@ mixin NonReentrant<St> on ReduxAction<St> {
 /// * [maxDelay]: The maximum delay between retries to avoid excessively long
 ///   wait times. Default is `5` seconds.
 ///
+/// * [shouldRetry]: Called after each failed attempt that still has retries left,
+///   with the error and the attempt number (starting at 1). Return `false` to give
+///   up right away, and fail with that error. The default returns `true` for every
+///   error, including `UserException`s. Override it to stop retrying permanent
+///   errors, like a 404 or a 401, which would fail again on every retry.
+///
 /// If you want to retry unlimited times, you can add the [UnlimitedRetries] mixin.
 ///
 /// Note: The retry delay only starts after the reducer finishes executing. For example,
@@ -465,6 +471,8 @@ mixin NonReentrant<St> on ReduxAction<St> {
 /// - It should not be combined with [Debounce], [UnlimitedRetryCheckInternet].
 /// - It can be combined with [Sequential]. The retries then happen while the
 ///   action holds the queue, which delays the actions waiting behind it.
+/// - An [AbortDispatchException] thrown by the reducer is not retried. The action
+///   is aborted right away, and [shouldRetry] is not called.
 /// - When combined with [OptimisticCommand], the retry logic is handled by
 ///   [OptimisticCommand] to avoid UI flickering. Only the
 ///   [OptimisticCommand.sendCommandToServer] call is retried, keeping the
@@ -495,6 +503,36 @@ mixin Retry<St> on ReduxAction<St> {
   /// If the action failed and gave up, it will be equal to [maxRetries] plus 1.
   int get attempts => _attempts;
 
+  /// Returns true if the action should retry after it failed with the given [error].
+  /// It's called after each failed attempt that still has retries left. When combined
+  /// with [OptimisticCommand], it's called after each failed [sendCommandToServer].
+  ///
+  /// The default returns `true` for every error, including `UserException`s: a
+  /// `UserException` may well be transient ("Could not reach the server"), and only
+  /// the action knows. Override it to give up on errors that are permanent, like a
+  /// 404, a 401, or a validation error from the server, which would fail again on
+  /// every retry:
+  ///
+  /// ```dart
+  /// class LoadUser extends ReduxAction<AppState> with Retry {
+  ///   @override
+  ///   bool shouldRetry(Object error, int attempt) =>
+  ///       error is! NotFoundException && error is! UnauthorizedException;
+  ///
+  ///   ...
+  /// }
+  /// ```
+  ///
+  /// - [error] is the error thrown by the attempt that just failed.
+  /// - [attempt] is the number of that attempt, starting at `1`. It's the same as
+  ///   [attempts].
+  ///
+  /// When it returns `false`, the action fails right away with that error, as if the
+  /// retries had run out. It's not called when the retries ran out, since the action
+  /// fails anyway, nor for an [AbortDispatchException], which aborts the action and is
+  /// never retried. If [shouldRetry] itself throws, the action fails with that error.
+  bool shouldRetry(Object error, int attempt) => true;
+
   @override
   Future<St?> wrapReduce(Reducer<St> reduce) async {
     _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
@@ -517,8 +555,14 @@ mixin Retry<St> on ReduxAction<St> {
     }
     //
     catch (error) {
+      // An aborted action is not retried.
+      if (error is AbortDispatchException) rethrow;
+
       _attempts++;
       if ((maxRetries >= 0) && (_attempts > maxRetries)) rethrow;
+
+      // The action can give up on some errors.
+      if (!shouldRetry(error, _attempts)) rethrow;
 
       var currentDelay = nextDelay();
       await Future.delayed(currentDelay);
@@ -823,6 +867,14 @@ mixin UnlimitedRetries<St> on Retry<St> {
 ///
 /// The optimistic state remains in place during retries, and rollback only
 /// happens if all retry attempts fail.
+///
+/// Every error is retried, including `UserException`s, unless [Retry.shouldRetry]
+/// returns `false` for it. The command then gives up right away: it rolls back (if
+/// [shouldRollback] says so), reloads (if [shouldReload] says so), and fails with
+/// that error.
+///
+/// An [AbortDispatchException] thrown by [sendCommandToServer] is not retried. The
+/// command rolls back (if [shouldRollback] says so) and is aborted right away.
 ///
 ///
 /// # [CheckInternet] or [AbortWhenNoInternet]
@@ -1246,6 +1298,9 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
       try {
         return await sendCommandToServer(_optimisticValue);
       } catch (error) {
+        // An aborted command is not retried.
+        if (error is AbortDispatchException) rethrow;
+
         retryMixin._attempts++;
 
         // If maxRetries is reached (and not unlimited), rethrow the error.
@@ -1253,6 +1308,9 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
             (retryMixin._attempts > retryMixin.maxRetries)) {
           rethrow;
         }
+
+        // The command can give up on some errors.
+        if (!retryMixin.shouldRetry(error, retryMixin._attempts)) rethrow;
 
         // Wait before retrying.
         final currentDelay = retryMixin.nextDelay();
@@ -1778,6 +1836,12 @@ mixin Debounce<St> on ReduxAction<St> {
 /// - It should not be combined with other mixins or classes that override [wrapReduce] or [abortDispatch].
 /// - It should not be combined with other mixins or classes that check the internet connection.
 /// - Make sure your `before` method does not throw an error, or the retry will NOT happen.
+/// - Every error is retried, including `UserException`s, unless [shouldRetry] returns
+///   `false` for it. Override it to stop retrying permanent errors (like a 404), which
+///   would otherwise be retried forever. The action then fails with that error. It's
+///   not called when there is no internet, which keeps waiting until there is.
+/// - An [AbortDispatchException] thrown by the reducer is not retried. The action
+///   is aborted right away, and [shouldRetry] is not called.
 /// - All retries will be printed to the console.
 /// - It should not be combined with [Sequential]. This mixin aborts the
 ///   dispatch while another action of the same type is in progress (and a
@@ -1829,6 +1893,21 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
   /// If the action failed and gave up, it will be equal to [maxRetries] plus 1.
   int get attempts => _attempts;
 
+  /// Returns true if the action should retry after it failed with the given [error],
+  /// when there is internet. The default returns `true` for every error, including
+  /// `UserException`s. Override it to give up on permanent errors (like a 404), which
+  /// would otherwise be retried forever. The action then fails with that error.
+  ///
+  /// - [error] is the error thrown by the attempt that just failed.
+  /// - [attempt] is the number of that attempt, starting at `1`. It's the same as
+  ///   [attempts], and also counts the attempts aborted because there was no internet.
+  ///
+  /// It's not called when there is no internet, since the action then waits for the
+  /// internet, and doesn't fail. It's also not called for an [AbortDispatchException],
+  /// which aborts the action and is never retried. If [shouldRetry] itself throws, the
+  /// action fails with that error.
+  bool shouldRetry(Object error, int attempt) => true;
+
   /// This prints the retries, including the action name, the attempt, and if
   /// the problem was no Internet or not. To remove the print message,
   /// override with:
@@ -1863,7 +1942,9 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
     }
     //
     catch (error) {
-      //
+      // An aborted action is not retried.
+      if (error is AbortDispatchException) rethrow;
+
       if (!hasInternet) {
         if (attempts == 0)
           printRetries('Trying $runtimeType; aborted because of no internet.');
@@ -1875,6 +1956,9 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
       _attempts++;
 
       if ((maxRetries >= 0) && (_attempts > maxRetries)) rethrow;
+
+      // The action can give up on some errors. Not when there is no internet.
+      if (hasInternet && !shouldRetry(error, _attempts)) rethrow;
 
       var currentDelay = nextDelay(hasInternet: hasInternet);
       await Future.delayed(currentDelay);

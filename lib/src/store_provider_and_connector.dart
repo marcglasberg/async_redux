@@ -1017,17 +1017,24 @@ class StoreProvider<St> extends InheritedWidget {
   /// Widgets that use this method WILL rebuild whenever the state changes
   /// (unless you pass the [notify] parameter as `false`).
   ///
+  /// Pass [statusKey] to consider only the actions with that [ReduxAction.statusKey]:
+  /// `isWaiting(LoadUser, statusKey: userId)`.
+  ///
   static bool isWaiting(
     BuildContext context,
     Object actionOrTypeOrList, {
+    Object? statusKey,
     bool notify = true,
   }) =>
       (notify
               ? _getStoreWithDependency_Untyped
               : _getStoreNoDependency_Untyped)(context)
-          .isWaiting(actionOrTypeOrList);
+          .isWaiting(actionOrTypeOrList, statusKey: statusKey);
 
-  /// Returns true if an action of the given type failed with a [UserException].
+  /// Returns true if an action of the given type failed, with any error, not only with a
+  /// [UserException]. Use [exceptionFor] to get the error, if it was a [UserException].
+  /// An error swallowed by `wrapError` or the `GlobalErrorObserver` (they returned null),
+  /// and an [AbortDispatchException], don't count as failures.
   ///
   /// [actionTypeOrList] can be an action [Type], or an Iterable of action types, in
   /// which case it returns true if any of them failed. Note it does NOT accept an
@@ -1043,17 +1050,23 @@ class StoreProvider<St> extends InheritedWidget {
   /// Widgets that use this method WILL rebuild whenever the state changes
   /// (unless you pass the [notify] parameter as `false`).
   ///
+  /// Pass [statusKey] to consider only the failures with that [ReduxAction.statusKey]:
+  /// `isFailed(LoadUser, statusKey: userId)`.
+  ///
   static bool isFailed(
     BuildContext context,
     Object actionTypeOrList, {
+    Object? statusKey,
     bool notify = true,
   }) =>
       (notify
               ? _getStoreWithDependency_Untyped
               : _getStoreNoDependency_Untyped)(context)
-          .isFailed(actionTypeOrList);
+          .isFailed(actionTypeOrList, statusKey: statusKey);
 
-  /// Returns the [UserException] of the [actionTypeOrList] that failed.
+  /// Returns the [UserException] of the [actionTypeOrList] that failed. Returns null if
+  /// it didn't fail, or if it failed with an error that is not a [UserException] (in
+  /// that case, [isFailed] is still true).
   ///
   /// The [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
   /// of object will return null and throw a [StoreException] after the async gap.
@@ -1067,15 +1080,19 @@ class StoreProvider<St> extends InheritedWidget {
   /// Widgets that use this method WILL rebuild whenever the state changes
   /// (unless you pass the [notify] parameter as `false`).
   ///
+  /// Pass [statusKey] to get the exception of the failure with that
+  /// [ReduxAction.statusKey]: `exceptionFor(LoadUser, statusKey: userId)`.
+  ///
   static UserException? exceptionFor(
     BuildContext context,
     Object actionTypeOrList, {
+    Object? statusKey,
     bool notify = true,
   }) =>
       (notify
               ? _getStoreWithDependency_Untyped
               : _getStoreNoDependency_Untyped)(context)
-          .exceptionFor(actionTypeOrList);
+          .exceptionFor(actionTypeOrList, statusKey: statusKey);
 
   /// Removes the given [actionTypeOrList] from the list of action types that failed.
   ///
@@ -1088,15 +1105,20 @@ class StoreProvider<St> extends InheritedWidget {
   /// Widgets that use this method WILL rebuild whenever the state changes
   /// (unless you pass the [notify] parameter as `false`).
   ///
+  /// Pass [statusKey] to clear only the failure with that [ReduxAction.statusKey]:
+  /// `clearExceptionFor(LoadUser, statusKey: userId)`. Without it, all the failures of
+  /// the type are cleared, whatever their keys.
+  ///
   static void clearExceptionFor(
     BuildContext context,
     Object actionTypeOrList, {
+    Object? statusKey,
     bool notify = true,
   }) =>
       (notify
               ? _getStoreWithDependency_Untyped
               : _getStoreNoDependency_Untyped)(context)
-          .clearExceptionFor(actionTypeOrList);
+          .clearExceptionFor(actionTypeOrList, statusKey: statusKey);
 
   /// Avoid using if you don't have a good reason to do so. This is marked as [internal],
   /// so you will have to silence the linter to use it. Use it at your own risk.
@@ -2065,11 +2087,17 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// dispatch(BuyAction());
   /// if (context.isWaiting([BuyAction, SellAction])) { // Show a spinner }
   /// ```
-  bool isWaiting(Object actionOrTypeOrList) => _isMock
-      ? _store.isWaiting(actionOrTypeOrList)
-      : StoreProvider.isWaiting(this, actionOrTypeOrList);
+  ///
+  /// Pass [statusKey] to consider only the actions with that [ReduxAction.statusKey]:
+  /// `context.isWaiting(LoadUser, statusKey: userId)`. See [ReduxAction.statusKey].
+  bool isWaiting(Object actionOrTypeOrList, {Object? statusKey}) => _isMock
+      ? _store.isWaiting(actionOrTypeOrList, statusKey: statusKey)
+      : StoreProvider.isWaiting(this, actionOrTypeOrList, statusKey: statusKey);
 
-  /// Returns true if an action of the given type failed with a [UserException].
+  /// Returns true if an action of the given type failed, with any error, not only with a
+  /// [UserException]. Use [exceptionFor] to get the error, if it was a [UserException].
+  /// An error swallowed by `wrapError` or the `GlobalErrorObserver` (they returned null),
+  /// and an [AbortDispatchException], don't count as failures.
   ///
   /// [actionTypeOrList] can be an action [Type], or an Iterable of action types, in
   /// which case it returns true if any of them failed. Note it does NOT accept an
@@ -2081,11 +2109,16 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// ```dart
   /// if (context.isFailed(MyAction)) { // Show an error message. }
   /// ```
-  bool isFailed(Object actionTypeOrList) => _isMock
-      ? _store.isFailed(actionTypeOrList)
-      : StoreProvider.isFailed(this, actionTypeOrList);
+  ///
+  /// Pass [statusKey] to consider only the failures with that [ReduxAction.statusKey]:
+  /// `context.isFailed(LoadUser, statusKey: userId)`. See [ReduxAction.statusKey].
+  bool isFailed(Object actionTypeOrList, {Object? statusKey}) => _isMock
+      ? _store.isFailed(actionTypeOrList, statusKey: statusKey)
+      : StoreProvider.isFailed(this, actionTypeOrList, statusKey: statusKey);
 
-  /// Returns the [UserException] of the [actionTypeOrList] that failed.
+  /// Returns the [UserException] of the [actionTypeOrList] that failed. Returns null if
+  /// it didn't fail, or if it failed with an error that is not a [UserException] (in
+  /// that case, [isFailed] is still true).
   ///
   /// The [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
   /// of object will return null and throw a [StoreException] after the async gap.
@@ -2095,9 +2128,13 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// ```dart
   /// if (context.isFailed(SaveUserAction)) Text(context.exceptionFor(SaveUserAction)!.reason ?? '');
   /// ```
-  UserException? exceptionFor(Object actionTypeOrList) => _isMock
-      ? _store.exceptionFor(actionTypeOrList)
-      : StoreProvider.exceptionFor(this, actionTypeOrList);
+  ///
+  /// Pass [statusKey] to get the exception of the failure with that
+  /// [ReduxAction.statusKey]: `context.exceptionFor(LoadUser, statusKey: userId)`. See
+  /// [ReduxAction.statusKey].
+  UserException? exceptionFor(Object actionTypeOrList, {Object? statusKey}) => _isMock
+      ? _store.exceptionFor(actionTypeOrList, statusKey: statusKey)
+      : StoreProvider.exceptionFor(this, actionTypeOrList, statusKey: statusKey);
 
   /// Removes the given [actionTypeOrList] from the list of action types that failed.
   ///
@@ -2108,9 +2145,12 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
-  void clearExceptionFor(Object actionTypeOrList) => _isMock
-      ? _store.clearExceptionFor(actionTypeOrList)
-      : StoreProvider.clearExceptionFor(this, actionTypeOrList);
+  /// Pass [statusKey] to clear only the failure with that [ReduxAction.statusKey]:
+  /// `context.clearExceptionFor(LoadUser, statusKey: userId)`. Without it, all the
+  /// failures of the type are cleared, whatever their keys.
+  void clearExceptionFor(Object actionTypeOrList, {Object? statusKey}) => _isMock
+      ? _store.clearExceptionFor(actionTypeOrList, statusKey: statusKey)
+      : StoreProvider.clearExceptionFor(this, actionTypeOrList, statusKey: statusKey);
 
   /// Given the BuildContext, provides easy access to the optional AsyncRedux
   /// store "environment" that you may have defined. The environment is considered

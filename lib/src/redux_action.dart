@@ -21,7 +21,7 @@ part of async_redux_store;
 /// > `dispatch` - Dispatches an action (sync or async).
 /// > `dispatchAndWait` - Dispatches an action and returns a `Future` that resolves when it finishes.
 /// > `isWaiting` - Checks if a specific action or action type is currently being processed.
-/// > `isFailed` - Returns true if an action failed with a `UserException`.
+/// > `isFailed` - Returns true if an action failed, with any error.
 ///
 /// Useful ones are:
 ///
@@ -481,6 +481,73 @@ abstract class ReduxAction<St> {
   @protected
   bool abortDispatch() => false;
 
+  /// An optional key that tells apart the actions of the same class, for [isWaiting],
+  /// [isFailed], [exceptionFor] and [clearExceptionFor] (in the store, in actions, in
+  /// `context.isWaiting()` and the other `BuildContext` extensions, and in view-models).
+  ///
+  /// By default, those methods work per action class: `context.isWaiting(LoadUser)` is
+  /// true while any `LoadUser` runs, and `context.isFailed(LoadUser)` is true if any
+  /// `LoadUser` failed. In a list of users where each row dispatches its own
+  /// `LoadUser(userId)`, that would show a spinner in every row while any one user loads.
+  ///
+  /// Override this getter to return a value that identifies the action instance. Then,
+  /// pass the same value to the status methods, in `statusKey`:
+  ///
+  /// ```dart
+  /// class LoadUser extends ReduxAction<AppState> {
+  ///   final String userId;
+  ///   LoadUser(this.userId);
+  ///
+  ///   @override
+  ///   Object? get statusKey => userId;
+  ///
+  ///   Future<AppState?> reduce() async { ... }
+  /// }
+  ///
+  /// // In the row of one user:
+  /// if (context.isWaiting(LoadUser, statusKey: userId))
+  ///   return CircularProgressIndicator();
+  /// if (context.isFailed(LoadUser, statusKey: userId)) return Text('Failed');
+  /// ```
+  ///
+  /// The key can be any immutable value that implements `==` and `hashCode`: a String, a
+  /// number, an enum, or a record like `(userId, cartId)` for a composite key. Without
+  /// `statusKey` in the call, the status methods consider all actions of the type, as
+  /// usual, whatever their keys.
+  ///
+  /// ## The key must always be the same
+  ///
+  /// Derive the key only from the action's own fields, the ones set in its constructor,
+  /// like `userId` above. The getter must return the same value every time it's read, for
+  /// the whole life of the action. Don't use anything that can change: a field the action
+  /// itself changes in `before` or `reduce`, something read from the state or from the
+  /// store props, the current time, or a random value.
+  ///
+  /// The reason is that the store reads the key at different moments: when the action is
+  /// dispatched (to clear its old failure), when it fails (to record the failure), and
+  /// every time `isWaiting` is asked. If the key changed between those moments, the old
+  /// failure would never be cleared, or `isWaiting(LoadUser, statusKey: userId)` would
+  /// stop matching the action that is running.
+  ///
+  /// ## What is kept in memory
+  ///
+  /// For `isWaiting`, nothing extra is kept: the store already holds the actions in
+  /// progress, and reads their `statusKey` when asked.
+  ///
+  /// For `isFailed` and `exceptionFor`, the store keeps a record of each failure: the
+  /// action type, the `statusKey` and the error (not the action itself). Without a
+  /// `statusKey`, there is at most one record per action class. With a `statusKey`, there
+  /// is one record per key that failed: for example, one per user whose `LoadUser`
+  /// failed. A record is removed when an action of the same type and key is dispatched
+  /// again, by `clearExceptionFor`, or by `clearAllExceptions` (which
+  /// `store.internalMixinProps.clear()`, the usual logout call, and `store.shutdown()`
+  /// call). So, when a `statusKey` can take many values, remember that the failures that
+  /// are never retried stay in memory until one of those is called.
+  ///
+  /// This replaces the deprecated `Wait` and `WaitAction`: the "flag" is the action type,
+  /// and the "ref" is the `statusKey`.
+  Object? get statusKey => null;
+
   /// You can use [isWaiting] to check if:
   /// * A specific async ACTION is currently being processed.
   /// * An async action of a specific TYPE is currently being processed.
@@ -514,10 +581,17 @@ abstract class ReduxAction<St> {
   /// dispatch(BuyAction());
   /// if (store.isWaiting([BuyAction, SellAction])) { // Show a spinner }
   /// ```
+  ///
+  /// Pass [statusKey] to consider only the actions with that [statusKey]:
+  /// `isWaiting(LoadUser, statusKey: userId)`.
   @protected
-  bool isWaiting(Object actionOrTypeOrList) => _store.isWaiting(actionOrTypeOrList);
+  bool isWaiting(Object actionOrTypeOrList, {Object? statusKey}) =>
+      _store.isWaiting(actionOrTypeOrList, statusKey: statusKey);
 
-  /// Returns true if an action of the given type failed with a [UserException].
+  /// Returns true if an action of the given type failed, with any error, not only with a
+  /// [UserException]. Use [exceptionFor] to get the error, if it was a [UserException].
+  /// An error swallowed by `wrapError` or the `GlobalErrorObserver` (they returned null),
+  /// and an [AbortDispatchException], don't count as failures.
   ///
   /// [actionTypeOrList] can be an action [Type], or an Iterable of action types, in
   /// which case it returns true if any of them failed. Note it does NOT accept an
@@ -525,18 +599,27 @@ abstract class ReduxAction<St> {
   /// and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
+  ///
+  /// Pass [statusKey] to consider only the failures with that [statusKey]:
+  /// `isFailed(LoadUser, statusKey: userId)`.
   @protected
-  bool isFailed(Object actionTypeOrList) => _store.isFailed(actionTypeOrList);
+  bool isFailed(Object actionTypeOrList, {Object? statusKey}) =>
+      _store.isFailed(actionTypeOrList, statusKey: statusKey);
 
-  /// Returns the [UserException] of the [actionTypeOrList] that failed.
+  /// Returns the [UserException] of the [actionTypeOrList] that failed. Returns null if
+  /// it didn't fail, or if it failed with an error that is not a [UserException] (in
+  /// that case, [isFailed] is still true).
   ///
   /// [actionTypeOrList] can be a [Type], or an Iterable of types. Any other type
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
+  ///
+  /// Pass [statusKey] to get the exception of the failure with that [statusKey]:
+  /// `exceptionFor(LoadUser, statusKey: userId)`.
   @protected
-  UserException? exceptionFor(Object actionTypeOrList) =>
-      _store.exceptionFor(actionTypeOrList);
+  UserException? exceptionFor(Object actionTypeOrList, {Object? statusKey}) =>
+      _store.exceptionFor(actionTypeOrList, statusKey: statusKey);
 
   /// Removes the given [actionTypeOrList] from the list of action types that failed.
   ///
@@ -547,9 +630,21 @@ abstract class ReduxAction<St> {
   /// of object will return null and throw a [StoreException] after the async gap.
   ///
   /// Note: This method uses the EXACT type in [actionTypeOrList]. Subtypes are not considered.
+  ///
+  /// Pass [statusKey] to clear only the failure with that [statusKey]:
+  /// `clearExceptionFor(LoadUser, statusKey: userId)`. Without it, all the failures of
+  /// the type are cleared, whatever their keys.
   @protected
-  void clearExceptionFor(Object actionTypeOrList) =>
-      _store.clearExceptionFor(actionTypeOrList);
+  void clearExceptionFor(Object actionTypeOrList, {Object? statusKey}) =>
+      _store.clearExceptionFor(actionTypeOrList, statusKey: statusKey);
+
+  /// Clears the failures of all action types, so that [isFailed] is false and
+  /// [exceptionFor] is null for all of them. Same as `store.clearAllExceptions()`.
+  ///
+  /// You rarely need this, since `store.internalMixinProps.clear()` and
+  /// `store.shutdown()` already call it.
+  @protected
+  void clearAllExceptions() => _store.clearAllExceptions();
 
   /// Returns a future which will complete when the given state [condition] is true.
   /// If the condition is already true when the method is called, the future completes immediately.

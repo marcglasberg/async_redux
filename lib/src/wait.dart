@@ -1,8 +1,14 @@
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
+// ignore_for_file: deprecated_member_use_from_same_package
+
 import 'package:flutter/foundation.dart';
 
+@Deprecated('Use the `statusKey` getter of the action, and the `statusKey` parameter of '
+    '`isWaiting`, `isFailed`, `exceptionFor` and `clearExceptionFor`. The "flag" is the '
+    'action type, and the "ref" is the `statusKey`. '
+    'See https://asyncredux.com/flutter/miscellaneous/advanced-waiting')
 enum WaitOperation { add, remove, clear }
 
 /// Immutable object to keep track of boolean flags that indicate if some
@@ -27,6 +33,10 @@ enum WaitOperation { add, remove, clear }
 /// * To check if is waiting a specific flag: state.wait.isWaiting(myFlag);
 /// * To check if is waiting a specific flag/reference: state.wait.isWaiting(myFlag, ref: myRef);
 ///
+@Deprecated('Use the `statusKey` getter of the action, and the `statusKey` parameter of '
+    '`isWaiting`, `isFailed`, `exceptionFor` and `clearExceptionFor`. The "flag" is the '
+    'action type, and the "ref" is the `statusKey`. '
+    'See https://asyncredux.com/flutter/miscellaneous/advanced-waiting')
 @immutable
 class Wait {
   final Map<Object?, Set<Object?>> _flags;
