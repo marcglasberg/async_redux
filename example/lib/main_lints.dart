@@ -15,6 +15,7 @@
 // ignore_for_file: async_redux_lints/vm_field_not_in_equals
 // ignore_for_file: async_redux_lints/copy_missing_field
 // ignore_for_file: async_redux_lints/state_class_must_be_immutable
+// ignore_for_file: async_redux_lints/missing_state_class
 // ignore_for_file: async_redux_lints/state_class_missing_equality
 // ignore_for_file: async_redux_lints/equality_missing_field
 // ignore_for_file: async_redux_lints/equality_missing_inherited_field
@@ -1002,6 +1003,59 @@ class MutableSubclass extends ImmutableBase {
   int get hashCode => Object.hash(counter, name);
 }
 
+@immutable
+// missing_state_class
+// (The store's state class isn't a '@stateClass', so the state class rules, like
+// 'state_class_must_be_immutable', don't check it. 'OtherAction' uses it as the
+// state of the store)
+// Fix: Will replace '@immutable' with '@stateClass'.
+class OtherState {
+  final int counter;
+
+  const OtherState({required this.counter});
+
+  @override
+  bool operator ==(Object other) => other is OtherState && counter == other.counter;
+
+  @override
+  int get hashCode => counter.hashCode;
+}
+
+abstract class OtherAction extends ReduxAction<OtherState> {}
+
+@stateClass
+class Profile {
+  // missing_state_class
+  // ('Address' isn't a '@stateClass', so the state class rules don't check it)
+  // Fix: Will add '@stateClass' to 'Address'.
+  final Address address;
+
+  final Plan plan; // OK: an enum.
+
+  Profile({required this.address, required this.plan});
+
+  @override
+  bool operator ==(Object other) =>
+      other is Profile && address == other.address && plan == other.plan;
+
+  @override
+  int get hashCode => Object.hash(address, plan);
+}
+
+class Address {
+  final String street;
+
+  Address({required this.street});
+
+  @override
+  bool operator ==(Object other) => other is Address && street == other.street;
+
+  @override
+  int get hashCode => street.hashCode;
+}
+
+enum Plan { free, paid }
+
 @stateClass
 // state_class_missing_equality
 // (Has fields, but no '==' and 'hashCode')
@@ -1487,7 +1541,10 @@ class Catalog {
   // Fix: Will change the type from 'Map<String, int>' to 'IMap<String, int>'.
   final Map<String, int> prices;
 
-  final IList<Product> featured; // OK
+  // missing_state_class
+  // (The same for type arguments, like 'Product' in 'IList<Product>')
+  // Fix: Will add '@stateClass' to 'Product'.
+  final IList<Product> featured;
 
   Catalog({required this.products, required this.prices, required this.featured});
 

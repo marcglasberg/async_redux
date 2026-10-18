@@ -17,6 +17,7 @@ import 'src/fixes/reducer_fixes.dart';
 import 'src/fixes/rename_action_fixes.dart';
 import 'src/fixes/return_type_fixes.dart';
 import 'src/fixes/state_access_fixes.dart';
+import 'src/fixes/state_class_fixes.dart';
 import 'src/fixes/store_setup_fixes.dart';
 import 'src/fixes/testing_fixes.dart';
 import 'src/fixes/to_string_fixes.dart';
@@ -39,6 +40,7 @@ import 'src/rules/event_rules.dart';
 import 'src/rules/global_error_observer_rules.dart';
 import 'src/rules/internet_simulation_in_production_rule.dart';
 import 'src/rules/missing_key_params_rule.dart';
+import 'src/rules/missing_state_class_rule.dart';
 import 'src/rules/missing_super_in_mixin_override_rule.dart';
 import 'src/rules/mixin_combination_rules.dart';
 import 'src/rules/persistence_rules.dart';
@@ -156,6 +158,9 @@ class AsyncReduxLintsPlugin extends Plugin {
     );
 
     registry.registerWarningRule(StateClassMustBeImmutableRule());
+
+    registry.registerWarningRule(MissingStateClassRule());
+    registry.registerFixForRule(MissingStateClassRule.code, AddStateClassAnnotation.new);
 
     registry.registerLintRule(ActionNameEndsWithActionRule());
     registry.registerFixForRule(

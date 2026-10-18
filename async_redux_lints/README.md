@@ -55,7 +55,7 @@ Requires Dart 3.10 (Flutter 3.38) or later.
 
    ```yaml
    plugins:
-     async_redux_lints: ^1.0.0
+     async_redux_lints: ^1.2.0
    ```
 
 2. You may need to restart the Dart analysis server. In IntelliJ or Android Studio, open
@@ -149,6 +149,7 @@ package, and the files whose names end with `_test.dart`.
 - [`vm_field_not_in_equals`](#vm_field_not_in_equals) warning
 - [`copy_missing_field`](#copy_missing_field) warning
 - [`state_class_must_be_immutable`](#state_class_must_be_immutable) warning
+- [`missing_state_class`](#missing_state_class) warning
 - [`state_class_missing_equality`](#state_class_missing_equality) warning
 - [`equality_missing_field`](#equality_missing_field) warning
 - [`equality_missing_inherited_field`](#equality_missing_inherited_field) warning
@@ -782,7 +783,72 @@ class AppState { // Warning: 'AppState.counter' isn't final.
 
 This is the same check the analyzer does for `@immutable`. Classes that extend,
 implement or mix in a `@stateClass` class or mixin are checked too, and so are the
-fields they inherit.
+fields they inherit. See [`missing_state_class`](#missing_state_class) for the classes
+that should be annotated.
+
+---
+
+### missing_state_class
+
+A warning for a class of your package that should be annotated with `@stateClass` from
+`package:async_redux`, but isn't. The rules that check state classes, like
+`state_class_must_be_immutable`, `state_class_missing_equality` and
+`copy_missing_field`, only check the annotated classes, so these classes would not be
+checked:
+
+- The store's state class, like `AppState`:
+
+  ```dart
+  @immutable
+  class AppState { // Warning: The store's state class 'AppState' isn't annotated with '@stateClass'.
+    ...
+  }
+
+  class IncrementAction extends ReduxAction<AppState> { ... }
+  ```
+
+  It's reported at its declaration when the file declares or imports an action that
+  uses it, like `ReduxAction<AppState>`. Otherwise, it's reported where the store is
+  created, like `Store<AppState>(...)`.
+
+- The classes held by the fields of a state class, also as type arguments or record
+  fields, like `User` in `IList<User>`:
+
+  ```dart
+  @stateClass
+  class AppState {
+    final UIState ui;        // Warning: holds 'UIState', which isn't annotated with '@stateClass'.
+    final IList<User> users; // Warning: holds 'User', which isn't annotated with '@stateClass'.
+    final Status status;     // OK, since 'Status' is an enum.
+    ...
+  }
+
+  @stateClass
+  class UIState { ... }      // OK
+
+  class User { ... }
+
+  enum Status { idle, loading }
+  ```
+
+  Once a class is annotated, its own fields are checked. Following the warnings
+  annotates the whole state.
+
+Not reported:
+
+- Classes of the SDK or of other packages, like `String` or `IList`, which you can't
+  annotate.
+- Enums and extension types.
+- Classes that are not state, like a `ChangeNotifier`, which
+  [`non_state_object_in_state`](#non_state_object_in_state) reports.
+- Static fields, getters, and the fields of classes that are not state classes.
+- Tests.
+
+Quick fix: annotate the classes with `@stateClass`, in the files that declare them,
+adding the import of `async_redux` if needed. An `@immutable` annotation is replaced,
+since `@stateClass` does the same check. If nothing else in the file uses package
+`meta`, the import of `package:meta/meta.dart` is removed too. Other imports, like
+`package:flutter/foundation.dart`, are kept.
 
 ---
 
@@ -2043,7 +2109,7 @@ Turn off `prefer_dispatch_without_context` when you turn it on:
 ```yaml
 plugins:
   async_redux_lints:
-    version: ^1.0.0
+    version: ^1.2.0
     diagnostics:
       prefer_dispatch_without_context: false
       prefer_dispatch_with_context: true

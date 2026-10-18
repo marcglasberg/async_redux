@@ -149,7 +149,7 @@ Set<InterfaceElement> stateClassesIn(
         :var declaredFragment,
       ) when declaredFragment != null && isStateClass(declaredFragment.element))
         declaredFragment.element,
-    for (var type in _visibleActionStateTypes(library, package))
+    for (var type in visibleActionStateTypes(library, package))
       if (isOwnClass(type.element)) type.element,
   ]);
 
@@ -164,12 +164,12 @@ Set<InterfaceElement> stateClassesIn(
   return result;
 }
 
-/// The [_visibleActionStateTypes] of each library, shared by its units.
+/// The [visibleActionStateTypes] of each library, shared by its units.
 final _visibleActionStateTypesCache = Expando<List<InterfaceType>>();
 
 /// Returns the `St` types of the actions declared in [library], or in the libraries of
 /// [package] that it imports.
-List<InterfaceType> _visibleActionStateTypes(
+List<InterfaceType> visibleActionStateTypes(
   LibraryElement library,
   WorkspacePackage? package,
 ) => _visibleActionStateTypesCache[library] ??= [

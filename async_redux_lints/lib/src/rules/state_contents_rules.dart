@@ -140,6 +140,10 @@ class NonStateObjectInStateRule extends AnalysisRule {
     );
   }
 
+  /// Returns true if [type] is not state, like a `Timer` or a `TextEditingController`,
+  /// so that this rule reports the fields that hold it.
+  static bool isNonStateType(InterfaceType type) => _correctionFor(type) != null;
+
   /// Returns the correction message for a field that holds a [type], or null if
   /// [type] is state.
   static String? _correctionFor(InterfaceType type) {
