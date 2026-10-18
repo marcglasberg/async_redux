@@ -30,7 +30,7 @@ void main() {
   runApp(MyApp());
 }
 
-@immutable
+@stateClass
 class AppState {
   final int counter;
   final String description;

@@ -17,7 +17,7 @@ void main() {
 }
 
 /// The app state, which in this case is the user name.
-@immutable
+@stateClass
 class AppState {
   final String? name;
 

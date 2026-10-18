@@ -91,6 +91,7 @@ void main() async {
   runApp(const MyApp());
 }
 
+@stateClass
 class AppState {
   final bool isLiked;
 
@@ -140,6 +141,17 @@ class AppState {
 
   @override
   String toString() => 'AppState(liked: $isLiked, serverRevisionMap: $serverRevisionMap)';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AppState &&
+          runtimeType == other.runtimeType &&
+          isLiked == other.isLiked &&
+          serverRevisionMap == other.serverRevisionMap;
+
+  @override
+  int get hashCode => Object.hash(isLiked, serverRevisionMap);
 }
 
 /// Converts an action key to a String for persistence.

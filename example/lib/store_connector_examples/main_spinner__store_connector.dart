@@ -190,9 +190,10 @@ extension _BuildContextExtension on BuildContext {
   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
 }
 
+@stateClass
 class AppState {
-  int counter;
-  int something;
+  final int counter;
+  final int something;
 
   AppState({
     required this.counter,
@@ -207,8 +208,11 @@ class AppState {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is AppState && runtimeType == other.runtimeType && counter == other.counter;
+      other is AppState &&
+          runtimeType == other.runtimeType &&
+          counter == other.counter &&
+          something == other.something;
 
   @override
-  int get hashCode => counter.hashCode;
+  int get hashCode => Object.hash(counter, something);
 }

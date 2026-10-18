@@ -29,7 +29,7 @@ void main() {
 }
 
 /// The app state, which in this case is a counter, a description, and a waiting flag.
-@immutable
+@stateClass
 class AppState {
   final int counter;
   final String description;

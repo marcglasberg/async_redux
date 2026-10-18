@@ -16,6 +16,7 @@ final routes = {
   "/myRoute": (BuildContext context) => Page2(),
 };
 
+@stateClass
 class AppState {
   static AppState initialState() => AppState();
 }

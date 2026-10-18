@@ -32,7 +32,7 @@ void main() {
   runApp(MyApp());
 }
 
-@immutable
+@stateClass
 class AppState {
   final IMap<int, String> descriptions;
 

@@ -30,7 +30,7 @@ void main() {
 }
 
 /// The app state, which in this case is a counter and two events.
-@immutable
+@stateClass
 class AppState {
   final int counter;
   final bool waiting;
@@ -70,10 +70,12 @@ class AppState {
       other is AppState &&
           runtimeType == other.runtimeType &&
           counter == other.counter &&
-          waiting == other.waiting;
+          waiting == other.waiting &&
+          clearTextEvt == other.clearTextEvt &&
+          changeTextEvt == other.changeTextEvt;
 
   @override
-  int get hashCode => counter.hashCode ^ waiting.hashCode;
+  int get hashCode => Object.hash(counter, waiting, clearTextEvt, changeTextEvt);
 }
 
 class MyApp extends StatelessWidget {

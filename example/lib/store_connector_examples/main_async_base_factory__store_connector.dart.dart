@@ -32,7 +32,7 @@ void main() {
 }
 
 /// The app state, which in this case is a counter and a description.
-@immutable
+@stateClass
 class AppState {
   final int counter;
   final String description;

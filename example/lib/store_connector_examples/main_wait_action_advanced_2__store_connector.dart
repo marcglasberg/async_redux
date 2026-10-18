@@ -31,7 +31,7 @@ void main() {
   runApp(MyApp());
 }
 
-@immutable
+@stateClass
 class AppState {
   /// The downloaded values, by `(index, field)`.
   final IMap<(int, String), String> values;

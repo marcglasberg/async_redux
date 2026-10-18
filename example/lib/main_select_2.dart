@@ -278,6 +278,7 @@ class SelectFlagWidget extends StatelessWidget {
   }
 }
 
+@stateClass
 class AppState {
   final int number;
   final String text;
@@ -314,6 +315,19 @@ class AppState {
 
   @override
   String toString() => 'AppState(number: $number, text: $text, date: $date, flag: $flag)';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AppState &&
+          runtimeType == other.runtimeType &&
+          number == other.number &&
+          text == other.text &&
+          date == other.date &&
+          flag == other.flag;
+
+  @override
+  int get hashCode => Object.hash(number, text, date, flag);
 }
 
 class IncrementNumberAction extends ReduxAction<AppState> {

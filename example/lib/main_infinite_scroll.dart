@@ -36,7 +36,7 @@ void main() {
   runApp(MyApp());
 }
 
-@immutable
+@stateClass
 class AppState {
   final IList<String> numTrivia;
 

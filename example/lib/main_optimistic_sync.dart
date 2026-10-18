@@ -55,6 +55,7 @@ void main() {
   runApp(const MyApp());
 }
 
+@stateClass
 class AppState {
   final bool isLiked;
 
@@ -67,6 +68,14 @@ class AppState {
 
   @override
   String toString() => 'AppState(liked: $isLiked)';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AppState && runtimeType == other.runtimeType && isLiked == other.isLiked;
+
+  @override
+  int get hashCode => isLiked.hashCode;
 }
 
 class SetLike extends AppAction {

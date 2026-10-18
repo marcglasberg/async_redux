@@ -32,6 +32,7 @@
 // ignore_for_file: async_redux_lints/throw_in_global_error_observer
 // ignore_for_file: async_redux_lints/retry_without_non_reentrant
 // ignore_for_file: async_redux_lints/dispatch_and_wait_unlimited_retries
+// ignore_for_file: async_redux_lints/async_mixin_in_sync_action
 // ignore_for_file: async_redux_lints/sequential_deadlock
 // ignore_for_file: async_redux_lints/sequential_before_super_not_first
 // ignore_for_file: async_redux_lints/sequential_after_super_not_in_finally

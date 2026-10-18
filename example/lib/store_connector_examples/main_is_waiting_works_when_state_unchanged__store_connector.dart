@@ -99,6 +99,7 @@ class MyHomePageContent extends StatelessWidget {
   }
 }
 
+@stateClass
 class AppState {
   final int counter;
 
@@ -112,6 +113,14 @@ class AppState {
   String toString() {
     return '.\n.\n.\nAppState{counter: $counter}\n.\n.\n';
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AppState && runtimeType == other.runtimeType && counter == other.counter;
+
+  @override
+  int get hashCode => counter.hashCode;
 }
 
 class CounterVm extends Vm {

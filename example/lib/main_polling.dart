@@ -36,7 +36,7 @@ void main() {
 // State
 // =============================================================================
 
-@immutable
+@stateClass
 class AppState {
   final double price;
   final int fetchCount;
