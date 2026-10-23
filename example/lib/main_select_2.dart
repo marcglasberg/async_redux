@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Select Demo',
-        theme: ThemeData(primarySwatch: Colors.blue),
+        theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue)),
         home: const MainScreen(),
       ),
     );

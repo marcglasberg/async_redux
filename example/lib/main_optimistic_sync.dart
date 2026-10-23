@@ -146,7 +146,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'OptimisticSync Mixin Demo',
-        theme: ThemeData(primarySwatch: Colors.blue),
+        theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue)),
         home: UserExceptionDialog<AppState>(
           child: const MyHomePage(),
         ),
