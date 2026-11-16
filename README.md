@@ -806,6 +806,7 @@ _stackoverflow.com/users/3411681/marcg_</a>
 
 *Flutter packages I've authored:*
 
+* <a href="https://pub.dev/packages/fast_immutable_collections">fast_immutable_collections</a>
 * <a href="https://pub.dev/packages/bloc_superpowers">bloc_superpowers</a>
 * <a href="https://pub.dev/packages/i18n_extension">i18n_extension</a>
 * <a href="https://pub.dev/packages/async_redux">async_redux</a>
