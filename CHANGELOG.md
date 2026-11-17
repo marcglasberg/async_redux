@@ -5,9 +5,9 @@ showcasing the fundamentals and best practices._
 
 Sponsored by [MyText.ai](https://mytext.ai)
 
-[![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
+[![](./example/SponsoredByMyTextAi.jpg)](https://mytext.ai)
 
-## 29.3.1
+## 29.3.2
 
 * New **`statusKey`** getter on actions, to tell apart the actions of the same class in
   `isWaiting`, `isFailed`, `exceptionFor` and `clearExceptionFor` (in the store, in actions,

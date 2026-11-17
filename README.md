@@ -26,7 +26,7 @@
 
 #### Sponsor
 
-[![](./example/SponsoredByMyTextAi.png)](https://mytext.ai)
+[![](./example/SponsoredByMyTextAi.jpg)](https://mytext.ai)
 
 # AsyncRedux | *state management*
 
