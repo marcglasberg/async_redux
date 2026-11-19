@@ -16,5 +16,13 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.50.0'
       - run: flutter pub get
+      - run: dart pub get
+        working-directory: async_redux_lints
+      - run: dart analyze
+      - run: dart analyze
+        working-directory: async_redux_lints
+      - run: dart test
+        working-directory: async_redux_lints
       - run: flutter test

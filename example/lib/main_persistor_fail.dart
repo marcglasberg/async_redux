@@ -5,7 +5,7 @@
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// This example lets you manually test what happens when the [Persistor] fails,
 /// both when the app opens (reading the state), and when the state changes (saving it).

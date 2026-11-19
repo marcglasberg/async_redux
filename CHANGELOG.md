@@ -7,6 +7,13 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.jpg)](https://mytext.ai)
 
+## 30.0.0
+
+* **Breaking:** Error dialogs and dialog helpers now use package:material_ui and package:cupertino_ui. Migrate consumer Material/Cupertino imports to the standalone packages.
+* Require Dart >=3.13.0 and Flutter >=3.47.0. Update the BDD test dependency to 5.x without changing Store, selector, dispatch or persistence behavior.
+
+* Require async_redux_core >=1.5.2 so apps can resolve i18n_extension_core 5.x or 6.x together with i18n_extension 16.
+
 ## 29.3.2
 
 * New **`statusKey`** getter on actions, to tell apart the actions of the same class in

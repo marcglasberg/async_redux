@@ -15,7 +15,7 @@ Create a global navigator key and register it with NavigateAction during app ini
 
 ```dart
 import 'package:async_redux/async_redux.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -138,7 +138,7 @@ dispatch(NavigateAction.removeRouteBelow(anchorRoute));
 
 ```dart
 import 'package:async_redux/async_redux.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 late Store<AppState> store;
 final navigatorKey = GlobalKey<NavigatorState>();

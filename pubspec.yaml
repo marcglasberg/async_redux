@@ -1,6 +1,6 @@
 name: async_redux
 description: The modern version of Redux. State management that's simple to learn and easy to use; Powerful enough to handle complex applications with millions of users; Testable.
-version: 29.3.2
+version: 30.0.0
 # author: Marcelo Glasberg <marcglasberg@gmail.com>
 repository: https://github.com/marcglasberg/async_redux
 issue_tracker: https://github.com/marcglasberg/async_redux/issues
@@ -14,11 +14,13 @@ topics:
   - testing
 
 environment:
-  sdk: '>=3.5.0 <4.0.0'
-  flutter: ">=3.16.0"
+  sdk: '>=3.13.0 <4.0.0'
+  flutter: ">=3.47.0"
 
 dependencies:
-  async_redux_core: ^1.4.1
+  cupertino_ui: ^1.1.7
+  material_ui: ^1.11.1
+  async_redux_core: ^1.5.2
   fast_immutable_collections: ^12.0.0
   weak_map: ^4.0.1
   connectivity_plus: ">=6.0.3 <8.0.0"
@@ -35,4 +37,4 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   fake_async: ^1.3.3
-  bdd_framework: ^4.0.6
+  bdd_framework: ^5.2.3

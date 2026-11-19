@@ -2164,14 +2164,8 @@ class Store<St> {
       throw StoreException(_reducerTypeErrorMsg + "Do not return `Future<St?>?`.");
     }
     //
-    // ignore: unnecessary_type_check
-    else if (reduce is FutureOr Function()) {
-      throw StoreException(_reducerTypeErrorMsg + "Do not return `FutureOr`.");
-    }
-    //
     else {
-      throw StoreException(
-          _reducerTypeErrorMsg + "Do not return `${reduce.runtimeType}`.");
+      throw StoreException(_reducerTypeErrorMsg + "Do not return `FutureOr`.");
     }
   }
 

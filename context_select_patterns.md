@@ -19,7 +19,7 @@ All patterns below assume the following app state structure:
 
 ```dart
 import 'package:async_redux/async_redux.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 // Your app state
 class AppState {

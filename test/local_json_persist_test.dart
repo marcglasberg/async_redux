@@ -6,8 +6,8 @@ import 'dart:typed_data';
 import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/local_json_persist.dart';
 import 'package:async_redux/src/local_persist.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'test_utils.dart';
 

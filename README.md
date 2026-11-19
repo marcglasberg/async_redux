@@ -37,6 +37,14 @@
 You'll be able to create apps much faster,
 and other people on your team will easily understand and modify your code.
 
+## Flutter design-package migration
+
+Version 30 requires Flutter 3.47 and Dart 3.13 or later, including Flutter 3.50.
+Its error dialogs use `package:material_ui/material_ui.dart` and
+`package:cupertino_ui/cupertino_ui.dart`. Migrate the corresponding imports in apps
+that display these dialogs so their theme, localization and dialog types agree.
+Store, selector, dispatch and automatic persistence APIs are unchanged.
+
 ## What is it?
 
 An optimized reimagined version of Redux.

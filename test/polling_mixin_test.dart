@@ -1,8 +1,8 @@
 import 'package:async_redux/async_redux.dart';
 import 'package:bdd_framework/bdd_framework.dart';
 import 'package:fake_async/fake_async.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart' hide Retry;
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   var feature = BddFeature('Polling mixin');

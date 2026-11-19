@@ -4,8 +4,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:async_redux/async_redux.dart';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart';
+import 'package:material_ui/material_ui.dart';
 
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux

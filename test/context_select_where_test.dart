@@ -2,8 +2,8 @@
 // For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
 import 'package:async_redux/async_redux.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Tests where `context.select` and `context.event` can be used: in `build`, in
 /// `didChangeDependencies`, and in the builders of `LayoutBuilder` and lists. In

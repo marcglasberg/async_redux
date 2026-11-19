@@ -419,13 +419,13 @@ class UserExceptionAction<St> extends ReduxAction<St> {
     /// If `true`, the [UserExceptionDialog] will show in the dialog or similar UI.
     /// If `false` you can still show the error in a different way, usually showing [errorText]
     /// in the UI element that is responsible for the error.
-    final bool ifOpenDialog = true,
+    bool ifOpenDialog = true,
 
     /// Some text to be displayed in the UI element that is responsible for the error.
     /// For example, a text field could show this text in its `errorText` property.
     /// When building your widgets, you can get the [errorText] from the failed action:
     /// `String errorText = context.exceptionFor(MyAction)?.errorText`.
-    final String? errorText,
+    String? errorText,
     //
   }) : this.from(
           UserException(

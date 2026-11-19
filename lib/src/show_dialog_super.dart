@@ -3,8 +3,8 @@
 // Uses code from package equatable by Felix Angelov.
 // For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Displays a Material dialog above the current contents of the app, with
 /// Material entrance and exit animations, modal barrier color, and modal
@@ -74,7 +74,7 @@ import 'package:flutter/material.dart';
 /// {@macro flutter.widgets.RestorationManager}
 ///
 /// ```dart imports
-/// import 'package:flutter/material.dart';
+/// import 'package:material_ui/material_ui.dart';
 /// ```
 ///
 /// ```dart

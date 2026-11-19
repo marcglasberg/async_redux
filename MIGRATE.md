@@ -1,41 +1,33 @@
-# Migrating to `material_ui` and `cupertino_ui`
+# Migrating to AsyncRedux 30
 
-Official guide: https://docs.flutter.dev/release/breaking-changes/material-ui-and-cupertino-ui
+AsyncRedux 30 requires Dart 3.13 and Flutter 3.47 or later, and supports Flutter 3.50.
+The default error dialogs use the standalone Material and Cupertino packages.
 
-## What must change
+## Imports and dependencies
 
-Only two files in `lib/` use Material/Cupertino:
+Add `material_ui` and, when importing Cupertino APIs, `cupertino_ui` as direct
+app dependencies. Replace the corresponding SDK imports:
 
-- `lib/src/user_exception_dialog.dart` — the default error dialog
-  (`AlertDialog`, `TextButton`, `CupertinoAlertDialog`, `CupertinoDialogAction`).
-- `lib/src/show_dialog_super.dart` — `showDialog`, `showCupertinoDialog`, `Colors`.
+```dart
+import 'package:material_ui/material_ui.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
+```
 
-No public API exposes Material/Cupertino types. `test/` and `example/` also import
-`package:flutter/material.dart`.
+The app's themes, localization delegates and dialogs must use types from the same
+design packages. For localized apps, the new Material package provides
+`GlobalMaterialLocalizations.delegates`, including the Widgets and Cupertino delegates.
+Keep any additional localization delegates supplied by the app.
 
-## Choose one approach
+`UserExceptionDialog` and the dialog helpers now use these packages directly.
+The `onShowUserExceptionDialog` callback remains available for custom dialogs.
+Store, state selection, dispatch and automatic persistence APIs are unchanged.
 
-**A) Migrate to the new packages (breaking change, major version).**
+## Development
 
-1. Check the current SDK requirements of `material_ui` and `cupertino_ui` on pub.dev,
-   and raise `environment` in `pubspec.yaml` to match.
-2. Add `material_ui` and `cupertino_ui` to `dependencies`.
-3. Run `dart fix --apply --code=migrate_design_widgets` (also in `example/`).
-4. In the CHANGELOG, tell users of apps still on `package:flutter/material.dart` that
-   the default dialog now needs the new packages' localizations: they must either migrate
-   their app, or provide their own dialog through `UserExceptionDialog(onShowUserExceptionDialog: ...)`.
+Tests use `bdd_framework` 5.x. Its business-test runner is imported from
+`package:bdd_framework/flutter_test.dart`; the widget runner remains a separate
+entry point. The analyzer plugin resolves its dependencies independently.
 
-**B) Remove the design dependency (no API change, visual change).**
-
-Rewrite the default dialog using only `package:flutter/widgets.dart`
-(`showGeneralDialog` plus a custom widget). It then works in both old and new apps,
-with no compatibility bridge. Mention the new look in the CHANGELOG.
-
-## Verify
-
-1. `flutter analyze` and `flutter test` must pass.
-2. Add a widget test that dispatches an action throwing `UserException` inside a
-   `material_ui` `MaterialApp` (no `MaterialUiCompatibilityBridge`), for both
-   `TargetPlatform.android` and `TargetPlatform.iOS`, and checks the dialog shows.
-   With approach B, also test inside a `package:flutter/material.dart` `MaterialApp`.
-3. Update the `UserExceptionDialog` docs and the website accordingly.
+Run `dart analyze` from the package root to include plugin diagnostics, and run
+`flutter test`. Follow the official design-package migration guide for app-specific
+changes: https://docs.flutter.dev/release/breaking-changes/material-ui-and-cupertino-ui
