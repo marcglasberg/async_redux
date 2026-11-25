@@ -23,13 +23,13 @@ extension BuildContextDispatchExtension on BuildContext {
   Object? dispatchSync(Object action) => throw 0;
 }
 
-extension StatefulWidgetExtensionForProviderAndConnector<St> on State {
+extension StatefulWidgetExtensionForProvider<St> on State {
   Object? dispatch(Object action) => throw 0;
   Object? dispatchAndWait(Object action) => throw 0;
   Object? dispatchSync(Object action) => throw 0;
 }
 
-extension StatelessWidgetExtensionForProviderAndConnector<St> on StatelessWidget {
+extension StatelessWidgetExtensionForProvider<St> on StatelessWidget {
   Object? dispatch(Object action) => throw 0;
   Object? dispatchAndWait(Object action) => throw 0;
   Object? dispatchSync(Object action) => throw 0;

@@ -15,8 +15,8 @@ import '../rules/select_outside_build_rule.dart';
 import '../widget_types.dart';
 
 /// Replaces `context.state.user.name` with `context.select((st) => st.user.name)`.
-/// Also replaces `context.read()` the same way, and `context.getState<St>()` and
-/// `context.getRead<St>()` with `context.getSelect<St, R>(...)`.
+/// Also replaces `context.read()` the same way, and `context.getRead<St>()` with
+/// `context.getSelect<St, R>(...)`.
 ///
 /// Selects the getters that follow `context.state`, as deep as the code uses them.
 /// It stops at methods, like `trim()` in `context.state.name.trim()`, and at
@@ -85,7 +85,7 @@ mixin _SelectReplacement on ResolvedCorrectionProducer {
     void writeSelect(DartEditBuilder builder, _GetterPath path) {
       builder.write('$targetText.');
       if (isAsyncReduxMethod) {
-        // context.getState<AppState>() or context.getRead<AppState>()
+        // context.getRead<AppState>()
         builder.write('getSelect<');
         builder.writeType(stateType);
         builder.write(', ');
@@ -239,8 +239,7 @@ class _NameUseFinder extends GeneralizingAstVisitor<void> {
   };
 }
 
-/// Replaces `context.state` with `context.read()`, and `context.getState<St>()` with
-/// `context.getRead<St>()`.
+/// Replaces a custom `context.state` getter with `context.read()`.
 ///
 /// Only offered in code that doesn't run while the widget builds, like callbacks and
 /// `didChangeDependencies`, but not in `dispose`, where `context.read()` throws too.
@@ -275,23 +274,9 @@ class UseContextRead extends ResolvedCorrectionProducer {
     var target = stateAccessTarget(access);
     if (target == null) return;
 
-    String replacement;
-    if (access is MethodInvocation) {
-      // context.getState<AppState>()
-      var stateType = access.staticType;
-      if (stateType == null || stateType is DynamicType) return;
-      var typeArguments = access.typeArguments;
-      var typeArgumentsText = typeArguments != null
-          ? utils.getNodeText(typeArguments)
-          : '<${stateType.getDisplayString()}>';
-      _readName = 'getRead';
-      replacement = '${utils.getNodeText(target)}.getRead$typeArgumentsText()';
-    } else {
-      var read = _extensionMethod(access, 'read');
-      if (read == null || read.formalParameters.any((p) => p.isRequired)) return;
-      _readName = 'read';
-      replacement = '${utils.getNodeText(target)}.read()';
-    }
+    var read = _extensionMethod(access, 'read');
+    if (read == null || read.formalParameters.any((p) => p.isRequired)) return;
+    var replacement = '${utils.getNodeText(target)}.read()';
 
     await builder.addDartFileEdit(file, (builder) {
       builder.addSimpleReplacement(range.node(access), replacement);
@@ -316,8 +301,7 @@ Expression? _stateOrReadAccess(AstNode node) =>
         })
         as Expression?;
 
-/// Returns true if [access] is the `context.getState<St>()` or
-/// `context.getRead<St>()` of AsyncRedux.
+/// Returns true if [access] is a `context.getRead<St>()` of AsyncRedux.
 bool _isAsyncReduxMethod(Expression access) {
   if (access is! MethodInvocation) return false;
   var extension = _extensionOf(access.methodName.element);

@@ -42,7 +42,7 @@ void main() {
 
     test('names with repeated letters', () {
       expect(containsName('x.setNavigatorKey(key);', 'setNavigatorKey'), isTrue);
-      expect(containsName('Vm.createFrom(store, f)', 'createFrom'), isTrue);
+      expect(containsName('Something.createFrom(store, f)', 'createFrom'), isTrue);
       expect(containsName('createFromJson', 'createFrom'), isFalse);
       expect(
         containsName('UserExceptionDialogs UserExceptionDialog(', 'UserExceptionDialog'),

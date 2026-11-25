@@ -13,7 +13,7 @@ import '../redux_types.dart';
 import '../widget_types.dart';
 
 /// Reports `throw UserException(...)` where AsyncRedux can't catch it to show it to
-/// the user: in a widget, in a `State`, in a `VmFactory`, in a view-model, or in the
+/// the user: in a widget, in a `State`, or in the
 /// `after` method of an action. A `UserException` only shows a dialog when thrown
 /// from `before` or `reduce`.
 class UserExceptionOutsideActionRule extends AnalysisRule {
@@ -46,8 +46,6 @@ class UserExceptionOutsideActionRule extends AnalysisRule {
 enum UserExceptionPlace {
   widget('a widget'),
   state("a 'State'"),
-  vmFactory("a 'VmFactory'"),
-  vm('a view-model'),
   after("the 'after' method of an action");
 
   final String description;
@@ -69,8 +67,6 @@ UserExceptionPlace? userExceptionPlace(ThrowExpression node) {
   }
   if (isFlutterState(interface)) return UserExceptionPlace.state;
   if (isFlutterWidget(interface)) return UserExceptionPlace.widget;
-  if (isVmFactorySubclass(interface)) return UserExceptionPlace.vmFactory;
-  if (isVmSubclass(interface)) return UserExceptionPlace.vm;
   return null;
 }
 

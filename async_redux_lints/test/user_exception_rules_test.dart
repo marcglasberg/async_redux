@@ -168,25 +168,11 @@ class MyAction extends ReduxAction<AppState> {
   }
 }
 
-/// A stub of the `VmFactory` of package `async_redux`.
-const _vmFactoryStub = r'''
-import 'package:flutter/widgets.dart';
-import 'async_redux.dart' show ReduxAction;
-import 'widgets.dart';
-
-abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
-  Object? Function(ReduxAction<St> action) get dispatch => throw 0;
-  Model? fromStore();
-}
-''';
-
 const _widgetHeader =
     '''
 import 'package:async_redux/async_redux.dart'
-    hide BuildContext, BuildContextExtensionForProviderAndConnector;
-import 'package:async_redux/vm_factory.dart';
+    hide BuildContext, BuildContextExtensionForProvider;
 $widgetHeader
-typedef UsesVmFactory = VmFactory;
 ''';
 
 @reflectiveTest
@@ -194,7 +180,6 @@ class UserExceptionOutsideActionWidgetTest extends AsyncReduxWidgetRuleTest {
   @override
   void setUp() {
     rule = UserExceptionOutsideActionRule();
-    newPackage('async_redux').addFile('lib/vm_factory.dart', _vmFactoryStub);
     super.setUp();
   }
 
@@ -315,54 +300,6 @@ class W extends StatelessWidget {
   }
 }
 ''');
-  }
-
-  Future<void> test_vmFactory() async {
-    var code = '''$_widgetHeader
-class MyVm extends Vm {
-  final VoidCallback onSave;
-  MyVm({required this.onSave});
-}
-
-class Factory extends VmFactory<AppState, Widget, MyVm> {
-  @override
-  MyVm fromStore() => MyVm(onSave: () => throw UserException('Oops'));
-}
-''';
-    await assertDiagnostics(code, [
-      lintAt(
-        code,
-        "throw UserException('Oops')",
-        messageContainsAll: ["thrown in a 'VmFactory' is not shown"],
-      ),
-    ]);
-    await assertFix(code, DispatchUserExceptionAction.new, '''$_widgetHeader
-class MyVm extends Vm {
-  final VoidCallback onSave;
-  MyVm({required this.onSave});
-}
-
-class Factory extends VmFactory<AppState, Widget, MyVm> {
-  @override
-  MyVm fromStore() => MyVm(onSave: () => dispatch(UserExceptionAction('Oops')));
-}
-''');
-  }
-
-  Future<void> test_vm() async {
-    var code = '''$_widgetHeader
-class MyVm extends Vm {
-  void save() => throw UserException('Oops');
-}
-''';
-    await assertDiagnostics(code, [
-      lintAt(
-        code,
-        "throw UserException('Oops')",
-        messageContainsAll: ['thrown in a view-model is not shown'],
-      ),
-    ]);
-    await assertFix(code, DispatchUserExceptionAction.new, null);
   }
 }
 

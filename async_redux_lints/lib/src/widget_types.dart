@@ -6,7 +6,7 @@ import 'names.dart';
 
 /// How a widget uses the store, through its `BuildContext`.
 enum StateAccess {
-  /// `context.state`, or `context.getState<St>()`. Rebuilds on any state change.
+  /// A custom `context.state` getter. Rebuilds on any state change.
   state,
 
   /// `context.select(...)`, or `context.getSelect<St, R>(...)`.
@@ -33,7 +33,7 @@ enum StateAccess {
 /// Returns how [element] uses the store, or null if it's not one of the
 /// `BuildContext` methods of AsyncRedux.
 ///
-/// AsyncRedux declares `getState`, `getSelect`, `getEvent`, `getRead` and others in an
+/// AsyncRedux declares `getSelect`, `getEvent`, `getRead` and others in an
 /// extension on `BuildContext`. The docs recommend that apps declare their own
 /// extension with `state`, `select`, `event` and `read`, which call those. These are
 /// recognized by their names, when declared in an extension on `BuildContext`, in a
@@ -50,7 +50,6 @@ StateAccess? stateAccessOf(Element? element) {
 
   if (isAsyncReduxLibrary(extension.library)) {
     return switch (element.name) {
-      'getState' => StateAccess.state,
       'getSelect' => StateAccess.select,
       'getEvent' => StateAccess.event,
       'getRead' => StateAccess.read,
@@ -147,21 +146,6 @@ bool _isFlutterElement(Element element, String name) =>
 
 bool _isFlutterLibrary(LibraryElement? library) =>
     library?.uri.toString().startsWith('package:flutter/') ?? false;
-
-/// Returns true if [element] is the `Vm` class of package `async_redux`.
-bool isVm(Element? element) =>
-    element is InterfaceElement &&
-    element.name == 'Vm' &&
-    isAsyncReduxLibrary(element.library);
-
-/// Returns true if [element] is a subclass of `Vm`, but not `Vm` itself.
-bool isVmSubclass(InterfaceElement element) =>
-    !isVm(element) && element.allSupertypes.any((type) => isVm(type.element));
-
-/// Returns true if [element] extends the `VmFactory` class of package `async_redux`.
-bool isVmFactorySubclass(InterfaceElement element) => element.allSupertypes.any(
-  (type) => type.element.name == 'VmFactory' && isAsyncReduxLibrary(type.element.library),
-);
 
 /// Returns true if [node] is a closure that gets a `BuildContext`, like the
 /// `builder` of a `Builder` widget, but not a local function declaration.

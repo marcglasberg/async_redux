@@ -4,8 +4,7 @@ import 'rule_test_base.dart';
 const asyncReduxWidgetsStub = r'''
 import 'package:flutter/widgets.dart';
 
-extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
-  St getState<St>() => throw 0;
+extension BuildContextExtensionForProvider<St> on BuildContext {
   St getRead<St>() => throw 0;
   R getSelect<St, R>(R Function(St state) selector) => throw 0;
   R? getEvent<St, R>(Evt<R> Function(St state) selector) => throw 0;
@@ -20,10 +19,6 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
 
 class Evt<T> {}
 
-abstract class Vm {
-  final List<Object?> equals;
-  Vm({this.equals = const []});
-}
 ''';
 
 /// Flutter APIs that the mock Flutter package of `analyzer_testing` doesn't declare.
@@ -76,7 +71,7 @@ class AppState {
 }
 
 extension BuildContextExtension on BuildContext {
-  AppState get state => getState<AppState>();
+  AppState get state => getSelect<AppState, AppState>((st) => st);
   AppState read() => getRead<AppState>();
   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
   R? event<R>(Evt<R> Function(AppState state) selector) =>

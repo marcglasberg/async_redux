@@ -59,7 +59,7 @@ class StoreProvider<St> {
       throw 0;
 }
 
-extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
+extension BuildContextExtensionForProvider<St> on BuildContext {
   bool isWaiting(Object actionOrTypeOrList) => throw 0;
   bool isFailed(Object actionOrTypeOrList) => throw 0;
   UserException? exceptionFor(Object actionOrTypeOrList) => throw 0;

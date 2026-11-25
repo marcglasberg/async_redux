@@ -14,7 +14,6 @@
 // ignore_for_file: async_redux_lints/context_in_dispose
 // ignore_for_file: async_redux_lints/context_in_selector
 // ignore_for_file: async_redux_lints/select_outside_build
-// ignore_for_file: async_redux_lints/vm_field_not_in_equals
 // ignore_for_file: async_redux_lints/copy_missing_field
 // ignore_for_file: async_redux_lints/state_class_must_be_immutable
 // ignore_for_file: async_redux_lints/missing_state_class
@@ -60,7 +59,6 @@
 // ignore_for_file: async_redux_lints/initial_state_not_saved
 // ignore_for_file: async_redux_lints/timer_or_stream_not_in_props
 // ignore_for_file: async_redux_lints/expect_without_waiting
-// ignore_for_file: async_redux_lints/vm_create_from_reused_factory
 // ignore_for_file: async_redux_lints/action_status_details_in_production
 // ignore_for_file: async_redux_lints/action_name_ends_with_action
 // ignore_for_file: async_redux_lints/action_name_ends_with_underscore_action
@@ -169,7 +167,7 @@ class AppState {
 }
 
 extension BuildContextExtension on BuildContext {
-  AppState get state => getState<AppState>();
+  AppState get state => getSelect<AppState, AppState>((state) => state);
 
   AppState read() => getRead<AppState>();
 
@@ -907,32 +905,6 @@ class ContextInSelector extends StatelessWidget {
 
     return Text('$name $counter ${user.name} $value');
   }
-}
-
-class CounterVm extends Vm {
-  final int counter;
-
-  // vm_field_not_in_equals
-  // ('description' is missing from 'equals', so changing it doesn't rebuild)
-  // Fix: Will add 'description' to 'equals'.
-  final String description;
-
-  final VoidCallback onIncrement; // OK: functions can't be in 'equals'.
-
-  CounterVm({
-    required this.counter,
-    required this.description,
-    required this.onIncrement,
-  }) : super(equals: [counter]);
-}
-
-class NoEqualsVm extends Vm {
-  // vm_field_not_in_equals
-  // (Without 'equals', all fields are missing)
-  // Fix: Will add ': super(equals: [counter])' to the constructor.
-  final int counter;
-
-  NoEqualsVm({required this.counter});
 }
 
 @stateClass
@@ -1918,38 +1890,6 @@ class _UserExceptionInStateState extends State<UserExceptionInState> {
       ElevatedButton(onPressed: _save, child: const Text('Save'));
 }
 
-class CounterFactory extends VmFactory<AppState, UserExceptionDemo, CounterVm> {
-  @override
-  CounterVm fromStore() {
-    if (state.counter < 0)
-      // user_exception_outside_action
-      // (In a 'VmFactory')
-      // Fix: Will replace 'throw UserException(...)' with
-      // 'dispatch(UserExceptionAction(...))'.
-      throw const UserException('Negative counter');
-
-    return CounterVm(
-      counter: state.counter,
-      description: 'Counter',
-      onIncrement: () => dispatch(Increment()),
-    );
-  }
-}
-
-class ValidatingVm extends Vm {
-  final int counter;
-
-  ValidatingVm({required this.counter}) : super(equals: [counter]);
-
-  void validate() {
-    if (counter < 0)
-      // user_exception_outside_action
-      // (In a view-model)
-      // Fix: not available.
-      throw const UserException('Negative counter');
-  }
-}
-
 class UserExceptionInAfter extends AppAction {
   @override
   AppState? reduce() {
@@ -2052,9 +1992,7 @@ void debugObserverDemo() {
     // Fix: not available.
     actionObservers: [ConsoleActionObserver()],
     // debug_observer_in_release
-    // ('DefaultModelObserver' too)
     // Fix: not available.
-    modelObserver: DefaultModelObserver(),
   );
 
   Store<AppState>(
@@ -2068,7 +2006,6 @@ void debugObserverDemo() {
   Store<AppState>(
     initialState: AppState.initialState(),
     actionObservers: kReleaseMode ? null : [ConsoleActionObserver()], // OK
-    modelObserver: kDebugMode ? DefaultModelObserver() : null, // OK
   );
 
   Store<AppState>(
@@ -2259,24 +2196,6 @@ class StartTimers extends AppAction {
 //   expect(store.state.name, 'Mary');
 //
 // Fix: Will replace 'store.dispatch(...)' with 'await store.dispatchAndWait(...)'.
-
-void vmCreateFromDemo(Store<AppState> store) {
-  var factory = CounterFactory();
-
-  // ignore: invalid_use_of_visible_for_testing_member
-  var vm1 = Vm.createFrom(store, factory);
-
-  // vm_create_from_reused_factory
-  // (Each factory instance can only be used once)
-  // Fix: not available.
-  // ignore: invalid_use_of_visible_for_testing_member
-  var vm2 = Vm.createFrom(store, factory);
-
-  // ignore: invalid_use_of_visible_for_testing_member
-  var vm3 = Vm.createFrom(store, CounterFactory()); // OK: a new factory.
-
-  describe([vm1, vm2, vm3]);
-}
 
 Future<void> actionStatusDemo(Store<AppState> store) async {
   var status = await store.dispatchAndWait(LoadUser());

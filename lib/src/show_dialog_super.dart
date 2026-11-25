@@ -16,8 +16,6 @@ import 'package:material_ui/material_ui.dart';
 /// [showDialogSuper] is originally called from. Use a [StatefulBuilder] or a
 /// custom [StatefulWidget] if the dialog needs to update dynamically.
 ///
-/// The [child] argument is deprecated, and should be replaced with [builder].
-///
 /// The [context] argument is used to look up the [Navigator] and [Theme] for
 /// the dialog. It is only used when the method is called. Its corresponding
 /// widget can be safely removed from the tree before the dialog is closed.

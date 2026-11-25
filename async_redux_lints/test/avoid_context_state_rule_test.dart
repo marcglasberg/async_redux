@@ -483,32 +483,6 @@ class W extends StatelessWidget {
     await assertFix(code, UseContextSelect.new, null);
   }
 
-  Future<void> test_getState() async {
-    var code = '''$widgetHeader
-class W extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Text(context.getState<AppState>().name);
-  }
-}
-''';
-    await assertDiagnostics(code, [
-      lintAt(
-        code,
-        'context.getState<AppState>()',
-        messageContainsAll: ["'context.getState' rebuilds the widget"],
-      ),
-    ]);
-    await assertFix(code, UseContextSelect.new, '''$widgetHeader
-class W extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Text(context.getSelect<AppState, String>((st) => st.name));
-  }
-}
-''');
-  }
-
   Future<void> test_stateOfStatefulWidget() async {
     var code = '''$widgetHeader
 class W extends StatefulWidget {
@@ -595,26 +569,6 @@ class W extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(onTap: () => print(context.read().counter));
-  }
-}
-''');
-  }
-
-  Future<void> test_callback_getState() async {
-    var code = '''$widgetHeader
-class W extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(onTap: () => print(context.getState<AppState>()));
-  }
-}
-''';
-    await assertDiagnostics(code, [lintAt(code, 'context.getState<AppState>()')]);
-    await assertFix(code, UseContextRead.new, '''$widgetHeader
-class W extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(onTap: () => print(context.getRead<AppState>()));
   }
 }
 ''');
@@ -1076,7 +1030,7 @@ class W extends StatelessWidget {
   Future<void> test_extensionDeclaringState_isIgnored() async {
     await assertNoDiagnostics('''$widgetHeader
 extension OtherExtension on BuildContext {
-  AppState get otherState => this.getState<AppState>();
+  AppState get otherState => getSelect<AppState, AppState>((st) => st);
 }
 ''');
   }
@@ -1103,32 +1057,6 @@ class ContextStateInInitStateTest extends AsyncReduxWidgetRuleTest {
       code,
       UseContextRead.new,
       code.replaceFirst('initial = context.state;', 'initial = context.read();'),
-    );
-  }
-
-  Future<void> test_getState() async {
-    var code = '''$widgetHeader
-class W extends StatefulWidget {
-  @override
-  State<W> createState() => _WState();
-}
-
-class _WState extends State<W> {
-  @override
-  void initState() {
-    super.initState();
-    print(context.getState<AppState>().name);
-  }
-
-  @override
-  Widget build(BuildContext context) => const Text('');
-}
-''';
-    await assertDiagnostics(code, [lintAt(code, 'context.getState<AppState>()')]);
-    await assertFix(
-      code,
-      UseContextRead.new,
-      code.replaceFirst('context.getState<AppState>()', 'context.getRead<AppState>()'),
     );
   }
 

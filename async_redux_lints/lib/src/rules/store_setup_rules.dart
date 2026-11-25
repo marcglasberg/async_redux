@@ -224,7 +224,7 @@ class _NavigatorKeyVisitor extends SimpleAstVisitor<void> {
   }
 }
 
-/// Reports `ConsoleActionObserver`, `Log.printer` or `DefaultModelObserver` passed to
+/// Reports `ConsoleActionObserver` or `Log.printer` passed to
 /// the `Store` outside of an `if` or a conditional expression, like
 /// `kReleaseMode ? null : [ConsoleActionObserver()]`. They are for development only.
 ///
@@ -244,7 +244,7 @@ class DebugObserverInReleaseRule extends AnalysisRule {
     : super(
         name: 'debug_observer_in_release',
         description:
-            "'ConsoleActionObserver', 'Log.printer' and 'DefaultModelObserver' are "
+            "'ConsoleActionObserver' and 'Log.printer' are "
             "meant for development only.",
       );
 
@@ -291,7 +291,6 @@ class _DebugObserverVisitor extends SimpleAstVisitor<void> {
     }
     return switch ((enclosing.name, element.name)) {
       ('ConsoleActionObserver', _) => 'ConsoleActionObserver',
-      ('DefaultModelObserver', _) => 'DefaultModelObserver',
       ('Log', 'printer') => 'Log.printer',
       _ => null,
     };

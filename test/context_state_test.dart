@@ -1,9 +1,8 @@
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
-// Regression tests for the legacy whole-store subscription and one-time reads.
+// Regression tests for whole-state selectors and one-time reads.
 // ignore_for_file: async_redux_lints/avoid_context_state
-// ignore_for_file: deprecated_member_use_from_same_package
 
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -463,7 +462,7 @@ void main() {
 
 // Extension for BuildContext
 extension BuildContextExtension on BuildContext {
-  AppState get state => getState<AppState>();
+  AppState get state => getSelect<AppState, AppState>((state) => state);
 
   AppState read() => getRead<AppState>();
 

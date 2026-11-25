@@ -21,7 +21,6 @@ import 'src/fixes/state_class_fixes.dart';
 import 'src/fixes/store_setup_fixes.dart';
 import 'src/fixes/testing_fixes.dart';
 import 'src/fixes/to_string_fixes.dart';
-import 'src/fixes/vm_equals_fixes.dart';
 import 'src/fixes/wait_fail_fixes.dart';
 import 'src/fixes/widget_fixes.dart';
 import 'src/rules/action_file_name_rules.dart';
@@ -61,7 +60,6 @@ import 'src/rules/store_setup_rules.dart';
 import 'src/rules/testing_rules.dart';
 import 'src/rules/timer_or_stream_not_in_props_rule.dart';
 import 'src/rules/user_exception_rules.dart';
-import 'src/rules/vm_field_not_in_equals_rule.dart';
 import 'src/rules/wait_fail_rules.dart';
 import 'src/rules/widget_rules.dart';
 
@@ -129,10 +127,6 @@ class AsyncReduxLintsPlugin extends Plugin {
     registry.registerFixForRule(SelectOutsideBuildRule.code, ReplaceSelectWithRead.new);
     registry.registerFixForRule(SelectOutsideBuildRule.code, UseBuilderContext.new);
     registry.registerFixForRule(SelectOutsideBuildRule.code, WrapItemInBuilder.new);
-
-    registry.registerWarningRule(VmFieldNotInEqualsRule());
-    registry.registerFixForRule(VmFieldNotInEqualsRule.code, AddFieldToVmEquals.new);
-    registry.registerFixForRule(VmFieldNotInEqualsRule.code, AddAllFieldsToVmEquals.new);
 
     registry.registerWarningRule(CopyMissingFieldRule());
     registry.registerFixForRule(CopyMissingFieldRule.code, AddMissingFieldsToCopy.new);
@@ -321,7 +315,6 @@ class AsyncReduxLintsPlugin extends Plugin {
       UseAwaitDispatchAndWait.new,
     );
 
-    registry.registerWarningRule(VmCreateFromReusedFactoryRule());
     registry.registerWarningRule(ActionStatusDetailsInProductionRule());
   }
 }

@@ -146,7 +146,6 @@ package, and the files whose names end with `_test.dart`.
 - [`context_in_dispose`](#context_in_dispose) error
 - [`context_in_selector`](#context_in_selector) error
 - [`select_outside_build`](#select_outside_build) error
-- [`vm_field_not_in_equals`](#vm_field_not_in_equals) warning
 - [`copy_missing_field`](#copy_missing_field) warning
 - [`state_class_must_be_immutable`](#state_class_must_be_immutable) warning
 - [`missing_state_class`](#missing_state_class) warning
@@ -192,7 +191,6 @@ package, and the files whose names end with `_test.dart`.
 - [`initial_state_not_saved`](#initial_state_not_saved) info
 - [`timer_or_stream_not_in_props`](#timer_or_stream_not_in_props) info
 - [`expect_without_waiting`](#expect_without_waiting) warning
-- [`vm_create_from_reused_factory`](#vm_create_from_reused_factory) error
 - [`action_status_details_in_production`](#action_status_details_in_production) info
 - [`action_name_ends_with_action`](#action_name_ends_with_action) warning, opt-in
 - [`action_name_ends_with_underscore_action`](#action_name_ends_with_underscore_action)
@@ -388,8 +386,8 @@ context.isFailed(action);                 // Error: an action
 context.exceptionFor([LoadUser, action]); // Error: an action in the list
 ```
 
-This applies to the methods of the store, of `BuildContext`, of actions, of
-view-model factories, and of `StoreProvider`.
+This applies to the methods of the store, of `BuildContext`, of actions and of
+`StoreProvider`.
 
 Quick fix: replace the action with its type. For example, `LoadUser()` becomes
 `LoadUser`, and `action` becomes `action.runtimeType`.
@@ -425,9 +423,8 @@ Quick fix, for a new action: replace it with its type.
 
 ### avoid_context_state
 
-An info for the legacy `context.state` getter and deprecated `context.getState<AppState>()`.
-They rebuild the
-widget when any part of the state changes. While the widget builds, `context.select`
+An info for custom `context.state` getters. They rebuild the widget when any part
+of the state changes. While the widget builds, `context.select`
 only rebuilds it when the selected parts change. In callbacks, `context.read()` reads
 the state without rebuilding the widget:
 
@@ -515,8 +512,7 @@ Quick fixes:
   ```
 - In callbacks, like `onPressed`, in closures passed to methods like
   `addPostFrameCallback`, and in the `State` methods `didUpdateWidget`, `activate`,
-  `deactivate` and `reassemble`: replace `context.state` with `context.read()`, and
-  `context.getState<AppState>()` with `context.getRead<AppState>()`.
+  `deactivate` and `reassemble`: replace `context.state` with `context.read()`.
 - In `didChangeDependencies`, where `context.state` also makes `didChangeDependencies`
   run again on any state change: replace it with `context.select`, so that it runs
   again only when the selected part changes, or with `context.read()`, so that it
@@ -551,11 +547,10 @@ void initState() {
 }
 ```
 
-This also applies to `context.getState<AppState>()`. Closures inside `initState`, like
+Closures inside `initState`, like
 `addPostFrameCallback((_) => ...)`, run later, so they're not reported.
 
-Quick fix, for `context.state`: replace it with `context.read()`, and
-`context.getState<AppState>()` with `context.getRead<AppState>()`.
+Quick fix, for `context.state`: replace it with `context.read()`.
 
 `context.state` comes from a legacy AsyncRedux `BuildContext` extension. It's
 recognized by its name, when the extension's library imports `async_redux`.
@@ -585,7 +580,7 @@ This also applies to closures inside `dispose`. Dispatching actions works. For
 
 `context.state` and `context.read()` are recognized when defined by an AsyncRedux `BuildContext` extension. They're recognized by their names, when the extension's library imports
 `async_redux`. This way, the `read` of packages like `provider` is not reported. The
-`getState` and `getRead` methods of AsyncRedux are also recognized.
+`getRead` method of AsyncRedux is also recognized.
 
 ---
 
@@ -608,7 +603,7 @@ the selector.
 `context.state`, `context.read()`, `context.select` and `context.event` come from the
 `BuildContext` extensions used by AsyncRedux apps. They're recognized by their names,
 when the extension's library imports `async_redux`. This way, the `select` and `read` of
-packages like `provider` are not reported. The `getState`, `getRead`, `getSelect` and
+packages like `provider` are not reported. The `getRead`, `getSelect` and
 `getEvent` methods of AsyncRedux are also recognized.
 
 ---
@@ -671,42 +666,6 @@ Quick fixes:
 `context.select` and `context.event` are recognized when defined by an AsyncRedux `BuildContext` extension. They're recognized by their names, when the extension's library imports
 `async_redux`. This way, the `select` of packages like `provider` is not reported. The
 `getSelect` and `getEvent` methods of AsyncRedux are also recognized.
-
----
-
-### vm_field_not_in_equals
-
-A warning for a field of a `Vm` subclass that is missing from the `equals` list passed
-to the `Vm` constructor. View-models with the same `equals` are considered equal, so
-the widget doesn't rebuild when only that field changes:
-
-```dart
-class ViewModel extends Vm {
-  final int counter;
-  final String description; // Warning
-  final VoidCallback onIncrement;
-
-  ViewModel({
-    required this.counter,
-    required this.description,
-    required this.onIncrement,
-  }) : super(equals: [counter]);
-}
-```
-
-Calling the `Vm` constructor without `equals` is the same as an empty list, so all
-fields are reported.
-
-Not reported:
-
-- Fields that are functions, like `onIncrement`, since they can't be in `equals`.
-- Fields that a constructor doesn't set from its parameters, like `final int x = 0`,
-  since they are the same in all view-models.
-- View-models that override `==`.
-- Constructors that don't pass `equals` as a list literal, like `super.equals` or
-  `super(equals: list)`.
-
-Quick fixes: add the field to `equals`, or add all missing fields to `equals`.
 
 ---
 
@@ -1148,8 +1107,8 @@ and `after` methods have `@mustCallSuper`, so the analyzer already reports them,
 
 ### user_exception_outside_action
 
-A warning for a `UserException` thrown in a widget, in a `State`, in a `VmFactory`, in a
-view-model, or in the `after` method of an action, where AsyncRedux can't catch it. A
+A warning for a `UserException` thrown in a widget, in a `State`, or in the `after`
+method of an action, where AsyncRedux can't catch it. A
 `UserException` is only shown to the user when it's thrown from the `before` or `reduce`
 methods of an action:
 
@@ -1547,7 +1506,7 @@ class AppState {
 }
 ```
 
-This checks the fields of all classes, since events are also kept in view-models and
+This checks the fields of all classes, since events can be kept in
 widgets. The name `evt` is accepted. A field that overrides an inherited member is not
 reported, since its name comes from the supertype.
 
@@ -1604,7 +1563,7 @@ When the state is read back, create its events with `Evt.spent()`.
 
 A warning for a dispatch that runs while the widget builds. It dispatches again on
 every rebuild, and can loop forever when the action changes the state. Dispatch from a
-callback, from `initState`, or from `StoreConnector.onInit` instead:
+callback or from `initState` instead:
 
 ```dart
 Widget build(BuildContext context) {
@@ -1787,7 +1746,7 @@ passed to `setNavigatorKey` is a variable or a getter.
 
 ### debug_observer_in_release
 
-An info for `ConsoleActionObserver`, `Log.printer` or `DefaultModelObserver` passed to
+An info for `ConsoleActionObserver` or `Log.printer` passed to
 the `Store` in release builds. They are meant for development only:
 
 ```dart
@@ -1935,26 +1894,6 @@ expect(store.state.user.name, 'Mary');
 Quick fix: replace `store.dispatch(...)` with `await store.dispatchAndWait(...)`. If
 the enclosing function is not `async`, like the body of a `test`, also makes it
 `async`. Not offered when that function declares a return type other than `void`.
-
----
-
-### vm_create_from_reused_factory
-
-An error for `Vm.createFrom` called with a factory that was already passed to
-`Vm.createFrom`. It can only be called once per factory instance, and then throws:
-
-```dart
-var factory = MyFactory();
-var vm1 = Vm.createFrom(store, factory);
-var vm2 = Vm.createFrom(store, factory);     // Error
-var vm3 = Vm.createFrom(store, MyFactory()); // OK
-```
-
-Only factories kept in variables are checked. A variable that is never assigned holds
-the same factory everywhere, so this also reports two tests that use the same factory.
-A variable that is assigned, like in `setUp`, is only checked between two calls in the
-same function, with no assignment between them. Calls in different branches of an
-`if`, `?:` or `switch` are not reported.
 
 ---
 

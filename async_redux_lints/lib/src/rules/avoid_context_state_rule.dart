@@ -8,7 +8,7 @@ import '../package_files.dart';
 import '../widget_types.dart';
 import 'context_access_visitor.dart';
 
-/// Reports every `context.state`, and `context.getState<St>()`. They make the widget
+/// Reports custom `context.state` getters. They make the widget
 /// rebuild when any part of the state changes.
 ///
 /// While the widget builds, `context.select((st) => st.field)` only rebuilds it when

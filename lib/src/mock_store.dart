@@ -23,11 +23,8 @@ class MockStore<St> extends Store<St> {
     List<StateObserver<St>>? stateObservers,
     Persistor<St>? persistor,
     Persistor<St>? cloudSync,
-    ModelObserver? modelObserver,
     WrapReduce<St>? wrapReduce,
     GlobalErrorObserver<St> Function(Store<St>)? globalErrorObserver,
-    bool? defaultDistinct,
-    CompareBy? immutableCollectionEquality,
     int? maxErrorsQueued,
     this.mocks,
   }) : super(
@@ -39,11 +36,8 @@ class MockStore<St> extends Store<St> {
           stateObservers: stateObservers,
           persistor: persistor,
           cloudSync: cloudSync,
-          modelObserver: modelObserver,
           wrapReduce: wrapReduce,
           globalErrorObserver: globalErrorObserver,
-          defaultDistinct: defaultDistinct,
-          immutableCollectionEquality: immutableCollectionEquality,
           maxErrorsQueued: maxErrorsQueued,
         );
 

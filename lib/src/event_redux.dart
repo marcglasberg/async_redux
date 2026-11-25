@@ -92,12 +92,6 @@ typedef Evt<T> = Event<T>;
 ///   the **value** if the event was dispatched, or **null** if it was already
 ///   spent.
 ///
-/// ## Alternative Usage: StoreConnector
-///
-/// Events can also be consumed when creating a `ViewModel` with the `StoreConnector`.
-/// The event is "consumed" only once in the converter function, and is then
-/// automatically considered "spent".
-///
 /// ## Important Notes
 ///
 /// - Events are consumed only once. After consumption, they are marked as "spent".
@@ -141,7 +135,7 @@ class Event<T> {
   /// This method is called internally by `context.getEvent()`
   /// (or `context.event()`) so you usually will not use it directly.
   /// However, when using the dumb/smart widget pattern, you may use it inside
-  /// a dumb widget (for example, when using a `StoreConnector`) when the event
+  /// a presentation widget when the event
   /// was passed as a constructor parameter by a smart widget.
   T? consume() {
     T? saveState = state;
@@ -245,35 +239,6 @@ class Event<T> {
   /// - **Spent events** are all considered equal to each other, since they are
   ///   "empty" and should not trigger rebuilds.
   ///
-  /// This behavior is essential for both the `context.event()` extension and
-  /// `StoreConnector` usage patterns.
-  ///
-  /// ## For StoreConnector Users
-  ///
-  /// When using a [StoreConnector], you must implement equals and hashcode for
-  /// your `ViewModel`. Events included in the ViewModel must follow these rules:
-  ///
-  /// 1) If the **new** ViewModel has an event which is **not spent**, then the
-  /// ViewModel **MUST** be considered distinct, no matter the state of the
-  /// **old** ViewModel, since the new event should fire.
-  ///
-  /// 2) If both the old and new ViewModels have events which **are spent**,
-  /// then these events **MUST NOT** be considered distinct, since spent events
-  /// are considered "empty" and should never fire.
-  ///
-  /// 3) If the **new** ViewModel has an event which is **not spent**, and
-  /// the **old** ViewModel has an event which **is spent**, then the new event
-  /// should fire, and for that reason they **MUST** be considered distinct.
-  ///
-  /// 4) If the **new** ViewModel has an event which is **is spent**, and
-  /// the **old** ViewModel has an event which **not spent**, then the new event
-  /// should NOT fire, and for that reason they **SHOULD NOT** be considered
-  /// distinct.
-  ///
-  /// **Note:** To differentiate cases 3 and 4 we would actually be breaking
-  /// the equals contract (which says A==B should be the same as B==A). A safer
-  /// alternative is to always consider events different if any of them is not
-  /// spent. That will, however, fire some unnecessary rebuilds.
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||

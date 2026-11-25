@@ -7,6 +7,22 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.jpg)](https://mytext.ai)
 
+## 31.0.0-dev.1
+
+* **Breaking:** Removed `StoreConnector`, `StoreConnectorInterface`, `Vm`,
+  `VmFactory`, `VmEquals`, connector callback typedefs, `ConnectorTester`,
+  `Store.getConnectorTester()`, `ModelObserver` and `DefaultModelObserver`.
+  Removed `modelObserver`, `defaultDistinct` and `immutableCollectionEquality`
+  from `Store` and `MockStore`. Use context selectors and `MockBuildContext`.
+* **Breaking:** Removed `context.getState()`, `Wait`, `WaitAction`, `WaitOperation`
+  and `WaitReducer`. Use `context.select()`, `context.read()` and the action's
+  `statusKey` with `context.isWaiting()`.
+* Renamed the provider source to `store_provider.dart` and removed `AndConnector`
+  from the names of its context/widget extensions.
+  Import `package:async_redux/async_redux.dart`.
+* Removed the view-model lint rules, their fixes and obsolete examples/tests.
+  Polling widget tests now exercise selectors and `context.isWaiting()`.
+
 ## 31.0.0-dev.0
 
 * `UserExceptionDialog` now listens directly to the store, without `StoreConnector`,

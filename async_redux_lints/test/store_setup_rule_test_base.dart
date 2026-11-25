@@ -13,15 +13,12 @@ class Log<St> implements ActionObserver<St> {
   factory Log.printer({Object? formatter}) => Log();
 }
 
-abstract class ModelObserver<Model> {}
 
-class DefaultModelObserver<Model> implements ModelObserver<Model> {}
 
 class Store<St> {
   Store({
     St? initialState,
     List<ActionObserver<St>>? actionObservers,
-    ModelObserver? modelObserver,
   });
 }
 

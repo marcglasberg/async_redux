@@ -39,7 +39,7 @@ class DispatchUserExceptionAction extends ResolvedCorrectionProducer {
 
     var place = userExceptionPlace(throwExpression);
     var dispatch = switch (place) {
-      UserExceptionPlace.after || UserExceptionPlace.vmFactory => 'dispatch',
+      UserExceptionPlace.after => 'dispatch',
       UserExceptionPlace.widget || UserExceptionPlace.state => _contextDispatch(
         throwExpression,
         isState: place == UserExceptionPlace.state,

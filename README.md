@@ -39,12 +39,17 @@ and other people on your team will easily understand and modify your code.
 
 ## Version 31 migration
 
-`StoreConnector`, `Vm` and `VmFactory` are deprecated for application code.
+`StoreConnector`, `Vm`, `VmFactory` and their supporting APIs have been removed.
 Use `context.select()` to subscribe to state, `context.read()` in callbacks and
 `initState`, and context extensions such as `context.dispatch()` and
 `context.isWaiting()` to interact with the store. Use `MockBuildContext` to test
-widgets without mounting them. The deprecated APIs remain functional and may
-still be used internally by AsyncRedux.
+widgets without mounting them.
+
+`context.getState()` has also been removed. Use selectors for rendering and
+`context.read()` for one-time reads. Replace `Wait` and `WaitAction` with
+`context.isWaiting(MyAction, statusKey: key)` and the action's `statusKey` getter.
+The store options `modelObserver`, `defaultDistinct` and
+`immutableCollectionEquality` have been removed with the connector APIs.
 
 ## Flutter design-package migration
 

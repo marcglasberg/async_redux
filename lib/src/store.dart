@@ -11,10 +11,7 @@ import 'dart:collection';
 import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/src/process_persistence.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter/widgets.dart';
 import 'package:meta/meta.dart';
-
-import 'connector_tester.dart';
 
 part 'redux_action.dart';
 
@@ -100,11 +97,8 @@ class Store<St> {
     List<StateObserver<St>>? this._stateObservers,
     Persistor<St>? persistor,
     Persistor<St>? cloudSync,
-    this._modelObserver,
     this._wrapReduce,
     this._globalErrorObserver,
-    bool? defaultDistinct,
-    this._immutableCollectionEquality,
     int? maxErrorsQueued,
   })  : _state = initialState,
         _props = HashMap()..addAll(props),
@@ -116,7 +110,6 @@ class Store<St> {
         _processCloudSync = (cloudSync == null)
             ? null //
             : ProcessPersistence(cloudSync, initialState),
-        _defaultDistinct = defaultDistinct ?? true,
         _errors = Queue<UserException>(),
         _maxErrorsQueued = maxErrorsQueued ?? 10,
         _dispatchCount = 0,
@@ -155,7 +148,7 @@ class Store<St> {
   /// base action that extends [ReduxAction].
   ///
   /// Note the environment is accessible in widgets through
-  /// [BuildContextExtensionForProviderAndConnector.getEnvironment], so that your widgets
+  /// [BuildContextExtensionForProvider.getEnvironment], so that your widgets
   /// can respond to different environments, if necessary.
   ///
   /// See also:
@@ -211,7 +204,7 @@ class Store<St> {
   /// timer.cancel();
   /// ```
   ///
-  /// This is also directly accessible in [ReduxAction] and in [VmFactory], as `prop`.
+  /// This is also directly accessible in [ReduxAction], as `prop`.
   ///
   /// See also: [setProp] and [env].
   V prop<V>(Object? key) => _props[key] as V;
@@ -226,7 +219,7 @@ class Store<St> {
   /// timer.cancel();
   /// ```
   ///
-  /// This is also directly accessible in [ReduxAction] and in [VmFactory], as `prop`.
+  /// This is also directly accessible in [ReduxAction], as `prop`.
   ///
   /// See also: [prop] and [env].
   void setProp(Object? key, Object? value) => _props[key] = value;
@@ -332,24 +325,6 @@ class Store<St> {
   /// The timestamp of the current state in the store, in UTC.
   DateTime get stateTimestamp => _stateTimestamp;
 
-  bool get defaultDistinct => _defaultDistinct;
-
-  /// 1) If `null` (the default), view-models which are immutable collections will be compared
-  /// by their default equality.
-  ///
-  /// 2) If `CompareBy.byDeepEquals`, view-models which are immutable collections will be compared
-  /// by their items, one by one (potentially slow comparison).
-  ///
-  /// 3) If `CompareBy.byIdentity`, view-models which are immutable collections will be compared
-  /// by their internals being identical (very fast comparison).
-  ///
-  /// Note: This works with immutable collections `IList`, `ISet`, `IMap` and `IMapOfSets` from
-  /// the https://pub.dev/packages/fast_immutable_collections package.
-  ///
-  CompareBy? get immutableCollectionEquality => _immutableCollectionEquality;
-
-  ModelObserver? get modelObserver => _modelObserver;
-
   int get dispatchCount => _dispatchCount;
 
   int get reduceCount => _reduceCount;
@@ -364,15 +339,9 @@ class Store<St> {
 
   final ProcessPersistence<St>? _processCloudSync;
 
-  final ModelObserver? _modelObserver;
-
   final GlobalErrorObserver<St> Function(Store<St>)? _globalErrorObserver;
 
   final WrapReduce<St>? _wrapReduce;
-
-  final bool _defaultDistinct;
-
-  final CompareBy? _immutableCollectionEquality;
 
   final Queue<UserException> _errors;
 
@@ -2530,33 +2499,6 @@ class Store<St> {
     _stateTimestamp = DateTime.now().toUtc();
     return _changeController.close();
   }
-
-  /// Helps testing the `StoreConnector`s methods, such as `onInit`,
-  /// `onDispose` and `onWillChange`.
-  ///
-  /// For example, suppose you have a `StoreConnector` which dispatches
-  /// `SomeAction` on its `onInit`. How could you test that?
-  ///
-  /// ```
-  /// class MyConnector extends StatelessWidget {
-  ///   Widget build(BuildContext context) => StoreConnector<AppState, Vm>(
-  ///         vm: () => _Factory(),
-  ///         onInit: _onInit,
-  ///         builder: (context, vm) { ... }
-  ///   }
-  ///
-  ///   void _onInit(Store<AppState> store) => store.dispatch(SomeAction());
-  /// }
-  ///
-  /// var store = Store(...);
-  /// var connectorTester = store.getConnectorTester(MyConnector());
-  /// connectorTester.runOnInit();
-  /// var action = await store.waitAnyActionTypeFinishes([SomeAction]);
-  /// expect(action.someValue, 123);
-  /// ```
-  ///
-  ConnectorTester<St, Model> getConnectorTester<Model>(StatelessWidget widgetConnector) =>
-      ConnectorTester<St, Model>(this, widgetConnector);
 
   /// Throws the error after an asynchronous gap.
   void _throws(errorMsg, Object? error, StackTrace stackTrace) {

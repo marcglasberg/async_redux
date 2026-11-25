@@ -40,7 +40,7 @@ class DispatchInBuildRule extends AnalysisRule {
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
     var visitor = _DispatchInBuildVisitor(this);
     registry.addMethodInvocation(this, visitor);
-    // Calling a getter of function type, like `VmFactory.dispatch`.
+    // Calling a getter of function type, like `Store.dispatch`.
     registry.addFunctionExpressionInvocation(this, visitor);
   }
 }

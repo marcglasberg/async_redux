@@ -9,7 +9,7 @@ import '../widget_types.dart';
 /// `context.state` or `context.select(...)`.
 ///
 /// The `BuildContext` extension that declares them, like
-/// `AppState get state => getState<AppState>();`, is skipped.
+/// `AppState get state => getSelect<AppState, AppState>((st) => st);`, is skipped.
 ///
 /// Prefixed identifiers, property accesses and method invocations are some of the
 /// most common nodes, so the rules that call this share a single visitor for each

@@ -465,15 +465,6 @@ final store2 = Store<AppState>(actionObservers: [Log.printer()]);
     ]);
   }
 
-  Future<void> test_defaultModelObserver() async {
-    var code = '''$setupHeader
-final store2 = Store<AppState>(modelObserver: DefaultModelObserver());
-''';
-    await assertDiagnostics(code, [
-      lintAt(code, 'DefaultModelObserver()', length: 'DefaultModelObserver'.length),
-    ]);
-  }
-
   Future<void> test_insideFunction() async {
     var code = '''$setupHeader
 Store<AppState> createStore() {
@@ -495,7 +486,6 @@ Store<AppState> createStore() {
     await assertNoDiagnostics('''$setupHeader
 final store2 = Store<AppState>(
   actionObservers: kReleaseMode ? null : [ConsoleActionObserver()],
-  modelObserver: kDebugMode ? DefaultModelObserver() : null,
 );
 ''');
   }

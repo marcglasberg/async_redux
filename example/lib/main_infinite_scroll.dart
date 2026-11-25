@@ -31,7 +31,6 @@ void main() {
     // ignore: async_redux_lints/debug_observer_in_release
     actionObservers: [Log<AppState>.printer()],
     // ignore: async_redux_lints/debug_observer_in_release
-    modelObserver: DefaultModelObserver(),
   );
   runApp(MyApp());
 }

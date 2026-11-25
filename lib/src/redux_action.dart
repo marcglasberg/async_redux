@@ -388,7 +388,7 @@ abstract class ReduxAction<St> {
   /// It may be synchronous (returning `AppState` or `null`)
   /// or async (returning `Future<AppState>` or `Future<null>`).
   ///
-  /// The `StoreConnector`s may rebuild only if the `reduce` method returns
+  /// Widgets observing the state may rebuild if the `reduce` method returns
   /// a state which is both not `null` and different from the previous one
   /// (comparing by `identical`, not `equals`).
   @protected
@@ -544,8 +544,7 @@ abstract class ReduxAction<St> {
   /// call). So, when a `statusKey` can take many values, remember that the failures that
   /// are never retried stay in memory until one of those is called.
   ///
-  /// This replaces the deprecated `Wait` and `WaitAction`: the "flag" is the action type,
-  /// and the "ref" is the `statusKey`.
+  /// The action type identifies the operation, and `statusKey` identifies its target.
   Object? get statusKey => null;
 
   /// You can use [isWaiting] to check if:

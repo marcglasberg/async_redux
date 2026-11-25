@@ -14,10 +14,10 @@ import 'context_access_visitor.dart';
 
 /// The extension of AsyncRedux that lets a `StatelessWidget` dispatch without the
 /// `context`, like `dispatch(action)` instead of `context.dispatch(action)`.
-const _statelessWidgetExtension = 'StatelessWidgetExtensionForProviderAndConnector';
+const _statelessWidgetExtension = 'StatelessWidgetExtensionForProvider';
 
 /// The extension of AsyncRedux that lets a `State` dispatch without the `context`.
-const _stateExtension = 'StatefulWidgetExtensionForProviderAndConnector';
+const _stateExtension = 'StatefulWidgetExtensionForProvider';
 
 /// Reports `context.dispatch(action)` in a `StatelessWidget` or a `State`, where
 /// `dispatch(action)` also works. Also `dispatchAndWait`, `dispatchAll`,

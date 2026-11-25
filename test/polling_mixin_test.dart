@@ -2073,7 +2073,7 @@ void main() {
 
   group('Polling with widgets', () {
     //
-    testWidgets('A StoreConnector rebuilds on each polling tick', (tester) async {
+    testWidgets('A context selector rebuilds on each polling tick', (tester) async {
       var store = Store<AppState>(initialState: AppState(0));
 
       await tester.pumpWidget(_CountApp(store: store));
@@ -2097,7 +2097,7 @@ void main() {
       expect(find.text('Count: 3'), findsOneWidget);
     });
 
-    testWidgets('A StoreConnector shows the waiting state of each tick', (tester) async {
+    testWidgets('context.isWaiting shows the waiting state of each tick', (tester) async {
       TrackedPollAction.reset();
       var store = Store<AppState>(initialState: AppState(0));
 
@@ -2141,9 +2141,11 @@ class _CountApp extends StatelessWidget {
     return StoreProvider<AppState>(
       store: store,
       child: MaterialApp(
-        home: StoreConnector<AppState, int>(
-          converter: (store) => store.state.count,
-          builder: (context, count) => Text('Count: $count'),
+        home: Builder(
+          builder: (context) {
+            final count = context.getSelect<AppState, int>((state) => state.count);
+            return Text('Count: $count');
+          },
         ),
       ),
     );
@@ -2160,9 +2162,9 @@ class _WaitingApp extends StatelessWidget {
     return StoreProvider<AppState>(
       store: store,
       child: MaterialApp(
-        home: StoreConnector<AppState, bool>(
-          converter: (store) => store.isWaiting(TrackedPollAction),
-          builder: (context, isWaiting) => Text(isWaiting ? 'waiting' : 'idle'),
+        home: Builder(
+          builder: (context) =>
+              Text(context.isWaiting(TrackedPollAction) ? 'waiting' : 'idle'),
         ),
       ),
     );
