@@ -1,99 +1,35 @@
 ---
 name: asyncredux-actions-no-state-change
-description: Creates AsyncRedux (Flutter) actions that return null from reduce() to not change the state. Such actions can still do side effects, dispatch other actions, or do nothing. 
+description: Implement AsyncRedux actions that coordinate other actions, perform side effects, or leave state unchanged.
 ---
 
-# Actions That Don't Change State
+# Return no state change
 
-In AsyncRedux, returning a new state from reducers is **optional**. When you don't need to
-modify the application state, return `null` to keep the current state unchanged.
+Return `null` to leave state unchanged. Use a reducer returning `AppState?` for
+synchronous work or `Future<AppState?>` when the action must await work. An action
+can still update state indirectly by dispatching other actions.
 
-## Basic Pattern
+Use `dispatchAndWait` when a caller needs the parent action to finish after a child.
+A child `UserException` can produce a failed status without throwing to the parent,
+so check that status before dependent work. Use `dispatchAll` for independent child
+actions that may keep running.
 
-Return `null` from `reduce()` when no state modification is needed:
-
-```dart
-class MyAction extends ReduxAction<AppState> {
-  AppState? reduce() {
-    // Perform side effects here
-    return null; // State remains unchanged
-  }
-}
-```
-
-## Conditional State Updates
-
-Only update state when certain conditions are met:
+This action uses the base class from the setup skill.
 
 ```dart
-class GetAmount extends ReduxAction<AppState> {
+class FlushDrafts extends AppAction {
+  FlushDrafts(this.flush);
+  final Future<void> Function() flush;
+
+  @override
   Future<AppState?> reduce() async {
-    int amount = await getAmount();
-    if (amount == 0)
-      return null; // No change needed
-    else
-      return state.copy(counter: state.counter + amount);
-  }
-}
-```
-
-## Coordinating Other Actions
-
-Actions that dispatch other actions but don't modify state directly:
-
-```dart
-class InitAction extends ReduxAction<AppState> {
-  AppState? reduce() {
-    dispatch(ReadDatabaseAction());
-    dispatch(StartTimersAction());
-    dispatch(TurnOnListenersAction());
-    return null; // This action doesn't change state itself
-  }
-}
-```
-
-## Triggering External Services
-
-Call external services without modifying app state:
-
-```dart
-class SendNotification extends ReduxAction<AppState> {
-  final String message;
-  SendNotification(this.message);
-
-  Future<AppState?> reduce() async {
-    await notificationService.send(message);
+    await flush();
     return null;
   }
 }
 ```
-
-## Navigation Actions
-
-Trigger navigation as a side effect:
-
-```dart
-class GoToSettings extends ReduxAction<AppState> {
-  AppState? reduce() {
-    dispatch(NavigateAction.pushNamed('/settings'));
-    return null;
-  }
-}
-```
-
-## Key Points
-
-1. Actions that do return a new state can **also** do side effects and dispatch other actions.
-2. **Return type matters**: Use `AppState?` for sync, `Future<AppState?>` for async
-3. **Null means no change**: The store keeps its current state
 
 ## References
 
-URLs from the documentation:
-
-- https://asyncredux.com/flutter/basics/changing-state-is-optional
-- https://asyncredux.com/flutter/basics/actions-and-reducers
-- https://asyncredux.com/flutter/basics/sync-actions
-- https://asyncredux.com/flutter/basics/async-actions
-- https://asyncredux.com/flutter/advanced-actions/redux-action
-- https://asyncredux.com/flutter/advanced-actions/before-and-after-the-reducer
+- [Changing state is optional](https://asyncredux.com/flutter/basics/changing-state-is-optional)
+- [Dispatching actions](https://asyncredux.com/flutter/basics/dispatching-actions)
