@@ -1,7 +1,7 @@
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
-import 'dart:collection';
+import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
@@ -28,7 +28,7 @@ import 'show_dialog_super.dart';
 ///
 /// For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 ///
-class UserExceptionDialog<St> extends StatelessWidget {
+class UserExceptionDialog<St> extends StatefulWidget {
   final Widget child;
   final ShowUserExceptionDialog? onShowUserExceptionDialog;
 
@@ -51,46 +51,61 @@ class UserExceptionDialog<St> extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    //
-    return StoreConnector<St, _Vm>(
-      vm: () => _Factory<St>(),
-      builder: (context, vm) {
-        //
-        Event<UserException>? errorEvt = //
-            (_Factory._errorEvents.isEmpty) //
-                ? null
-                : _Factory._errorEvents.removeFirst();
-
-        return _UserExceptionDialogWidget(
-          child,
-          errorEvt,
-          onShowUserExceptionDialog,
-          useLocalContext,
-          () => StoreProvider.backdoorInheritedWidget<St>(context).getAndRemoveFirstError(),
-        );
-      },
-    );
-  }
+  State<UserExceptionDialog<St>> createState() => _UserExceptionDialogState<St>();
 }
 
-class _UserExceptionDialogWidget extends StatefulWidget {
-  final Widget child;
-  final Event<UserException>? errorEvt;
-  final ShowUserExceptionDialog onShowUserExceptionDialog;
-  final bool useLocalContext;
+class _UserExceptionDialogState<St> extends State<UserExceptionDialog<St>> {
+  Store<St>? _store;
+  StreamSubscription<St>? _subscription;
+  bool _scheduled = false;
 
-  /// Removes and returns the first error in the store's error queue.
-  final UserException? Function() getAndRemoveFirstError;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
 
-  _UserExceptionDialogWidget(
-    this.child,
-    this.errorEvt,
-    ShowUserExceptionDialog? onShowUserExceptionDialog,
-    this.useLocalContext,
-    this.getAndRemoveFirstError,
-  ) : onShowUserExceptionDialog = //
-            onShowUserExceptionDialog ?? _defaultUserExceptionDialog;
+    // Depend only on replacement of the store, not on changes to its state.
+    context.dependOnInheritedWidgetOfExactType<StoreProvider<St>>();
+    final store = StoreProvider.backdoorInheritedWidget<St>(context);
+    if (!identical(store, _store)) {
+      _subscription?.cancel();
+      _store = store;
+      _subscription = store.onChange.listen((_) => _scheduleErrors());
+    }
+
+    // Also handle errors queued before mounting or before replacing the store.
+    _scheduleErrors();
+  }
+
+  void _scheduleErrors() {
+    if (!mounted || _scheduled || !_store!.internalHasErrors) return;
+
+    _scheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scheduled = false;
+      if (!mounted) return;
+
+      final store = _store!;
+      // Leave errors in their store until they can actually be displayed.
+      // This also avoids losing errors if unmounted before this callback runs.
+      while (mounted && identical(store, _store)) {
+        final error = store.getAndRemoveFirstError();
+        if (error == null) break;
+        (widget.onShowUserExceptionDialog ?? _defaultUserExceptionDialog)(
+            context, error, widget.useLocalContext);
+      }
+    });
+    // A stream event can arrive while the app is idle, with no frame scheduled.
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 
   static void _defaultUserExceptionDialog(
     BuildContext context,
@@ -180,83 +195,6 @@ class _UserExceptionDialogWidget extends StatefulWidget {
         },
       );
   }
-
-  @override
-  _UserExceptionDialogState createState() => _UserExceptionDialogState();
-}
-
-class _UserExceptionDialogState extends State<_UserExceptionDialogWidget> {
-  //
-  /// Errors may have been added to the error queue before this widget was mounted
-  /// (for example, errors added by the Persistor while reading the state, or errors
-  /// thrown by actions dispatched before the app started). The first one is already
-  /// in [_UserExceptionDialogWidget.errorEvt], and the others are still in the queue.
-  /// Since the store may not change again soon, we show them all now.
-  @override
-  void initState() {
-    super.initState();
-
-    var userExceptions = <UserException>[];
-
-    UserException? userException = widget.errorEvt?.consume();
-    while (userException != null) {
-      userExceptions.add(userException);
-      userException = widget.getAndRemoveFirstError();
-    }
-
-    if (userExceptions.isNotEmpty)
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        for (var userException in userExceptions)
-          widget.onShowUserExceptionDialog(
-              context, userException, widget.useLocalContext);
-      });
-  }
-
-  @override
-  void didUpdateWidget(_UserExceptionDialogWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    UserException? userException = widget.errorEvt?.consume();
-
-    if (userException != null)
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onShowUserExceptionDialog(
-            context, userException, widget.useLocalContext);
-      });
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
-}
-
-class _Factory<St> extends VmFactory<St, UserExceptionDialog, _Vm> {
-  static final Queue<Event<UserException>> _errorEvents = Queue();
-
-  @override
-  _Vm fromStore() {
-    UserException? error = getAndRemoveFirstError();
-
-    if (error != null) _errorEvents.add(Event(error));
-
-    return _Vm(
-      rebuild: (error != null),
-    );
-  }
-}
-
-class _Vm extends Vm {
-  //
-  final bool rebuild;
-
-  _Vm({required this.rebuild});
-
-  /// Does not respect equals contract:
-  /// Is not equal when it should rebuild.
-  @override
-  bool operator ==(Object other) => !rebuild;
-
-  @override
-  int get hashCode => rebuild.hashCode;
 }
 
 typedef ShowUserExceptionDialog = void Function(

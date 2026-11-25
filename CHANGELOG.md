@@ -9,6 +9,10 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 ## 31.0.0-dev.0
 
+* `UserExceptionDialog` now listens directly to the store, without `StoreConnector`,
+  view-models or a shared event queue. Pending errors are displayed after the frame
+  and remain queued if the widget is removed before they can be displayed.
+
 * Deprecated `StoreConnector`, `Vm` and `VmFactory` for application code. Use
   `context.select()` to subscribe to state, `context.read()` in callbacks and
   `initState`, and the other `BuildContext` extensions to interact with the store.
