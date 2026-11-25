@@ -37,6 +37,15 @@
 You'll be able to create apps much faster,
 and other people on your team will easily understand and modify your code.
 
+## Version 31 migration
+
+`StoreConnector`, `Vm` and `VmFactory` are deprecated for application code.
+Use `context.select()` to subscribe to state, `context.read()` in callbacks and
+`initState`, and context extensions such as `context.dispatch()` and
+`context.isWaiting()` to interact with the store. Use `MockBuildContext` to test
+widgets without mounting them. The deprecated APIs remain functional and may
+still be used internally by AsyncRedux.
+
 ## Flutter design-package migration
 
 Version 30 requires Flutter 3.47 and Dart 3.13 or later, including Flutter 3.50.

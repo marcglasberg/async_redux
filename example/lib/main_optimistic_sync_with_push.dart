@@ -59,6 +59,10 @@ import 'package:meta/meta.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 late Store<AppState> store;
+
+extension AppContext on BuildContext {
+  R select<R>(R Function(AppState) selector) => getSelect<AppState, R>(selector);
+}
 late MyPersistor persistor;
 
 void main() async {
@@ -407,9 +411,9 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Container(
               color: Colors.blue.shade50,
               child: Center(
-                child: StoreConnector<AppState, bool>(
-                  converter: (store) => store.state.isLiked,
-                  builder: (context, liked) {
+                child: Builder(
+                  builder: (context) {
+                    final liked = context.select((state) => state.isLiked);
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

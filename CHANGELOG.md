@@ -7,6 +7,16 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.jpg)](https://mytext.ai)
 
+## 31.0.0-dev.0
+
+* Deprecated `StoreConnector`, `Vm` and `VmFactory` for application code. Use
+  `context.select()` to subscribe to state, `context.read()` in callbacks and
+  `initState`, and the other `BuildContext` extensions to interact with the store.
+  Use `MockBuildContext` to test widgets without mounting them. The deprecated APIs
+  remain functional and may still be used internally by AsyncRedux.
+* Removed the `example/lib/store_connector_examples` directory and migrated the
+  optimistic update examples to context selectors.
+
 ## 30.1.0
 
 * Deprecated `context.getState<St>()`. This shortcut helped developers writing

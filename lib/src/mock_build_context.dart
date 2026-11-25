@@ -13,7 +13,8 @@ import 'package:flutter/widgets.dart';
 /// For example, suppose this is your smart widget:
 ///
 /// ```dart
-/// class MyConnector extends StoreConnector<AppState, MyModel> {
+/// class MySmartWidget extends StatelessWidget {
+///   @override
 ///   Widget build(BuildContext context) {
 ///     return MyWidget(name: context.select((st) => st.name));
 ///   }
@@ -24,13 +25,13 @@ import 'package:flutter/widgets.dart';
 ///
 /// ```dart
 /// // First, create a Store with the desired initial state.
-/// var store = Store(initialState: AppState(name: 'Mark');
+/// var store = Store(initialState: AppState(name: 'Mark'));
 ///
 /// // Then, create a mock BuildContext with that store.
 /// var context = MockBuildContext(store);
 ///
-/// // Instantiate your StoreConnector or StoreProvider and build the widget.
-/// var widget = MyConnector().build(context) as MyWidget;
+/// // Instantiate your smart widget and build it with the mock context.
+/// var widget = MySmartWidget().build(context) as MyWidget;
 /// expect(widget.name, 'Mark');
 /// ```
 ///

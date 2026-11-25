@@ -16,7 +16,11 @@ abstract class VmEquals<T> {
   bool vmEquals(T other) => identical(this, other);
 }
 
-/// [Vm] is a base class for your view-models.
+/// [Vm] is a base class for legacy view-models.
+///
+/// Deprecated for application code since 31.0.0. Use `context.select()` to
+/// subscribe to state and [MockBuildContext] to test widgets. This class remains
+/// available for compatibility and internal AsyncRedux use.
 ///
 /// A view-model is a helper object to a [StoreConnector] widget. It holds the
 /// part of the Store state the corresponding dumb-widget needs, and may also
@@ -45,6 +49,8 @@ abstract class VmEquals<T> {
 /// which by default is a comparison by identity (but can be overridden).
 ///
 @immutable
+@Deprecated('Use context.select() and other BuildContext extensions instead. '
+    'Use MockBuildContext to test widgets. Deprecated since 31.0.0.')
 abstract class Vm {
   //
 
@@ -152,7 +158,12 @@ abstract class Vm {
   String toString() => '$runtimeType{${equals.join(', ')}}';
 }
 
-/// Factory that creates a view-model of type [Vm], for the [StoreConnector]:
+/// Legacy factory that creates a view-model of type [Vm] for [StoreConnector].
+///
+/// Deprecated for application code since 31.0.0. Use `context.select()` for
+/// rendering, `context.read()` in callbacks and `initState`, and
+/// `context.dispatch()` to dispatch actions. This class remains available for
+/// compatibility and internal AsyncRedux use.
 ///
 /// ```
 /// return StoreConnector<AppState, _ViewModel>(
@@ -186,6 +197,8 @@ abstract class Vm {
 /// }
 /// ```
 ///
+@Deprecated('Use context.select(), context.read() and context.dispatch() instead. '
+    'Deprecated since 31.0.0.')
 abstract class VmFactory<St, T extends Widget?, Model extends Vm> {
   /// You need to pass the connector widget only if the view-model needs any info from it.
   VmFactory([this._connector]);

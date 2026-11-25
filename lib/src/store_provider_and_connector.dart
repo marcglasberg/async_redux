@@ -131,11 +131,11 @@ abstract class StoreConnectorInterface<St, Model> {
 /// the [Model], and set the [distinct] option to true when creating your StoreConnector.
 ///
 /// **IMPORTANT:**
-///  With the release of [MockBuildContext], the [StoreConnector] is now
-///  considered deprecated. It will not be marked as deprecated and will not be
-///  removed, but you should avoid it for new code.
-///  For new code, prefer [BuildContext] extensions with [MockBuildContext] for
-///  testing.
+///  Deprecated for application code since 31.0.0. Use `context.select()` for
+///  rendering, `context.read()` in callbacks and `initState`, and the other
+///  [BuildContext] extensions to interact with the store. Use [MockBuildContext]
+///  for testing. This widget remains available for compatibility and internal
+///  AsyncRedux use.
 ///
 ///  The goal of [StoreConnector] was to separate dumb widgets from smart
 ///  widgets and let you test the view model without mounting it. Then you could
@@ -147,6 +147,8 @@ abstract class StoreConnectorInterface<St, Model> {
 ///  This makes `StoreConnector` unnecessary. `MockBuildContext` is simpler to
 ///  use and avoids extra view model classes and factories.
 ///
+@Deprecated('Use context.select() and other BuildContext extensions instead. '
+    'Use MockBuildContext to test widgets. Deprecated since 31.0.0.')
 class StoreConnector<St, Model> extends StatelessWidget
     implements StoreConnectorInterface<St, Model> {
   //
@@ -663,36 +665,10 @@ class _StoreStreamListenerState<St, Model> //
   }
 }
 
-/// Provides a Redux [Store] to all ancestors of this Widget.
+/// Provides a Redux [Store] to all descendants of this Widget.
 /// This should generally be a root widget in your App.
 ///
-/// Then, you have two alternatives to access the store:
-///
-/// 1) Connect to the provided store by using a [StoreConnector], and
-/// the [StoreConnector.vm] parameter:
-///
-/// ```dart
-/// StoreConnector(
-///    vm: () => Factory(this),
-///    builder: (context, vm) => MyHomePage(user: vm.user)
-/// );
-/// ```
-///
-/// See the documentation for more information on how to create the view-model using the `vm`
-/// parameter and a `VmFactory` class.
-///
-/// 2) Connect to the provided store by using a [StoreConnector], and
-/// the [StoreConnector.converter] parameter:
-///
-/// ```dart
-/// StoreConnector(
-///    converter: (Store<AppState> store) => store.state.counter,
-///    builder: (context, value) => Text('$value', style: const TextStyle(fontSize: 30)),
-/// );
-/// ```
-/// See the documentation for more information on how to use the `converter` parameter.
-///
-/// 3) Use the extension methods on [BuildContext], like explained below:
+/// Access the store with the extension methods on [BuildContext].
 ///
 /// Subscribe to the values a widget renders with
 /// [BuildContextExtensionForProviderAndConnector.getSelect].
@@ -700,6 +676,9 @@ class _StoreStreamListenerState<St, Model> //
 /// ```dart
 /// var counter = context.select((st) => st.counter);
 /// ```
+///
+/// Use `context.read()` in callbacks and `initState` to read the current state
+/// without subscribing to changes.
 ///
 /// You can dispatch actions using the [dispatch], [dispatchAll], [dispatchAndWait],
 /// [dispatchAndWaitAll] and [dispatchSync] methods:
