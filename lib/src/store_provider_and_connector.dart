@@ -1290,10 +1290,9 @@ class _InheritedUntypedRebuilds extends InheritedWidget {
 
   _InheritedUntypedRebuilds({
     Key? key,
-    required Store store,
+    required this._store,
     required Widget child,
-  })  : _store = store,
-        super(key: key, child: child);
+  })  : super(key: key, child: child);
 
   @override
   _InheritedUntypedRebuildsElement createElement() {

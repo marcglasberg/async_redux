@@ -48,19 +48,21 @@ void main() {
 
   Bdd(feature)
       .scenario('`isWaiting` with a list of types also accepts a statusKey.')
-      .given('A LoadUser action running for user "a".')
-      .when('We ask `isWaiting([LoadUser, LoadCart], statusKey: ...)`.')
+      .given('A LoadAll action with no key and a LoadUser action for "a" are running.')
+      .when('We ask `isWaiting([LoadAll, LoadUser], statusKey: ...)`.')
       .then('It is true for "a", and false for "b".')
       .run((_) async {
     final store = Store<State>(initialState: State());
     final finish = Completer<void>();
-    final future = store.dispatchAndWait(LoadUser('a', finish: finish.future));
+    final loadAll = store.dispatchAndWait(LoadAll(finish: finish.future));
+    final loadUser = store.dispatchAndWait(LoadUser('a', finish: finish.future));
 
-    expect(store.isWaiting([LoadUser, LoadCart], statusKey: 'a'), true);
-    expect(store.isWaiting([LoadUser, LoadCart], statusKey: 'b'), false);
+    expect(store.isWaiting([LoadAll, LoadUser], statusKey: 'a'), true);
+    expect(store.isWaiting([LoadAll, LoadUser], statusKey: 'b'), false);
 
     finish.complete();
-    await future;
+    await loadAll;
+    await loadUser;
   });
 
   Bdd(feature)

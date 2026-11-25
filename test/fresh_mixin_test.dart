@@ -1385,12 +1385,11 @@ class FreshAction extends ReduxAction<AppState> with Fresh {
 
   FreshAction({
     required this.shouldFail,
-    required bool ignoreFresh,
+    required this._ignoreFresh,
     this.shouldRemoveKey = false,
     this.shouldRemoveAllKeys = false,
-    int freshFor = 150,
-  })  : _ignoreFresh = ignoreFresh,
-        _freshFor = freshFor;
+    this._freshFor = 150,
+  });
 
   @override
   int get freshFor => _freshFor;

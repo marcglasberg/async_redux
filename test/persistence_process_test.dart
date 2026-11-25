@@ -1332,9 +1332,9 @@ class Save {
 class ControlledPersistor extends Persistor<S> {
   ControlledPersistor({
     this.stored,
-    Duration? throttle,
+    this._throttle,
     this.autoFinish = false,
-  }) : _throttle = throttle;
+  });
 
   final Duration? _throttle;
 
@@ -1436,5 +1436,6 @@ class ReturnNull extends ReduxAction<S> {
 
 class ReturnSameState extends ReduxAction<S> {
   @override
+  // ignore: async_redux_lints/prefer_return_null
   S reduce() => state;
 }

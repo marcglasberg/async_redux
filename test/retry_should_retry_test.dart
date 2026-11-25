@@ -413,8 +413,7 @@ class LoadText extends ReduxAction<State> with Retry {
   int reduceCount = 0;
   final List<(Object, int)> shouldRetryCalls = [];
 
-  LoadText({required this.errors, this.predicate, int maxRetries = 3})
-      : _maxRetries = maxRetries;
+  LoadText({required this.errors, this.predicate, this._maxRetries = 3});
 
   @override
   Duration get initialDelay => const Duration(milliseconds: 1);
@@ -490,8 +489,7 @@ class SaveText extends ReduxAction<State> with OptimisticCommand<State>, Retry<S
   final List<String> changes = [];
   final List<(Object, int)> shouldRetryCalls = [];
 
-  SaveText({required this.errors, this.predicate, int maxRetries = 3})
-      : _maxRetries = maxRetries;
+  SaveText({required this.errors, this.predicate, this._maxRetries = 3});
 
   @override
   Duration get initialDelay => const Duration(milliseconds: 1);

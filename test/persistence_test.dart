@@ -936,10 +936,9 @@ class MyPersistor extends Persistor<AppState> {
   final Duration? _saveDuration;
 
   MyPersistor({
-    Duration? throttle,
-    Duration? saveDuration,
-  })  : _throttle = throttle,
-        _saveDuration = saveDuration;
+    this._throttle,
+    this._saveDuration,
+  });
 
   @override
   Duration? get throttle => _throttle;
