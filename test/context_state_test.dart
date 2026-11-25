@@ -1,8 +1,9 @@
 // Developed by Marcelo Glasberg (2019) https://glasberg.dev and https://github.com/marcglasberg
 // For more info: https://asyncredux.com AND https://pub.dev/packages/async_redux
 
-// This file tests 'context.state' itself.
+// Regression tests for the legacy whole-store subscription and one-time reads.
 // ignore_for_file: async_redux_lints/avoid_context_state
+// ignore_for_file: deprecated_member_use_from_same_package
 
 import 'package:async_redux/async_redux.dart';
 import 'package:flutter_test/flutter_test.dart';

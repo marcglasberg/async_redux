@@ -40,7 +40,7 @@ class IncrementAction extends ReduxAction<int> {
 }
 
 /// This is a "smart-widget" that directly accesses the store state using
-/// `context.state` and dispatches actions using `dispatch`.
+/// `context.select` and dispatches actions using `dispatch`.
 class MyHomePage extends StatelessWidget {
   MyHomePage({Key? key}) : super(key: key);
 
@@ -48,10 +48,7 @@ class MyHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     // In this simple example, the counter is the state.
     // This will rebuild whenever the state changes.
-    // In more complex cases where we want the widget to rebuild only when
-    // specific parts of the state change, we can use `context.select` instead.
-    // ignore: async_redux_lints/avoid_context_state
-    final counter = context.state;
+    final counter = context.select((st) => st);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Increment Example')),
@@ -75,8 +72,6 @@ class MyHomePage extends StatelessWidget {
 
 /// Recommended to create this extension.
 extension BuildContextExtension on BuildContext {
-  int get state => getState<int>();
-
   int read() => getRead<int>();
 
   R select<R>(R Function(int state) selector) => getSelect<int, R>(selector);

@@ -244,8 +244,6 @@ class _InitStateState extends State<_InitState> {
 }
 
 extension BuildContextExtension on BuildContext {
-  AppState get state => getState<AppState>();
-
   AppState read() => getRead<AppState>();
 
   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);

@@ -267,7 +267,6 @@ void main() {
 
 // Extension for BuildContext
 extension BuildContextExtension on BuildContext {
-  AppState get state => getState<AppState>();
   R select<R>(R Function(AppState state) selector) =>
       getSelect<AppState, R>(selector);
   TestEnvironment get env => getEnvironment<AppState>() as TestEnvironment;

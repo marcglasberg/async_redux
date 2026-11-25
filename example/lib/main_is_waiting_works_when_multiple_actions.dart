@@ -183,8 +183,6 @@ class MultiplyAction extends ReduxAction<AppState> {
 
 /// Recommended to create this extension.
 extension BuildContextExtension on BuildContext {
-  AppState get state => getState<AppState>();
-
   AppState read() => getRead<AppState>();
 
   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);

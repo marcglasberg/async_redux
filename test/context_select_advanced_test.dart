@@ -342,8 +342,7 @@ void main() {
                   // Widget using regular state access
                   Builder(builder: (context) {
                     regularBuildCount++;
-                    // ignore: async_redux_lints/avoid_context_state
-                    final state = context.state;
+                    final state = StoreProvider.state<AppState>(context);
                     return Text('Regular: ${state.user.name}');
                   }),
                   // Widget using select.
@@ -461,7 +460,6 @@ void main() {
 
 // Recommended to create this extension.
 extension BuildContextExtension on BuildContext {
-  AppState get state => getState<AppState>();
   AppState read() => getRead<AppState>();
   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
   R? event<R>(Evt<R> Function(AppState state) selector) => getEvent<AppState, R>(selector);

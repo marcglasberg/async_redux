@@ -4,7 +4,7 @@ import "package:material_ui/material_ui.dart";
 
 void main() {
   group('MockBuildContext', () {
-    test('allows testing widgets with context.state extension', () {
+    test('allows testing widgets with context.select extension', () {
       var store =
           Store<AppState>(initialState: AppState(name: 'Mark', age: 30));
       var context = MockBuildContext(store);
@@ -135,7 +135,7 @@ void main() {
     });
 
     test(
-        'context.read() and context.state return same value after state change',
+        'context.read() and context.select() return same value after state change',
         () async {
       var store =
           Store<AppState>(initialState: AppState(name: 'Before', age: 33));
@@ -268,8 +268,6 @@ class AppState {
 
 // Define extension for BuildContext
 extension BuildContextExtension on BuildContext {
-  AppState get state => getState<AppState>();
-
   AppState read() => getRead<AppState>();
 
   R select<R>(R Function(AppState state) selector) =>
@@ -382,8 +380,7 @@ class MyConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MyWidget(
-      // ignore: async_redux_lints/avoid_context_state
-      name: context.state.name,
+      name: context.select((st) => st.name),
       // ignore: async_redux_lints/context_read_in_build
       nameFromRead: context.read().name,
       nameFromSelect: context.select((AppState state) => state.name),

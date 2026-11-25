@@ -307,8 +307,7 @@ class MyHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ignore: async_redux_lints/avoid_context_state
-    final counter = context.state;
+    final counter = context.select((st) => st);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Persistor Failures')),
@@ -438,5 +437,5 @@ class _ButtonWithExplanation extends StatelessWidget {
 }
 
 extension BuildContextExtension on BuildContext {
-  int get state => getState<int>();
+  R select<R>(R Function(int st) selector) => getSelect<int, R>(selector);
 }

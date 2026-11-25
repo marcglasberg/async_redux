@@ -15,7 +15,7 @@ import 'package:flutter/widgets.dart';
 /// ```dart
 /// class MyConnector extends StoreConnector<AppState, MyModel> {
 ///   Widget build(BuildContext context) {
-///     return MyWidget(name: context.state.name);
+///     return MyWidget(name: context.select((st) => st.name));
 ///   }
 /// }
 /// ```

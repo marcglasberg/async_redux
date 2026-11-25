@@ -425,7 +425,8 @@ Quick fix, for a new action: replace it with its type.
 
 ### avoid_context_state
 
-An info for every `context.state`, and `context.getState<AppState>()`. They rebuild the
+An info for the legacy `context.state` getter and deprecated `context.getState<AppState>()`.
+They rebuild the
 widget when any part of the state changes. While the widget builds, `context.select`
 only rebuilds it when the selected parts change. In callbacks, `context.read()` reads
 the state without rebuilding the widget:
@@ -528,7 +529,7 @@ In `initState`, `dispose` and selectors, `context.state` is an error, reported b
 [context_in_dispose](#context_in_dispose) and [context_in_selector](#context_in_selector)
 instead.
 
-`context.state` comes from the `BuildContext` extension recommended by AsyncRedux. It's
+`context.state` comes from a legacy AsyncRedux `BuildContext` extension. It's
 recognized by its name, when the extension's library imports `async_redux`.
 
 ---
@@ -556,7 +557,7 @@ This also applies to `context.getState<AppState>()`. Closures inside `initState`
 Quick fix, for `context.state`: replace it with `context.read()`, and
 `context.getState<AppState>()` with `context.getRead<AppState>()`.
 
-`context.state` comes from the `BuildContext` extension recommended by AsyncRedux. It's
+`context.state` comes from a legacy AsyncRedux `BuildContext` extension. It's
 recognized by its name, when the extension's library imports `async_redux`.
 
 ---
@@ -582,8 +583,7 @@ This also applies to closures inside `dispose`. Dispatching actions works. For
 `context.select` and `context.event`, see
 [select_outside_build](#select_outside_build).
 
-`context.state` and `context.read()` come from the `BuildContext` extension recommended by
-AsyncRedux. They're recognized by their names, when the extension's library imports
+`context.state` and `context.read()` are recognized when defined by an AsyncRedux `BuildContext` extension. They're recognized by their names, when the extension's library imports
 `async_redux`. This way, the `read` of packages like `provider` is not reported. The
 `getState` and `getRead` methods of AsyncRedux are also recognized.
 
@@ -606,7 +606,7 @@ Quick fix, for `context.state` and `context.read()`: replace it with the paramet
 the selector.
 
 `context.state`, `context.read()`, `context.select` and `context.event` come from the
-`BuildContext` extension recommended by AsyncRedux. They're recognized by their names,
+`BuildContext` extensions used by AsyncRedux apps. They're recognized by their names,
 when the extension's library imports `async_redux`. This way, the `select` and `read` of
 packages like `provider` are not reported. The `getState`, `getRead`, `getSelect` and
 `getEvent` methods of AsyncRedux are also recognized.
@@ -668,8 +668,7 @@ Quick fixes:
   works when the item uses the `context` of the widget that builds the list. Not
   offered when the item may be null, or when a block body doesn't end with a `return`.
 
-`context.select` and `context.event` come from the `BuildContext` extension recommended by
-AsyncRedux. They're recognized by their names, when the extension's library imports
+`context.select` and `context.event` are recognized when defined by an AsyncRedux `BuildContext` extension. They're recognized by their names, when the extension's library imports
 `async_redux`. This way, the `select` of packages like `provider` is not reported. The
 `getSelect` and `getEvent` methods of AsyncRedux are also recognized.
 
@@ -1665,7 +1664,7 @@ Widget build(BuildContext context) {
 Quick fix: convert to `context.select(...)`, like the quick fix of
 [avoid_context_state](#avoid_context_state).
 
-`context.read()` comes from the `BuildContext` extension recommended by AsyncRedux. It's
+`context.read()` comes from a legacy AsyncRedux `BuildContext` extension. It's
 recognized by its name, when the extension's library imports `async_redux`. This way, the
 `read` of packages like `provider` is not reported. The `getRead` method of AsyncRedux is
 also recognized.

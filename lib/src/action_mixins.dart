@@ -1415,7 +1415,7 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 ///   }
 ///
 ///   Widget build(BuildContext context) {
-///     var information = context.state.information;
+///     var information = context.select((st) => st.information);
 ///     return Text('Information: $information');
 ///   }
 /// }
@@ -2090,7 +2090,7 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
 ///   }
 ///
 ///   Widget build(BuildContext context) {
-///     var information = context.state.information;
+///     var information = context.select((st) => st.information);
 ///     return Text('Information: $information');
 ///   }
 /// }

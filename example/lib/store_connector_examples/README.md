@@ -7,7 +7,7 @@ The `StoreConnector` widget is used to connect your Flutter widgets to the
 Redux store, allowing them to access the state and dispatch actions.
 
 It's generally not necessary to use the `StoreConnector` widget directly, as
-`AsyncRedux` allows you to use the extensions `context.state`,
+`AsyncRedux` allows you to use
 `context.select()`, `context.read()`, `context.dispatch()`, etc.
 
 However, the `StoreConnector` allows you to completely separate the
@@ -26,7 +26,7 @@ When should you use the `StoreConnector`?
 * When the selection of the state is complex, and you want to encapsulate it in
   a separate class (ViewModel).
 
-A good rule of thumb is to start with using `context.state`, `context.select()`,
+A good rule of thumb is to start with `context.select()`,
 `context.dispatch()`, etc. and only switch to using the `StoreConnector` when
 you find a specific need for it.
 

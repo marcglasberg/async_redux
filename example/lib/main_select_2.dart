@@ -8,7 +8,6 @@ import 'package:material_ui/material_ui.dart';
 
 // Recommended to create this extension.
 extension BuildContextExtension on BuildContext {
-  AppState get state => getState<AppState>();
   AppState read() => getRead<AppState>();
   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
 }
@@ -46,7 +45,7 @@ class MainScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('AsyncRedux Select Demo'),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -63,7 +62,7 @@ class MainScreen extends StatelessWidget {
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     SizedBox(height: 16),
-                    ContextStateWidget(),
+                    SelectAllWidget(),
                     SizedBox(height: 8),
                     ContextReadWidget(),
                     SizedBox(height: 8),
@@ -116,19 +115,23 @@ class MainScreen extends StatelessWidget {
   }
 }
 
-/// WIDGET 1: Uses `context.state` which uses `getState<AppState>()`.
-/// This widget rebuilds on ANY state change.
+/// WIDGET 1: Selects all four fields it renders.
+/// This widget rebuilds when any of its displayed fields changes.
 ///
-class ContextStateWidget extends StatelessWidget {
-  const ContextStateWidget({Key? key}) : super(key: key);
+class SelectAllWidget extends StatelessWidget {
+  const SelectAllWidget({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    print('🔴 ContextStateWidget rebuilt');
+    print('🔴 SelectAllWidget rebuilt');
 
-    // Will rebuild automatically on ANY state changes.
-    // ignore: async_redux_lints/avoid_context_state
-    var state = context.state;
+    // Each displayed field participates in this selection.
+    var state = context.select((st) => (
+          number: st.number,
+          text: st.text,
+          date: st.date,
+          flag: st.flag,
+        ));
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -141,7 +144,7 @@ class ContextStateWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '1. getState (notify: true)',
+            '1. Select all displayed fields',
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
           ),
           Text('Number: ${state.number}'),
@@ -159,18 +162,27 @@ class ContextStateWidget extends StatelessWidget {
 }
 
 /// WIDGET 2: Uses `context.read()` which uses `getRead<AppState>()`.
-/// This widget does NOT rebuild on ANY state change.
+/// It reads again when the reader presses the button.
 ///
-class ContextReadWidget extends StatelessWidget {
+class ContextReadWidget extends StatefulWidget {
   const ContextReadWidget({Key? key}) : super(key: key);
+
+  @override
+  State<ContextReadWidget> createState() => _ContextReadWidgetState();
+}
+
+class _ContextReadWidgetState extends State<ContextReadWidget> {
+  late AppState state;
+
+  @override
+  void initState() {
+    super.initState();
+    state = context.read();
+  }
 
   @override
   Widget build(BuildContext context) {
     print('🟡 ContextReadWidget rebuilt');
-
-    // It will NEVER rebuild automatically on state changes.
-    // ignore: async_redux_lints/context_read_in_build
-    final state = context.read();
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -183,7 +195,7 @@ class ContextReadWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '2. getState (notify: false)',
+            '2. One-time read',
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
           ),
           Text('Number: ${state.number}'),
@@ -191,8 +203,12 @@ class ContextReadWidget extends StatelessWidget {
           Text('Date: ${state.date.toString().split(' ')[0]}'),
           Text('Flag: ${state.flag}'),
           const Text(
-            'Never rebuilds (shows initial state)',
+            'Updates when you read again',
             style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
+          ),
+          TextButton(
+            onPressed: () => setState(() => state = context.read()),
+            child: const Text('Read current state'),
           ),
         ],
       ),
@@ -365,17 +381,16 @@ class ToggleFlagAction extends ReduxAction<AppState> {
 /*
 This example shows the difference between various state access methods:
 
-1. **ContextStateWidget** (Red):
-   - Uses: `context.state` (via extension)
+1. **SelectAllWidget** (Red):
+   - Selects the number, text, date and flag as a record
    - Rebuilds on ANY state change
    - Shows all state values
    - Watch the console: prints on every action
 
 2. **ContextReadWidget** (Yellow):
    - Uses: `context.read()` (via extension)
-   - NEVER rebuilds automatically
-   - Always shows initial state values
-   - Only prints once during initial build
+   - Reads the initial state in initState
+   - Updates when you press "Read current state"
 
 3. **SelectDateWidget** (Green):
    - Uses: `context.select((state) => state.date)` (via extension, type inferred)

@@ -118,8 +118,7 @@ class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final env = context.environment;
-    // ignore: async_redux_lints/avoid_context_state
-    int counter = context.state;
+    int counter = context.select((st) => st);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Dependency Injection Example')),
@@ -149,8 +148,6 @@ class MyHomePage extends StatelessWidget {
 }
 
 extension BuildContextExtension on BuildContext {
-  int get state => getState<int>();
-
   int read() => getRead<int>();
 
   R select<R>(R Function(int state) selector) => getSelect<int, R>(selector);

@@ -83,7 +83,7 @@ class IncrementAction extends Action {
 /// to [MyHomePage] (the dumb-widget). Each time the state changes, it creates
 /// a view-model, and compares it with the view-model created with the previous
 /// state. If the view-model changed, the connector rebuilds. If you don't need
-/// to use connectors, you can just use `context.state`, `context.select`,
+/// to use connectors, you can use `context.select`,
 /// `context.dispatch` etc, directly in your widgets.
 class MyHomePageConnector extends StatelessWidget {
   MyHomePageConnector({Key? key}) : super(key: key);

@@ -358,8 +358,7 @@ class RegularStateWidget extends StatelessWidget {
     buildLog.add('RegularStateWidget.build()');
     print('\n=== RegularStateWidget BUILD ===');
 
-    // ignore: async_redux_lints/avoid_context_state
-    final state = context.getState<TestState>();
+    final state = StoreProvider.state<TestState>(context);
 
     print('  Got state: $state');
     print('=== RegularStateWidget BUILD END ===\n');

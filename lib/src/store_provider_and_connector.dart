@@ -694,10 +694,11 @@ class _StoreStreamListenerState<St, Model> //
 ///
 /// 3) Use the extension methods on [BuildContext], like explained below:
 ///
-/// You can read the state of the store using the `context.state` method:
+/// Subscribe to the values a widget renders with
+/// [BuildContextExtensionForProviderAndConnector.getSelect].
 ///
 /// ```dart
-/// var state = context.state;
+/// var counter = context.select((st) => st.counter);
 /// ```
 ///
 /// You can dispatch actions using the [dispatch], [dispatchAll], [dispatchAndWait],
@@ -718,7 +719,9 @@ class _StoreStreamListenerState<St, Model> //
 ///
 /// ```dart
 /// extension BuildContextExtension on BuildContext {
-///   AppState get state => getState<AppState>();
+///   R select<R>(R Function(AppState st) selector) => getSelect<AppState, R>(selector);
+///   AppState read() => getRead<AppState>();
+/// }
 /// ```
 class StoreProvider<St> extends InheritedWidget {
   final Store<St> _store;
@@ -763,19 +766,8 @@ class StoreProvider<St> extends InheritedWidget {
   /// Any widget that calls this WILL rebuild automatically when the state
   /// changes (unless you pass the [notify] parameter as `false`).
   ///
-  /// For convenience, it's recommended that you define this extension in your
-  /// own code:
-  /// ```dart
-  /// extension BuildContextExtension on BuildContext {
-  ///   AppState get state => getState<AppState>();
-  /// }
-  /// ```
-  ///
-  /// And then use it like this:
-  ///
-  /// ```dart
-  /// var state = context.state;
-  /// ```
+  /// For rendering, use [BuildContextExtensionForProviderAndConnector.getSelect].
+  /// For one-time reads, use [BuildContextExtensionForProviderAndConnector.getRead].
   static St state<St>(BuildContext context,
       {bool notify = true, Object? debug}) {
     if (notify) {
@@ -1391,7 +1383,7 @@ class _InheritedUntypedRebuildsElement extends InheritedElement {
             '[UPDATE_DEPS] Added selector. New count: ${selectorDependency.selectors.length}');
       }
     } else {
-      // No aspect = listen to everything (context.state behavior).
+      // A dependency without a selector listens to the whole store.
       setDependencies(dependent, const Object());
       if (_debugSelectLogging) {
         print('[UPDATE_DEPS] No aspect - listening to everything');
@@ -1504,45 +1496,14 @@ StoreException _exceptionForWrongStateType(Object? state, Type wrongType) {
 
 extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   //
-  /// Provides easy access to the AsyncRedux store state from a BuildContext.
+  /// Reads the current state and subscribes the widget to the whole store.
   ///
-  /// Use this in your widget's build method to watch the current store state.
-  /// Any widget that calls this will rebuild automatically when the state
-  /// changes in any way (even if the part of the state we are actually using
-  /// did not change).
-  ///
-  /// You cannot use [getState] in your `initState` method. If you do, it will
-  /// throw an exception. See [getRead] for an alternative that can be used in
-  /// `initState`.
-  ///
-  /// For convenience, it's recommended that you define this extension in your
-  /// own code:
-  ///
-  /// ```dart
-  /// extension BuildContextExtension on BuildContext {
-  ///   AppState get state => getState<AppState>();
-  ///   AppState read() => getRead<AppState>();
-  ///   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
-  ///   R? event<R>(Evt<R> Function(AppState state) selector) => getEvent<AppState, R>(selector);
-  /// }
-  /// ```
-  ///
-  /// Then use it like this:
-  ///
-  /// ```dart
-  /// var state = context.state;
-  /// ```
-  ///
-  /// See also:
-  ///
-  /// - [getRead] if you don't want the widget to rebuild automatically when
-  ///   the state changes (use it with `context.read()`). This is useful when
-  ///   you want to read the state once, for example inside an event handler,
-  ///   or in your `initState` method.
-  ///
-  /// - [getSelect] to select a specific part of the state and only rebuild
-  ///   when that part changes (use it with `context.select()`).
-  ///
+  /// Use [getSelect] for rendering and [getRead] for callbacks and initState.
+  @Deprecated(
+    'This was a shortcut for people writing widgets by hand. AI agents can '
+    'write selectors from the start. Use getSelect for rendering and getRead '
+    'for callbacks and initState.',
+  )
   St getState<St>() => _isMock //
       ? (_store.state as St) //
       : StoreProvider.state<St>(this);
@@ -1558,7 +1519,6 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   ///
   /// ```dart
   /// extension BuildContextExtension on BuildContext {
-  ///   AppState get state => getState<AppState>();
   ///   AppState read() => getRead<AppState>();
   ///   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
   ///   R? event<R>(Evt<R> Function(AppState state) selector) => getEvent<AppState, R>(selector);
@@ -1572,9 +1532,6 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// ```
   ///
   /// See also:
-  ///
-  /// - [getState] if you want the widget to rebuild automatically on any state
-  ///   change (use it with `context.state`).
   ///
   /// - [getSelect] to select a specific part of the state and only rebuild
   ///   when that part changes (use it with `context.select()`).
@@ -1607,7 +1564,6 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   ///
   /// ```dart
   /// extension BuildContextExtension on BuildContext {
-  ///   AppState get state => getState<AppState>();
   ///   AppState read() => getRead<AppState>();
   ///   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
   ///   R? event<R>(Evt<R> Function(AppState state) selector) => getEvent<AppState, R>(selector);
@@ -1684,7 +1640,6 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   ///
   /// See also:
   ///
-  /// - [getState] to access the state and rebuild on any state change.
   /// - [getRead] to read the state without triggering rebuilds.
   /// - [getSelect] to select specific parts of the state and rebuild only when those parts change.
   /// - [Event] class documentation for more details on event behavior and lifecycle.
@@ -1706,7 +1661,6 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   ///
   /// ```dart
   /// extension BuildContextExtension on BuildContext {
-  ///   AppState get state => getState<AppState>();
   ///   AppState read() => getRead<AppState>();
   ///   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);
   ///   R? event<R>(Evt<R> Function(AppState state) selector) => getEvent<AppState, R>(selector);
@@ -1733,9 +1687,6 @@ extension BuildContextExtensionForProviderAndConnector<St> on BuildContext {
   /// Do not call other provider methods or dispatch actions inside the selector.
   ///
   /// See also:
-  ///
-  /// - [getState] if you want the widget to rebuild automatically on any state
-  ///   change (use it with `context.state`).
   ///
   /// - [getRead] if you don't want the widget to rebuild automatically when
   ///   the state changes (use it with `context.read()`).

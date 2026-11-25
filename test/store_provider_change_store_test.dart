@@ -13,8 +13,8 @@ void main() {
           store: store,
           child: MaterialApp(
             home: Builder(
-              // ignore: async_redux_lints/avoid_context_state
-              builder: (context) => Text('${context.getState<int>()}'),
+              builder: (context) =>
+                  Text('${context.getSelect<int, int>((st) => st)}'),
             ),
           ),
         );

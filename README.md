@@ -109,27 +109,17 @@ Widget build(context) {
 
 # Widgets use the state
 
-Using `context.state`, your widgets rebuild when the state changes.
-
-```dart
-class MyWidget extends StatelessWidget {
-
-  Widget build(context)
-    => Text('${context.state.name} has ${context.state.age} years old');
-}
-```
-
-Or use `context.select()` to get only the parts of the state you need.
+Use `context.select()` in `build` to subscribe to the values your widget renders.
 
 ```dart
 Widget build(context) {
 
   var state = context.select((st) => (
-     name: st.user.name, 
-     age: st.user.age),
+     name: st.name,
+     age: st.age),
   );
   
-  return Text('${state.name} has ${state.age} years old');
+  return Text('${state.name} is ${state.age} years old');
 }
 ```
 
@@ -140,11 +130,14 @@ Widget build(context) {
   var name = context.select((st) => st.name);
   var age = context.select((st) => st.age);
   
-  return Text('$name has $age years old');
+  return Text('$name is $age years old');
 }
 ```
 
 &nbsp;
+
+Use `context.read()` in callbacks and `initState` for a one-time read of the current state.
+[Set up the context extensions](https://asyncredux.com/flutter/basics/using-the-store-state).
 
 # Actions change the state
 
@@ -258,7 +251,7 @@ class MyWidget extends StatelessWidget {
     
     if (context.isWaiting(LoadText)) return CircularProgressIndicator();
     if (context.isFailed(LoadText)) return Text('Loading failed...');
-    return Text(context.state);
+    return Text(context.select((st) => st.name));
   }
 }
 ```

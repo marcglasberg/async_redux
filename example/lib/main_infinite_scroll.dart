@@ -195,8 +195,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
 /// Recommended extension methods for accessing state and dispatching actions.
 extension BuildContextExtension on BuildContext {
-  AppState get state => getState<AppState>();
-
   AppState read() => getRead<AppState>();
 
   R select<R>(R Function(AppState state) selector) => getSelect<AppState, R>(selector);

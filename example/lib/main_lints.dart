@@ -8,6 +8,8 @@
 // ignore_for_file: async_redux_lints/wait_fail_invalid_argument
 // ignore_for_file: async_redux_lints/wait_fail_never_matches
 // ignore_for_file: async_redux_lints/avoid_context_state
+// The legacy state getter is used to demonstrate its migration diagnostics.
+// ignore_for_file: deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: async_redux_lints/context_state_in_init_state
 // ignore_for_file: async_redux_lints/context_in_dispose
 // ignore_for_file: async_redux_lints/context_in_selector

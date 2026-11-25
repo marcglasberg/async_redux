@@ -7,6 +7,13 @@ Sponsored by [MyText.ai](https://mytext.ai)
 
 [![](./example/SponsoredByMyTextAi.jpg)](https://mytext.ai)
 
+## 30.1.0
+
+* Deprecated `context.getState<St>()`. This shortcut helped developers writing
+  widgets by hand start with a whole-store subscription. AI agents can generate
+  selectors from the start: Use `context.select()` for rendering and `context.read()`
+  in callbacks and `initState`. 
+
 ## 30.0.0
 
 * **Breaking:** Error dialogs and dialog helpers now use package:material_ui and package:cupertino_ui. Migrate consumer Material/Cupertino imports to the standalone packages.
