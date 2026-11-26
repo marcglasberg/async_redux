@@ -8,6 +8,12 @@ import 'dart:io';
 import 'package:async_redux/async_redux.dart';
 
 abstract class ActionObserver<St> {
+  /// Observers should not throw. If one does, the store reports its error to the
+  /// GlobalErrorObserver and continues the action and remaining observers.
+  /// The error never changes the action's status or dispatch result. A Future
+  /// returned by an async override is not awaited, but its errors are reported.
+  /// See [GlobalErrorObserver.errorSource] for identifying observer failures.
+  ///
   /// If `ini==true` this is right before the action is dispatched.
   /// If `ini==false` this is right after the action finishes.
   void observe(

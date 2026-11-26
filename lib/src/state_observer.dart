@@ -10,6 +10,12 @@ import 'package:async_redux/async_redux.dart';
 /// `after()` method is called, and before the action's `wrapError()` and the global `wrapError()`
 /// methods are called.
 ///
+/// Observers should not throw. If one does, the store reports its error to the
+/// GlobalErrorObserver and continues the remaining observers and the action.
+/// Observer errors never change the action's status or stop persistence. A Future
+/// returned by an async override is not awaited, but its errors are reported.
+/// See [GlobalErrorObserver.errorSource] for identifying observer failures.
+///
 /// The parameters are:
 ///
 /// * action = The action itself.

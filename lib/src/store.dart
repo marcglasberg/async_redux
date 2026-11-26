@@ -7,6 +7,7 @@ library async_redux_store;
 
 import 'dart:async';
 import 'dart:collection';
+import 'dart:developer' as developer;
 
 import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/src/process_persistence.dart';
@@ -1588,7 +1589,7 @@ class Store<St> {
 
     if (_actionObservers != null)
       for (ActionObserver observer in _actionObservers) {
-        observer.observe(action, dispatchCount, ini: true);
+        _observeAction(observer, action, ini: true);
       }
 
     return _processAction(action, notify: notify);
@@ -2280,7 +2281,7 @@ class Store<St> {
 
     if (_stateObservers != null)
       for (StateObserver observer in _stateObservers) {
-        observer.observe(action, prevState, newState, null, dispatchCount);
+        _observeState(observer, action, prevState, newState, null);
       }
 
     if (_processPersistence != null) _processPersistence.process(action, newState);
@@ -2341,7 +2342,7 @@ class Store<St> {
   ) {
     if (_stateObservers != null)
       for (StateObserver observer in _stateObservers) {
-        observer.observe(action, _state, _state, error, dispatchCount);
+        _observeState(observer, action, _state, _state, error);
       }
 
     Object? errorOrNull = error;
@@ -2366,6 +2367,7 @@ class Store<St> {
             stackTrace: stackTrace,
             action: action,
             store: this,
+            errorSource: GlobalErrorSource.action,
           );
           errorOrNull = globalErrorObserver.observe();
         } catch (_error) {
@@ -2423,6 +2425,7 @@ class Store<St> {
           stackTrace: stackTrace,
           action: null,
           store: this,
+          errorSource: GlobalErrorSource.persistor,
         );
         errorOrNull = globalErrorObserver.observe();
       } catch (_error) {
@@ -2468,8 +2471,105 @@ class Store<St> {
 
     if (_actionObservers != null)
       for (ActionObserver observer in _actionObservers) {
-        observer.observe(action, dispatchCount, ini: false);
+        _observeAction(observer, action, ini: false);
       }
+  }
+
+  void _observeAction(ActionObserver observer, ReduxAction<St> action,
+      {required bool ini}) {
+    _runObserver(observer, action, GlobalErrorSource.actionObserver,
+        () => (observer as dynamic).observe(action, dispatchCount, ini: ini),
+        observerIni: ini);
+  }
+
+  void _observeState(StateObserver observer, ReduxAction<St> action,
+      St previous, St next, Object? error) {
+    _runObserver(observer, action, GlobalErrorSource.stateObserver,
+        () => (observer as dynamic)
+            .observe(action, previous, next, error, dispatchCount));
+  }
+
+  /// An observer must never interrupt the action it observes. Although its API
+  /// returns void, Dart also permits async overrides; handle their failures
+  /// without waiting for them or making synchronous dispatch asynchronous.
+  void _runObserver(Object observer, ReduxAction<St> action,
+      GlobalErrorSource source, Object? Function() observe, {bool? observerIni}) {
+    void report(Object error, StackTrace stackTrace) =>
+        _processObserverError(error, stackTrace, action, observer, source, observerIni);
+    try {
+      final result = observe();
+      if (result is Future) result.then<void>((_) {}, onError: report);
+    } catch (error, stackTrace) {
+      report(error, stackTrace);
+    }
+  }
+
+  bool _isReportingObserverError = false;
+
+  /// Diagnostic errors do not enter the action's error pipeline. In particular,
+  /// they must not replace its original error or affect isFailed/isWaiting.
+  void _processObserverError(Object error, StackTrace stackTrace,
+      ReduxAction<St> action, Object observer, GlobalErrorSource source,
+      bool? observerIni) {
+    if (_isReportingObserverError) {
+      _logObserverError(error, stackTrace, source);
+      return;
+    }
+
+    _isReportingObserverError = true;
+    try {
+      Object? processedError = error;
+      try {
+        final globalObserver = _globalErrorObserver?.call(this);
+        if (globalObserver != null) {
+          globalObserver._init(
+            error: error,
+            originalError: error,
+            stackTrace: stackTrace,
+            action: action,
+            store: this,
+            errorSource: source,
+            observer: observer,
+            observerIni: observerIni,
+          );
+          processedError = globalObserver.observe();
+        }
+      } catch (replacement, replacementStack) {
+        processedError = replacement;
+        stackTrace = replacementStack;
+      }
+
+      if (processedError is UserException) {
+        if (processedError.ifOpenDialog) {
+          _addError(processedError);
+          if (!_changeController.isClosed) _changeController.add(state);
+        }
+      } else if (processedError != null) {
+        // The global observer is synchronous. An invalid async override is a
+        // diagnostic value, not a new asynchronous failure of the action.
+        if (processedError is Future) {
+          processedError.then<void>((_) {}, onError: (Object error, StackTrace stack) {
+            _logObserverError(error, stack, source);
+          });
+        }
+        _logObserverError(processedError, stackTrace, source);
+      }
+    } catch (reportingError, reportingStack) {
+      // Reporting a diagnostic (including queueing a dialog) must also remain
+      // isolated. Never recursively call the global observer with this error.
+      _logObserverError(reportingError, reportingStack, source);
+    } finally {
+      _isReportingObserverError = false;
+    }
+  }
+
+  void _logObserverError(Object error, StackTrace stackTrace, GlobalErrorSource source) {
+    try {
+      developer.log('Error in ${source.name}.', name: 'AsyncRedux', level: 1000,
+          error: error, stackTrace: stackTrace);
+    } catch (_) {
+      // Even a malformed diagnostic object must not break the observed action.
+    }
   }
 
   void _after(ReduxAction<St> action) {
@@ -2843,6 +2943,9 @@ class _InternalMixinProps {
   }
 }
 
+/// Identifies the component whose error is given to [GlobalErrorObserver].
+enum GlobalErrorSource { action, persistor, actionObserver, stateObserver }
+
 /// You may subclass [GlobalErrorObserver] and pass it to the store constructor,
 /// if you want to have a global observer for errors thrown in your actions:
 ///
@@ -2885,6 +2988,15 @@ class _InternalMixinProps {
 /// * If it returns `null`, the error will be swallowed.
 /// * If it returns any other error, it will be thrown as an unhandled async error.
 ///
+/// Errors from [ActionObserver] and [StateObserver] are also reported here, without
+/// invoking the action's `wrapError` or changing its status. See [errorSource],
+/// [observer] and [observerIni] to identify these diagnostic errors. Returning null
+/// suppresses them; a UserException may open a dialog; any other result is logged
+/// with `dart:developer.log` under the name `AsyncRedux`, without being rethrown.
+/// An exception thrown while handling these diagnostics is never reported back to
+/// this observer recursively. Observer callbacks are not awaited; failures of a
+/// Future returned by a callback are reported when that Future completes.
+///
 /// # Use cases
 ///
 /// 1. Use this to set up your app to use 3rd-party services like Sentry or Firebase
@@ -2904,8 +3016,10 @@ class _InternalMixinProps {
 /// - `error`: The error thrown by the action, AFTER `wrapError`.
 /// - `originalError`: The action error BEFORE `wrapError`.
 /// - `stackTrace`: The stack trace associated with the error.
-/// - `action`: The action that triggered the error, or `null` if the error didn't come
-///    from an action (for example, if it came from the [Persistor]).
+/// - `action`: The action that failed or was being observed, or `null` for persistence.
+/// - `errorSource`: Distinguishes action, persistence and observer errors.
+/// - `observer`: The failing ActionObserver or StateObserver, when applicable.
+/// - `observerIni`: For an ActionObserver failure, identifies INI (true) or END (false).
 /// - `store`: Use it to read `store.environment` or `store.configuration`.
 ///    Do **not** use it to dispatch new actions.
 ///
@@ -2914,30 +3028,44 @@ abstract class GlobalErrorObserver<St> {
   /// The error thrown by the action, AFTER being processed by the action's `wrapError`.
   /// If the error came from the [Persistor] (see [action]), this is the error AFTER being
   /// processed by [Persistor.wrapError].
+  /// Errors from ActionObserver and StateObserver are passed here without wrapping.
   late final Object error;
 
   /// The error thrown by the action, BEFORE being processed by the action's `wrapError`.
   /// If the error came from the [Persistor] (see [action]), this is the error BEFORE being
   /// processed by [Persistor.wrapError].
+  /// For an observer failure, this is the observer's error, not the action's error.
   late final Object originalError;
 
   /// The stack trace of the error.
   late final StackTrace stackTrace;
 
-  /// The action that threw the error.
+  /// The action that threw the error, or the action being observed when an
+  /// [ActionObserver] or [StateObserver] failed. Check [errorSource] to distinguish
+  /// these cases: a diagnostic error does not mean this action failed.
   ///
-  /// This is `null` when the error didn't come from an action, but from somewhere else.
-  /// For example, errors thrown by the [Persistor] (or the cloud-sync) when persisting
-  /// the state will have a `null` action. Always check for `null` before using it:
+  /// This is `null` for errors from the [Persistor] or cloud sync. An observer's
+  /// diagnostic keeps the action being observed, even when that action succeeded.
+  /// Always check for `null` and [errorSource] before using it:
   ///
   /// ```dart
   /// Object? observe() {
   ///   if (action == null) log('Persistence error: $error');
-  ///   else log('Error in ${action.runtimeType}: $error');
+  ///   else log('$errorSource related to ${action.runtimeType}: $error');
   ///   return error;
   /// }
   /// ```
   late final ReduxAction<St>? action;
+
+  /// The component which produced this error. Persistence includes cloud sync.
+  late final GlobalErrorSource errorSource;
+
+  /// The failing ActionObserver or StateObserver, or null for other error sources.
+  late final Object? observer;
+
+  /// For an ActionObserver failure, true means INI and false means END.
+  /// Null for all other error sources.
+  late final bool? observerIni;
 
   /// You can access the store, but do NOT use it to dispatch actions,
   /// because the store is still processing the current action, and dispatching another
@@ -2966,12 +3094,18 @@ abstract class GlobalErrorObserver<St> {
     required StackTrace stackTrace,
     required ReduxAction<St>? action,
     required Store<St> store,
+    required GlobalErrorSource errorSource,
+    Object? observer,
+    bool? observerIni,
   }) {
     this.error = error;
     this.originalError = originalError ?? '';
     this.stackTrace = stackTrace;
     this.action = action;
     this.store = store;
+    this.errorSource = errorSource;
+    this.observer = observer;
+    this.observerIni = observerIni;
   }
 }
 
@@ -3006,6 +3140,10 @@ class GlobalErrorObserverForDevelopment<St> extends GlobalErrorObserver<St> {
   @override
   Object? observe() {
     if (error is! UserException) {
+      if (errorSource == GlobalErrorSource.actionObserver ||
+          errorSource == GlobalErrorSource.stateObserver) {
+        return UserException(error.toString()).addCause(error);
+      }
       Future.microtask(() => store.dispatch(
             UserExceptionAction(error.toString(), cause: error),
           ));
