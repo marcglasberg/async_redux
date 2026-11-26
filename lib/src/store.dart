@@ -516,6 +516,9 @@ class Store<St> {
 
   /// Returns a future which will complete when the given state [condition] is true.
   ///
+  /// Calls with the same predicate register independent waits, each with its own
+  /// completion and timeout.
+  ///
   /// If [completeImmediately] is `true` (the default) and the condition was already true when
   /// the method was called, the future will complete immediately and throw no errors.
   ///
@@ -639,7 +642,7 @@ class Store<St> {
     else {
       var completer = Completer<ReduxAction<St>?>();
 
-      _stateConditionCompleters[condition] = completer;
+      _stateConditionCompleters[completer] = condition;
 
       int timeout = timeoutMillis ?? defaultTimeoutMillis;
       var future = completer.future;
@@ -648,7 +651,7 @@ class Store<St> {
         future = completer.future.timeout(
           Duration(milliseconds: timeout),
           onTimeout: () {
-            _stateConditionCompleters.remove(condition);
+            _stateConditionCompleters.remove(completer);
             throw TimeoutException(null, Duration(milliseconds: timeout));
           },
         );
@@ -657,21 +660,19 @@ class Store<St> {
     }
   }
 
-  // This map will hold the completers for each ACTION condition checker function.
-  // 1) The set key is the condition checker function.
-  // 2) The value is the completer, that informs of:
-  //    - The set of actions in progress when the condition is met.
-  //    - The action that triggered the condition.
-  final _actionConditionCompleters = <bool Function(
-          Set<ReduxAction<St>>, ReduxAction<St>?),
-      Completer<(Set<ReduxAction<St>>, ReduxAction<St>?)>>{};
+  // Each completer identifies one wait, even when callers reuse the same predicate.
+  // Completion or timeout removes only that registration.
+  final _actionConditionCompleters =
+      <Completer<(Set<ReduxAction<St>>, ReduxAction<St>?)>,
+          bool Function(Set<ReduxAction<St>>, ReduxAction<St>?)>{};
 
-  // This map will hold the completers for each STATE condition checker function.
-  // 1) The set key is the condition checker function.
-  // 2) The value is the completer, that informs the action that triggered the condition.
-  final _stateConditionCompleters = <bool Function(St), Completer<ReduxAction<St>?>>{};
+  final _stateConditionCompleters =
+      <Completer<ReduxAction<St>?>, bool Function(St)>{};
 
   /// Returns a future that completes when some actions meet the given [condition].
+  ///
+  /// Calls with the same predicate register independent waits, each with its own
+  /// completion and timeout.
   ///
   /// If [completeImmediately] is `false` (the default), this method will throw [StoreException]
   /// if the condition was already true when the method was called. Otherwise, the future will
@@ -797,7 +798,7 @@ class Store<St> {
     else {
       var completer = Completer<(Set<ReduxAction<St>>, ReduxAction<St>?)>();
 
-      _actionConditionCompleters[condition] = completer;
+      _actionConditionCompleters[completer] = condition;
 
       int timeout = timeoutMillis ?? defaultTimeoutMillis;
       var future = completer.future;
@@ -806,7 +807,7 @@ class Store<St> {
         future = completer.future.timeout(
           Duration(milliseconds: timeout),
           onTimeout: () {
-            _actionConditionCompleters.remove(condition);
+            _actionConditionCompleters.remove(completer);
             throw TimeoutException(null, Duration(milliseconds: timeout));
           },
         );
@@ -1264,8 +1265,9 @@ class Store<St> {
 
   /// Adds an error at the end of the error queue.
   void _addError(UserException error) {
-    if (_errors.length > _maxErrorsQueued) _errors.removeFirst();
     _errors.addLast(error);
+    // Trim after insertion so the limit also works when no errors may be queued.
+    if (_errors.length > _maxErrorsQueued) _errors.removeFirst();
   }
 
   /// Gets the first error from the error queue, and removes it from the queue.
@@ -1571,30 +1573,6 @@ class Store<St> {
     return actions;
   }
 
-  FutureOr<ActionStatus> _dispatch(ReduxAction<St> action, {required bool notify}) {
-    //
-    // The action may access the store/state/dispatch as fields.
-    action.setStore(this);
-
-    if (_shutdown || action.abortDispatch())
-      return ActionStatus(isDispatchAborted: true, context: (action, this));
-
-    _dispatchCount++;
-
-    if (action.status.isDispatched)
-      throw new StoreException('The action was already dispatched. '
-          'Please, create a new action each time.');
-
-    action._status = action._status.copy(isDispatched: true);
-
-    if (_actionObservers != null)
-      for (ActionObserver observer in _actionObservers) {
-        _observeAction(observer, action, ini: true);
-      }
-
-    return _processAction(action, notify: notify);
-  }
-
   /// Returns a copy of the error queue, containing user exception errors thrown by
   /// dispatched actions. Note that this is a copy of the queue, so you can't modify the original
   /// queue here. Instead, use [getAndRemoveFirstError] to consume the errors, one by one.
@@ -1604,63 +1582,16 @@ class Store<St> {
   @internal
   bool get internalHasErrors => _errors.isNotEmpty;
 
-  /// We check the return type of methods `before` and `reduce` to decide if the
-  /// reducer is synchronous or asynchronous. It's important to run the reducer
-  /// synchronously, if possible.
-  FutureOr<ActionStatus> _processAction(
-    ReduxAction<St> action, {
-    bool notify = true,
-  }) {
-    //
-    _calculateIsWaitingIsFailed(action);
-
-    if (action.isSync())
-      return _processAction_Sync(action, notify: notify);
-    else
-      return _processAction_Async(action, notify: notify);
-  }
-
-  void _calculateIsWaitingIsFailed(ReduxAction<St> action) {
-    //
-    // If the action is fallible (that is to say, we have once called `isFailed` for this action),
-    bool fallible = _actionsWeCanCheckFailed.contains(action.runtimeType);
-
-    bool theUIHasAlreadyUpdated = false;
-
-    // Dispatch is starting, so we always remove the failure of this action type and
-    // statusKey, even if nobody checked it yet. Otherwise, checking it later would show a
-    // stale error.
-    bool removedFailure = _removeFailure(action.runtimeType, action.statusKey);
-
-    // Then we notify the UI. Note we don't notify if the action was never checked.
-    if (fallible && removedFailure) {
-      theUIHasAlreadyUpdated = true;
-      _changeController.add(state);
-    }
-
-    // Add the action to the list of actions in progress.
-    // Note: We add both SYNC and ASYNC actions. The SYNC actions are important too,
-    // to prevent NonReentrant sync actions, where they call themselves.
-    bool ifWasAdded = _actionsInProgress.add(action);
-    if (ifWasAdded) _checkAllActionConditions(action);
-
-    // Note: If the UI hasn't updated yet, AND
-    // the action is awaitable (that is to say, we have already called `isWaiting` for this action),
-    if (!theUIHasAlreadyUpdated && _awaitableActions.contains(action.runtimeType)) {
-      _changeController.add(state);
-    }
-  }
-
   /// The [triggerAction] is the action that was just added or removed in the list
   /// of [_actionsInProgress] that triggered the check.
   ///
   void _checkAllActionConditions(ReduxAction<St> triggerAction) {
-    List<bool Function(Set<ReduxAction<St>>, ReduxAction<St>?)> keysToRemove = [];
+    List<Completer<(Set<ReduxAction<St>>, ReduxAction<St>?)>> keysToRemove = [];
 
-    _actionConditionCompleters.forEach((condition, completer) {
+    _actionConditionCompleters.forEach((completer, condition) {
       if (condition(actionsInProgress(), triggerAction)) {
         completer.complete((actionsInProgress(), triggerAction));
-        keysToRemove.add(condition);
+        keysToRemove.add(completer);
       }
     });
 
@@ -1671,12 +1602,12 @@ class Store<St> {
 
   /// The [triggerAction] is the action that modified the state to trigger the condition.
   void _checkAllStateConditions(ReduxAction<St> triggerAction) {
-    List<bool Function(St)> keysToRemove = [];
+    List<Completer<ReduxAction<St>?>> keysToRemove = [];
 
-    _stateConditionCompleters.forEach((condition, completer) {
+    _stateConditionCompleters.forEach((completer, condition) {
       if (condition(_state)) {
         completer.complete(triggerAction);
-        keysToRemove.add(condition);
+        keysToRemove.add(completer);
       }
     });
 
@@ -2009,285 +1940,6 @@ class Store<St> {
       ? _failedActions.remove(type) != null
       : _removeFailure(type, statusKey);
 
-  /// We check the return type of methods `before` and `reduce` to decide if the
-  /// reducer is synchronous or asynchronous. It's important to run the reducer
-  /// synchronously, if possible.
-  ActionStatus _processAction_Sync(
-    ReduxAction<St> action, {
-    bool notify = true,
-  }) {
-    //
-    // The action may access the store/state/dispatch as fields.
-    assert(action.store == this);
-
-    var afterWasRun = _Flag<bool>(false);
-
-    Object? originalError, processedError;
-
-    try {
-      var result = action.before();
-      if (result is Future) throw StoreException(_beforeTypeErrorMsg);
-
-      action._status = action._status.copy(hasFinishedMethodBefore: true);
-      if (_shutdown) return action._status;
-      _applyReducer(action, notify: notify);
-      action._status = action._status.copy(hasFinishedMethodReduce: true);
-      if (_shutdown) return action._status;
-    }
-    //
-    catch (error, stackTrace) {
-      originalError = error;
-      processedError = _processError(action, error, stackTrace, afterWasRun);
-
-      // Error is meant to be "swallowed".
-      if (processedError == null)
-        return action._status;
-      //
-      // Error was not changed. Rethrow.
-      else if (identical(processedError, error))
-        rethrow;
-      //
-      // Error was wrapped. Throw.
-      else
-        Error.throwWithStackTrace(processedError, stackTrace);
-    }
-    //
-    finally {
-      _finalize(action, originalError, afterWasRun, notify);
-    }
-
-    return action._status;
-  }
-
-  /// We check the return type of methods `before` and `reduce` to decide if the
-  /// reducer is synchronous or asynchronous. It's important to run the reducer
-  /// synchronously, if possible.
-  Future<ActionStatus> _processAction_Async(
-    ReduxAction<St> action, {
-    bool notify = true,
-  }) async {
-    //
-    // The action may access the store/state/dispatch as fields.
-    assert(action.store == this);
-
-    var afterWasRun = _Flag<bool>(false);
-
-    Object? result, originalError, processedError;
-
-    try {
-      result = action.before();
-      if (result is Future) await result;
-      action._status = action._status.copy(hasFinishedMethodBefore: true);
-      if (_shutdown) return action._status;
-      result = _applyReducer(action, notify: notify);
-      if (result is Future) await result;
-      action._status = action._status.copy(hasFinishedMethodReduce: true);
-      if (_shutdown) return action._status;
-    }
-    //
-    catch (error, stackTrace) {
-      originalError = error;
-      processedError = _processError(action, error, stackTrace, afterWasRun);
-      // Error is meant to be "swallowed".
-      if (processedError == null)
-        return action._status;
-      // Error was not changed. Rethrows.
-      else if (identical(processedError, error))
-        rethrow;
-      // Error was wrapped. Throw.
-      else
-        Error.throwWithStackTrace(processedError, stackTrace);
-    }
-    //
-    finally {
-      _finalize(action, originalError, afterWasRun, notify);
-    }
-
-    return action._status;
-  }
-
-  static const _beforeTypeErrorMsg =
-      "Before should return `void` or `Future<void>`. Do not return `FutureOr`.";
-
-  static const _reducerTypeErrorMsg = "Reducer should return `St?` or `Future<St?>`. ";
-
-  void _checkReducerType(FutureOr<St?> Function() reduce) {
-    //
-    // Sync reducer is acceptable.
-    if (reduce is St? Function()) {
-      return;
-    }
-    //
-    // Async reducer is acceptable.
-    else if (reduce is Future<St?> Function()) {
-      return;
-    }
-    //
-    else if (reduce is Future<St>? Function()) {
-      throw StoreException(_reducerTypeErrorMsg + "Do not return `Future<St>?`.");
-    }
-    //
-    else if (reduce is Future<St?>? Function()) {
-      throw StoreException(_reducerTypeErrorMsg + "Do not return `Future<St?>?`.");
-    }
-    //
-    else {
-      throw StoreException(_reducerTypeErrorMsg + "Do not return `FutureOr`.");
-    }
-  }
-
-  FutureOr<void> _applyReducer(ReduxAction<St> action, {bool notify = true}) {
-    _reduceCount++;
-
-    // Make sure the action reducer returns an acceptable type.
-    _checkReducerType(action.reduce);
-
-    if (action.ifWrapReduceOverridden()) {
-      return _applyReduceAndWrapReduce(action, notify: notify);
-    } else {
-      return _applyReduce(action, notify: notify);
-    }
-  }
-
-  FutureOr<void> _applyReduceAndWrapReduce(ReduxAction<St> action, {bool notify = true}) {
-    //
-    assert(action.ifWrapReduceOverridden());
-
-    if (action.ifWrapReduceOverridden_Sync())
-      throw StoreException("The ${action.runtimeType}.wrapReduce method "
-          "should return `Future<St?>`, not `<St>` or `<St?>`.");
-
-    action._completedFuture = false;
-
-    Reducer<St> _reduce = (_wrapReduce != null)
-        ? _wrapReduce.wrapReduce(action.reduce, this)
-        : action.reduce;
-
-    return (action.wrapReduce(_reduce) as Future<St?>).then((state) {
-      _registerState(state, action, notify: notify);
-
-      if (action._completedFuture) {
-        Future.error(
-            "The reducer of action ${action.runtimeType} returned a completed Future. "
-            "This may result in state changes being lost. "
-            "Please make sure all code paths in the reducer pass through at least one `await`. "
-            "If necessary, add `await microtask;` to the start of the reducer.");
-      }
-    });
-  }
-
-  FutureOr<void> _applyReduce(ReduxAction<St> action, {bool notify = true}) {
-    //
-    Reducer<St> _reduce = (_wrapReduce != null)
-        ? _wrapReduce.wrapReduce(action.reduce, this)
-        : action.reduce;
-
-    // Sync reducer.
-    if (_reduce is St? Function()) {
-      _registerState(_reduce(), action, notify: notify);
-    }
-    //
-    // Async reducer.
-    else if (_reduce is Future<St?> Function()) {
-      /// When a reducer returns a state, we need to apply that state immediately in the store.
-      /// If we wait even a single microtask, another reducer may change the store-state before we
-      /// have the chance to apply the state. This would result in the later reducer overriding the
-      /// value of the other reducer, and state changes will be lost.
-      ///
-      /// To fix this we'll depend on the behavior described below, which was confirmed by the Dart
-      /// team:
-      ///
-      /// 1) When a future returned by an async function completes, it will call the `then` method
-      /// synchronously (in the same microtask), as long as the function returns a value (not a
-      /// Future) AND this happens AFTER at least one await. This means we then have the chance to
-      /// apply the returned state to the store right away.
-      ///
-      /// 2) When a future returned by an async function completes, it will call the `then` method
-      /// asynchronously (delayed to a later microtask) if there was no await in the async
-      /// function. When that happens, the future is created "completed", and Dart will wait for
-      /// the next microtask before calling the `then` method (they do this because they want to
-      /// enforce that a listener on a future is always notified in a later microtask than the one
-      /// where it was registered). This means we will only be able to apply the returned state to
-      /// the store during the next microtask. There is now a chance state will be lost.
-      /// This situation must be avoided at all cost, and it's actually simple to solve it:
-      /// An async reducer must never complete without at least one await.
-      /// Unfortunately, if the developer forgets to add the await, there is no way for AsyncRedux
-      /// to let them know about it, because there is no way for us to know if a Future is
-      /// completed. The completion information exists in the `FutureImpl` class but it's not
-      /// exposed. I have asked the Dart team to expose this information, but they refused. The
-      /// only solution is to document this and trust the developer.
-      ///
-      /// Important: The behavior described above was confirmed by the Dart team, but it's NOT
-      /// documented. In other words, they make no promise that it will be kept in the future.
-      /// If that ever changes, AsyncRedux will need to change too, so that reducers return
-      /// `St? Function(state)` instead of returning `state`. For example, instead of a reducer
-      /// ending with `return state.copy(123)` it would be `return (state) => state.copy(123)`.
-      /// Hopefully, the tests in `sync_async_test.dart` will catch this, if it ever changes.
-
-      action._completedFuture = false;
-
-      return _reduce().then((state) {
-        _registerState(state, action, notify: notify);
-
-        if (action._completedFuture) {
-          Future.error(
-              "The reducer of action ${action.runtimeType} returned a completed Future. "
-              "This may result in state changes being lost. "
-              "Please make sure all code paths in the reducer pass through at least one `await`. "
-              "If necessary, add `await microtask;` to the start of the reducer.");
-        }
-      });
-    }
-    //
-    // Invalid reducer (FutureOr is not accepted).
-    else {
-      throw StoreException("Reducer should return `St?` or `Future<St?>`. "
-          "Do not return `FutureOr<St?>`. "
-          "Reduce is of type: '${_reduce.runtimeType}'.");
-    }
-  }
-
-  /// Adds the state to the changeController, but only if the `reduce` method
-  /// did not return null, and if it did not return the same identical state.
-  ///
-  /// Note: We compare the state using `identical` (which is fast).
-  ///
-  /// The [StateObserver]s are always called (if defined). If you need to know if the state was
-  /// changed or not, you can compare `bool ifStateChanged = identical(prevState, newState)`
-  void _registerState(
-    St? state,
-    ReduxAction<St> action, {
-    bool notify = true,
-  }) {
-    if (_shutdown) return;
-
-    St prevState = _state;
-
-    // Reducers may return null state, or the unaltered state, when they don't want to change the
-    // state. Note: If the action is an "active action" it will be removed, so we have to
-    // add the state to _changeController even if it's the same state.
-    if (((state != null) && !identical(_state, state)) ||
-        _actionsInProgress.contains(action)) {
-      _state = state ?? _state;
-      _stateTimestamp = DateTime.now().toUtc();
-
-      if (notify) {
-        _changeController.add(state ?? _state);
-      }
-
-      _checkAllStateConditions(action);
-    }
-    St newState = _state;
-
-    if (_stateObservers != null)
-      for (StateObserver observer in _stateObservers) {
-        _observeState(observer, action, prevState, newState, null);
-      }
-
-    if (_processPersistence != null) _processPersistence.process(action, newState);
-    if (_processCloudSync != null) _processCloudSync.process(action, newState);
-  }
-
   /// The actions that are currently being processed.
   /// Use [isWaiting] to know if an action is currently being processed.
   final Set<ReduxAction<St>> _actionsInProgress = HashSet<ReduxAction<St>>.identity();
@@ -2323,9 +1975,8 @@ class Store<St> {
   /// [exceptionFor] and [clearExceptionFor] to know if you should display some error
   /// message due to an action failure.
   ///
-  /// Note: Throwing an UserException can show a modal dialog to the user, and also show the error
-  /// as a message in the UI. If you don't want to show the dialog you can use the `noDialog`
-  /// getter in the error message: `throw UserException('Invalid input').noDialog`.
+  /// Throwing a UserException can show a modal dialog and an error message in the UI.
+  /// To skip the dialog, use `throw UserException('Invalid input').noDialog`.
   ///
   final Map<Type, List<_Failure>> _failedActions = HashMap<Type, List<_Failure>>();
 
@@ -2333,78 +1984,359 @@ class Store<St> {
   /// This helps to know when to rebuild to make [isWaiting] work.
   final Set<Type> _actionsWeCanCheckFailed = HashSet<Type>.identity();
 
-  /// Returns the processed error. Returns `null` if the error is meant to be "swallowed".
-  Object? _processError(
+  /// Dispatch has three boundaries: admission, execution, and finalization.
+  /// Admission errors escape directly; execution errors go through wrapError.
+  /// Keep the sync path synchronous and the async path's await points unchanged.
+  FutureOr<ActionStatus> _dispatch(ReduxAction<St> action, {required bool notify}) {
+    // Even abortDispatch may read the store or dispatch another action.
+    action.setStore(this);
+
+    if (_shutdown || action.abortDispatch()) {
+      action._status = action._status.copy(isDispatchAborted: true);
+      return action._status;
+    }
+
+    _dispatchCount++;
+    if (action.status.isDispatched) {
+      throw StoreException('The action was already dispatched. '
+          'Please, create a new action each time.');
+    }
+    // An earlier attempt may have aborted before this action started executing.
+    action._status = action._status.copy(isDispatched: true, isDispatchAborted: false);
+
+    if (_actionObservers != null) {
+      for (final observer in _actionObservers) {
+        _observeAction(observer, action, ini: true);
+      }
+    }
+
+    _startAction(action);
+    return action.isSync()
+        ? _runActionSync(action, notify: notify)
+        : _runActionAsync(action, notify: notify);
+  }
+
+  /// Clear the previous failure and publish waiting status before running hooks.
+  /// These notifications do not depend on the dispatch's notify argument.
+  void _startAction(ReduxAction<St> action) {
+    final fallible = _actionsWeCanCheckFailed.contains(action.runtimeType);
+    // Clear the failure even if nobody queried it yet; a later isFailed call must
+    // not find a stale error. Only previously queried types need a UI notification.
+    final removedFailure = _removeFailure(action.runtimeType, action.statusKey);
+    final notifiedFailure = fallible && removedFailure;
+
+    if (notifiedFailure) _changeController.add(state);
+
+    // Track sync actions too: a nested dispatch may check NonReentrant/isWaiting.
+    if (_actionsInProgress.add(action)) _checkAllActionConditions(action);
+
+    if (!notifiedFailure && _awaitableActions.contains(action.runtimeType)) {
+      _changeController.add(state);
+    }
+  }
+
+  ActionStatus _runActionSync(ReduxAction<St> action, {required bool notify}) {
+    assert(action.store == this);
+    Object? originalError;
+
+    try {
+      final result = action.before();
+      if (result is Future) throw StoreException(_beforeTypeErrorMsg);
+      action._status = action._status.copy(hasFinishedMethodBefore: true);
+
+      if (!_shutdown) {
+        _runReducer(action, notify: notify);
+        action._status = action._status.copy(hasFinishedMethodReduce: true);
+      }
+    } catch (error, stackTrace) {
+      originalError = error;
+      final processedError = _processActionError(action, error, stackTrace);
+      if (processedError == null) return action._status;
+      if (identical(processedError, error)) rethrow;
+      Error.throwWithStackTrace(processedError, stackTrace);
+    } finally {
+      _finishAction(action, originalError, notify: notify);
+    }
+
+    return action._status;
+  }
+
+  /// Mirrors the sync lifecycle, awaiting only hooks that actually return a Future.
+  /// Keep both runners: adding an await to the sync path would defer state changes.
+  Future<ActionStatus> _runActionAsync(
+    ReduxAction<St> action, {
+    required bool notify,
+  }) async {
+    assert(action.store == this);
+    Object? originalError;
+
+    try {
+      final before = action.before();
+      if (before is Future) await before;
+      action._status = action._status.copy(hasFinishedMethodBefore: true);
+
+      if (!_shutdown) {
+        final reduce = _runReducer(action, notify: notify);
+        if (reduce is Future) await reduce;
+        action._status = action._status.copy(hasFinishedMethodReduce: true);
+      }
+    } catch (error, stackTrace) {
+      originalError = error;
+      final processedError = _processActionError(action, error, stackTrace);
+      if (processedError == null) return action._status;
+      if (identical(processedError, error)) rethrow;
+      Error.throwWithStackTrace(processedError, stackTrace);
+    } finally {
+      _finishAction(action, originalError, notify: notify);
+    }
+
+    return action._status;
+  }
+
+  /// Runs after exactly once, removes waiting status, then notifies END observers.
+  /// On failure, after already ran before the error was queued or propagated.
+  void _finishAction(
+    ReduxAction<St> action,
+    Object? originalError, {
+    required bool notify,
+  }) {
+    // _runAfter marks completion in finally, even when after itself throws. This
+    // also prevents a second call if error handling fails after running after.
+    if (!action._status.hasFinishedMethodAfter) _runAfter(action);
+
+    if (_actionsInProgress.remove(action)) _checkAllActionConditions(action);
+
+    // Rebuild widgets that queried waiting/failure status, even with notify=false.
+    // Use the original error: swallowed errors also finish a pending action.
+    // Failure notifications cover ordinary errors and noDialog UserExceptions,
+    // which do not trigger the dialog queue's notification.
+    final awaitable = _awaitableActions.contains(action.runtimeType);
+    final fallible = _actionsWeCanCheckFailed.contains(action.runtimeType);
+    if ((awaitable && (originalError != null || !notify)) ||
+        (fallible && originalError != null)) {
+      _changeController.add(state);
+    }
+
+    if (_actionObservers != null) {
+      for (final observer in _actionObservers) {
+        _observeAction(observer, action, ini: false);
+      }
+    }
+  }
+
+  void _runAfter(ReduxAction<St> action) {
+    try {
+      action.after();
+    } catch (error, stackTrace) {
+      // Report asynchronously without replacing the action's own error.
+      _throws(
+        "Method '${action.runtimeType}.after()' "
+        "has thrown an error:\n '$error'.",
+        error,
+        stackTrace,
+      );
+    } finally {
+      action._status = action._status.copy(hasFinishedMethodAfter: true);
+    }
+  }
+
+  FutureOr<void> _runReducer(ReduxAction<St> action, {required bool notify}) {
+    _reduceCount++;
+    _checkReducerType(action.reduce);
+
+    if (action.ifWrapReduceOverridden()) {
+      return _runWrappedReducer(action, notify: notify);
+    }
+
+    final reduce = (_wrapReduce != null)
+        ? _wrapReduce.wrapReduce(action.reduce, this)
+        : action.reduce;
+
+    if (reduce is St? Function()) {
+      _commitState(reduce(), action, notify: notify);
+    } else if (reduce is Future<St?> Function()) {
+      action._completedFuture = false;
+      return _commitAsyncReducer(reduce(), action, notify: notify);
+    } else {
+      throw StoreException("Reducer should return `St?` or `Future<St?>`. "
+          "Do not return `FutureOr<St?>`. "
+          "Reduce is of type: '${reduce.runtimeType}'.");
+    }
+  }
+
+  Future<void> _runWrappedReducer(ReduxAction<St> action, {required bool notify}) {
+    assert(action.ifWrapReduceOverridden());
+    if (action.ifWrapReduceOverridden_Sync()) {
+      throw StoreException("The ${action.runtimeType}.wrapReduce method "
+          "should return `Future<St?>`, not `<St>` or `<St?>`.");
+    }
+
+    // Reset before invoking either wrapper, which may itself run user code.
+    action._completedFuture = false;
+    final reduce = (_wrapReduce != null)
+        ? _wrapReduce.wrapReduce(action.reduce, this)
+        : action.reduce;
+
+    return _commitAsyncReducer(
+      action.wrapReduce(reduce) as Future<St?>,
+      action,
+      notify: notify,
+    );
+  }
+
+  /// Commit directly in the reducer Future's then callback, without another await
+  /// or Future in between. A pending async reducer that returns a value after an
+  /// await delivers it here in the same microtask. Deferring the commit could let
+  /// another reducer read stale state and overwrite a concurrent state change.
+  ///
+  /// Without an await, the reducer can return an already completed Future. Attaching
+  /// then to it schedules the callback in a later microtask, leaving a window for
+  /// another reducer to read the old state. Every async reducer path must await
+  /// before returning its state; adding `await microtask` is sufficient.
+  ///
+  /// This relies on Dart's scheduling behavior, not a documented API guarantee.
+  /// Future does not expose whether it is already complete, so we cannot check it
+  /// directly. assertUncompletedFuture provides an opt-in scheduling check instead.
+  /// See store_microtask_order_test.dart and completed_reducer_future_test.dart.
+  Future<void> _commitAsyncReducer(
+    Future<St?> result,
+    ReduxAction<St> action, {
+    required bool notify,
+  }) =>
+      result.then((state) {
+        _commitState(state, action, notify: notify);
+
+        if (action._completedFuture) {
+          Future.error(
+            "The reducer of action ${action.runtimeType} returned a completed Future. "
+            "This may result in state changes being lost. "
+            "Please make sure all code paths in the reducer pass through at least "
+            "one `await`. "
+            "If necessary, add `await microtask;` to the start of the reducer.",
+          );
+        }
+      });
+
+  static const _beforeTypeErrorMsg =
+      "Before should return `void` or `Future<void>`. Do not return `FutureOr`.";
+
+  static const _reducerTypeErrorMsg = "Reducer should return `St?` or `Future<St?>`. ";
+
+  void _checkReducerType(FutureOr<St?> Function() reduce) {
+    if (reduce is St? Function()) return;
+    if (reduce is Future<St?> Function()) return;
+
+    if (reduce is Future<St>? Function()) {
+      throw StoreException(_reducerTypeErrorMsg + "Do not return `Future<St>?`.");
+    }
+    if (reduce is Future<St?>? Function()) {
+      throw StoreException(_reducerTypeErrorMsg + "Do not return `Future<St?>?`.");
+    }
+    throw StoreException(_reducerTypeErrorMsg + "Do not return `FutureOr`.");
+  }
+
+  /// Publish state and check wait conditions before observers and persistence.
+  /// Null/identical results still notify while the action is in progress, so that
+  /// widgets can stop waiting (unless notify is false). Change detection uses identity,
+  /// avoiding the cost of state equality checks. Outside shutdown, state observers
+  /// and persistors see even null/identical results; they decide how to handle them.
+  void _commitState(St? state, ReduxAction<St> action, {required bool notify}) {
+    if (_shutdown) return;
+
+    final previousState = _state;
+    if ((state != null && !identical(_state, state)) ||
+        _actionsInProgress.contains(action)) {
+      _state = state ?? _state;
+      _stateTimestamp = DateTime.now().toUtc();
+
+      if (notify) _changeController.add(state ?? _state);
+      _checkAllStateConditions(action);
+    }
+
+    // Capture once: observers may dispatch nested actions before persistence runs.
+    final newState = _state;
+    if (_stateObservers != null) {
+      for (final observer in _stateObservers) {
+        _observeState(observer, action, previousState, newState, null);
+      }
+    }
+
+    _processPersistence?.process(action, newState);
+    _processCloudSync?.process(action, newState);
+  }
+
+  /// Transform and record the error, run after, then queue a dialog or mark an abort.
+  /// Returns only errors that must escape dispatch; null means no rethrow.
+  Object? _processActionError(
     ReduxAction<St> action,
     Object error,
     StackTrace stackTrace,
-    _Flag<bool> afterWasRun,
   ) {
-    if (_stateObservers != null)
-      for (StateObserver observer in _stateObservers) {
+    if (_stateObservers != null) {
+      for (final observer in _stateObservers) {
+        // Read the live state for each observer, including after nested dispatches.
         _observeState(observer, action, _state, _state, error);
       }
-
-    Object? errorOrNull = error;
+    }
 
     action._status = action._status.copy(originalError: error);
+    final wrappedError = _wrapActionError(action, error, stackTrace);
+    action._status = action._status.copy(wrappedError: wrappedError);
 
-    try {
-      errorOrNull = action.wrapError(errorOrNull, stackTrace);
-    } catch (_error) {
-      // If the action's wrapError throws an error, it will be used instead
-      // of the original error (but the recommended way is returning the error).
-      errorOrNull = _error;
+    // Store only type/key/error, without keeping the action alive.
+    if (wrappedError != null && wrappedError is! AbortDispatchException) {
+      _addFailure(action.runtimeType, action.statusKey, wrappedError);
     }
 
-    if (errorOrNull != null) {
-      var globalErrorObserver = _globalErrorObserver?.call(this);
-      if (globalErrorObserver != null) {
-        try {
-          globalErrorObserver._init(
-            error: errorOrNull,
-            originalError: action.status.originalError,
-            stackTrace: stackTrace,
-            action: action,
-            store: this,
-            errorSource: GlobalErrorSource.action,
-          );
-          errorOrNull = globalErrorObserver.observe();
-        } catch (_error) {
-          // If the GlobalErrorObserver throws an error, it will be used instead
-          // of the original error (but the recommended way is returning the error).
-          errorOrNull = _error;
-        }
-      }
-    }
+    _runAfter(action);
 
-    action._status = action._status.copy(wrappedError: errorOrNull);
-
-    // Memorizes the failure (action type, statusKey and error). It's removed when an
-    // action of the same type and statusKey is dispatched again. An error that was
-    // swallowed (null), or an abort, doesn't count as a failure.
-    if (errorOrNull != null && errorOrNull is! AbortDispatchException)
-      _addFailure(action.runtimeType, action.statusKey, errorOrNull);
-
-    afterWasRun.value = true;
-    _after(action);
-
-    // Memorizes errors of type UserException (in the error queue).
-    // These errors are usually shown to the user in a modal dialog, and are not logged.
-    if (errorOrNull is UserException) {
-      if (errorOrNull.ifOpenDialog) {
-        _addError(errorOrNull);
+    if (wrappedError is UserException) {
+      if (wrappedError.ifOpenDialog) {
+        _addError(wrappedError);
         _changeController.add(state);
       }
-    } else if (errorOrNull is AbortDispatchException) {
-      action._status = action._status.copy(isDispatchAborted: true);
+      return null;
     }
+    if (wrappedError is AbortDispatchException) {
+      action._status = action._status.copy(isDispatchAborted: true);
+      return null;
+    }
+    return wrappedError;
+  }
 
-    // Return (to throw) all errors which are not UserException or AbortDispatchException.
-    if ((errorOrNull is! UserException) && (errorOrNull is! AbortDispatchException))
-      return errorOrNull;
+  /// Local wrapping precedes global wrapping; either may replace or swallow errors.
+  /// A thrown replacement is treated like a returned one, though returning is the
+  /// intended API. Propagation still uses the original action error's stack trace.
+  Object? _wrapActionError(
+    ReduxAction<St> action,
+    Object error,
+    StackTrace stackTrace,
+  ) {
+    Object? wrappedError;
+    try {
+      wrappedError = action.wrapError(error, stackTrace);
+    } catch (replacement) {
+      wrappedError = replacement;
+    }
+    if (wrappedError == null) return null;
 
-    return null;
+    // Factory errors escape this pipeline, but finalization must still run after.
+    final observer = _globalErrorObserver?.call(this);
+    if (observer == null) return wrappedError;
+
+    try {
+      observer._init(
+        error: wrappedError,
+        originalError: action.status.originalError,
+        stackTrace: stackTrace,
+        action: action,
+        store: this,
+        errorSource: GlobalErrorSource.action,
+      );
+      return observer.observe();
+    } catch (replacement) {
+      return replacement;
+    }
   }
 
   /// Processes errors thrown by the [Persistor] (or the cloud-sync) when persisting the state.
@@ -2445,34 +2377,6 @@ class Store<St> {
     }
 
     return errorOrNull;
-  }
-
-  void _finalize(
-    ReduxAction<St> action,
-    Object? error,
-    _Flag<bool> afterWasRun,
-    bool notify,
-  ) {
-    if (!afterWasRun.value) _after(action);
-
-    bool ifWasRemoved = _actionsInProgress.remove(action);
-    if (ifWasRemoved) _checkAllActionConditions(action);
-
-    // If we'll not be notifying, it's possible we need to trigger the change controller, when the
-    // action is awaitable (that is to say, when we have already called `isWaiting` for this action).
-    // Also when the action failed and we have already called `isFailed` or `exceptionFor`
-    // for it, so that the widgets showing the failure are rebuilt (a UserException that
-    // opens a dialog already notified, but a `noDialog` one or any other error did not).
-    bool awaitable = _awaitableActions.contains(action.runtimeType);
-    bool fallible = _actionsWeCanCheckFailed.contains(action.runtimeType);
-    if ((awaitable && ((error != null) || !notify)) || (fallible && (error != null))) {
-      _changeController.add(state);
-    }
-
-    if (_actionObservers != null)
-      for (ActionObserver observer in _actionObservers) {
-        _observeAction(observer, action, ini: false);
-      }
   }
 
   void _observeAction(ActionObserver observer, ReduxAction<St> action,
@@ -2572,24 +2476,6 @@ class Store<St> {
     }
   }
 
-  void _after(ReduxAction<St> action) {
-    try {
-      action.after();
-    } catch (error, stackTrace) {
-      // After should never throw.
-      // However, if it does, prints the error information to the console,
-      // then throw the error after an asynchronous gap.
-      _throws(
-        "Method '${action.runtimeType}.after()' "
-        "has thrown an error:\n '$error'.",
-        error,
-        stackTrace,
-      );
-    } finally {
-      action._status = action._status.copy(hasFinishedMethodAfter: true);
-    }
-  }
-
   /// Closes down the store so it will no longer be operational.
   /// Only use this if you want to destroy the Store while your app is running.
   /// Do not use this method as a way to stop listening to onChange state changes.
@@ -2650,7 +2536,10 @@ class ActionStatus {
   /// - Aborted with the [ReduxAction.abortDispatch] method,
   /// - If an [AbortDispatchException] was thrown by the action's `before` or `reduce`
   ///   methods (and survived the `wrapError` and `globalErrorObserver`). Or,
-  /// - If the store was being shut down with the [Store.shutdown] method.
+  /// - Rejected because the store was already shut down when dispatched.
+  ///
+  /// Calling [Store.shutdown] during execution does not guarantee a particular
+  /// final action status.
   final bool isDispatchAborted;
 
   /// Holds the error thrown by the action's before/reduce methods, if any.
@@ -2839,18 +2728,6 @@ extension FutureActionStatusExtension on Future<ActionStatus> {
         if (status.isCompletedFailed) await callback(status);
         return status;
       });
-}
-
-class _Flag<T> {
-  T value;
-
-  _Flag(this.value);
-
-  @override
-  bool operator ==(Object other) => true;
-
-  @override
-  int get hashCode => 0;
 }
 
 typedef OptimisticSyncWithPushRevisionEntry = ({

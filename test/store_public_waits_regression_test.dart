@@ -4,10 +4,7 @@ import 'package:async_redux/async_redux.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-// These regressions intentionally assert independent registrations of the same
-// public predicate. Store currently keys pending waits by predicate identity,
-// so the second registration overwrites the first. Fixing Store is outside this
-// tests-only change; keep these assertions active to expose that missing behavior.
+// Reusing a predicate must not couple the completion or timeout of separate waits.
 void main() {
   for (final stateCondition in [true, false]) {
     final method = stateCondition ? 'waitCondition' : 'waitActionCondition';
@@ -38,38 +35,37 @@ void main() {
       });
     });
 
-    test('$method timeout of an earlier registration preserves the later one', () {
-      fakeAsync((clock) {
-        final store = Store<int>(initialState: 0);
-        final condition = _Conditions();
-        Object? firstError;
-        Object? secondError;
-        var secondCompleted = false;
-        _register(store, condition, stateCondition, 5).then<void>(
-          (_) => fail('The first wait must time out before any dispatch'),
-          onError: (Object error) => firstError = error,
-        );
-        _register(store, condition, stateCondition, 20).then<void>(
-          (_) => secondCompleted = true,
-          onError: (Object error) => secondError = error,
-        );
+    for (final firstExpires in [true, false]) {
+      test('$method expires only its own registration: first=$firstExpires', () {
+        fakeAsync((clock) {
+          final store = Store<int>(initialState: 0);
+          final condition = _Conditions();
+          final completed = <int>[];
+          final errors = <int, Object>{};
+          final expiring = firstExpires ? 0 : 1;
+          for (var index = 0; index < 2; index++) {
+            _register(store, condition, stateCondition, index == expiring ? 5 : 20)
+                .then<void>(
+              (_) => completed.add(index),
+              onError: (Object error) => errors[index] = error,
+            );
+          }
 
-        clock.elapse(const Duration(milliseconds: 5));
-        expect(firstError, isA<TimeoutException>());
-        expect(secondCompleted, isFalse);
-        expect(secondError, isNull);
-        store.dispatchSync(_Increment());
-        clock.flushMicrotasks();
-        clock.elapse(const Duration(milliseconds: 15));
+          clock.elapse(const Duration(milliseconds: 5));
+          expect(errors.keys, [expiring]);
+          expect(errors[expiring], isA<TimeoutException>());
+          expect(completed, isEmpty);
+          store.dispatchSync(_Increment());
+          clock.flushMicrotasks();
+          clock.elapse(const Duration(milliseconds: 15));
 
-        expect(
-          secondCompleted,
-          isTrue,
-          reason: 'Expiring another call must not unregister this pending wait',
-        );
-        expect(secondError, isNull);
+          expect(completed, [1 - expiring]);
+          expect(errors.keys, [expiring]);
+          store.teardown();
+          clock.flushMicrotasks();
+        });
       });
-    });
+    }
   }
 }
 

@@ -129,21 +129,17 @@ void main() {
   );
 
   test(
-    'error queue keeps FIFO order and characterizes the current capacity boundary',
+    'error queue keeps FIFO order within its configured capacity',
     () async {
       final store = Store<int>(initialState: 0, maxErrorsQueued: 2);
       for (var i = 0; i < 5; i++) {
         store.dispatchSync(_UserError(UserException('$i')));
       }
-      // Current code trims BEFORE adding, when length > maxErrorsQueued. Thus
-      // the effective capacity is maxErrorsQueued + 1; do not silently change it
-      // during a behavior-preserving refactor.
+      // Discard the oldest errors while preserving FIFO order among those retained.
       expect(store.errors.toList(), [
-        const UserException('2'),
         const UserException('3'),
         const UserException('4'),
       ]);
-      expect(store.getAndRemoveFirstError(), const UserException('2'));
       expect(store.getAndRemoveFirstError(), const UserException('3'));
       expect(store.getAndRemoveFirstError(), const UserException('4'));
       expect(store.getAndRemoveFirstError(), isNull);

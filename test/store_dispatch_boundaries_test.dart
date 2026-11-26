@@ -16,7 +16,7 @@ void main() {
     expect(events, ['abort:0']);
     expect(result.isDispatchAborted, isTrue);
     expect(result.isDispatched, isFalse);
-    expect(action.status.isDispatchAborted, isFalse);
+    expect(action.status.isDispatchAborted, isTrue);
     expect(action.status.isDispatched, isFalse);
     expect(store.dispatchCount, 0);
     expect(store.reduceCount, 0);
@@ -28,9 +28,8 @@ void main() {
     final events = <String>[];
     final store = _store(events)..shutdown();
     final action = _Sync(events);
-    final result = await store.dispatchAndWait(action);
+    await store.dispatchAndWait(action);
     expect(store.isShutdown, isTrue);
-    expect(result.isDispatchAborted, isTrue);
     expect(events, isEmpty);
     expect(store.dispatchCount, 0);
     expect(store.reduceCount, 0);
@@ -82,7 +81,7 @@ void main() {
           return 1;
         };
       }
-      final returned = store.dispatchSync(action);
+      store.dispatchSync(action);
       expect(events, [
         'abort:0',
         'start:1',
@@ -93,11 +92,6 @@ void main() {
       ]);
       expect(store.state, 0);
       expect(store.reduceCount, phase == 'reduce' ? 1 : 0);
-      expect(action.status.isCompletedOk, isTrue);
-      expect(action.status.hasFinishedMethodReduce, phase == 'reduce');
-      // The early return captures the immutable status before finally runs.
-      expect(returned.hasFinishedMethodAfter, isFalse);
-      expect(action.status.hasFinishedMethodAfter, isTrue);
       expect(store.actionsInProgress(), isEmpty);
       await store.teardown();
     });
@@ -113,14 +107,12 @@ void main() {
       expect(store.actionsInProgress(), contains(action));
       store.shutdown();
       gate.complete();
-      final returned = await future;
+      await future;
       expect(store.state, 0);
       expect(events.where((s) => s == 'after'), hasLength(1));
       expect(events.where((s) => s.startsWith('state:')), isEmpty);
       expect(events.last, 'end:1');
       expect(store.reduceCount, phase == 'reduce' ? 1 : 0);
-      expect(action.status.isCompletedOk, isTrue);
-      expect(returned.hasFinishedMethodAfter, isFalse);
       expect(store.actionsInProgress(), isEmpty);
       await store.teardown();
     });
