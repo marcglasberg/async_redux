@@ -9,6 +9,8 @@ void main() {
     defineReflectiveTests(SequentialDeadlockTest);
     defineReflectiveTests(SequentialBeforeSuperNotFirstTest);
     defineReflectiveTests(SequentialAfterSuperNotInFinallyTest);
+    defineReflectiveTests(StoreSequentialBeforeTest);
+    defineReflectiveTests(StoreSequentialAfterTest);
   });
 }
 
@@ -431,7 +433,7 @@ class Parent extends ReduxAction<AppState> with Sequential {
 }
 
 @reflectiveTest
-class SequentialBeforeSuperNotFirstTest extends AsyncReduxRuleTest {
+class SequentialBeforeSuperNotFirstTest extends _LegacySequentialRuleTest {
   @override
   void setUp() {
     rule = SequentialBeforeSuperNotFirstRule();
@@ -560,7 +562,7 @@ class A extends ReduxAction<AppState> with CheckInternet {
 }
 
 @reflectiveTest
-class SequentialAfterSuperNotInFinallyTest extends AsyncReduxRuleTest {
+class SequentialAfterSuperNotInFinallyTest extends _LegacySequentialRuleTest {
   @override
   void setUp() {
     rule = SequentialAfterSuperNotInFinallyRule();
@@ -671,5 +673,68 @@ class A extends ReduxAction<AppState> with NonReentrant {
   AppState? reduce() => null;
 }
 ''');
+  }
+}
+
+// Keep coverage for apps using the previous lifecycle-based Sequential.
+abstract class _LegacySequentialRuleTest extends AsyncReduxRuleTest {
+  @override
+  String get asyncReduxSource => asyncReduxStub.replaceFirst(
+    'mixin Sequential<St> on ReduxAction<St> {',
+    'mixin Sequential<St> on ReduxAction<St> {'
+        ' @override Future<void> before() async {}'
+        ' @override void after() {}',
+  );
+}
+
+const _storeSequentialHooks = """$header
+abstract class Base extends ReduxAction<AppState> with Sequential {}
+class A extends Base {
+  @override
+  Future<void> before() async {
+    await Future<void>.delayed(Duration.zero);
+    await super.before();
+  }
+  @override
+  void after() {
+    print('finished');
+    super.after();
+  }
+  @override
+  AppState? reduce() => null;
+}
+class B extends Base {
+  @override
+  void before() {}
+  @override
+  void after() {}
+  @override
+  AppState? reduce() => null;
+}
+""";
+
+@reflectiveTest
+class StoreSequentialBeforeTest extends AsyncReduxRuleTest {
+  @override
+  void setUp() {
+    rule = SequentialBeforeSuperNotFirstRule();
+    super.setUp();
+  }
+
+  Future<void> test_storeManagesQueue() async {
+    await assertNoDiagnostics(_storeSequentialHooks);
+  }
+}
+
+@reflectiveTest
+class StoreSequentialAfterTest extends AsyncReduxRuleTest {
+  @override
+  void setUp() {
+    rule = SequentialAfterSuperNotInFinallyRule();
+    super.setUp();
+  }
+
+  Future<void> test_storeManagesQueue() async {
+    await assertNoDiagnostics(_storeSequentialHooks);
   }
 }

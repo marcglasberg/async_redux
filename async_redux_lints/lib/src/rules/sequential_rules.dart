@@ -325,7 +325,16 @@ class _AfterVisitor extends SimpleAstVisitor<void> {
 bool _isInSequentialAction(MethodDeclaration node) {
   if (!isActionMethod(node)) return false;
   var enclosing = enclosingInterface(node);
-  return enclosing != null && asyncReduxMixinsOf(enclosing).contains('Sequential');
+  // Only older AsyncRedux versions implement the queue in lifecycle methods.
+  // Store-managed Sequential needs no super call in either hook.
+  return enclosing != null &&
+      enclosing.allSupertypes.any((type) {
+        var element = type.element;
+        return element is MixinElement &&
+            element.name == 'Sequential' &&
+            isFromAsyncRedux(element) &&
+            element.getMethod(node.name.lexeme) != null;
+      });
 }
 
 /// Finds the `super.name()` calls and `super.name` tear-offs in a method body,

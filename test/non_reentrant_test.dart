@@ -120,11 +120,15 @@ void main() {
     var store = Store<State>(initialState: State(1));
 
     // Dispatch action that will fail
-    await store.dispatchAndWait(NonReentrantFailingAction());
+    var failed = await store.dispatchAndWait(NonReentrantFailingAction());
+    expect(failed.isCompletedFailed, isTrue);
     expect(store.state.count, 1); // No change due to failure
 
-    // After failure, we can dispatch again (key was released in after())
-    await store.dispatchAndWait(NonReentrantAsyncAction(10, 10));
+    // Retry the same type and key after failure.
+    var retried = await store.dispatchAndWait(
+      NonReentrantFailingAction(shouldFail: false),
+    );
+    expect(retried.isCompletedOk, isTrue);
     expect(store.state.count, 11);
   });
 
@@ -276,11 +280,15 @@ void main() {
     var store = Store<State>(initialState: State(0));
 
     // Dispatch action with param 'X' that fails
-    await store.dispatchAndWait(NonReentrantWithParamsFails('X'));
+    var failed = await store.dispatchAndWait(NonReentrantWithParamsFails('X'));
+    expect(failed.isCompletedFailed, isTrue);
     expect(store.state.count, 0); // No change
 
     // Now dispatch another action with same param - should run
-    await store.dispatchAndWait(NonReentrantWithParams('X', 10, 10));
+    var retried = await store.dispatchAndWait(
+      NonReentrantWithParamsFails('X', shouldFail: false),
+    );
+    expect(retried.isCompletedOk, isTrue);
     expect(store.state.count, 10);
   });
 
@@ -357,12 +365,17 @@ class NonReentrantAsyncAction extends ReduxAction<State> with NonReentrant {
   }
 }
 
-/// Action that always fails - used to test that key is released on error.
+/// Action that can fail, then succeed on a new dispatch of the same type.
 class NonReentrantFailingAction extends ReduxAction<State> with NonReentrant {
+  final bool shouldFail;
+
+  NonReentrantFailingAction({this.shouldFail = true});
+
   @override
   Future<State> reduce() async {
     await Future.delayed(const Duration(milliseconds: 10));
-    throw const UserException('Intentional failure');
+    if (shouldFail) throw const UserException('Intentional failure');
+    return State(state.count + 10);
   }
 }
 
@@ -384,11 +397,12 @@ class NonReentrantWithParams extends ReduxAction<State> with NonReentrant {
   }
 }
 
-/// Action that uses nonReentrantKeyParams and always fails.
+/// Action that can fail, then succeed on a new dispatch with the same params.
 class NonReentrantWithParamsFails extends ReduxAction<State> with NonReentrant {
   final String itemId;
+  final bool shouldFail;
 
-  NonReentrantWithParamsFails(this.itemId);
+  NonReentrantWithParamsFails(this.itemId, {this.shouldFail = true});
 
   @override
   Object? nonReentrantKeyParams() => itemId;
@@ -396,7 +410,8 @@ class NonReentrantWithParamsFails extends ReduxAction<State> with NonReentrant {
   @override
   Future<State> reduce() async {
     await Future.delayed(const Duration(milliseconds: 10));
-    throw const UserException('Intentional failure');
+    if (shouldFail) throw const UserException('Intentional failure');
+    return State(state.count + 10);
   }
 }
 

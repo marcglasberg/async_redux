@@ -43,6 +43,55 @@ class DispatchSyncAsyncActionTest extends AsyncReduxRuleTest {
     super.setUp();
   }
 
+  Future<void> test_storeManagedAsyncMixins() async {
+    const mixins = [
+      'CheckInternet',
+      'AbortWhenNoInternet',
+      'Retry',
+      'Debounce',
+      'Sequential',
+      'UnlimitedRetryCheckInternet',
+      'Polling',
+    ];
+    var code = header;
+    for (var mixin in mixins) {
+      code +=
+          '''
+abstract class Base$mixin extends ReduxAction<AppState> with $mixin {}
+class Action$mixin extends Base$mixin {
+  @override
+  void before() {}
+  @override
+  AppState? reduce() => null;
+}
+void f$mixin(Store<AppState> store) {
+  store.dispatchSync(Action$mixin());
+}
+''';
+    }
+    await assertDiagnostics(code, [
+      for (var mixin in mixins)
+        lintAt(code, 'Action$mixin()', messageContainsAll: ["the '$mixin' mixin"]),
+    ]);
+  }
+
+  Future<void> test_admissionMixinsCanRemainSync() async {
+    var code = header;
+    for (var mixin in ['NonReentrant', 'Throttle', 'Fresh']) {
+      code +=
+          '''
+class Action$mixin extends ReduxAction<AppState> with $mixin {
+  @override
+  AppState? reduce() => null;
+}
+void f$mixin(Store<AppState> store) {
+  store.dispatchSync(Action$mixin());
+}
+''';
+    }
+    await assertNoDiagnostics(code);
+  }
+
   Future<void> test_syncAction() async {
     await assertNoDiagnostics('''$_actions
 void f(Store<AppState> store) {
@@ -78,9 +127,7 @@ void f(Store<AppState> store) {
       lintAt(
         code,
         'CheckInternetAction()',
-        messageContainsAll: [
-          "its 'before' method (from 'CheckInternet') returns 'Future<void>'",
-        ],
+        messageContainsAll: ["the 'CheckInternet' mixin runs asynchronously in Store"],
       ),
     ]);
   }

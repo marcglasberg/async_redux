@@ -19,12 +19,10 @@ class MissingSuperInMixinOverrideTest extends AsyncReduxRuleTest {
 
   Future<void> test_abortDispatch() async {
     var code = '''$header
-class A extends ReduxAction<AppState> with NonReentrant {
+class A extends ReduxAction<AppState> with OptimisticCommand {
   @override
   bool abortDispatch() => isWaiting(A);
 
-  @override
-  AppState? reduce() => null;
 }
 ''';
     await assertDiagnostics(code, [
@@ -32,7 +30,8 @@ class A extends ReduxAction<AppState> with NonReentrant {
         code,
         'abortDispatch',
         messageContainsAll: [
-          "This 'abortDispatch' overrides the one of the 'NonReentrant' mixin without "
+          "This 'abortDispatch' overrides the one of the 'OptimisticCommand' mixin "
+              'without '
               "calling 'super.abortDispatch', so the mixin doesn't work.",
         ],
         correctionContains: "if (super.abortDispatch()) return true;",
@@ -42,7 +41,7 @@ class A extends ReduxAction<AppState> with NonReentrant {
 
   Future<void> test_wrapReduce() async {
     var code = '''$header
-class A extends ReduxAction<AppState> with Retry {
+class A extends ReduxAction<AppState> with LegacyWrapper {
   @override
   Future<AppState?> wrapReduce(Reducer<AppState> reduce) async => reduce();
 
@@ -51,7 +50,7 @@ class A extends ReduxAction<AppState> with Retry {
 }
 ''';
     await assertDiagnostics(code, [
-      lintAt(code, 'wrapReduce', messageContainsAll: ["'Retry' mixin"]),
+      lintAt(code, 'wrapReduce', messageContainsAll: ["'LegacyWrapper' mixin"]),
     ]);
   }
 
@@ -69,14 +68,12 @@ class A extends ReduxAction<AppState> with OptimisticCommand {
 
   Future<void> test_mixinInBaseAction() async {
     var code = '''$header
-abstract class AppAction extends ReduxAction<AppState> with NonReentrant {}
+abstract class AppAction extends ReduxAction<AppState> with OptimisticCommand {}
 
 class A extends AppAction {
   @override
   bool abortDispatch() => false;
 
-  @override
-  AppState? reduce() => null;
 }
 ''';
     await assertDiagnostics(code, [lintAt(code, 'abortDispatch')]);
@@ -84,7 +81,7 @@ class A extends AppAction {
 
   Future<void> test_userMixinOnAsyncReduxMixin() async {
     var code = '''$header
-mixin M on NonReentrant<AppState> {
+mixin M on OptimisticCommand<AppState> {
   @override
   bool abortDispatch() => false;
 }
@@ -97,9 +94,20 @@ mixin M on NonReentrant<AppState> {
 
   Future<void> test_callsSuper_isValid() async {
     await assertNoDiagnostics('''$header
-class A extends ReduxAction<AppState> with NonReentrant {
+class A extends ReduxAction<AppState> with OptimisticCommand {
   @override
   bool abortDispatch() => super.abortDispatch() || isWaiting(A);
+
+}
+''');
+  }
+
+  Future<void> test_wrapReduceCallsSuper_isValid() async {
+    await assertNoDiagnostics('''$header
+class A extends ReduxAction<AppState> with LegacyWrapper {
+  @override
+  Future<AppState?> wrapReduce(Reducer<AppState> reduce) =>
+      super.wrapReduce(() => reduce());
 
   @override
   AppState? reduce() => null;
@@ -107,12 +115,66 @@ class A extends ReduxAction<AppState> with NonReentrant {
 ''');
   }
 
-  Future<void> test_wrapReduceCallsSuper_isValid() async {
+  Future<void> test_nonReentrantLifecycleOverrides_isValid() async {
     await assertNoDiagnostics('''$header
-class A extends ReduxAction<AppState> with Retry {
+class A extends ReduxAction<AppState> with NonReentrant {
   @override
-  Future<AppState?> wrapReduce(Reducer<AppState> reduce) =>
-      super.wrapReduce(() => reduce());
+  bool abortDispatch() => false;
+
+  @override
+  void after() {}
+
+  @override
+  AppState? reduce() => null;
+}
+''');
+  }
+
+  Future<void> test_storeManagedMixinsNeedNoSuperCalls() async {
+    var code = header;
+    var index = 0;
+    for (var mixins in [
+      'NonReentrant',
+      'Throttle',
+      'Fresh',
+      'CheckInternet',
+      'CheckInternet, NoDialog',
+      'AbortWhenNoInternet',
+      'Retry',
+      'Retry, UnlimitedRetries',
+      'Debounce',
+      'Sequential',
+      'UnlimitedRetryCheckInternet',
+      'Polling',
+    ]) {
+      code +=
+          '''
+abstract class Base$index extends ReduxAction<AppState> with $mixins {}
+class A$index extends Base$index {
+  @override
+  bool abortDispatch() => false;
+  @override
+  void before() {}
+  @override
+  void after() {}
+  @override
+  Future<AppState?> wrapReduce(Reducer<AppState> reduce) async => reduce();
+  @override
+  AppState? reduce() => null;
+}
+''';
+      index++;
+    }
+    await assertNoDiagnostics(code);
+  }
+
+  Future<void> test_nonReentrantInBaseAction_isValid() async {
+    await assertNoDiagnostics('''$header
+abstract class AppAction extends ReduxAction<AppState> with NonReentrant {}
+
+class A extends AppAction {
+  @override
+  bool abortDispatch() => false;
 
   @override
   AppState? reduce() => null;

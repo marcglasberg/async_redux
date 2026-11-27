@@ -105,24 +105,25 @@ abstract class ReduxAction<St> {
 
 mixin CheckInternet<St> on ReduxAction<St> {
   bool? get internetOnOffSimulation => null;
-  @override
-  Future<void> before() async {}
 }
 
 mixin NonReentrant<St> on ReduxAction<St> {
   Object? nonReentrantKeyParams() => null;
   Object computeNonReentrantKey() => (runtimeType, nonReentrantKeyParams());
-  @override
-  bool abortDispatch() => false;
 }
 
-mixin Retry<St> on ReduxAction<St> {
+mixin Retry<St> on ReduxAction<St> {}
+
+// A lifecycle wrapper from an older package version, for the generic super rule.
+mixin LegacyWrapper<St> on ReduxAction<St> {
   @override
   Future<St?> wrapReduce(Reducer<St> reduce) async => null;
 }
 
 mixin OptimisticCommand<St> on ReduxAction<St> {
   Object? nonReentrantKeyParams() => null;
+  @override
+  bool abortDispatch() => false;
   @override
   Future<St?> reduce() async => null;
 }
@@ -173,10 +174,6 @@ mixin Polling<St> on ReduxAction<St> {
 
 mixin Sequential<St> on ReduxAction<St> {
   Object? sequentialKeyParams() => null;
-  @override
-  Future<void> before() async {}
-  @override
-  void after() {}
 }
 
 class UserExceptionAction<St> extends ReduxAction<St> {
@@ -229,9 +226,11 @@ typedef UsesAsyncRedux = ReduxAction<int>;
 ''';
 
 abstract class AsyncReduxRuleTest extends AnalysisRuleTest {
+  String get asyncReduxSource => asyncReduxStub;
+
   @override
   void setUp() {
-    newPackage('async_redux').addFile('lib/async_redux.dart', asyncReduxStub);
+    newPackage('async_redux').addFile('lib/async_redux.dart', asyncReduxSource);
     super.setUp();
   }
 

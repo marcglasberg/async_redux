@@ -2446,21 +2446,22 @@ class FixedRateControllerAction extends ReduxAction<AppState> with Polling {
 }
 
 class NonReentrantWorker extends ReduxAction<AppState> with NonReentrant {
+  NonReentrantWorker() {
+    instances.add(this);
+  }
+
   static int concurrentRuns = 0;
   static int maxConcurrentRuns = 0;
-  static int abortedCount = 0;
+  static final List<NonReentrantWorker> instances = [];
+
+  // Store now decides non-reentrancy directly; observe the final dispatch status.
+  static int get abortedCount =>
+      instances.where((action) => action.status.isDispatchAborted).length;
 
   static void reset() {
     concurrentRuns = 0;
     maxConcurrentRuns = 0;
-    abortedCount = 0;
-  }
-
-  @override
-  bool abortDispatch() {
-    var abort = super.abortDispatch();
-    if (abort) abortedCount++;
-    return abort;
+    instances.clear();
   }
 
   @override

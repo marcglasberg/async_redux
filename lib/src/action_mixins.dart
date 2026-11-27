@@ -1,10 +1,4 @@
-import 'dart:async';
-import 'dart:math';
-
-import 'package:async_redux/async_redux.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
-import 'package:meta/meta.dart';
+part of 'store.dart';
 
 /// Mixin [CheckInternet] can be used to check if there is internet when you
 /// run some action that needs internet connection. Just add `with CheckInternet`
@@ -50,7 +44,7 @@ import 'package:meta/meta.dart';
 ///
 /// Notes:
 /// - This mixin can safely be combined with [NonReentrant] or [Throttle] (not both).
-/// - It should not be combined with other mixins or classes that override [before].
+/// - Store runs the internet check after [before], without requiring a super call.
 /// - It should not be combined with other mixins or classes that check the internet connection.
 /// - It should not be combined with [AbortWhenNoInternet] and [UnlimitedRetryCheckInternet].
 /// - It can be combined with [Sequential]. The internet check then happens
@@ -95,18 +89,6 @@ mixin CheckInternet<St> on ReduxAction<St> {
           : [ConnectivityResult.none];
 
     return await (Connectivity().checkConnectivity());
-  }
-
-  @mustCallSuper
-  @override
-  Future<void> before() async {
-    _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush();
-
-    await super.before();
-    var result = await checkConnectivity();
-
-    if (result.contains(ConnectivityResult.none))
-      throw connectionException(result).withDialog(ifOpenDialog);
   }
 
   void
@@ -168,7 +150,7 @@ mixin NoDialog<St> on CheckInternet<St> {
 ///
 /// Notes:
 /// - This mixin can safely be combined with [NonReentrant] or [Throttle] (not both).
-/// - It should not be combined with other mixins or classes that override [before].
+/// - Store runs the internet check after [before], without requiring a super call.
 /// - It should not be combined with other mixins or classes that check the internet connection.
 /// - It should not be combined with [CheckInternet], [NoDialog], and [UnlimitedRetryCheckInternet].
 /// - It can be combined with [Sequential]. The internet check then happens
@@ -210,16 +192,6 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
           : [ConnectivityResult.none];
 
     return await (Connectivity().checkConnectivity());
-  }
-
-  @mustCallSuper
-  @override
-  Future<void> before() async {
-    _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush();
-
-    await super.before();
-    var result = await checkConnectivity();
-    if (result.contains(ConnectivityResult.none)) throw AbortDispatchException();
   }
 
   void
@@ -272,9 +244,9 @@ mixin AbortWhenNoInternet<St> on ReduxAction<St> {
 ///
 /// Notes:
 /// - This mixin can safely be combined with [CheckInternet], [NoDialog], and [AbortWhenNoInternet].
-/// - Other mixins or classes that override [after] must call `super.after()`.
-/// - Other mixins or classes that override [abortDispatch] should call
-///   `super.abortDispatch()` only as their last step, when they don't want to abort.
+/// - Store handles the non-reentrant check and cleanup directly. This mixin does
+///   not override lifecycle methods, so overriding them does not require `super`
+///   for NonReentrant to work. The key is released after [after] finishes.
 /// - It should not be combined with [Throttle], [UnlimitedRetryCheckInternet], or [Fresh].
 /// - It can be combined with [Sequential]. Duplicates are then dropped while
 ///   the original action is waiting in the queue or running, and the actions
@@ -330,81 +302,8 @@ mixin NonReentrant<St> on ReduxAction<St> {
   ///
   Object computeNonReentrantKey() => (runtimeType, nonReentrantKeyParams());
 
-  /// The set of keys that are currently running.
-  Set<Object?> get _nonReentrantKeySet => store.internalMixinProps.nonReentrantKeySet;
-
-  Object? _nonReentrantKey;
-
-  @override
-  bool abortDispatch() {
-    _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
-
-    // This mixin should not be combined with other mixins or classes that
-    // set `abortDispatch`, but just in case, we call super first, and we
-    // only set the lock if `super.abortDispatch()` does not want to abort.
-    //
-    // In the code `class MyAction extends AppAction with NonReentrant, OtherMixin`
-    // the order of execution is:
-    //
-    // 1. MyAction.abortDispatch()
-    // 2. OtherMixin.abortDispatch()
-    // 3. NonReentrant.abortDispatch()
-    // 4. AppAction.abortDispatch()
-    //
-    // In other words, any mixin or base class that runs `abortDispatch`
-    // before `NonReentrant` (in the example `MyAction` and `OtherMixin`)
-    // should only call `NonReentrant`'s `abortDispatch` if it wants to proceed.
-    // If the mixin or base class wants to abort (return true), it should not
-    // call NonReentrant with `super.abortDispatch()`.
-    //
-    // For example, this is wrong for `MyAction` or `OtherMixin`:
-    // ```dart
-    // bool abortDispatch() {
-    //
-    //   // Wrong: Always calls NonReentrant's abortDispatch
-    //   if (super.abortDispatch()) return true;
-    //
-    //   bool otherConditions = ...
-    //   return otherConditions;
-    // }
-    // ```
-    // And this is right:
-    // ```dart
-    // bool abortDispatch() {
-    //
-    //   bool otherConditions = ...
-    //   if (otherConditions) return true;
-    //
-    //   // Last thing (NonReentrant's abortDispatch is conditionally called)
-    //   return super.abortDispatch();
-    // }
-    // ```
-    if (super.abortDispatch()) return true;
-
-    _nonReentrantKey = computeNonReentrantKey();
-
-    // If the key is already in the set, abort.
-    if (_nonReentrantKeySet.contains(_nonReentrantKey))
-      return true;
-    //
-    // Otherwise, add the key and allow dispatch.
-    else {
-      _nonReentrantKeySet.add(_nonReentrantKey);
-      return false;
-    }
-  }
-
-  @mustCallSuper
-  @override
-  void after() {
-    try {
-      super.after();
-    } finally {
-      // Remove the key when the action finishes (success or failure).
-      _nonReentrantKeySet.remove(_nonReentrantKey);
-    }
-  }
-
+  // Store invokes this check without going through a lifecycle method. Keep the
+  // shared name to preserve private-collision diagnostics and assertion ordering.
   void
       _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
     _incompatible<NonReentrant, UnlimitedRetryCheckInternet>(this);
@@ -532,46 +431,6 @@ mixin Retry<St> on ReduxAction<St> {
   /// fails anyway, nor for an [AbortDispatchException], which aborts the action and is
   /// never retried. If [shouldRetry] itself throws, the action fails with that error.
   bool shouldRetry(Object error, int attempt) => true;
-
-  @override
-  Future<St?> wrapReduce(Reducer<St> reduce) async {
-    _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
-
-    // When combined with OptimisticCommand, we skip the retry logic here.
-    // OptimisticCommand will handle retries internally to avoid UI flickering.
-    // See OptimisticCommand.reduce for details.
-    if (this is OptimisticCommand) {
-      FutureOr<St?> newState = reduce();
-      if (newState is Future) newState = await newState;
-      return newState;
-    }
-
-    FutureOr<St?> newState;
-
-    try {
-      await microtask;
-      newState = reduce();
-      if (newState is Future) newState = await newState;
-    }
-    //
-    catch (error) {
-      // An aborted action is not retried.
-      if (error is AbortDispatchException) rethrow;
-
-      _attempts++;
-      if ((maxRetries >= 0) && (_attempts > maxRetries)) rethrow;
-
-      // The action can give up on some errors.
-      if (!shouldRetry(error, _attempts)) rethrow;
-
-      var currentDelay = nextDelay();
-      await Future.delayed(currentDelay);
-
-      // Retry the action.
-      return wrapReduce(reduce);
-    }
-    return newState;
-  }
 
   Duration? _currentDelay;
 
@@ -1332,7 +1191,8 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
     _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
 
     // First, check the super class/mixin wants to abort.
-    // See the comment in [NonReentrant.abortDispatch].
+    // Only acquire the lock if the superclass allows dispatch. Overrides must
+    // call super.abortDispatch() last, after deciding whether to abort.
     if (super.abortDispatch()) return true;
 
     _nonReentrantCommandKey = computeNonReentrantKey();
@@ -1481,18 +1341,13 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 /// Now, if the action fails, it will remove the lock and allow the action to
 /// be dispatched again right away. It only removes the lock this action took:
 /// If its throttle period ended while it was running, and a newer action took
-/// a new lock, that newer lock is kept. Note, this is currently implemented in the
-/// [after] method, which means you can override it to customize this behavior
-/// (just remember to call `super.after()`):
+/// a new lock, that newer lock is kept. Store performs this cleanup after the
+/// [after] method. You can also remove a lock for specific errors in that method:
 ///
 /// ```dart
 /// @override
 /// void after() {
-///   try {
-///     if (status.originalError is SomeSpecificError) removeLock();
-///   } finally {
-///     super.after();
-///   }
+///   if (status.originalError is SomeSpecificError) removeLock();
 /// }
 /// ```
 ///
@@ -1535,9 +1390,7 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 /// state of all other mixins.
 ///
 /// Notes:
-/// - Other mixins or classes that override [after] must call `super.after()`.
-/// - Other mixins or classes that override [abortDispatch] should call
-///   `super.abortDispatch()` only as their last step, when they don't want to abort.
+/// - Store handles admission and cleanup directly, independently of lifecycle overrides.
 /// - It should not be combined with [Fresh], [NonReentrant] or [UnlimitedRetryCheckInternet].
 /// - It can be combined with [Sequential]. Note the throttle period starts
 ///   when the action is dispatched, and not when it gets its turn in the queue.
@@ -1570,70 +1423,9 @@ mixin Throttle<St> on ReduxAction<St> {
   /// You generally don't need to call this method.
   void removeAllLocks() => _throttleLockMap.clear();
 
-  @override
-  bool abortDispatch() {
-    _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
-
-    // First, check the super class/mixin wants to abort.
-    // See the comment in [NonReentrant.abortDispatch].
-    if (super.abortDispatch()) return true;
-
-    final lock = lockBuilder();
-    final now = DateTime.now().toUtc();
-
-    // If should ignore the throttle, then set a new expiry and allow dispatch.
-    if (ignoreThrottle) {
-      _takeLock(lock, now);
-      return false;
-    }
-
-    final expiresAt = _throttleLockMap[lock];
-
-    // If there is no lock, or it has expired, set a new expiry and allow.
-    if (expiresAt == null || !expiresAt.isAfter(now)) {
-      _takeLock(lock, now);
-      return false;
-    }
-
-    // Still inside the throttle period, abort dispatch.
-    return true;
-  }
-
-  /// The lock this action took, and its expiry, so that [_removeOwnLock]
-  /// doesn't remove a newer lock with the same value, taken by another action.
+  // Captured at admission so cleanup cannot remove a newer action's lock.
   Object? _ownLock;
   DateTime? _ownLockExpiresAt;
-
-  void _takeLock(Object? lock, DateTime now) {
-    final expiresAt = now.add(Duration(milliseconds: throttle));
-    _throttleLockMap[lock] = expiresAt;
-    _ownLock = lock;
-    _ownLockExpiresAt = expiresAt;
-  }
-
-  /// Removes the lock this action took, if it's still there.
-  void _removeOwnLock() {
-    if (_ownLockExpiresAt != null &&
-        identical(_throttleLockMap[_ownLock], _ownLockExpiresAt))
-      _throttleLockMap.remove(_ownLock);
-  }
-
-  /// Remove locks whose expiry time is in the past or now.
-  void _prune() {
-    final now = DateTime.now().toUtc();
-    _throttleLockMap.removeWhere((_, expiresAt) => !expiresAt.isAfter(now));
-  }
-
-  @mustCallSuper
-  @override
-  void after() {
-    try {
-      super.after();
-    } finally {
-      if (removeLockOnError && (status.originalError != null)) _removeOwnLock();
-      _prune();
-    }
-  }
 
   void
       _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
@@ -1708,7 +1500,7 @@ mixin Throttle<St> on ReduxAction<St> {
 /// state of all other mixins.
 ///
 /// Notes:
-/// - It should not be combined with other mixins or classes that override [wrapReduce].
+/// - Store debounces the reducer independently of a custom [wrapReduce] override.
 /// - It should not be combined with [Retry], [UnlimitedRetries], or [UnlimitedRetryCheckInternet].
 /// - It should not be combined with [Sequential], because the debounce period
 ///   would only start when the action gets its turn in the queue, which
@@ -1735,35 +1527,6 @@ mixin Debounce<St> on ReduxAction<St> {
   /// Removes all locks, allowing all actions to be dispatched again right away.
   /// You generally don't need to call this method.
   void removeAllLocks() => _debounceLockMap.clear();
-
-  @override
-  Future<St?> wrapReduce(Reducer<St> reduce) async {
-    _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
-    _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
-    _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential();
-
-    var lock = lockBuilder();
-
-    // Increment and update the map with the new run count.
-    var before = (_debounceLockMap[lock] ?? 0) + 1;
-    if (before > _SAFE_INTEGER) before = 0;
-    _debounceLockMap[lock] = before;
-
-    await Future.delayed(Duration(milliseconds: debounce));
-
-    var after = _debounceLockMap[lock];
-
-    // If the run has changed, it means the action was dispatched again
-    // within the debounce period. So, we abort the reducer.
-    if (after != before)
-      return null;
-    //
-    // Otherwise, we remove the lock and run the reducer.
-    else {
-      _debounceLockMap.remove(lock);
-      return reduce();
-    }
-  }
 
   void
       _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
@@ -1833,7 +1596,7 @@ mixin Debounce<St> on ReduxAction<St> {
 /// and the request still fails.
 ///
 /// Notes:
-/// - It should not be combined with other mixins or classes that override [wrapReduce] or [abortDispatch].
+/// - Store handles admission and retries directly; lifecycle overrides need no `super`.
 /// - It should not be combined with other mixins or classes that check the internet connection.
 /// - Make sure your `before` method does not throw an error, or the retry will NOT happen.
 /// - Every error is retried, including `UserException`s, unless [shouldRetry] returns
@@ -1851,20 +1614,6 @@ mixin Debounce<St> on ReduxAction<St> {
 ///
 mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
   //
-  @override
-  bool abortDispatch() {
-    _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush();
-    _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
-    _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
-    _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential();
-
-    // First, check the super class/mixin wants to abort.
-    // See the comment in [NonReentrant.abortDispatch].
-    if (super.abortDispatch()) return true;
-
-    return isWaiting(runtimeType);
-  }
-
   /// The delay before the first retry attempt.
   Duration get initialDelay => const Duration(milliseconds: 350);
 
@@ -1916,56 +1665,6 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
   /// void printRetries(String message) {}
   /// ```
   void printRetries(String message) => print(message);
-
-  @override
-  Future<St?> wrapReduce(Reducer<St> reduce) async {
-    FutureOr<St?> newState;
-    bool hasInternet = true;
-    try {
-      // Note we don't have side-effects before the first await.
-      var result = await checkConnectivity();
-
-      // IMPORTANT: We throw this exception, but it will not ever be shown,
-      // because we are retrying unlimited times. This simply triggers the next retry.
-      if (result.contains(ConnectivityResult.none)) {
-        hasInternet = false;
-        throw const UserException('');
-      }
-
-      if (attempts == 0)
-        printRetries('Trying $runtimeType.');
-      else
-        printRetries('Retrying $runtimeType (attempt $attempts).');
-
-      newState = reduce();
-      if (newState is Future) newState = await newState;
-    }
-    //
-    catch (error) {
-      // An aborted action is not retried.
-      if (error is AbortDispatchException) rethrow;
-
-      if (!hasInternet) {
-        if (attempts == 0)
-          printRetries('Trying $runtimeType; aborted because of no internet.');
-        else
-          printRetries(
-              'Retrying $runtimeType; aborted because of no internet (attempt $attempts).');
-      }
-
-      _attempts++;
-
-      if ((maxRetries >= 0) && (_attempts > maxRetries)) rethrow;
-
-      // The action can give up on some errors. Not when there is no internet.
-      if (hasInternet && !shouldRetry(error, _attempts)) rethrow;
-
-      var currentDelay = nextDelay(hasInternet: hasInternet);
-      await Future.delayed(currentDelay);
-      return wrapReduce(reduce);
-    }
-    return newState;
-  }
 
   Duration? _currentDelay;
 
@@ -2265,9 +1964,7 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
 ///
 ///
 /// Notes:
-/// - Other mixins or classes that override [after] must call `super.after()`.
-/// - Other mixins or classes that override [abortDispatch] should call
-///   `super.abortDispatch()` only as their last step, when they don't want to abort.
+/// - Store handles freshness and cleanup directly, independently of lifecycle overrides.
 /// - It should not be combined with [Throttle], [NonReentrant],
 ///   [UnlimitedRetryCheckInternet], [OptimisticCommand], [OptimisticSync],
 ///   [OptimisticSyncWithPush] or [ServerPush].
@@ -2433,43 +2130,6 @@ mixin Fresh<St> on ReduxAction<St> {
   bool _keysRemoved = false;
   Object? _newToken;
 
-  @override
-  bool abortDispatch() {
-    _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
-
-    // First, check the super class/mixin wants to abort.
-    // See the comment in [NonReentrant.abortDispatch].
-    if (super.abortDispatch()) return true;
-
-    _keysRemoved = false; // good to reset here
-    _freshKey = computeFreshKey();
-    _current = _freshKeyMap[_freshKey];
-    final now = DateTime.now().toUtc();
-
-    if (ignoreFresh) {
-      final expiry = _expiringKeyFrom(now);
-      final token = Object(); // Unique token for this action invocation.
-      _freshKeyMap[_freshKey] = (expiry, token);
-      _newToken = token;
-      _current = null; // Make it stale if the action fails.
-      return false;
-    }
-
-    final expiresAt = _current?.$1;
-
-    if (expiresAt == null || !expiresAt.isAfter(now)) {
-      final expiry = _expiringKeyFrom(now);
-      final token = Object(); // Unique token for this action invocation.
-      _freshKeyMap[_freshKey] = (expiry, token);
-      _newToken = token;
-      return false;
-    }
-
-    // Still fresh, abort.
-    _newToken = null;
-    return true;
-  }
-
   void
       _cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush() {
     _incompatible<Fresh, NonReentrant>(this);
@@ -2481,43 +2141,7 @@ mixin Fresh<St> on ReduxAction<St> {
     _incompatible<Fresh, ServerPush>(this);
   }
 
-  DateTime _expiringKeyFrom(DateTime now) => now.add(Duration(milliseconds: freshFor));
 
-  /// Remove keys whose expiry time is in the past or now.
-  void _prune() {
-    final now = DateTime.now().toUtc();
-    _freshKeyMap.removeWhere((_, value) => !value.$1.isAfter(now));
-  }
-
-  @mustCallSuper
-  @override
-  void after() {
-    try {
-      super.after();
-    } finally {
-      _rollbackFreshKeyOnError();
-      _prune();
-    }
-  }
-
-  void _rollbackFreshKeyOnError() {
-    if (!_keysRemoved && status.originalError != null && _freshKey != null) {
-      final current = _freshKeyMap[_freshKey];
-
-      // Only rollback if the map still contains the entry written by THIS action.
-      // Use identical() on the token to reliably detect ownership, since DateTime
-      // equality can match different actions that happen in the same millisecond.
-      if (current != null && identical(current.$2, _newToken)) {
-        if (_current == null) {
-          // No previous expiry: remove key (stale).
-          _freshKeyMap.remove(_freshKey);
-        } else {
-          // Restore previous expiry with a new token (previous owner is gone).
-          _freshKeyMap[_freshKey] = _current!;
-        }
-      }
-    }
-  }
 }
 
 /// Fails an assertion if [instance] is a [T2]. It's called by the mixin [T1].
@@ -4411,7 +4035,7 @@ enum Poll {
 ///   progress is silently ignored.
 ///
 /// - With [CheckInternet], a `Poll.stop` dispatched while there is no internet
-///   fails in `before`, so it never reaches [wrapReduce].
+///   fails before the reducer, so it never reaches the polling command.
 ///
 /// - With [Sequential], a `Poll.stop` has to wait for its turn in the queue,
 ///   so you could be unable to stop the polling while the queue is busy.
@@ -4434,7 +4058,7 @@ enum Poll {
 /// ```
 ///
 /// Notes:
-/// - It should not be combined with other mixins or classes that override [wrapReduce].
+/// - Store manages polling directly, independently of a custom [wrapReduce] override.
 /// - It should not be combined with [Retry], [UnlimitedRetries], [Debounce],
 ///   [UnlimitedRetryCheckInternet], [OptimisticCommand], [OptimisticSync],
 ///   [OptimisticSyncWithPush], or [ServerPush].
@@ -4522,93 +4146,6 @@ mixin Polling<St> on ReduxAction<St> {
   /// Object computePollingKey() => 'shared-market-data';
   /// ```
   Object computePollingKey() => (runtimeType, pollingKeyParams());
-
-  Map<Object?, ({Object id, Timer? timer})> get _pollingMap =>
-      store.internalMixinProps.pollingMap;
-
-  @override
-  Future<St?> wrapReduce(Reducer<St> reduce) async {
-    _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
-    _cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
-
-    final key = computePollingKey();
-
-    switch (poll) {
-      case Poll.start:
-        // If polling is already active, don't do anything.
-        if (_pollingMap.containsKey(key)) return null;
-        return _runNowAndStartCycle(key, reduce);
-
-      case Poll.stop:
-        _pollingMap.remove(key)?.timer?.cancel();
-        return null;
-
-      case Poll.runNowAndRestart:
-        _pollingMap.remove(key)?.timer?.cancel();
-        return _runNowAndStartCycle(key, reduce);
-
-      case Poll.once:
-        return reduce();
-    }
-  }
-
-  /// Starts a new polling cycle for the given [key], and runs [reduce] once,
-  /// immediately.
-  ///
-  /// When [pollWaitsForRun] is `true`, the first tick is only scheduled after
-  /// that immediate run finishes (even if it fails). When it's `false`, the
-  /// first tick is scheduled right away.
-  Future<St?> _runNowAndStartCycle(Object key, Reducer<St> reduce) async {
-    final id = Object();
-    _pollingMap[key] = (id: id, timer: null);
-
-    if (!pollWaitsForRun) {
-      _scheduleNext(key, id);
-      return reduce();
-    } else {
-      try {
-        return await reduce();
-      } finally {
-        _scheduleNext(key, id);
-      }
-    }
-  }
-
-  /// Schedules a one-shot timer that dispatches [createPollingAction] and then
-  /// schedules the next tick. If [pollWaitsForRun] is `true`, the next tick is
-  /// only scheduled when the dispatched action finishes; otherwise it's
-  /// scheduled as soon as the action is dispatched.
-  ///
-  /// The given [id] identifies the polling cycle this tick belongs to. If
-  /// the cycle is no longer the active one for the [key] (because polling was
-  /// stopped or restarted in the meantime) the tick is abandoned.
-  void _scheduleNext(Object key, Object id) {
-    if (!identical(_pollingMap[key]?.id, id)) return;
-
-    var timer = Timer(pollInterval, () {
-      if (!identical(_pollingMap[key]?.id, id)) return;
-
-      // While the tick runs there is no timer, but the cycle is still active.
-      _pollingMap[key] = (id: id, timer: null);
-
-      if (!pollWaitsForRun) {
-        dispatch(createPollingAction());
-        _scheduleNext(key, id);
-      } else {
-        _dispatchTickAndScheduleNext(key, id);
-      }
-    });
-
-    _pollingMap[key] = (id: id, timer: timer);
-  }
-
-  Future<void> _dispatchTickAndScheduleNext(Object key, Object id) async {
-    try {
-      await dispatchAndWait(createPollingAction());
-    } finally {
-      _scheduleNext(key, id);
-    }
-  }
 
   void
       _cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling() {
@@ -4755,40 +4292,11 @@ mixin Polling<St> on ReduxAction<St> {
 /// - Give the child a different key, so it uses a different queue.
 /// - Don't use the mixin in the child.
 ///
-/// # Overriding `before` and `after`
+/// # Lifecycle methods
 ///
-/// This mixin holds the action in the [before] method until it's the action's
-/// turn to run, and releases the queue in the [after] method. If you override
-/// these methods, you must call `super`:
-///
-/// - In [before], call `await super.before()` as the FIRST statement. Your code
-///   after that will run when it's the action's turn. If you put code before
-///   `super.before()`, it will run immediately when the action is dispatched,
-///   which is usually not what you want. Never `await` anything before calling
-///   `super.before()`, because that would delay the queue reservation and the
-///   action could lose its position in the order.
-///
-/// - In [after], call `super.after()`, preferably in a `finally` block, so the
-///   queue is released even if your own code throws.
-///
-/// ```dart
-/// class MyAction extends ReduxAction<AppState> with Sequential {
-///
-///   Future<void> before() async {
-///     await super.before(); // Waits for its turn.
-///     doSomething(); // Runs when it's the action's turn.
-///   }
-///
-///   void after() {
-///     try {
-///       doSomethingElse();
-///     } finally {
-///       super.after(); // Releases the queue.
-///     }
-///   }
-///   ...
-/// }
-/// ```
+/// Store reserves the queue position before calling [before], waits for the
+/// action's turn, and releases the queue after [after], even if that method throws.
+/// You can override these methods without calling `super` for this mixin.
 ///
 /// # Other notes
 ///
@@ -4913,14 +4421,6 @@ mixin Sequential<St> on ReduxAction<St> {
   ///
   bool discardQueueOnError(Object error) => false;
 
-  /// Map from each queue key to the list of completers of the actions in that
-  /// queue, in the order they will run. The first completer belongs to the
-  /// action that is currently running. Each waiting action awaits its own
-  /// completer, which is completed by the action that runs before it (with
-  /// `false`), or by a failed action that discards the queue (with `true`).
-  Map<Object?, List<Completer<bool>>> get _sequentialQueueMap =>
-      store.internalMixinProps.sequentialQueueMap;
-
   Object? _sequentialKey;
   List<Completer<bool>>? _sequentialQueue;
   Completer<bool>? _sequentialCompleter;
@@ -4937,89 +4437,6 @@ mixin Sequential<St> on ReduxAction<St> {
   /// `store.shutdown()`) while it was waiting.
   bool get wasDiscardedFromSequentialQueue => _wasDiscardedFromSequentialQueue;
   bool _wasDiscardedFromSequentialQueue = false;
-
-  @mustCallSuper
-  @override
-  Future<void> before() async {
-    _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential();
-
-    // Reserve the position in the queue. This part of the method runs
-    // synchronously when the action is dispatched (there is no `await` before
-    // it), which is what preserves the dispatch order.
-    final key = sequentialKeyParams();
-    final queue = _sequentialQueueMap.putIfAbsent(key, () => []);
-    final completer = Completer<bool>();
-    final mustWait = queue.isNotEmpty;
-    queue.add(completer);
-    _sequentialKey = key;
-    _sequentialQueue = queue;
-    _sequentialCompleter = completer;
-
-    // Wait until the previous action in the queue releases this one.
-    if (mustWait) {
-      _isWaitingInSequentialQueue = true;
-      bool discarded;
-      try {
-        discarded = await completer.future;
-      } finally {
-        _isWaitingInSequentialQueue = false;
-      }
-
-      if (discarded) {
-        _wasDiscardedFromSequentialQueue = true;
-        throw AbortDispatchException();
-      }
-    }
-
-    // It's now this action's turn.
-    await super.before();
-  }
-
-  @mustCallSuper
-  @override
-  void after() {
-    try {
-      super.after();
-    } finally {
-      _releaseSequentialQueue();
-    }
-  }
-
-  /// Removes this action from the queue and lets the next one run, or
-  /// discards the whole queue if this action failed and wants that.
-  void _releaseSequentialQueue() {
-    final queue = _sequentialQueue;
-    final completer = _sequentialCompleter;
-    if (queue == null || completer == null) return;
-    _sequentialCompleter = null;
-
-    // A discarded action was already removed from the queue by the action
-    // that discarded it, and must not release anyone.
-    if (_wasDiscardedFromSequentialQueue) return;
-
-    bool discard = false;
-    try {
-      final error = status.originalError;
-      if (error != null) discard = discardQueueOnError(error);
-    } finally {
-      queue.remove(completer);
-
-      if (discard) {
-        final discarded = List.of(queue);
-        queue.clear();
-        for (final other in discarded) other.complete(true);
-      } else if (queue.isNotEmpty) {
-        queue.first.complete(false);
-      }
-
-      // If the queue is now empty, remove the key to prevent memory leaks.
-      // If the store was reset in the meantime (`internalMixinProps.clear()`),
-      // the map no longer holds this queue, and we leave the map alone.
-      final map = _sequentialQueueMap;
-      if (queue.isEmpty && identical(map[_sequentialKey], queue))
-        map.remove(_sequentialKey);
-    }
-  }
 
   void
       _cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential() {

@@ -966,7 +966,7 @@ void main() {
       .run((_) async {
     var store = Store<AppState>(initialState: AppState(0));
 
-    // NonReentrant.abortDispatch() runs and detects Throttle
+    // Store detects NonReentrant combined with Throttle during admission
     expect(
       () => store.dispatch(ThrottleWithNonReentrantAction()),
       throwsA(isA<AssertionError>().having(

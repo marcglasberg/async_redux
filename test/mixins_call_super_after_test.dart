@@ -21,7 +21,7 @@ void main() {
   // ==========================================================================
 
   Bdd(feature)
-      .scenario('NonReentrant calls the base-class after method, then releases its key.')
+      .scenario('NonReentrant preserves the base-class after, then releases its key.')
       .given('A base class with an after method, and an action with NonReentrant.')
       .when('The action is dispatched, and then dispatched again.')
       .then('The base after runs, the key is released, and the second dispatch runs.')

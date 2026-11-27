@@ -88,9 +88,26 @@ bool isActionType(DartType? type) =>
     (isReduxAction(type.element) || reduxActionSupertype(type.element) != null);
 
 /// Returns why the action of type [actionType] is async, or null if it's not known
-/// to be async. An action is async if its `before`, `reduce` or `wrapReduce` methods
-/// return a `Future`, including methods inherited from mixins like `CheckInternet`.
+/// to be async. Store-managed async mixins make the action async independently of
+/// its hooks. Otherwise, check whether `before`, `reduce` or `wrapReduce` returns
+/// a `Future`, including inherited methods.
 String? actionAsyncReason(InterfaceType actionType, LibraryElement library) {
+  for (final type in actionType.allSupertypes) {
+    final element = type.element;
+    if (element is MixinElement &&
+        isFromAsyncRedux(element) &&
+        const {
+          'CheckInternet',
+          'AbortWhenNoInternet',
+          'Debounce',
+          'Retry',
+          'Sequential',
+          'UnlimitedRetryCheckInternet',
+          'Polling',
+        }.contains(element.name)) {
+      return "the '${element.name}' mixin runs asynchronously in Store";
+    }
+  }
   // Same order as `ReduxAction.isSync()`.
   return _methodAsyncReason(actionType, library, 'before', isNonNullableFuture) ??
       _methodAsyncReason(

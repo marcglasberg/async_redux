@@ -6,22 +6,22 @@ This document describes the compatibility between AsyncRedux action mixins.
 
 | Mixin                         | Purpose                                                                   | Overrides                     |
 |-------------------------------|---------------------------------------------------------------------------|-------------------------------|
-| `CheckInternet`               | Checks internet before action; shows dialog if no connection              | `before`                      |
+| `CheckInternet`               | Checks internet before action; shows dialog if no connection              | None (handled by Store)       |
 | `NoDialog`                    | Modifier for `CheckInternet` to suppress dialog                           | (requires `CheckInternet`)    |
-| `AbortWhenNoInternet`         | Checks internet before action; aborts silently if no connection           | `before`                      |
-| `NonReentrant`                | Aborts if the same action is already running                              | `abortDispatch`               |
-| `Retry`                       | Retries the action on error with exponential backoff                      | `wrapReduce`                  |
+| `AbortWhenNoInternet`         | Checks internet before action; aborts silently if no connection           | None (handled by Store)       |
+| `NonReentrant`                | Aborts if the same action is already running                              | None (handled by Store)       |
+| `Retry`                       | Retries the action on error with exponential backoff                      | None (handled by Store)       |
 | `UnlimitedRetries`            | Modifier for `Retry` to retry indefinitely                                | (requires `Retry`)            |
 | `OptimisticCommand`           | Applies state changes optimistically, rolls back on error                 | `reduce`                      |
 | `OptimisticSync`              | Optimistic updates with coalescing; merges rapid dispatches into one sync | `reduce`                      |
 | `OptimisticSyncWithPush`      | Like `OptimisticSync` but with revision tracking for server pushes        | `reduce`                      |
 | `ServerPush`                  | Handles server-pushed updates for `OptimisticSyncWithPush`                | `reduce`                      |
-| `Throttle`                    | Limits action execution to at most once per throttle period               | `abortDispatch`, `after`      |
-| `Debounce`                    | Delays execution until after a period of inactivity                       | `wrapReduce`                  |
-| `UnlimitedRetryCheckInternet` | Combines internet check + unlimited retry + non-reentrant                 | `abortDispatch`, `wrapReduce` |
-| `Fresh`                       | Skips action if data is still fresh (not stale)                           | `abortDispatch`, `after`      |
-| `Polling`                     | Adds periodic polling to any action                                       | `wrapReduce`                  |
-| `Sequential`                  | Makes actions run one at a time, in dispatch order                        | `before`, `after`             |
+| `Throttle`                    | Limits action execution to at most once per throttle period               | None (handled by Store)       |
+| `Debounce`                    | Delays execution until after a period of inactivity                       | None (handled by Store)       |
+| `UnlimitedRetryCheckInternet` | Combines internet check + unlimited retry + non-reentrant                 | None (handled by Store)       |
+| `Fresh`                       | Skips action if data is still fresh (not stale)                           | None (handled by Store)       |
+| `Polling`                     | Adds periodic polling to any action                                       | None (handled by Store)       |
+| `Sequential`                  | Makes actions run one at a time, in dispatch order                        | None (handled by Store)       |
 
 ## Compatibility Matrix
 
@@ -67,18 +67,19 @@ other:
 - `AbortWhenNoInternet`
 - `UnlimitedRetryCheckInternet`
 
-### Group 2: abortDispatch Mixins
+### Group 2: Dispatch Admission Mixins
 
-These mixins override `abortDispatch` and cannot be combined with each other:
+These mixins control dispatch admission and cannot be combined with each other.
+Store handles their admission checks directly:
 
 - `NonReentrant`
 - `Throttle`
 - `UnlimitedRetryCheckInternet`
 - `Fresh`
 
-### Group 3: wrapReduce Mixins
+### Group 3: Reducer Scheduling and Retry Mixins
 
-These mixins override `wrapReduce` and cannot be combined with each other:
+Store handles these features directly. They cannot be combined with each other:
 
 - `Retry` / `UnlimitedRetries`
 - `Debounce`

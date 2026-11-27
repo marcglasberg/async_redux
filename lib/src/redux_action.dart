@@ -75,6 +75,10 @@ abstract class ReduxAction<St> {
   late St _initialState;
   ActionStatus _status = ActionStatus(context: null);
   bool _completedFuture = false;
+  bool _wrapReduceInStore = false;
+
+  // Captured at admission; parameters may change before NonReentrant finishes.
+  Object? _nonReentrantKey;
 
   @protected
   void setStore(Store<St> store) {
@@ -419,12 +423,13 @@ abstract class ReduxAction<St> {
   /// * Once you override [wrapReduce] the action will always be ASYNC,
   /// regardless of the [before] and [reduce] methods.
   ///
-  /// See mixins [Retry], [Throttle], and [Debounce] for real [wrapReduce]
-  /// examples.
+  /// For dispatch features handled directly by Store, see [Retry] and [Debounce].
   ///
   @protected
   FutureOr<St?> wrapReduce(Reducer<St> reduce) {
-    return null;
+    // Preserve existing super.wrapReduce(reduce) calls after a mixin's wrapper
+    // moves to Store. This only delegates; the feature itself runs in Store.
+    return _wrapReduceInStore ? reduce() : null;
   }
 
   /// If any error is thrown by `reduce` or `before`, you have the chance
@@ -461,16 +466,8 @@ abstract class ReduxAction<St> {
   /// Note: No observer will be called. It will be as if the action was never
   /// dispatched. The action status will be `isDispatchAborted: true`.
   ///
-  /// For example, this mixin prevents reentrant actions (you can only call the
-  /// action if it's not already running):
-  ///
-  /// ```dart
-  /// /// This mixin prevents reentrant actions. You can only call the action if it's not already
-  /// /// running. Example: `class LoadInfo extends ReduxAction<AppState> with NonReentrant { ... }`
-  /// mixin NonReentrant implements ReduxAction<AppState> {
-  ///   bool abortDispatch() => isWaiting(runtimeType);
-  /// }
-  /// ```
+  /// To prevent reentrant dispatches, use [NonReentrant]. Store handles that mixin
+  /// directly, without overriding this method.
   ///
   /// Using [abortDispatch] is only useful under rare circumstances, and you should
   /// only use it if you know what you are doing.
@@ -946,8 +943,14 @@ abstract class ReduxAction<St> {
 
   /// Returns true if the action is SYNC, and false if the action is ASYNC.
   /// The action is considered SYNC if the `before` method, the `reduce` method,
-  /// and the `wrapReduce` methods are all synchronous.
+  /// and the `wrapReduce` methods are all synchronous, and no async mixin is active.
   bool isSync() {
+    if (this is CheckInternet || this is AbortWhenNoInternet ||
+        this is Debounce || this is Retry || this is Sequential ||
+        this is UnlimitedRetryCheckInternet || this is Polling) {
+      return false;
+    }
+
     //
     /// Must check that it's NOT `Future<void> Function()`, as `void Function()` doesn't work.
     bool beforeMethodIsSync = before is! Future<void> Function();
@@ -980,17 +983,6 @@ abstract class ReduxAction<St> {
 /// You can use it in the `before` method to abort the action before the `reduce` method
 /// is called. That's similar to throwing an `UserException`, but without showing any
 /// errors to the user.
-///
-/// For example, this mixin prevents reentrant actions (you can only call the action if it's not
-/// already running):
-///
-/// ```dart
-/// /// This mixin prevents reentrant actions. You can only call the action if it's not already
-/// /// running. Example: `class LoadInfo extends ReduxAction<AppState> with NonReentrant { ... }`
-/// mixin NonReentrant implements ReduxAction<AppState> {
-///   bool abortDispatch() => isWaiting(runtimeType);
-/// }
-/// ```
 ///
 /// See also:
 /// - [ReduxAction.abortDispatch] which is a way to abort the action's dispatch.

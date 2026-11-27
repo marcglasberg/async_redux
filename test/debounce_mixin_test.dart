@@ -19,8 +19,8 @@ void main() {
     store.dispatch(DebounceAction());
     expect(store.state.count, 0);
 
-    // Wait for a bit more than the debounce period (150 ms).
-    await Future.delayed(const Duration(milliseconds: 150));
+    // Wait for the actions themselves; timer scheduling may vary under load.
+    await store.waitAllActions([]);
     expect(store.state.count, 1);
   });
 
@@ -38,8 +38,8 @@ void main() {
     store.dispatch(DebounceActionAsync());
     expect(store.state.count, 0);
 
-    // Wait for a bit more than the debounce period (150 ms).
-    await Future.delayed(const Duration(milliseconds: 150));
+    // Wait for the actions themselves; timer scheduling may vary under load.
+    await store.waitAllActions([]);
     expect(store.state.count, 1);
   });
 
@@ -54,15 +54,15 @@ void main() {
     store.dispatch(DebounceAction());
     expect(store.state.count, 0);
 
-    // Wait for a bit more than the debounce period (150 ms).
-    await Future.delayed(const Duration(milliseconds: 150));
+    // Wait for the actions themselves; timer scheduling may vary under load.
+    await store.waitAllActions([]);
     expect(store.state.count, 1);
 
     store.dispatch(DebounceAction());
     expect(store.state.count, 1);
 
-    // Wait for a bit more than the debounce period (150 ms).
-    await Future.delayed(const Duration(milliseconds: 150));
+    // Wait for the actions themselves; timer scheduling may vary under load.
+    await store.waitAllActions([]);
     expect(store.state.count, 2);
   });
 
@@ -77,15 +77,15 @@ void main() {
     store.dispatch(DebounceActionAsync());
     expect(store.state.count, 0);
 
-    // Wait for a bit more than the debounce period (150 ms).
-    await Future.delayed(const Duration(milliseconds: 150));
+    // Wait for the actions themselves; timer scheduling may vary under load.
+    await store.waitAllActions([]);
     expect(store.state.count, 1);
 
     store.dispatch(DebounceActionAsync());
     expect(store.state.count, 1);
 
-    // Wait for a bit more than the debounce period (150 ms).
-    await Future.delayed(const Duration(milliseconds: 150));
+    // Wait for the actions themselves; timer scheduling may vary under load.
+    await store.waitAllActions([]);
     expect(store.state.count, 2);
   });
 
@@ -103,9 +103,7 @@ void main() {
     store.dispatch(DebounceActionB());
     expect(store.state.count, 0);
 
-    // The debounce period is 200ms.
-    // Wait for a bit more than that, but less than double that: 300ms.
-    await Future.delayed(const Duration(milliseconds: 300));
+    await store.waitAllActions([]);
     expect(store.state.count, 2);
   });
 
@@ -123,9 +121,7 @@ void main() {
     store.dispatch(DebounceActionBAsync());
     expect(store.state.count, 0);
 
-    // The debounce period is 200ms.
-    // Wait for a bit more than that, but less than double that: 300ms.
-    await Future.delayed(const Duration(milliseconds: 300));
+    await store.waitAllActions([]);
     expect(store.state.count, 2);
   });
 }

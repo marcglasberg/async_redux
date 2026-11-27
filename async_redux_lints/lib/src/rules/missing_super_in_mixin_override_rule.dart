@@ -9,13 +9,12 @@ import 'package:analyzer/error/error.dart';
 import '../redux_types.dart';
 
 /// Reports an action that overrides a method that one of its AsyncRedux mixins
-/// implements, like `abortDispatch` with `NonReentrant`, without calling `super`. The
-/// mixin then silently stops working.
+/// implements, like `abortDispatch` with `OptimisticCommand`, without calling `super`.
+/// The mixin then silently stops working.
 ///
-/// Only checks `abortDispatch`, `wrapReduce` and `reduce`. The mixins' `before` and
-/// `after` have `@mustCallSuper`, so the analyzer already reports them, and the other
-/// methods of the mixins are meant to be overridden. The mixin may come from a
-/// superclass, like a base action.
+/// Only checks methods actually implemented by the installed mixins, so Store-managed
+/// features need no super calls. Methods annotated with `@mustCallSuper` are already
+/// checked by the analyzer. The mixin may come from a superclass, like a base action.
 class MissingSuperInMixinOverrideRule extends AnalysisRule {
   static const LintCode code = LintCode(
     'missing_super_in_mixin_override',

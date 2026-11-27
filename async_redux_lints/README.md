@@ -1084,24 +1084,28 @@ An error for an action that uses an AsyncRedux mixin, and overrides a method tha
 mixin implements without calling `super`. The mixin then silently stops working:
 
 ```dart
-class LoadUser extends AppAction with NonReentrant {
-  bool abortDispatch() => state.user != null; // Error: NonReentrant doesn't work
+class LoadUser extends AppAction with OptimisticCommand {
+  bool abortDispatch() => state.user != null; // Error: the mixin doesn't work
 
   bool abortDispatch() {                       // OK
-    if (super.abortDispatch()) return true;
-    return state.user != null;
+    if (state.user != null) return true;
+    return super.abortDispatch();
   }
   ...
 }
 ```
 
-This checks `abortDispatch` (implemented by `NonReentrant`, `Throttle`, `Fresh`,
-`OptimisticCommand` and `UnlimitedRetryCheckInternet`), `wrapReduce` (`Retry`,
-`Debounce`, `Polling` and `UnlimitedRetryCheckInternet`), and `reduce`
-(`OptimisticCommand`, `OptimisticSync`, `OptimisticSyncWithPush` and `ServerPush`).
-The mixin can also come from a superclass, like the base action. The mixins' `before`
-and `after` methods have `@mustCallSuper`, so the analyzer already reports them, as
-`must_call_super`.
+This checks `abortDispatch`, `wrapReduce` and `reduce` when an AsyncRedux mixin
+actually implements the method. For example, `OptimisticCommand` implements
+`abortDispatch` and `reduce`. The mixin can also come from a superclass.
+
+The other dispatch features (`NonReentrant`, `CheckInternet`, `AbortWhenNoInternet`,
+`Throttle`, `Fresh`, `Debounce`, `Retry`, `UnlimitedRetryCheckInternet`, `Polling`
+and `Sequential`) are handled directly by Store. Their lifecycle overrides do not
+require `super` calls. `NoDialog` and `UnlimitedRetries` remain configuration modifiers.
+
+For older AsyncRedux versions, the rule still detects lifecycle implementations
+in the installed mixins. Methods with `@mustCallSuper` are checked by the analyzer.
 
 ---
 
@@ -1291,6 +1295,10 @@ offered when the result isn't used.
 
 ### sequential_before_super_not_first
 
+This rule only applies to older AsyncRedux versions where `Sequential` implements
+`before` and `after`. Store now manages the queue directly, so these calls are no
+longer required with the current version.
+
 An error for a `before` method, in an action with the `Sequential` mixin, whose first
 statement is not `await super.before()`. Code before it runs as soon as the action is
 dispatched, before the action gets its turn. An `await` before it can make the action lose
@@ -1311,6 +1319,10 @@ Overrides that don't call `super.before()` at all are reported by the analyzer, 
 ---
 
 ### sequential_after_super_not_in_finally
+
+This rule only applies to older AsyncRedux versions where `Sequential` implements
+`before` and `after`. Store now manages the queue directly, so these calls are no
+longer required with the current version.
 
 An info for an action with the `Sequential` mixin whose `after` method calls
 `super.after()` outside a `finally` block. If the code before it throws, the queue is

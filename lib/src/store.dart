@@ -8,12 +8,16 @@ library async_redux_store;
 import 'dart:async';
 import 'dart:collection';
 import 'dart:developer' as developer;
+import 'dart:math';
 
 import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/src/process_persistence.dart';
 import 'package:collection/collection.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:meta/meta.dart';
 
+part 'action_mixins.dart';
 part 'redux_action.dart';
 
 typedef Reducer<St> = FutureOr<St?> Function();
@@ -1991,7 +1995,7 @@ class Store<St> {
     // Even abortDispatch may read the store or dispatch another action.
     action.setStore(this);
 
-    if (_shutdown || action.abortDispatch()) {
+    if (_abortDispatch(action)) {
       action._status = action._status.copy(isDispatchAborted: true);
       return action._status;
     }
@@ -2014,6 +2018,122 @@ class Store<St> {
     return action.isSync()
         ? _runActionSync(action, notify: notify)
         : _runActionAsync(action, notify: notify);
+  }
+
+  /// Check admission before observers, waiting status, or any lifecycle execution.
+  /// NonReentrant keeps its lock in the existing store-scoped mixin properties.
+  bool _abortDispatch(ReduxAction<St> action) {
+    if (_shutdown) return true;
+
+    if (action is UnlimitedRetryCheckInternet) {
+      final retry = action as UnlimitedRetryCheckInternet;
+      retry
+          ._cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush();
+      retry
+          ._cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+      retry
+          ._cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+      retry
+          ._cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential();
+    }
+
+    if (action is NonReentrant) {
+      (action as NonReentrant)
+          ._cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+    }
+
+    if (action is Throttle) {
+      (action as Throttle)
+          ._cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+    }
+
+    if (action is Fresh) {
+      (action as Fresh)
+          ._cannot_combine_mixins_NonReentrant_UnlimitedRetryCheckInternet_Throttle_Fresh_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush();
+    }
+
+    // Only acquire a key once the action's own admission check allows dispatch.
+    if (action.abortDispatch()) return true;
+
+    if (action is UnlimitedRetryCheckInternet) return isWaiting(action.runtimeType);
+
+    if (action is NonReentrant) {
+      final key = (action as NonReentrant).computeNonReentrantKey();
+      action._nonReentrantKey = key;
+      final keys = internalMixinProps.nonReentrantKeySet;
+      if (keys.contains(key)) return true;
+      keys.add(key);
+    }
+    if (action is Throttle) return _abortThrottle(action as Throttle);
+    if (action is Fresh) return _abortFresh(action as Fresh);
+
+    return false;
+  }
+
+  bool _abortFresh(Fresh action) {
+    final map = internalMixinProps.freshKeyMap;
+    action._keysRemoved = false;
+    action._freshKey = action.computeFreshKey();
+    action._current = map[action._freshKey];
+    final now = DateTime.now().toUtc();
+    final ignore = action.ignoreFresh;
+    final expiresAt = action._current?.$1;
+    if (!ignore && expiresAt != null && expiresAt.isAfter(now)) {
+      action._newToken = null;
+      return true;
+    }
+    final expiry = now.add(Duration(milliseconds: action.freshFor));
+    final token = Object();
+    map[action._freshKey] = (expiry, token);
+    action._newToken = token;
+    if (ignore) action._current = null;
+    return false;
+  }
+
+  void _finishFresh(Fresh action) {
+    final map = internalMixinProps.freshKeyMap;
+    if (!action._keysRemoved &&
+        action.status.originalError != null &&
+        action._freshKey != null) {
+      final current = map[action._freshKey];
+      // Roll back only the entry written by this dispatch, never a newer owner.
+      if (current != null && identical(current.$2, action._newToken)) {
+        if (action._current == null) {
+          map.remove(action._freshKey);
+        } else {
+          map[action._freshKey] = action._current!;
+        }
+      }
+    }
+    final now = DateTime.now().toUtc();
+    map.removeWhere((_, value) => !value.$1.isAfter(now));
+  }
+
+  bool _abortThrottle(Throttle action) {
+    final lock = action.lockBuilder();
+    final now = DateTime.now().toUtc();
+    final locks = internalMixinProps.throttleLockMap;
+    if (!action.ignoreThrottle) {
+      final expiresAt = locks[lock];
+      if (expiresAt != null && expiresAt.isAfter(now)) return true;
+    }
+    final expiresAt = now.add(Duration(milliseconds: action.throttle));
+    locks[lock] = expiresAt;
+    action._ownLock = lock;
+    action._ownLockExpiresAt = expiresAt;
+    return false;
+  }
+
+  void _finishThrottle(Throttle action) {
+    final locks = internalMixinProps.throttleLockMap;
+    if (action.removeLockOnError && action.status.originalError != null) {
+      if (action._ownLockExpiresAt != null &&
+          identical(locks[action._ownLock], action._ownLockExpiresAt)) {
+        locks.remove(action._ownLock);
+      }
+    }
+    final now = DateTime.now().toUtc();
+    locks.removeWhere((_, expiresAt) => !expiresAt.isAfter(now));
   }
 
   /// Clear the previous failure and publish waiting status before running hooks.
@@ -2071,7 +2191,7 @@ class Store<St> {
     Object? originalError;
 
     try {
-      final before = action.before();
+      final before = _runBefore(action);
       if (before is Future) await before;
       action._status = action._status.copy(hasFinishedMethodBefore: true);
 
@@ -2091,6 +2211,95 @@ class Store<St> {
     }
 
     return action._status;
+  }
+
+  FutureOr<void> _runBefore(ReduxAction<St> action) {
+    if (action is Sequential) return _beforeSequential(action);
+    return _beforeWithoutSequential(action);
+  }
+
+  FutureOr<void> _beforeWithoutSequential(ReduxAction<St> action) {
+    if (action is CheckInternet) return _beforeWithCheckInternet(action);
+    if (action is AbortWhenNoInternet) return _beforeWithAbortWhenNoInternet(action);
+    return action.before();
+  }
+
+  Future<void> _beforeSequential(ReduxAction<St> action) async {
+    final sequential = action as Sequential;
+    sequential
+        ._cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential();
+    // Reserve synchronously, before any user hook or await, to keep dispatch order.
+    final key = sequential.sequentialKeyParams();
+    final queue = internalMixinProps.sequentialQueueMap.putIfAbsent(key, () => []);
+    final completer = Completer<bool>();
+    final mustWait = queue.isNotEmpty;
+    queue.add(completer);
+    sequential._sequentialKey = key;
+    sequential._sequentialQueue = queue;
+    sequential._sequentialCompleter = completer;
+
+    if (mustWait) {
+      sequential._isWaitingInSequentialQueue = true;
+      bool discarded;
+      try {
+        discarded = await completer.future;
+      } finally {
+        sequential._isWaitingInSequentialQueue = false;
+      }
+      if (discarded) {
+        sequential._wasDiscardedFromSequentialQueue = true;
+        throw AbortDispatchException();
+      }
+    }
+    await _beforeWithoutSequential(action);
+  }
+
+  void _finishSequential(Sequential action) {
+    final queue = action._sequentialQueue;
+    final completer = action._sequentialCompleter;
+    if (queue == null || completer == null) return;
+    action._sequentialCompleter = null;
+    if (action._wasDiscardedFromSequentialQueue) return;
+
+    bool discard = false;
+    try {
+      final error = action.status.originalError;
+      if (error != null) discard = action.discardQueueOnError(error);
+    } finally {
+      queue.remove(completer);
+      if (discard) {
+        final discarded = List.of(queue);
+        queue.clear();
+        for (final other in discarded) other.complete(true);
+      } else if (queue.isNotEmpty) {
+        queue.first.complete(false);
+      }
+      // An old owner must leave a replacement queue created after clear() alone.
+      final map = internalMixinProps.sequentialQueueMap;
+      if (queue.isEmpty && identical(map[action._sequentialKey], queue)) {
+        map.remove(action._sequentialKey);
+      }
+    }
+  }
+
+  Future<void> _beforeWithAbortWhenNoInternet(ReduxAction<St> action) async {
+    final check = action as AbortWhenNoInternet;
+    check
+        ._cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush();
+    await action.before();
+    final result = await check.checkConnectivity();
+    if (result.contains(ConnectivityResult.none)) throw AbortDispatchException();
+  }
+
+  Future<void> _beforeWithCheckInternet(ReduxAction<St> action) async {
+    final check = action as CheckInternet;
+    check
+        ._cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush();
+    await action.before();
+    final result = await check.checkConnectivity();
+    if (result.contains(ConnectivityResult.none)) {
+      throw check.connectionException(result).withDialog(check.ifOpenDialog);
+    }
   }
 
   /// Runs after exactly once, removes waiting status, then notifies END observers.
@@ -2126,7 +2335,17 @@ class Store<St> {
 
   void _runAfter(ReduxAction<St> action) {
     try {
-      action.after();
+      try {
+        action.after();
+      } finally {
+        // Cleanup is part of finalization even when user code omits super or throws.
+        if (action is NonReentrant) {
+          internalMixinProps.nonReentrantKeySet.remove(action._nonReentrantKey);
+        }
+        if (action is Throttle) _finishThrottle(action as Throttle);
+        if (action is Fresh) _finishFresh(action as Fresh);
+        if (action is Sequential) _finishSequential(action as Sequential);
+      }
     } catch (error, stackTrace) {
       // Report asynchronously without replacing the action's own error.
       _throws(
@@ -2144,7 +2363,7 @@ class Store<St> {
     _reduceCount++;
     _checkReducerType(action.reduce);
 
-    if (action.ifWrapReduceOverridden()) {
+    if (action.ifWrapReduceOverridden() || _hasStoreReducerMixin(action)) {
       return _runWrappedReducer(action, notify: notify);
     }
 
@@ -2165,7 +2384,7 @@ class Store<St> {
   }
 
   Future<void> _runWrappedReducer(ReduxAction<St> action, {required bool notify}) {
-    assert(action.ifWrapReduceOverridden());
+    assert(action.ifWrapReduceOverridden() || _hasStoreReducerMixin(action));
     if (action.ifWrapReduceOverridden_Sync()) {
       throw StoreException("The ${action.runtimeType}.wrapReduce method "
           "should return `Future<St?>`, not `<St>` or `<St?>`.");
@@ -2177,11 +2396,175 @@ class Store<St> {
         ? _wrapReduce.wrapReduce(action.reduce, this)
         : action.reduce;
 
-    return _commitAsyncReducer(
-      action.wrapReduce(reduce) as Future<St?>,
-      action,
-      notify: notify,
-    );
+    final Future<St?> result;
+    if (_hasStoreReducerMixin(action)) {
+      action._wrapReduceInStore = true;
+      final wrapped = action.ifWrapReduceOverridden()
+          ? () => action.wrapReduce(reduce)
+          : reduce;
+      if (action is Debounce) {
+        result = _reduceDebounced(action as Debounce, wrapped);
+      } else if (action is UnlimitedRetryCheckInternet) {
+        result = _reduceWithInternetRetry(action as UnlimitedRetryCheckInternet, wrapped);
+      } else if (action is Polling) {
+        result = _reduceWithPolling(action as Polling, wrapped);
+      } else {
+        result = _reduceWithRetry(action as Retry, wrapped);
+      }
+    } else {
+      result = action.wrapReduce(reduce) as Future<St?>;
+    }
+    return _commitAsyncReducer(result, action, notify: notify);
+  }
+
+  bool _hasStoreReducerMixin(ReduxAction<St> action) =>
+      action is Debounce || action is Retry ||
+      action is UnlimitedRetryCheckInternet || action is Polling;
+
+  Future<St?> _reduceWithPolling(Polling action, Reducer<St> reduce) async {
+    action
+        ._cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    action
+        ._cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    final key = action.computePollingKey();
+    final map = internalMixinProps.pollingMap;
+    switch (action.poll) {
+      case Poll.start:
+        if (map.containsKey(key)) return null;
+        return _startPollingCycle(action, key, reduce);
+      case Poll.stop:
+        map.remove(key)?.timer?.cancel();
+        return null;
+      case Poll.runNowAndRestart:
+        map.remove(key)?.timer?.cancel();
+        return _startPollingCycle(action, key, reduce);
+      case Poll.once:
+        return reduce();
+    }
+  }
+
+  Future<St?> _startPollingCycle(Polling action, Object key, Reducer<St> reduce) async {
+    final id = Object();
+    internalMixinProps.pollingMap[key] = (id: id, timer: null);
+    if (!action.pollWaitsForRun) {
+      _schedulePollingTick(action, key, id);
+      return reduce();
+    } else {
+      try {
+        return await reduce();
+      } finally {
+        _schedulePollingTick(action, key, id);
+      }
+    }
+  }
+
+  void _schedulePollingTick(Polling action, Object key, Object id) {
+    final map = internalMixinProps.pollingMap;
+    // A stopped or replaced cycle must never schedule a new tick.
+    if (!identical(map[key]?.id, id)) return;
+    final timer = Timer(action.pollInterval, () {
+      if (!identical(map[key]?.id, id)) return;
+      map[key] = (id: id, timer: null);
+      if (!action.pollWaitsForRun) {
+        action.dispatch(action.createPollingAction());
+        _schedulePollingTick(action, key, id);
+      } else {
+        _dispatchPollingTick(action, key, id);
+      }
+    });
+    map[key] = (id: id, timer: timer);
+  }
+
+  Future<void> _dispatchPollingTick(Polling action, Object key, Object id) async {
+    try {
+      await action.dispatchAndWait(action.createPollingAction());
+    } finally {
+      _schedulePollingTick(action, key, id);
+    }
+  }
+
+  Future<St?> _reduceWithInternetRetry(
+    UnlimitedRetryCheckInternet action,
+    Reducer<St> reduce,
+  ) async {
+    FutureOr<St?> newState;
+    bool hasInternet = true;
+    try {
+      final result = await action.checkConnectivity();
+      if (result.contains(ConnectivityResult.none)) {
+        hasInternet = false;
+        throw const UserException('');
+      }
+
+      if (action.attempts == 0) {
+        action.printRetries('Trying ${action.runtimeType}.');
+      } else {
+        action.printRetries(
+            'Retrying ${action.runtimeType} (attempt ${action.attempts}).');
+      }
+      newState = reduce();
+      if (newState is Future) newState = await newState;
+    } catch (error) {
+      if (error is AbortDispatchException) rethrow;
+      if (!hasInternet) {
+        if (action.attempts == 0) {
+          action.printRetries(
+              'Trying ${action.runtimeType}; aborted because of no internet.');
+        } else {
+          action.printRetries('Retrying ${action.runtimeType}; aborted because of '
+              'no internet (attempt ${action.attempts}).');
+        }
+      }
+      action._attempts++;
+      if (action.maxRetries >= 0 && action._attempts > action.maxRetries) rethrow;
+      if (hasInternet && !action.shouldRetry(error, action._attempts)) rethrow;
+      await Future.delayed(action.nextDelay(hasInternet: hasInternet));
+      return _reduceWithInternetRetry(action, reduce);
+    }
+    return newState;
+  }
+
+  Future<St?> _reduceWithRetry(Retry action, Reducer<St> reduce) async {
+    action
+        ._cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    // OptimisticCommand retries only the server command in its own implementation.
+    if (action is OptimisticCommand) {
+      FutureOr<St?> result = reduce();
+      if (result is Future) result = await result;
+      return result;
+    }
+    FutureOr<St?> result;
+    try {
+      await action.microtask;
+      result = reduce();
+      if (result is Future) result = await result;
+    } catch (error) {
+      if (error is AbortDispatchException) rethrow;
+      action._attempts++;
+      if (action.maxRetries >= 0 && action._attempts > action.maxRetries) rethrow;
+      if (!action.shouldRetry(error, action._attempts)) rethrow;
+      await Future.delayed(action.nextDelay());
+      return _reduceWithRetry(action, reduce);
+    }
+    return result;
+  }
+
+  Future<St?> _reduceDebounced(Debounce action, Reducer<St> reduce) async {
+    action
+        ._cannot_combine_mixins_Retry_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    action
+        ._cannot_combine_mixins_UnlimitedRetries_Debounce_OptimisticCommand_OptimisticSync_OptimisticSyncWithPush_ServerPush_Polling();
+    action
+        ._cannot_combine_mixins_UnlimitedRetryCheckInternet_Debounce_OptimisticSync_OptimisticSyncWithPush_ServerPush_Sequential();
+    final lock = action.lockBuilder();
+    final map = internalMixinProps.debounceLockMap;
+    var run = (map[lock] ?? 0) + 1;
+    if (run > Debounce._SAFE_INTEGER) run = 0;
+    map[lock] = run;
+    await Future.delayed(Duration(milliseconds: action.debounce));
+    if (map[lock] != run) return null;
+    map.remove(lock);
+    return reduce();
   }
 
   /// Commit directly in the reducer Future's then callback, without another await
