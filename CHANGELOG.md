@@ -34,7 +34,7 @@ showcasing the fundamentals and best practices._
   `VmFactory`, `VmEquals`, and connector callback typedefs. Use
   `context.select()` to subscribe to state and rebuild widgets when selected
   values change. Use `context.read()` for one-time reads in callbacks and
-  `initState`. 
+  `initState`.
 
 * **Breaking:** Removed `Wait`, `WaitAction`, `WaitOperation`, and `WaitReducer`.
   Use the action type with `context.isWaiting()`. To distinguish instances of
@@ -46,14 +46,24 @@ showcasing the fundamentals and best practices._
   mounting them. Use Flutter widget tests to verify rebuilds and lifecycle behavior.
 
 * **Breaking:** Removed `ModelObserver`, `DefaultModelObserver`,
-  `Store.modelObserver`, `Store.defaultDistinct`, and
-  `immutableCollectionEquality`. These APIs belonged to the removed connector
-  and view-model pipeline and have no direct replacements.
+  `Store.modelObserver`, and `Store.defaultDistinct`. These APIs belonged to the
+  removed connector and view-model pipeline and have no direct replacements.
+
+* **Breaking:** Replaced `Store.immutableCollectionEquality` with
+  `StoreOptions.collectionEquality`, applied to selectors for ordinary Dart
+  List/Set/Map/Iterable and FIC IList/ISet/IMap/IMapOfSets. The non-nullable option
+  defaults to `CompareBy.byEquals`, using the selected value's own `==`:
+  ordinary collections normally compare by identity,
+  and FIC collections respect their configuration. Ordinary collections previously
+  used recursive deep comparison in selectors. Use `CompareBy.byDeepEquals` to
+  opt into recursive comparison of ordinary collections and FIC item comparison (without
+  recursion inside FIC). `CompareBy.byIdentity` uses object identity or
+  FIC's `same`. Records and other objects retain their own `==` in all modes.
 
 * **Breaking:** Most action mixins (like `Fresh`, `Debounce`, `NonReentrant` etc.) now
   work without having to override action methods like `before` and `after`. This change
   reduced complexity, and simplified the API. This is usually not breaking, unless you
-  were extending those mixins. If so, you can still copy the previous mixin code from the 
+  were extending those mixins. If so, you can still copy the previous mixin code from the
   previous AsyncRedux version `30.1.0` into your app code, and extend it from there.
 
 * **Breaking:** `UserExceptionDialog` now listens directly to the store, without needing
@@ -71,6 +81,13 @@ showcasing the fundamentals and best practices._
 
 * Added the `Connection` enum and `Connection.checkConnections()` to check for an internet
   connection without importing `connectivity_plus`.
+
+* The `async_redux_lints/select_collection_literal` lint rule warns of fresh collection
+  literals returned by selectors. For example,
+  `context.select((st) => [st.name, st.counter]);` is wrong because the new `List`
+  is always different when compared its `==` operator (which compares by identity).
+  The linter recommends using records to group fields, or suppress the
+  warning when intentionally using `CompareBy.byDeepEquals` (in `StoreOptions`).
 
 ## 30.1.0
 

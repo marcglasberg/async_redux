@@ -4,8 +4,9 @@ import 'package:async_redux_core/async_redux_core.dart' show UserException;
 
 import 'connection.dart';
 import 'connection_exception.dart';
+import 'store.dart' show CompareBy;
 
-/// Configures library behavior for all actions dispatched through a store.
+/// Configures library behavior for a store's actions, waits, and selectors.
 ///
 /// Each store creates its own options by default. Pass the same options object to
 /// multiple stores only when they should share changes to the connectivity callback.
@@ -15,6 +16,8 @@ class StoreOptions {
     //
     // The default timeout is 10 minutes.
     this.defaultTimeoutMillis = 60 * 1000 * 10,
+    //
+    this.collectionEquality = CompareBy.byEquals,
     //
     this.hasConnection = _hasConnection,
     //
@@ -27,6 +30,45 @@ class StoreOptions {
   /// Default timeout for store waits, in milliseconds. A negative value disables it.
   /// An explicit timeout supplied to a wait takes precedence over this default.
   final int defaultTimeoutMillis;
+
+  /// How selectors compare collections. Applies to Dart List, Set, Map, and other
+  /// Iterable values, and FIC's IList, ISet, IMap, and IMapOfSets.
+  ///
+  /// - [CompareBy.byEquals] (the default): Use the selected value's own `==`.
+  ///   Ordinary Dart collections normally compare by object identity. FIC collections
+  ///   respect their own equality configuration, including `isDeepEquals`.
+  ///
+  /// - [CompareBy.byIdentity]: Ordinary collections compare with `identical`.
+  ///   FIC collections compare with `identical` or their `same` methods, which also
+  ///   recognize shared internal structures with equal configurations. A flush can
+  ///   change that internal sharing without changing contents, possibly causing an
+  ///   extra rebuild. This mode does not traverse the collection's items.
+  ///   
+  /// - [CompareBy.byDeepEquals]: Compare ordinary collections recursively by content.
+  ///   List and other Iterable order matters; Set and Map insertion order does not.
+  ///   FIC collections use their item comparison methods, ignoring the outer FIC
+  ///   configuration. Items inside FIC collections use their own equality: we do
+  ///   not recursively traverse them. For example, two ILists containing separate
+  ///   ordinary lists with the same contents still compare different.
+  ///
+  /// The default respects each type's equality and avoids traversing ordinary
+  /// collections. Keep the same collection instance while its contents are unchanged
+  /// and replace it when changing state. Deep comparison can avoid rebuilds for
+  /// freshly created, equal collections, but may need to traverse their contents.
+  /// For example, opt into it when selectors produce derived lists:
+  ///
+  /// ```dart
+  /// StoreOptions(collectionEquality: CompareBy.byDeepEquals);
+  /// ```
+  ///
+  /// Records and other non-collection values always use their own `==`. The policy
+  /// does not reach into their fields. For example, `(items, counter)` uses items'
+  /// own `==` in every mode, whereas `[items, counter]` is traversed in deep mode.
+  /// Recursion through ordinary collections stops at a FIC collection, record, or
+  /// other object and delegates to its comparison as described above. Lists and
+  /// sets are distinct collection kinds, as are ordinary and FIC collections.
+  /// Selected values and their contents must remain immutable between state updates.
+  final CompareBy collectionEquality;
 
   /// Decides whether the internet mixins may proceed, unless the action overrides
   /// its check. Replace this callback to customize the policy or simulate a

@@ -6,9 +6,10 @@
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
-import 'package:collection/collection.dart' show DeepCollectionEquality;
 import 'package:flutter/widgets.dart';
 import 'package:meta/meta.dart';
+
+import 'selector_equality.dart';
 
 /// The aspect function type for selectors.
 /// Takes the new state value and returns true if the widget should rebuild.
@@ -1008,13 +1009,14 @@ extension BuildContextExtensionForProvider<St> on BuildContext {
   /// The widget will only rebuild when `state.user.name` changes, not when other
   /// parts of the state change.
   ///
-  /// The comparison uses deep equality checking, so it works correctly with:
-  /// - Primitive values (int, String, bool, etc.)
-  /// - Lists (element-by-element comparison)
-  /// - Maps (key-value pair comparison)
-  /// - Sets (membership comparison)
-  /// - Custom classes with proper `==` operator
-  /// - IList, ISet, IMap from fast_immutable_collections
+  /// By default, selected values use their own `==`: ordinary Dart collections
+  /// normally compare by identity, and FIC collections respect their configuration.
+  /// [StoreOptions.collectionEquality] can opt into collection identity comparison
+  /// (including FIC's `same`) or deep comparison. Deep comparison recursively visits
+  /// ordinary collections and uses FIC's item comparison methods without traversing
+  /// items inside FIC. Records and other objects always use their own `==`; the
+  /// policy does not reach into their fields. See the option's docs for details.
+  /// Selected values and their contents must remain immutable between state updates.
   ///
   /// IMPORTANT: The selector function must be pure and not cause side effects.
   /// Do not call other provider methods or dispatch actions inside the selector.
@@ -1098,8 +1100,8 @@ extension BuildContextExtensionForProvider<St> on BuildContext {
           return true;
         }());
 
-        // Use deep equality to compare selected values.
-        return !const DeepCollectionEquality().equals(newSelected, selected);
+        return !SelectorEquality(provider._store.options.collectionEquality)
+            .equals(newSelected, selected);
       },
     );
 

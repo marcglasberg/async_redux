@@ -48,8 +48,26 @@ widgets without mounting them.
 `context.getState()` has also been removed. Use selectors for rendering and
 `context.read()` for one-time reads. Replace `Wait` and `WaitAction` with
 `context.isWaiting(MyAction, statusKey: key)` and the action's `statusKey` getter.
-The store options `modelObserver`, `defaultDistinct` and
-`immutableCollectionEquality` have been removed with the connector APIs.
+The store options `modelObserver` and `defaultDistinct` have been removed with the
+connector APIs. Move `Store(immutableCollectionEquality: ...)` to
+`Store(options: StoreOptions(collectionEquality: ...))` to configure collection
+comparison in selectors.
+
+Selectors use the selected value's own `==` by default
+(`collectionEquality: CompareBy.byEquals`).
+Ordinary Dart List, Set, Map, and Iterable values normally compare by identity;
+FIC's IList, ISet, IMap, and IMapOfSets respect their own equality configuration.
+`CompareBy.byIdentity` uses object identity, also accepting FIC's `same` comparison
+of shared internal structures and equal configurations.
+`CompareBy.byDeepEquals` recursively compares ordinary collections by contents
+(ordered List/Iterable, unordered Set/Map), delegating to FIC's item comparison
+methods when it reaches FIC. It does not recursively inspect items inside FIC.
+
+Records and other objects always use their own `==`; this option does not inspect
+their fields. Prefer `(state.name, state.counter)` to select several fields without
+allocating a list that compares by identity. Selectors returning newly created
+ordinary collections with equal contents can rebuild more often under the default;
+opt into deep comparison when that is desired. Keep selected values immutable.
 
 ## Flutter design-package migration
 

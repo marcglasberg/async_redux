@@ -146,6 +146,7 @@ package, and the files whose names end with `_test.dart`.
 - [`context_in_dispose`](#context_in_dispose) error
 - [`context_in_selector`](#context_in_selector) error
 - [`select_outside_build`](#select_outside_build) error
+- [`select_collection_literal`](#select_collection_literal) warning
 - [`copy_missing_field`](#copy_missing_field) warning
 - [`state_class_must_be_immutable`](#state_class_must_be_immutable) warning
 - [`missing_state_class`](#missing_state_class) warning
@@ -665,6 +666,45 @@ Quick fixes:
 `context.select` and `context.event` are recognized when defined by an AsyncRedux `BuildContext` extension. They're recognized by their names, when the extension's library imports
 `async_redux`. This way, the `select` of packages like `provider` is not reported. The
 `getSelect` and `getEvent` methods of AsyncRedux are also recognized.
+
+---
+
+### select_collection_literal
+
+A warning when an AsyncRedux `context.select` or `context.getSelect` closure returns
+a fresh List, Set, or Map literal. These compare by identity under both the default
+`CompareBy.byEquals` and `CompareBy.byIdentity`, so unrelated state updates can
+rebuild the widget even when the selected fields are unchanged.
+
+```dart
+context.select((st) => [st.name, st.counter]); // Warning: List
+context.select((st) => {st.name, st.counter}); // Warning: Set
+context.select((st) => {'name': st.name});     // Warning: Map
+context.select((st) => (st.name, st.counter)); // OK: record
+```
+
+Use a record when grouping fields. There is no automatic fix: changing a collection
+to a record also changes its type and how callers use it. Record fields use their
+own `==`; a newly created List inside a record can still compare different.
+
+The rule checks arrow bodies and block returns, including conditional, switch, and
+null-coalescing results. It skips constant literals and literals used only inside
+another computation, such as `[st.name].length`. It does not follow selector
+tear-offs or local variables, and does not currently report collection constructors
+or methods such as `List.of`, `toList`, and `toSet`. Those can also create a fresh
+collection on every check and deserve the same care.
+
+The rule cannot determine the store's runtime equality policy. If you intentionally
+configured `StoreOptions(collectionEquality: CompareBy.byDeepEquals)`, suppress
+the warning for that selector:
+
+```dart
+// ignore: async_redux_lints/select_collection_literal
+context.select((st) => [st.name, st.counter]);
+```
+
+Like the other context rules, it recognizes AsyncRedux context extensions and skips
+unrelated methods named `select`.
 
 ---
 

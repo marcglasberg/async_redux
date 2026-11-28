@@ -105,7 +105,10 @@ void main() {
         settings: Settings(darkMode: false, language: 'en'),
       );
 
-      final store = Store<AppState>(initialState: initialState);
+      final store = Store<AppState>(
+        initialState: initialState,
+        options: StoreOptions(collectionEquality: CompareBy.byDeepEquals),
+      );
       int buildCount = 0;
 
       await tester.pumpWidget(
@@ -207,7 +210,10 @@ void main() {
         settings: Settings(darkMode: false, language: 'en'),
       );
 
-      final store = Store<AppState>(initialState: initialState);
+      final store = Store<AppState>(
+        initialState: initialState,
+        options: StoreOptions(collectionEquality: CompareBy.byDeepEquals),
+      );
       int buildCount = 0;
 
       await tester.pumpWidget(
@@ -218,6 +224,8 @@ void main() {
               body: Builder(builder: (context) {
                 buildCount++;
                 // Select computed summary.
+                // This test explicitly configures CompareBy.byDeepEquals.
+                // ignore: async_redux_lints/select_collection_literal
                 final summary = context.select((st) => {
                   'isAdult': st.user.age >= 18,
                   'hasMany': st.items.length > 5,
@@ -764,11 +772,11 @@ class ComputedSelectWidget extends StatelessWidget {
     onBuild?.call();
 
     // Select computed/derived values
-    final summary = context.select((st) => {
-      'userName': st.user.name,
-      'itemCount': st.items.length,
-      'isAdult': st.user.age >= 18,
-    });
+    final summary = context.select((st) => (
+      userName: st.user.name,
+      itemCount: st.items.length,
+      isAdult: st.user.age >= 18,
+    ));
 
     return Text('Summary: $summary');
   }

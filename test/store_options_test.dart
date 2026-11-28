@@ -61,6 +61,7 @@ void main() {
     addTearDown(second.teardown);
 
     expect(first.options, isNot(same(second.options)));
+    expect(first.options.collectionEquality, CompareBy.byEquals);
     final deviceId = first.options.deviceId();
     expect(first.options.deviceId(), deviceId);
     expect(second.options.deviceId(), deviceId);
@@ -70,7 +71,11 @@ void main() {
   });
 
   test('explicit options are available during construction and in MockStore', () {
-    final options = StoreOptions(defaultTimeoutMillis: 123, deviceId: () => 42);
+    final options = StoreOptions(
+      defaultTimeoutMillis: 123,
+      deviceId: () => 42,
+      collectionEquality: CompareBy.byIdentity,
+    );
     final store = Store<int>(
       initialState: 0,
       options: options,
@@ -87,6 +92,8 @@ void main() {
     addTearDown(store.teardown);
     addTearDown(mock.teardown);
     expect(mock.options, same(options));
+    expect(store.options.collectionEquality, CompareBy.byIdentity);
+    expect(mock.options.collectionEquality, CompareBy.byIdentity);
   });
 
   final factories = <String, ReduxAction<int> Function()>{

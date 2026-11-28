@@ -15,7 +15,7 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.5.4
-  fast_immutable_collections: ^12.0.0
+  fast_immutable_collections: ^12.0.1
   equatable: ^3.0.0
 
 dev_dependencies:

@@ -1,5 +1,9 @@
 ## Unreleased
 
+* Add `select_collection_literal`, a warning for fresh List, Set, and Map literals
+  returned by AsyncRedux selectors. Suggest records for grouping fields and explain
+  intentional deep comparison. Constant collections are not reported.
+
 * Remove `internet_simulation_in_production` for AsyncRedux 31. The internet mixins
   no longer expose the `internetOnOffSimulation` getter that this rule checked.
 * Remove view-model rules and fixes (`vm_field_not_in_equals` and

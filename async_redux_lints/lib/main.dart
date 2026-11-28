@@ -48,6 +48,7 @@ import 'src/rules/prefer_return_null_rule.dart';
 import 'src/rules/reduce_without_await_rule.dart';
 import 'src/rules/retry_without_non_reentrant_rule.dart';
 import 'src/rules/return_type_rules.dart';
+import 'src/rules/select_collection_literal_rule.dart';
 import 'src/rules/select_outside_build_rule.dart';
 import 'src/rules/sequential_rules.dart';
 import 'src/rules/server_push_associated_action_rule.dart';
@@ -126,6 +127,8 @@ class AsyncReduxLintsPlugin extends Plugin {
     registry.registerFixForRule(SelectOutsideBuildRule.code, ReplaceSelectWithRead.new);
     registry.registerFixForRule(SelectOutsideBuildRule.code, UseBuilderContext.new);
     registry.registerFixForRule(SelectOutsideBuildRule.code, WrapItemInBuilder.new);
+
+    registry.registerWarningRule(SelectCollectionLiteralRule());
 
     registry.registerWarningRule(CopyMissingFieldRule());
     registry.registerFixForRule(CopyMissingFieldRule.code, AddMissingFieldsToCopy.new);
