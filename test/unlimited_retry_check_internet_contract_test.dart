@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -152,27 +151,49 @@ void main() {
     });
   });
 
-  for (final results in <List<ConnectivityResult>>[
-    [],
-    [ConnectivityResult.mobile, ConnectivityResult.ethernet],
-    [ConnectivityResult.wifi, ConnectivityResult.none],
-  ]) {
-    test('connectivity list $results is offline only if it contains none', () {
+  for (final online in [false, true]) {
+    test('connectivity decision permits a request: $online', () {
       fakeAsync((async) {
         final store = Store<int>(initialState: 0);
         final action = _Sync()
-          ..results = results
+          ..online = online
           ..limit = 0;
         store.dispatch(action);
         async.flushMicrotasks();
-        final online = !results.contains(ConnectivityResult.none);
         expect(action.runs, online ? 1 : 0);
         expect(action.status.isCompletedOk, online);
+        expect(action.attempts, online ? 0 : 1);
+        expect(action.decisions, isEmpty);
         store.teardown();
         async.flushMicrotasks();
       });
     });
   }
+
+  test('an offline decision waits until connectivity becomes available', () {
+    fakeAsync((async) {
+      final store = Store<int>(initialState: 0);
+      final action = _Sync()..online = false;
+      store.dispatch(action);
+      async.flushMicrotasks();
+      expect(action.checks, 1);
+      expect(action.runs, 0);
+      expect(action.attempts, 1);
+      expect(action.decisions, isEmpty);
+      expect(action.status.isCompleted, isFalse);
+
+      action.online = true;
+      async.elapse(const Duration(milliseconds: 10));
+      expect(action.checks, 2);
+      expect(action.runs, 1);
+      expect(action.attempts, 1);
+      expect(action.decisions, isEmpty);
+      expect(action.status.isCompletedOk, isTrue);
+      expect(store.state, 1);
+      store.teardown();
+      async.flushMicrotasks();
+    });
+  });
 
   test('duplicates are rejected throughout before, connectivity and backoff', () {
     fakeAsync((async) {
@@ -242,12 +263,12 @@ void main() {
     test('store simulation can recover from offline=$simulated', () {
       fakeAsync((async) {
         final store = Store<int>(initialState: 0)
-          ..forceInternetOnOffSimulation = () => simulated;
+          ..options.hasConnection = () async => simulated;
         final action = _Simulated();
         store.dispatch(action);
         async.flushMicrotasks();
         expect(action.runs, simulated ? 1 : 0);
-        store.forceInternetOnOffSimulation = () => true;
+        store.options.hasConnection = () async => true;
         async.elapse(const Duration(milliseconds: 10));
         expect(action.status.isCompletedOk, isTrue);
         expect(action.runs, 1);
@@ -331,7 +352,7 @@ abstract class _Retrying extends _Hooks with UnlimitedRetryCheckInternet {
   int limit = -1;
   bool giveUp = false;
   Future<void>? checkGate;
-  List<ConnectivityResult>? results;
+  bool? online;
   void Function()? onCheck;
   final decisions = <int>[];
   final messages = <String>[];
@@ -349,15 +370,14 @@ abstract class _Retrying extends _Hooks with UnlimitedRetryCheckInternet {
   void printRetries(String message) => messages.add(message);
 
   @override
-  Future<List<ConnectivityResult>> checkConnectivity() async {
+  Future<bool> hasConnection() async {
     checks++;
     onCheck?.call();
     if (checkGate != null) await checkGate;
     if (phase == 'check' || phase == 'abort check' || checks <= checkFailures) {
       throw error;
     }
-    return results ??
-        [checks <= offline ? ConnectivityResult.none : ConnectivityResult.wifi];
+    return online ?? checks > offline;
   }
 
   @override
@@ -385,7 +405,10 @@ class _Sync extends _Retrying {
 
 class _Async extends _Retrying {
   @override
-  Future<int> reduce() async => run();
+  Future<int> reduce() async {
+    await microtask;
+    return run();
+  }
 }
 
 class _Simulated extends ReduxAction<int> with UnlimitedRetryCheckInternet {

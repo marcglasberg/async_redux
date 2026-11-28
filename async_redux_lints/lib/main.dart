@@ -37,7 +37,6 @@ import 'src/rules/dispatch_sync_async_action_rule.dart';
 import 'src/rules/equatable_props_missing_field_rule.dart';
 import 'src/rules/event_rules.dart';
 import 'src/rules/global_error_observer_rules.dart';
-import 'src/rules/internet_simulation_in_production_rule.dart';
 import 'src/rules/missing_key_params_rule.dart';
 import 'src/rules/missing_state_class_rule.dart';
 import 'src/rules/missing_super_in_mixin_override_rule.dart';
@@ -241,7 +240,6 @@ class AsyncReduxLintsPlugin extends Plugin {
     registry.registerFixForRule(PollingActionRestartsPollingRule.code, UsePollOnce.new);
 
     registry.registerWarningRule(ServerPushAssociatedActionRule());
-    registry.registerWarningRule(InternetSimulationInProductionRule());
     registry.registerLintRule(MissingKeyParamsRule());
 
     registry.registerWarningRule(PreferImmutableCollectionsRule());

@@ -1,5 +1,7 @@
 ## Unreleased
 
+* Remove `internet_simulation_in_production` for AsyncRedux 31. The internet mixins
+  no longer expose the `internetOnOffSimulation` getter that this rule checked.
 * Remove view-model rules and fixes (`vm_field_not_in_equals` and
   `vm_create_from_reused_factory`) for AsyncRedux 31. Remove checks specific to
   `VmFactory`, `ModelObserver` and `context.getState()`. Keep checks for custom

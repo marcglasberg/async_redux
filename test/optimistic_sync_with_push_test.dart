@@ -414,7 +414,7 @@ void main() {
       liked: true,
       serverRev: 11,
       pushLocalRevision: 1, // Matches request 1's localRevision
-      pushDeviceId: OptimisticSyncWithPush.deviceId(), // Same device = self-echo
+      pushDeviceId: store.options.deviceId(), // Same device = self-echo
     ));
     await Future.delayed(const Duration(milliseconds: 10));
     // Self-echo with stale localRevision should NOT apply to state

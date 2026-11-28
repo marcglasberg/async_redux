@@ -1,6 +1,5 @@
 import 'package:async_redux/async_redux.dart';
 import 'package:bdd_framework/bdd_framework.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Records the order in which things happen, so tests can assert on it.
@@ -24,7 +23,7 @@ void main() {
       .then('The action fails with a UserException, and the reducer does not run.')
       .run((_) async {
     var store = Store<State>(initialState: State(0));
-    store.forceInternetOnOffSimulation = () => false;
+    store.options.hasConnection = () async => false;
 
     var status = await store.dispatchAndWait(CheckInternetAction());
 
@@ -45,7 +44,7 @@ void main() {
       .then('The internet check and the reducer only run after the base before finishes.')
       .run((_) async {
     var store = Store<State>(initialState: State(0));
-    store.forceInternetOnOffSimulation = () => true;
+    store.options.hasConnection = () async => true;
 
     var status = await store.dispatchAndWait(CheckInternetAction());
 
@@ -65,7 +64,7 @@ void main() {
       .then('The action fails with that error, and the reducer does not run.')
       .run((_) async {
     var store = Store<State>(initialState: State(0));
-    store.forceInternetOnOffSimulation = () => true;
+    store.options.hasConnection = () async => true;
 
     var status = await store.dispatchAndWait(CheckInternetAction(throwInBefore: true));
 
@@ -86,7 +85,7 @@ void main() {
       .then('The action is aborted silently, and the reducer does not run.')
       .run((_) async {
     var store = Store<State>(initialState: State(0));
-    store.forceInternetOnOffSimulation = () => false;
+    store.options.hasConnection = () async => false;
 
     var status = await store.dispatchAndWait(AbortWhenNoInternetAction());
 
@@ -107,7 +106,7 @@ void main() {
       .then('The internet check and the reducer only run after the base before finishes.')
       .run((_) async {
     var store = Store<State>(initialState: State(0));
-    store.forceInternetOnOffSimulation = () => true;
+    store.options.hasConnection = () async => true;
 
     var status = await store.dispatchAndWait(AbortWhenNoInternetAction());
 
@@ -127,7 +126,7 @@ void main() {
       .then('The action fails with that error, and the reducer does not run.')
       .run((_) async {
     var store = Store<State>(initialState: State(0));
-    store.forceInternetOnOffSimulation = () => true;
+    store.options.hasConnection = () async => true;
 
     var status = await store.dispatchAndWait(AbortWhenNoInternetAction(throwInBefore: true));
 
@@ -180,9 +179,9 @@ class CheckInternetAction extends AppAction with CheckInternet {
   CheckInternetAction({super.throwInBefore});
 
   @override
-  Future<List<ConnectivityResult>> checkConnectivity() {
+  Future<bool> hasConnection() {
     log.add('check internet');
-    return super.checkConnectivity();
+    return super.hasConnection();
   }
 }
 
@@ -190,8 +189,8 @@ class AbortWhenNoInternetAction extends AppAction with AbortWhenNoInternet {
   AbortWhenNoInternetAction({super.throwInBefore});
 
   @override
-  Future<List<ConnectivityResult>> checkConnectivity() {
+  Future<bool> hasConnection() {
     log.add('check internet');
-    return super.checkConnectivity();
+    return super.hasConnection();
   }
 }

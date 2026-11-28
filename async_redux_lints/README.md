@@ -171,7 +171,6 @@ package, and the files whose names end with `_test.dart`.
 - [`sequential_after_super_not_in_finally`](#sequential_after_super_not_in_finally) info
 - [`polling_action_restarts_polling`](#polling_action_restarts_polling) warning
 - [`server_push_associated_action`](#server_push_associated_action) error
-- [`internet_simulation_in_production`](#internet_simulation_in_production) warning
 - [`prefer_immutable_collections`](#prefer_immutable_collections) info
 - [`non_state_object_in_state`](#non_state_object_in_state) warning
 - [`missing_initial_state`](#missing_initial_state) info
@@ -1376,24 +1375,6 @@ class PushLike extends AppAction with ServerPush {
   ...
 }
 ```
-
----
-
-### internet_simulation_in_production
-
-A warning for an override of `internetOnOffSimulation` that returns `true` or `false`,
-in code under `lib`. It's meant for tests, and makes the action ignore the real
-internet connection:
-
-```dart
-class LoadText extends AppAction with CheckInternet {
-  bool? get internetOnOffSimulation => false; // Warning
-  ...
-}
-```
-
-To simulate the connection in tests, use `store.forceInternetOnOffSimulation`
-instead. Files in the `test` directory are not checked.
 
 ---
 

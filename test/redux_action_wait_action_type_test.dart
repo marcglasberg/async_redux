@@ -64,11 +64,10 @@ void main() {
     });
 
     test('never times out, even if the store default timeout is very short.', () async {
-      var originalTimeout = Store.defaultTimeoutMillis;
-      Store.defaultTimeoutMillis = 10;
-      addTearDown(() => Store.defaultTimeoutMillis = originalTimeout);
-
-      var store = Store<State>(initialState: State(1));
+      var store = Store<State>(
+        initialState: State(1),
+        options: StoreOptions(defaultTimeoutMillis: 10),
+      );
 
       // The awaited action takes much longer than the store default timeout.
       store.dispatch(DelayedAction(10, delayMillis: 200));
@@ -173,11 +172,10 @@ void main() {
     });
 
     test('never times out, even if the store default timeout is very short.', () async {
-      var originalTimeout = Store.defaultTimeoutMillis;
-      Store.defaultTimeoutMillis = 10;
-      addTearDown(() => Store.defaultTimeoutMillis = originalTimeout);
-
-      var store = Store<State>(initialState: State(1));
+      var store = Store<State>(
+        initialState: State(1),
+        options: StoreOptions(defaultTimeoutMillis: 10),
+      );
 
       // The awaited actions take much longer than the store default timeout.
       store.dispatch(DelayedAction(10, delayMillis: 200));
@@ -340,11 +338,10 @@ void main() {
     });
 
     test('never times out, even if the store default timeout is very short.', () async {
-      var originalTimeout = Store.defaultTimeoutMillis;
-      Store.defaultTimeoutMillis = 10;
-      addTearDown(() => Store.defaultTimeoutMillis = originalTimeout);
-
-      var store = Store<State>(initialState: State(1));
+      var store = Store<State>(
+        initialState: State(1),
+        options: StoreOptions(defaultTimeoutMillis: 10),
+      );
 
       // The awaited action takes much longer than the store default timeout.
       var action1 = DelayedAction(10, delayMillis: 200);

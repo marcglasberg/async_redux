@@ -5,20 +5,19 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final originalDefaultTimeout = Store.defaultTimeoutMillis;
-  tearDown(() => Store.defaultTimeoutMillis = originalDefaultTimeout);
-
   test('defaultTimeoutMillis starts at ten minutes', () {
-    expect(Store.defaultTimeoutMillis, 600000);
+    expect(Store<int>(initialState: 0).options.defaultTimeoutMillis, 600000);
   });
 
   for (final kind in _WaitKind.values) {
     group(kind.name, () {
       for (final timeout in [0, 17]) {
-        test('uses explicit timeout $timeout instead of global default', () {
+        test('uses explicit timeout $timeout instead of store default', () {
           fakeAsync((clock) {
-            Store.defaultTimeoutMillis = 100;
-            final store = Store<int>(initialState: 0);
+            final store = Store<int>(
+              initialState: 0,
+              options: StoreOptions(defaultTimeoutMillis: 100),
+            );
             final action = _HeldAction();
             store.dispatch(action);
             Object? error;
@@ -51,18 +50,30 @@ void main() {
         });
       }
 
-      test('captures the default when the wait is registered', () {
+      test('uses independent defaults for each store', () {
         fakeAsync((clock) {
-          Store.defaultTimeoutMillis = 13;
-          final store = Store<int>(initialState: 0);
+          final store = Store<int>(
+            initialState: 0,
+            options: StoreOptions(defaultTimeoutMillis: 13),
+          );
+          final other = Store<int>(
+            initialState: 0,
+            options: StoreOptions(defaultTimeoutMillis: 100),
+          );
           final action = _HeldAction();
+          final otherAction = _HeldAction();
           store.dispatch(action);
+          other.dispatch(otherAction);
           Object? error;
+          Object? otherError;
           _wait(kind, store, action, null).then<void>(
             (_) => fail('The action has not finished'),
             onError: (Object value) => error = value,
           );
-          Store.defaultTimeoutMillis = 100;
+          _wait(kind, other, otherAction, null).then<void>(
+            (_) => fail('The other action has not finished'),
+            onError: (Object value) => otherError = value,
+          );
           clock.elapse(const Duration(milliseconds: 12));
           expect(error, isNull);
           clock.elapse(const Duration(milliseconds: 1));
@@ -74,16 +85,27 @@ void main() {
               const Duration(milliseconds: 13),
             ),
           );
+          expect(otherError, isNull);
+          clock.elapse(const Duration(milliseconds: 87));
+          expect(otherError, isA<TimeoutException>());
           action.release();
+          otherAction.release();
+          clock.flushMicrotasks();
+          store.teardown();
+          other.teardown();
           clock.flushMicrotasks();
         });
       });
 
-      for (final disableGlobally in [false, true]) {
-        test('negative timeout disables expiry; global=$disableGlobally', () {
+      for (final disableByDefault in [false, true]) {
+        test('negative timeout disables expiry; default=$disableByDefault', () {
           fakeAsync((clock) {
-            Store.defaultTimeoutMillis = disableGlobally ? -1 : 1;
-            final store = Store<int>(initialState: 0);
+            final store = Store<int>(
+              initialState: 0,
+              options: StoreOptions(
+                defaultTimeoutMillis: disableByDefault ? -1 : 1,
+              ),
+            );
             final action = _HeldAction();
             store.dispatch(action);
             var completed = false;
@@ -91,7 +113,7 @@ void main() {
               kind,
               store,
               action,
-              disableGlobally ? null : -1,
+              disableByDefault ? null : -1,
             ).then<void>((_) => completed = true);
             clock.elapse(const Duration(days: 1));
             expect(completed, isFalse);

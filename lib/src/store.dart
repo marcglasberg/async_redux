@@ -13,7 +13,6 @@ import 'dart:math';
 import 'package:async_redux/async_redux.dart';
 import 'package:async_redux/src/process_persistence.dart';
 import 'package:collection/collection.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:meta/meta.dart';
 
@@ -96,6 +95,7 @@ class Store<St> {
     this._environment,
     Object? Function(Store<St>)? dependencies,
     Object? Function(Store<St>)? configuration,
+    StoreOptions? options,
     Map<Object?, Object?> props = const {},
     bool syncStream = false,
     List<ActionObserver<St>>? this._actionObservers,
@@ -105,7 +105,8 @@ class Store<St> {
     this._wrapReduce,
     this._globalErrorObserver,
     int? maxErrorsQueued,
-  })  : _state = initialState,
+  })  : options = options ?? StoreOptions(),
+        _state = initialState,
         _props = HashMap()..addAll(props),
         _stateTimestamp = DateTime.now().toUtc(),
         _changeController = StreamController.broadcast(sync: syncStream),
@@ -137,6 +138,10 @@ class Store<St> {
   }
 
   St _state;
+
+  /// Library settings used by this store and its actions.
+  /// Defaults to a fresh [StoreOptions] for each store.
+  final StoreOptions options;
 
   final Object? _environment;
   Object? _configuration;
@@ -513,11 +518,6 @@ class Store<St> {
     _stateTimestamp = DateTime.now().toUtc();
   }
 
-  /// The global default timeout for the wait functions like [waitCondition] etc
-  /// is 10 minutes. This value is not final and can be modified.
-  /// To disable the timeout, make it -1.
-  static int defaultTimeoutMillis = 60 * 1000 * 10;
-
   /// Returns a future which will complete when the given state [condition] is true.
   ///
   /// Calls with the same predicate register independent waits, each with its own
@@ -535,7 +535,7 @@ class Store<St> {
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
   /// To disable the timeout, make it -1.
-  /// If you want, you can modify [defaultTimeoutMillis] to change the default timeout.
+  /// Set [StoreOptions.defaultTimeoutMillis] when constructing the store.
   ///
   /// This method is useful in tests, and it returns the action which changed
   /// the store state into the condition, in case you need it:
@@ -648,7 +648,7 @@ class Store<St> {
 
       _stateConditionCompleters[completer] = condition;
 
-      int timeout = timeoutMillis ?? defaultTimeoutMillis;
+      int timeout = timeoutMillis ?? options.defaultTimeoutMillis;
       var future = completer.future;
 
       if (timeout >= 0)
@@ -699,7 +699,7 @@ class Store<St> {
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
   /// To disable the timeout, make it -1.
-  /// If you want, you can modify [defaultTimeoutMillis] to change the default timeout.
+  /// Set [StoreOptions.defaultTimeoutMillis] when constructing the store.
   ///
   /// Examples:
   ///
@@ -804,7 +804,7 @@ class Store<St> {
 
       _actionConditionCompleters[completer] = condition;
 
-      int timeout = timeoutMillis ?? defaultTimeoutMillis;
+      int timeout = timeoutMillis ?? options.defaultTimeoutMillis;
       var future = completer.future;
 
       if (timeout >= 0)
@@ -837,7 +837,7 @@ class Store<St> {
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
   /// To disable the timeout, make it -1.
-  /// If you want, you can modify [defaultTimeoutMillis] to change the default timeout.
+  /// Set [StoreOptions.defaultTimeoutMillis] when constructing the store.
   ///
   /// Examples:
   ///
@@ -950,7 +950,7 @@ class Store<St> {
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
   /// To disable the timeout, make it -1.
-  /// If you want, you can modify [defaultTimeoutMillis] to change the default timeout.
+  /// Set [StoreOptions.defaultTimeoutMillis] when constructing the store.
   ///
   /// Examples:
   ///
@@ -1053,7 +1053,7 @@ class Store<St> {
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
   /// To disable the timeout, make it -1.
-  /// If you want, you can modify [defaultTimeoutMillis] to change the default timeout.
+  /// Set [StoreOptions.defaultTimeoutMillis] when constructing the store.
   ///
   /// Examples:
   ///
@@ -1174,7 +1174,7 @@ class Store<St> {
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
   /// To disable the timeout, make it -1.
-  /// If you want, you can modify [defaultTimeoutMillis] to change the default timeout.
+  /// Set [StoreOptions.defaultTimeoutMillis] when constructing the store.
   ///
   /// Examples:
   ///
@@ -1343,26 +1343,6 @@ class Store<St> {
   @internal
   late final internalMixinProps = _InternalMixinProps(onClear: clearAllExceptions);
 
-  /// If you are running tests, you can change [forceInternetOnOffSimulation] to
-  /// simulate the internet connection as ON or OFF for the provided mixins
-  /// [CheckInternet], [AbortWhenNoInternet], and [UnlimitedRetryCheckInternet].
-  ///
-  /// - Return `true` if there IS internet.
-  /// - Return `false` if there is NO internet.
-  /// - Return `null` to use the real internet connection status (default).
-  ///
-  /// Example:
-  ///
-  /// ```dart
-  /// store.forceInternetOnOffSimulation = () => false;
-  /// ```
-  ///
-  /// This is specially useful during tests, for testing what happens when you
-  /// have no internet connection. And since it's tied to the store, it
-  /// automatically resets when the store is recreated.
-  ///
-  bool? Function() forceInternetOnOffSimulation = () => null;
-
   bool get isShutdown => _shutdown;
 
   /// Dispatches the action, applying its reducer, and possibly changing the store state.
@@ -1463,7 +1443,7 @@ class Store<St> {
   /// production, you may provide a [timeoutMillis], which by default is 10
   /// minutes. To disable the timeout, make it -1. This timeout only starts
   /// counting after the given [action] finished dispatching. Note: If you want,
-  /// you can modify [defaultTimeoutMillis] to change the default timeout.
+  /// you can set [StoreOptions.defaultTimeoutMillis] when creating the store.
   ///
   /// ```dart
   /// await store.dispatchAndWaitAllActions(MyAction());
@@ -2287,8 +2267,7 @@ class Store<St> {
     check
         ._cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush();
     await action.before();
-    final result = await check.checkConnectivity();
-    if (result.contains(ConnectivityResult.none)) throw AbortDispatchException();
+    if (!await check.hasConnection()) throw AbortDispatchException();
   }
 
   Future<void> _beforeWithCheckInternet(ReduxAction<St> action) async {
@@ -2296,9 +2275,8 @@ class Store<St> {
     check
         ._cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush();
     await action.before();
-    final result = await check.checkConnectivity();
-    if (result.contains(ConnectivityResult.none)) {
-      throw check.connectionException(result).withDialog(check.ifOpenDialog);
+    if (!await check.hasConnection()) {
+      throw check.connectionException().withDialog(check.ifOpenDialog);
     }
   }
 
@@ -2490,8 +2468,7 @@ class Store<St> {
     FutureOr<St?> newState;
     bool hasInternet = true;
     try {
-      final result = await action.checkConnectivity();
-      if (result.contains(ConnectivityResult.none)) {
+      if (!await action.hasConnection()) {
         hasInternet = false;
         throw const UserException('');
       }

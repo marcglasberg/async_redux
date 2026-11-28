@@ -204,7 +204,7 @@ void main() {
     test('cooperates with ${create().runtimeType}', () {
       fakeAsync((async) {
         final store = Store<int>(initialState: 0)
-          ..forceInternetOnOffSimulation = () => true;
+          ..options.hasConnection = () async => true;
         final first = create();
         final second = create();
         store.dispatch(first);

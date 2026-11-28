@@ -1769,7 +1769,7 @@ void main() {
       .run((_) async {
     fakeAsync((fake) {
       var store = Store<AppState>(initialState: AppState(0));
-      store.forceInternetOnOffSimulation = () => false;
+      store.options.hasConnection = () async => false;
 
       // The interval is 100ms, so ticks happen at 100, 200, 300...
       store.dispatch(InternetControllerAction(poll: Poll.start));
@@ -1779,7 +1779,7 @@ void main() {
       expect(store.state.count, 0);
 
       // The internet comes back.
-      store.forceInternetOnOffSimulation = () => true;
+      store.options.hasConnection = () async => true;
 
       fake.elapse(const Duration(milliseconds: 100)); // 450ms
       expect(store.state.count, 1);
@@ -1805,7 +1805,7 @@ void main() {
       .run((_) async {
     fakeAsync((fake) {
       var store = Store<AppState>(initialState: AppState(0));
-      store.forceInternetOnOffSimulation = () => true;
+      store.options.hasConnection = () async => true;
 
       // The interval is 100ms, so ticks happen at 100, 200, 300...
       store.dispatch(CheckInternetPollAction(poll: Poll.start));
@@ -1814,7 +1814,7 @@ void main() {
 
       // The internet goes away, and now Poll.stop can't get through:
       // CheckInternet throws in `before`, so `wrapReduce` never runs.
-      store.forceInternetOnOffSimulation = () => false;
+      store.options.hasConnection = () async => false;
       store.dispatch(CheckInternetPollAction(poll: Poll.stop));
 
       // The polling was NOT stopped. Note the worker action has no internet
@@ -1823,7 +1823,7 @@ void main() {
       expect(store.state.count, 5);
 
       // Once the internet is back, the stop finally goes through.
-      store.forceInternetOnOffSimulation = () => true;
+      store.options.hasConnection = () async => true;
       store.dispatch(CheckInternetPollAction(poll: Poll.stop));
       fake.elapse(Duration.zero);
       var countWhenStopped = store.state.count;

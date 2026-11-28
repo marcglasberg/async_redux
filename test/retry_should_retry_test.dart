@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:async_redux/async_redux.dart';
 import 'package:bdd_framework/bdd_framework.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart' hide Retry;
 
 void main() {
@@ -457,9 +456,9 @@ class LoadTextUnlimited extends ReduxAction<State> with UnlimitedRetryCheckInter
   void printRetries(String message) {}
 
   @override
-  Future<List<ConnectivityResult>> checkConnectivity() async {
+  Future<bool> hasConnection() async {
     final isOnline = internet[min(checks++, internet.length - 1)];
-    return [isOnline ? ConnectivityResult.wifi : ConnectivityResult.none];
+    return isOnline;
   }
 
   @override

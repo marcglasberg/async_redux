@@ -1,6 +1,5 @@
 import 'package:async_redux/async_redux.dart';
 import 'package:bdd_framework/bdd_framework.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart' hide Retry;
 
 /// Records the order in which things happen, so tests can assert on it.
@@ -385,7 +384,7 @@ void main() {
       .and('With internet off, it fails and still releases the queue.')
       .run((_) async {
     var store = Store<State>(initialState: State(0));
-    store.forceInternetOnOffSimulation = () => true;
+    store.options.hasConnection = () async => true;
 
     var f1 = store.dispatch(SlowAction('A', millis: 30)) as Future;
     var f2 = store.dispatchAndWait(InternetThenSequentialAction('I'));
@@ -396,7 +395,7 @@ void main() {
     expect(store.internalMixinProps.sequentialQueueMap, isEmpty);
 
     log = [];
-    store.forceInternetOnOffSimulation = () => false;
+    store.options.hasConnection = () async => false;
 
     var status = await store.dispatchAndWait(InternetThenSequentialAction('I'));
     await store.dispatchAndWait(SlowAction('C', millis: 1));
@@ -418,7 +417,7 @@ void main() {
       .and('With internet off, it fails and still releases the queue.')
       .run((_) async {
     var store = Store<State>(initialState: State(0));
-    store.forceInternetOnOffSimulation = () => true;
+    store.options.hasConnection = () async => true;
 
     var f1 = store.dispatch(SlowAction('A', millis: 30)) as Future;
     var f2 = store.dispatchAndWait(SequentialThenInternetAction('I'));
@@ -429,7 +428,7 @@ void main() {
     expect(store.internalMixinProps.sequentialQueueMap, isEmpty);
 
     log = [];
-    store.forceInternetOnOffSimulation = () => false;
+    store.options.hasConnection = () async => false;
 
     var status = await store.dispatchAndWait(SequentialThenInternetAction('I'));
     await store.dispatchAndWait(SlowAction('C', millis: 1));
@@ -450,7 +449,7 @@ void main() {
       .then('Both are aborted, and the normal action runs.')
       .run((_) async {
     var store = Store<State>(initialState: State(0));
-    store.forceInternetOnOffSimulation = () => false;
+    store.options.hasConnection = () async => false;
 
     var f1 = store.dispatchAndWait(AbortInternetThenSequentialAction('X'));
     var f2 = store.dispatchAndWait(SequentialThenAbortInternetAction('Y'));
@@ -921,9 +920,9 @@ class InternetThenSequentialAction extends ReduxAction<State>
   InternetThenSequentialAction(this.name);
 
   @override
-  Future<List<ConnectivityResult>> checkConnectivity() {
+  Future<bool> hasConnection() {
     log.add('$name check');
-    return super.checkConnectivity();
+    return super.hasConnection();
   }
 
   @override
@@ -940,9 +939,9 @@ class SequentialThenInternetAction extends ReduxAction<State>
   SequentialThenInternetAction(this.name);
 
   @override
-  Future<List<ConnectivityResult>> checkConnectivity() {
+  Future<bool> hasConnection() {
     log.add('$name check');
-    return super.checkConnectivity();
+    return super.hasConnection();
   }
 
   @override
@@ -959,9 +958,9 @@ class AbortInternetThenSequentialAction extends ReduxAction<State>
   AbortInternetThenSequentialAction(this.name);
 
   @override
-  Future<List<ConnectivityResult>> checkConnectivity() {
+  Future<bool> hasConnection() {
     log.add('$name check');
-    return super.checkConnectivity();
+    return super.hasConnection();
   }
 
   @override
@@ -978,9 +977,9 @@ class SequentialThenAbortInternetAction extends ReduxAction<State>
   SequentialThenAbortInternetAction(this.name);
 
   @override
-  Future<List<ConnectivityResult>> checkConnectivity() {
+  Future<bool> hasConnection() {
     log.add('$name check');
-    return super.checkConnectivity();
+    return super.hasConnection();
   }
 
   @override

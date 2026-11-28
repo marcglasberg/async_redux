@@ -1,5 +1,4 @@
 import 'package:async_redux/async_redux.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart' hide Retry;
 
@@ -149,7 +148,7 @@ void main() {
   test('CheckInternet runs once before all retry attempts', () {
     fakeAsync((async) {
       final store = Store<int>(initialState: 0)
-        ..forceInternetOnOffSimulation = () => true;
+        ..options.hasConnection = () async => true;
       final action = _Internet()..failures = 2;
       store.dispatch(action);
       async.elapse(const Duration(seconds: 1));
@@ -276,9 +275,9 @@ class _Internet extends _Sync with CheckInternet {
   int checks = 0;
 
   @override
-  Future<List<ConnectivityResult>> checkConnectivity() {
+  Future<bool> hasConnection() {
     checks++;
-    return super.checkConnectivity();
+    return super.hasConnection();
   }
 }
 

@@ -17,6 +17,7 @@ class MockStore<St> extends Store<St> {
   MockStore({
     required St initialState,
     Object? environment,
+    StoreOptions? options,
     Map<Object?, Object?> props = const {},
     bool syncStream = false,
     List<ActionObserver<St>>? actionObservers,
@@ -30,6 +31,7 @@ class MockStore<St> extends Store<St> {
   }) : super(
           initialState: initialState,
           environment: environment,
+          options: options,
           props: props,
           syncStream: syncStream,
           actionObservers: actionObservers,

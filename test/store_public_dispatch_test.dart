@@ -259,13 +259,13 @@ void main() {
 
   for (final defaultTimeout in [false, true]) {
     test(
-      'dispatchAndWaitAllActions respects global/disabled timeout: $defaultTimeout',
+      'dispatchAndWaitAllActions respects store/disabled timeout: $defaultTimeout',
       () {
-        final originalTimeout = Store.defaultTimeoutMillis;
-        addTearDown(() => Store.defaultTimeoutMillis = originalTimeout);
         fakeAsync((clock) {
-          Store.defaultTimeoutMillis = 5;
-          final store = Store<int>(initialState: 0);
+          final store = Store<int>(
+            initialState: 0,
+            options: StoreOptions(defaultTimeoutMillis: 5),
+          );
           final unrelated = _HeldIncrement(100);
           store.dispatch(unrelated);
           final own = _Increment(1);

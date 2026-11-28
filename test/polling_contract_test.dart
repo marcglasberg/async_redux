@@ -298,7 +298,7 @@ class _Sync extends _Controller {
 class _Async extends _Controller {
   @override
   Future<int> reduce() async {
-    if (gate != null) await gate;
+    await (gate ?? microtask);
     return run();
   }
 }

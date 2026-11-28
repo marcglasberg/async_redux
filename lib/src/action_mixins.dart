@@ -33,9 +33,10 @@ part of 'store.dart';
 ///
 /// If you don't want the dialog to open, you can add the [NoDialog] mixin.
 ///
-/// If you want to customize the dialog or the `errorText`, you can override the
-/// method [connectionException] and return a [UserException] with the desired
-/// message.
+/// To customize the dialog message or the `errorText` for all CheckInternet actions,
+/// configure [StoreOptions.connectionException]. Override [connectionException] to
+/// customize a single action instead. The store options documentation also shows
+/// how to use [ConnectionException.noConnectionWithRetry] for retry callbacks.
 ///
 /// IMPORTANT: It only checks if the internet is on or off on the device,
 /// not if the internet provider is really providing the service or if the
@@ -57,39 +58,23 @@ part of 'store.dart';
 mixin CheckInternet<St> on ReduxAction<St> {
   bool get ifOpenDialog => true;
 
-  UserException connectionException(List<ConnectivityResult> result) =>
-      ConnectionException.noConnectivity;
+  /// Delegates to [StoreOptions.connectionException] when [hasConnection] is false.
+  /// Override to customize the error or retry callback for this action only.
+  UserException connectionException() => store.options.connectionException();
 
-  /// If you are running tests, you can override this getter to simulate the
-  /// internet connection as on or off:
+  /// Delegates the connectivity decision to the store options.
+  /// Override this method to customize the check for this action only.
+  /// For example, in tests, return false to simulate offline or true for online.
   ///
-  /// - Return `true` if there IS internet.
-  /// - Return `false` if there is NO internet.
-  /// - Return `null` to use the real internet connection status (default).
-  ///
-  /// If you want to change this for all actions using mixins [CheckInternet],
-  /// [AbortWhenNoInternet], and [UnlimitedRetryCheckInternet], you can
-  /// do that at the store level:
+  /// To simulate connectivity for all internet mixins in a store during tests:
   ///
   /// ```dart
-  /// store.forceInternetOnOffSimulation = () => false;
+  /// store.options.hasConnection = () async => false;
   /// ```
   ///
-  /// Using [Store.forceInternetOnOffSimulation] is also useful during tests,
-  /// for testing what happens when you have no internet connection. And since
-  /// it's tied to the store, it automatically resets when the store is
-  /// recreated.
-  ///
-  bool? get internetOnOffSimulation => store.forceInternetOnOffSimulation();
-
-  Future<List<ConnectivityResult>> checkConnectivity() async {
-    if (internetOnOffSimulation != null)
-      return internetOnOffSimulation!
-          ? [ConnectivityResult.wifi]
-          : [ConnectivityResult.none];
-
-    return await (Connectivity().checkConnectivity());
-  }
+  /// Restore the previous callback or create a store with fresh options to
+  /// resume the real check. Each store creates its own options by default.
+  Future<bool> hasConnection() => store.options.hasConnection();
 
   void
       _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush() {
@@ -163,36 +148,19 @@ mixin NoDialog<St> on CheckInternet<St> {
 ///
 mixin AbortWhenNoInternet<St> on ReduxAction<St> {
   //
-  /// If you are running tests, you can override this getter to simulate the
-  /// internet connection as on or off:
+  /// Delegates the connectivity decision to the store options.
+  /// Override this method to customize the check for this action only.
+  /// For example, in tests, return false to simulate offline or true for online.
   ///
-  /// - Return `true` if there IS internet.
-  /// - Return `false` if there is NO internet.
-  /// - Return `null` to use the real internet connection status (default).
-  ///
-  /// If you want to change this for all actions using mixins [CheckInternet],
-  /// [AbortWhenNoInternet], and [UnlimitedRetryCheckInternet], you can
-  /// do that at the store level:
+  /// To simulate connectivity for all internet mixins in a store during tests:
   ///
   /// ```dart
-  /// store.forceInternetOnOffSimulation = () => false;
+  /// store.options.hasConnection = () async => false;
   /// ```
   ///
-  /// Using [Store.forceInternetOnOffSimulation] is also useful during tests,
-  /// for testing what happens when you have no internet connection. And since
-  /// it's tied to the store, it automatically resets when the store is
-  /// recreated.
-  ///
-  bool? get internetOnOffSimulation => store.forceInternetOnOffSimulation();
-
-  Future<List<ConnectivityResult>> checkConnectivity() async {
-    if (internetOnOffSimulation != null)
-      return internetOnOffSimulation!
-          ? [ConnectivityResult.wifi]
-          : [ConnectivityResult.none];
-
-    return await (Connectivity().checkConnectivity());
-  }
+  /// Restore the previous callback or create a store with fresh options to
+  /// resume the real check. Each store creates its own options by default.
+  Future<bool> hasConnection() => store.options.hasConnection();
 
   void
       _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush() {
@@ -1687,36 +1655,19 @@ mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
     return _currentDelay!;
   }
 
-  /// If you are running tests, you can override this getter to simulate the
-  /// internet connection as on or off:
+  /// Delegates the connectivity decision to the store options.
+  /// Override this method to customize the check for this action only.
+  /// For example, in tests, return false to simulate offline or true for online.
   ///
-  /// - Return `true` if there IS internet.
-  /// - Return `false` if there is NO internet.
-  /// - Return `null` to use the real internet connection status (default).
-  ///
-  /// If you want to change this for all actions using mixins [CheckInternet],
-  /// [AbortWhenNoInternet], and [UnlimitedRetryCheckInternet], you can
-  /// do that at the store level:
+  /// To simulate connectivity for all internet mixins in a store during tests:
   ///
   /// ```dart
-  /// store.forceInternetOnOffSimulation = () => false;
+  /// store.options.hasConnection = () async => false;
   /// ```
   ///
-  /// Using [Store.forceInternetOnOffSimulation] is also useful during tests,
-  /// for testing what happens when you have no internet connection. And since
-  /// it's tied to the store, it automatically resets when the store is
-  /// recreated.
-  ///
-  bool? get internetOnOffSimulation => store.forceInternetOnOffSimulation();
-
-  Future<List<ConnectivityResult>> checkConnectivity() async {
-    if (internetOnOffSimulation != null)
-      return internetOnOffSimulation!
-          ? [ConnectivityResult.wifi]
-          : [ConnectivityResult.none];
-
-    return await (Connectivity().checkConnectivity());
-  }
+  /// Restore the previous callback or create a store with fresh options to
+  /// resume the real check. Each store creates its own options by default.
+  Future<bool> hasConnection() => store.options.hasConnection();
 
   void
       _cannot_combine_mixins_CheckInternet_AbortWhenNoInternet_UnlimitedRetryCheckInternet_ServerPush() {
@@ -3109,19 +3060,9 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
   /// ```
   T getValueFromState(St state);
 
-  /// The device ID is used to differentiate revisions from different devices.
-  /// The default is to use a random integer generated once per app run,
-  /// but you can override this to return a persistent unique ID per device.
-  static int Function() deviceId = () {
-    _deviceId ??= Random().nextInt(4294967296) + (Random().nextInt(10000) * 10000000000);
-    return _deviceId!;
-  };
-
-  static int? _deviceId;
-
   /// Override [sendValueToServer] to:
-  /// - Send the given [optimisticValue], the [localRevision], and the [deviceId]
-  ///   to the server.
+  /// - Send the given [optimisticValue], the [localRevision], and the configured
+  ///   [StoreOptions.deviceId] to the server.
   /// - Set the current server-revision, by calling [informServerRevision].
   /// - Optionally, return the server's response.
   /// - You must throw an error if the request fails (in this case, do not
@@ -3131,7 +3072,7 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
   /// - AsyncRedux calculates [optimisticValue] by previously calling [valueToApply].
   /// - The server must return the server-revision in the response.
   /// - Server pushes must provide the 3 pieces of information: server-revision,
-  ///   [deviceId], and [localRevision]. See [ServerPush] for details.
+  ///   [StoreOptions.deviceId], and [localRevision]. See [ServerPush] for details.
   ///
   /// If [sendValueToServer] returns a non-null value, that value will be
   /// applied to the state, but **only when the state stabilizes** (i.e., when
@@ -3398,7 +3339,7 @@ mixin OptimisticSyncWithPush<St, T> on ReduxAction<St> {
         final Object? serverResponse = await sendValueToServer(
           value,
           localRevision,
-          deviceId(),
+          store.options.deviceId(),
         );
 
         // Validate that the developer called informServerRevision().
@@ -3665,7 +3606,7 @@ mixin ServerPush<St> on ReduxAction<St> {
     final entry = _optimisticSyncWithPushRevisionMap[key];
     final int currentLocalRev = entry?.localRevision ?? 0;
 
-    final bool isSelf = (deviceId == OptimisticSyncWithPush.deviceId());
+    final bool isSelf = (deviceId == store.options.deviceId());
 
     // Self-echo of an older request: treat as ACK only.
     // Do NOT apply and do NOT mark isPush=true (otherwise it cancels follow-ups).

@@ -1,24 +1,17 @@
 import 'dart:async';
 
 import 'package:async_redux/async_redux.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  for (final results in <List<ConnectivityResult>>[
-    [],
-    [ConnectivityResult.wifi],
-    [ConnectivityResult.mobile, ConnectivityResult.ethernet],
-    [ConnectivityResult.none],
-    [ConnectivityResult.wifi, ConnectivityResult.none],
-  ]) {
+  for (final online in [false, true]) {
     for (final dialog in [false, true]) {
-      test('connectivity=$results, dialog=$dialog', () async {
+      test('connectivity=$online, dialog=$dialog', () async {
         final store = _store();
         final action = _Probe()
-          ..results = results
+          ..online = online
           ..dialog = dialog;
-        final offline = results.contains(ConnectivityResult.none);
+        final offline = !online;
         final status = await store.dispatchAndWait(action);
         expect(status.isCompletedOk, !offline);
         expect(status.isDispatchAborted, isFalse);
@@ -32,7 +25,6 @@ void main() {
           if (offline) 'wrap' else 'reduce',
           'after',
         ]);
-        expect(action.receivedResults, offline ? same(results) : isNull);
         expect(store.state, offline ? 0 : 1);
         expect(store.errors.length, offline && dialog ? 1 : 0);
         if (offline) {
@@ -76,7 +68,7 @@ void main() {
           ..errorStage = stage
           ..error = error
           ..swallow = swallow;
-        if (stage == 'exception') action.results = [ConnectivityResult.none];
+        if (stage == 'exception') action.online = false;
         Object? thrown;
         try {
           await store.dispatchAndWait(action);
@@ -97,7 +89,7 @@ void main() {
 
   for (final internet in [false, true]) {
     test('store simulation supplies connectivity: $internet', () async {
-      final store = _store()..forceInternetOnOffSimulation = () => internet;
+      final store = _store()..options.hasConnection = () async => internet;
       final action = _Simulated();
       expect(action.isSync(), isFalse); // Its reducer is synchronous.
       // Intentionally verify the runtime rejection of synchronous dispatch.
@@ -110,7 +102,7 @@ void main() {
   }
 
   test('action simulation overrides the store simulation', () async {
-    final store = _store()..forceInternetOnOffSimulation = () => false;
+    final store = _store()..options.hasConnection = () async => false;
     expect((await store.dispatchAndWait(_LocallyOnline())).isCompletedOk, isTrue);
   });
 
@@ -125,7 +117,7 @@ void main() {
 
   for (final online in [false, true]) {
     test('custom before without super still checks connectivity: $online', () async {
-      final store = _store()..forceInternetOnOffSimulation = () => online;
+      final store = _store()..options.hasConnection = () async => online;
       final action = _CustomBefore();
       expect((await store.dispatchAndWait(action)).isCompletedOk, online);
       expect(action.beforeCalls, 1);
@@ -181,26 +173,24 @@ abstract class _Hooks extends ReduxAction<int> {
 }
 
 class _Probe extends _Hooks with CheckInternet {
-  List<ConnectivityResult> results = [ConnectivityResult.wifi];
-  List<ConnectivityResult>? receivedResults;
+  bool online = true;
   bool dialog = true;
 
   @override
   bool get ifOpenDialog => dialog;
 
   @override
-  Future<List<ConnectivityResult>> checkConnectivity() async {
+  Future<bool> hasConnection() async {
     events.add('check');
     await (checkGate ?? microtask);
     failAt('check');
-    return results;
+    return online;
   }
 
   @override
-  UserException connectionException(List<ConnectivityResult> result) {
+  UserException connectionException() {
     events.add('exception');
     failAt('exception');
-    receivedResults = result;
     return const UserException('Connection', errorText: 'custom connection error');
   }
 }
@@ -212,7 +202,7 @@ class _Simulated extends ReduxAction<int> with CheckInternet {
 
 class _LocallyOnline extends _Simulated {
   @override
-  bool? get internetOnOffSimulation => true;
+  Future<bool> hasConnection() async => true;
 }
 
 class _CustomBefore extends _Simulated {

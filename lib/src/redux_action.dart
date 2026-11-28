@@ -647,7 +647,7 @@ abstract class ReduxAction<St> {
   ///
   /// You may also provide a [timeoutMillis], which by default is 10 minutes.
   /// To disable the timeout, make it -1.
-  /// If you want, you can modify [Store.defaultTimeoutMillis] to change the default timeout.
+  /// Set [StoreOptions.defaultTimeoutMillis] when constructing the store.
   ///
   /// ```dart
   /// var action = await store.waitCondition((state) => state.name == "Bill");

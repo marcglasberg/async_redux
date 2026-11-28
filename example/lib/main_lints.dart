@@ -39,7 +39,6 @@
 // ignore_for_file: async_redux_lints/sequential_after_super_not_in_finally
 // ignore_for_file: async_redux_lints/polling_action_restarts_polling
 // ignore_for_file: async_redux_lints/server_push_associated_action
-// ignore_for_file: async_redux_lints/internet_simulation_in_production
 // ignore_for_file: async_redux_lints/prefer_immutable_collections
 // ignore_for_file: async_redux_lints/non_state_object_in_state
 // ignore_for_file: async_redux_lints/missing_initial_state
@@ -1491,17 +1490,6 @@ class PushName extends AppAction with ServerPush<AppState> {
   @override
   AppState? applyServerPushToState(AppState state, Object? key, int serverRevision) =>
       null;
-}
-
-class LoadWhenOnline extends AppAction with CheckInternet<AppState> {
-  @override
-  // internet_simulation_in_production
-  // (Ignores the real connection)
-  // Fix: not available.
-  bool? get internetOnOffSimulation => false;
-
-  @override
-  AppState? reduce() => null;
 }
 
 @stateClass

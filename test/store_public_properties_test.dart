@@ -375,27 +375,25 @@ void main() {
       },
     );
 
-    test('internet simulation defaults to null and is isolated between stores', () async {
+    test('connectivity callback changes are isolated between stores', () async {
       final first = Store<int>(initialState: 0);
       final second = Store<int>(initialState: 0);
-      expect(first.forceInternetOnOffSimulation(), isNull);
-      bool? online = false;
-      first.forceInternetOnOffSimulation = () => online;
-      expect(first.forceInternetOnOffSimulation(), isFalse);
-      expect(second.forceInternetOnOffSimulation(), isNull);
+      final secondCheck = second.options.hasConnection;
+      var online = false;
+      first.options.hasConnection = () async => online;
+      expect(await first.options.hasConnection(), isFalse);
+      expect(second.options.hasConnection, same(secondCheck));
       online = true;
-      expect(first.forceInternetOnOffSimulation(), isTrue);
-      online = null;
-      expect(first.forceInternetOnOffSimulation(), isNull);
+      expect(await first.options.hasConnection(), isTrue);
       await first.teardown();
       await second.teardown();
     });
 
-    test('actions reread the simulation callback on each dispatch', () async {
+    test('actions reread the connectivity callback on each dispatch', () async {
       final store = Store<int>(initialState: 0);
       var online = false;
       var calls = 0;
-      store.forceInternetOnOffSimulation = () {
+      store.options.hasConnection = () async {
         calls++;
         return online;
       };
@@ -410,7 +408,7 @@ void main() {
       expect(store.state, 1);
       expect(calls, greaterThan(0));
       calls = 0;
-      store.forceInternetOnOffSimulation = () => false;
+      store.options.hasConnection = () async => false;
       final failedAgain = await store.dispatchAndWait(_NeedsInternet());
       expect(failedAgain.originalError, isA<UserException>());
       expect(store.state, 1);

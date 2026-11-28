@@ -135,7 +135,10 @@ class _Sync extends _Unlimited {
 
 class _Async extends _Unlimited {
   @override
-  Future<int> reduce() async => run();
+  Future<int> reduce() async {
+    await microtask;
+    return run();
+  }
 }
 
 class _Limited extends _Sync {

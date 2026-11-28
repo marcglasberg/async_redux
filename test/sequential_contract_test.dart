@@ -246,7 +246,10 @@ class _Sync extends _Queued {
 
 class _Async extends _Queued {
   @override
-  Future<int> reduce() async => run();
+  Future<int> reduce() async {
+    await microtask;
+    return run();
+  }
 }
 
 class _NoSuper extends _Sync {

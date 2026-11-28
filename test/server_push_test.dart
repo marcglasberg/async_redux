@@ -381,6 +381,7 @@ void main() {
       .run((_) async {
     final store = Store<AppState>(
       initialState: AppState(liked: false, serverRevision: 10),
+      options: StoreOptions(deviceId: () => 42),
     );
 
     // Make request 1 wait; it will return serverRev=11, and follow-up will be 12.
@@ -405,7 +406,7 @@ void main() {
       liked: true,
       serverRev: 11,
       pushLocalRevision: 1, // Stale: less than currentLocalRev=2
-      pushDeviceId: OptimisticSyncWithPush.deviceId(), // Same device = self-echo
+      pushDeviceId: store.options.deviceId(), // Same device = self-echo
     ));
     await Future.delayed(const Duration(milliseconds: 10));
     // Self-echo is NOT applied, so state remains false (optimistic from tap 2).

@@ -6,7 +6,7 @@ void main() {
     for (final notify in [false, true]) {
       test('NoDialog: internet=$internet, notify=$notify', () async {
         final store = Store<int>(initialState: 0)
-          ..forceInternetOnOffSimulation = () => internet;
+          ..options.hasConnection = () async => internet;
         addTearDown(store.teardown);
         final action = _Quiet();
         expect(action.ifOpenDialog, isFalse);
@@ -29,7 +29,8 @@ void main() {
   }
 
   test('NoDialog only suppresses connectivity errors, not reducer errors', () async {
-    final store = Store<int>(initialState: 0)..forceInternetOnOffSimulation = () => true;
+    final store = Store<int>(initialState: 0)
+      ..options.hasConnection = () async => true;
     addTearDown(store.teardown);
     const error = UserException('reduce failed');
     final action = _Quiet()..error = error;
@@ -39,7 +40,8 @@ void main() {
   });
 
   test('an action can explicitly reenable connectivity dialogs', () async {
-    final store = Store<int>(initialState: 0)..forceInternetOnOffSimulation = () => false;
+    final store = Store<int>(initialState: 0)
+      ..options.hasConnection = () async => false;
     addTearDown(store.teardown);
     final status = await store.dispatchAndWait(_Loud());
     expect((status.wrappedError as UserException).ifOpenDialog, isTrue);
@@ -47,11 +49,12 @@ void main() {
   });
 
   test('a later successful dispatch clears the failure without a dialog', () async {
-    final store = Store<int>(initialState: 0)..forceInternetOnOffSimulation = () => false;
+    final store = Store<int>(initialState: 0)
+      ..options.hasConnection = () async => false;
     addTearDown(store.teardown);
     await store.dispatchAndWait(_Quiet());
     expect(store.isFailed(_Quiet), isTrue);
-    store.forceInternetOnOffSimulation = () => true;
+    store.options.hasConnection = () async => true;
     await store.dispatchAndWait(_Quiet());
     expect(store.isFailed(_Quiet), isFalse);
     expect(store.errors, isEmpty);

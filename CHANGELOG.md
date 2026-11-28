@@ -3,95 +3,140 @@ the <a href="https://github.com/marcglasberg/SameAppDifferentTech/blob/main/Mobi
 AsyncRedux App Example GitHub Repo</a> for a full-fledged example app
 showcasing the fundamentals and best practices._
 
-Sponsored by [MyText.ai](https://mytext.ai)
-
-[![](./example/SponsoredByMyTextAi.jpg)](https://mytext.ai)
-
-## 31.0.0-dev.1
-
-* **Breaking:** Removed `StoreConnector`, `StoreConnectorInterface`, `Vm`,
-  `VmFactory`, `VmEquals`, connector callback typedefs, `ConnectorTester`,
-  `Store.getConnectorTester()`, `ModelObserver` and `DefaultModelObserver`.
-  Removed `modelObserver`, `defaultDistinct` and `immutableCollectionEquality`
-  from `Store` and `MockStore`. Use context selectors and `MockBuildContext`.
-* **Breaking:** Removed `context.getState()`, `Wait`, `WaitAction`, `WaitOperation`
-  and `WaitReducer`. Use `context.select()`, `context.read()` and the action's
-  `statusKey` with `context.isWaiting()`.
-* Renamed the provider source to `store_provider.dart` and removed `AndConnector`
-  from the names of its context/widget extensions.
-  Import `package:async_redux/async_redux.dart`.
-* Removed the view-model lint rules, their fixes and obsolete examples/tests.
-  Polling widget tests now exercise selectors and `context.isWaiting()`.
-
 ## 31.0.0-dev.0
 
-* `UserExceptionDialog` now listens directly to the store, without `StoreConnector`,
-  view-models or a shared event queue. Pending errors are displayed after the frame
-  and remain queued if the widget is removed before they can be displayed.
+* **Breaking:** Use the new `options` param in `Store(options: StoreOptions(...))`
+  to configure wait timeouts with `StoreOptions.defaultTimeoutMillis` instead of
+  `Store.defaultTimeoutMillis`, and set the device id with `StoreOptions.deviceId`
+  instead of `OptimisticSyncWithPush.deviceId`.
 
-* Deprecated `StoreConnector`, `Vm` and `VmFactory` for application code. Use
-  `context.select()` to subscribe to state, `context.read()` in callbacks and
-  `initState`, and the other `BuildContext` extensions to interact with the store.
-  Use `MockBuildContext` to test widgets without mounting them. The deprecated APIs
-  remain functional and may still be used internally by AsyncRedux.
-* Removed the `example/lib/store_connector_examples` directory and migrated the
-  optimistic update examples to context selectors.
+* **Breaking:** Renamed `ConnectionException.noConnectivity` to `.noConnection`, and
+  `ConnectionException.noConnectivityWithRetry` to `.noConnectionWithRetry`.
+
+* **Breaking:** In the action mixins, the `checkConnectivity()` method was replaced with
+  `Future<bool> hasConnection()`. Connection results are now interpreted by
+  `StoreOptions`, so action mixins receive only the final boolean. Override
+  `CheckInternet.connectionException()` without arguments to customize its error.
+
+* **Breaking:** Removed `Store.forceInternetOnOffSimulation` and
+  `internetOnOffSimulation` from the `CheckInternet`, `AbortWhenNoInternet`, and
+  `UnlimitedRetryCheckInternet` mixins. Now, for per-action connection checks, override
+  `Future<bool> hasConnection()` and return `true` or `false`. In tests, set
+  `hasConnection` in the store constructor, like so:
+  `Store(options: StoreOptions(hasConnection: () async => true))`.
+
+* **Breaking:** Removed `context.getState()`. It existed to allow humans easy access to
+  the state with `context.state` and later replace it with `context.select()`. Now, AI
+  agents can write `context.select()` directly, so `context.getState()` is not useful
+  anymore.
+
+* **Breaking:** Removed `StoreConnector`, `StoreConnectorInterface`, `Vm`,
+  `VmFactory`, `VmEquals`, and connector callback typedefs. Use
+  `context.select()` to subscribe to state and rebuild widgets when selected
+  values change. Use `context.read()` for one-time reads in callbacks and
+  `initState`. 
+
+* **Breaking:** Removed `Wait`, `WaitAction`, `WaitOperation`, and `WaitReducer`.
+  Use the action type with `context.isWaiting()`. To distinguish instances of
+  the same action type, define the action's `statusKey` and pass it to
+  `context.isWaiting(MyAction, statusKey: key)`.
+
+* **Breaking:** Removed `ConnectorTester` and `Store.getConnectorTester()`.
+  Use `MockBuildContext` to test widgets that use context extensions without
+  mounting them. Use Flutter widget tests to verify rebuilds and lifecycle behavior.
+
+* **Breaking:** Removed `ModelObserver`, `DefaultModelObserver`,
+  `Store.modelObserver`, `Store.defaultDistinct`, and
+  `immutableCollectionEquality`. These APIs belonged to the removed connector
+  and view-model pipeline and have no direct replacements.
+
+* **Breaking:** Most action mixins (like `Fresh`, `Debounce`, `NonReentrant` etc.) now
+  work without having to override action methods like `before` and `after`. This change
+  reduced complexity, and simplified the API. This is usually not breaking, unless you
+  were extending those mixins. If so, you can still copy the previous mixin code from the 
+  previous AsyncRedux version `30.1.0` into your app code, and extend it from there.
+
+* **Breaking:** `UserExceptionDialog` now listens directly to the store, without needing
+  a `StoreConnector`. This is not breaking, but if you used this widget as inspiration
+  for creating your own widgets (for example, like a `UserExceptionToast`) you will need
+  to redo it.
+
+* Added `StoreOptions.connectionException` to customize offline errors for all
+  `CheckInternet` actions. Defaults to `ConnectionException.noConnection`. Use
+  `ConnectionException.noConnectionWithRetry` to retry when the error dialog is closed.
+
+* Customize connectivity checks through `StoreOptions.hasConnection` or an
+  action's `hasConnection()` override. Set it to `() async => false` or `() async => true`
+  to simulate connectivity in tests.
+
+* Added the `Connection` enum and `Connection.checkConnections()` to check for an internet
+  connection without importing `connectivity_plus`.
 
 ## 30.1.0
 
 * Deprecated `context.getState<St>()`. This shortcut helped developers writing
   widgets by hand start with a whole-store subscription. AI agents can generate
   selectors from the start: Use `context.select()` for rendering and `context.read()`
-  in callbacks and `initState`. 
+  in callbacks and `initState`.
 
 ## 30.0.0
 
-* **Breaking:** Error dialogs and dialog helpers now use package:material_ui and package:cupertino_ui. Migrate consumer Material/Cupertino imports to the standalone packages.
-* Require Dart >=3.13.0 and Flutter >=3.47.0. Update the BDD test dependency to 5.x without changing Store, selector, dispatch or persistence behavior.
+* **Breaking:** Error dialogs and dialog helpers now use package:material_ui and package:
+  cupertino_ui. Migrate consumer Material/Cupertino imports to the standalone packages.
+* Require Dart >=3.13.0 and Flutter >=3.47.0. Update the BDD test dependency to 5.x
+  without changing Store, selector, dispatch or persistence behavior.
 
-* Require async_redux_core >=1.5.2 so apps can resolve i18n_extension_core 5.x or 6.x together with i18n_extension 16.
+* Require async_redux_core >=1.5.2 so apps can resolve i18n_extension_core 5.x or 6.x
+  together with i18n_extension 16.
 
 ## 29.3.2
 
 * New **`statusKey`** getter on actions, to tell apart the actions of the same class in
-  `isWaiting`, `isFailed`, `exceptionFor` and `clearExceptionFor` (in the store, in actions,
+  `isWaiting`, `isFailed`, `exceptionFor` and `clearExceptionFor` (in the store, in
+  actions,
   in `context.isWaiting()` and the other `BuildContext` extensions, and in view-models).
   Override it to return a value made from the action's own fields, like
   `Object? get statusKey => userId;`, and pass the same value in the new named parameter:
   `context.isWaiting(LoadUser, statusKey: userId)`. Without the parameter, the methods
-  consider all actions of the type, as before. The key must always return the same value for
-  the same action. Use a record, like `(userId, cartId)`, for a composite key.
+  consider all actions of the type, as before. The key must always return the same value
+  for the same action. Use a record, like `(userId, cartId)`, for a composite key.
 
-  - `clearExceptionFor(LoadUser, statusKey: userId)` clears one key, and
-    `clearExceptionFor(LoadUser)` clears all keys of the type. New `clearAllExceptions()`
-    (store and action) clears all types. `store.internalMixinProps.clear()` (the usual
-    logout call) and `store.shutdown()` now call it, so the failures of the previous user
-    don't stay in memory.
-  - For each failure, the store keeps only the action type, its `statusKey` and the error.
-    Without `statusKey` there is at most one record per action class; with it, one per key
-    that failed, replaced when the same key fails again and removed when an action with that
-    key is dispatched again.
+    - `clearExceptionFor(LoadUser, statusKey: userId)` clears one key, and
+      `clearExceptionFor(LoadUser)` clears all keys of the type. New
+      `clearAllExceptions()`
+      (store and action) clears all types. `store.internalMixinProps.clear()` (the usual
+      logout call) and `store.shutdown()` now call it, so the failures of the previous
+      user don't stay in memory.
+    - For each failure, the store keeps only the action type, its `statusKey` and the
+      error.
+      Without `statusKey` there is at most one record per action class; with it, one per
+      key that failed, replaced when the same key fails again and removed when an action
+      with that key is dispatched again.
 
 * **Deprecated** `Wait`, `WaitAction`, `WaitOperation` and `WaitReducer`. Use `statusKey`
   instead: the "flag" is the action type, and the "ref" is the `statusKey`. Where you had
-  `dispatch(WaitAction.add(index))` in `before` and `dispatch(WaitAction.remove(index))` in
-  `after`, now you only write `Object? get statusKey => index;` in the action, and where you
-  had `state.wait.isWaiting(index)` you write `context.isWaiting(MyAction, statusKey: index)`.
-  Nothing needs to be added to the state, and nothing is left behind when the action fails.
-  The `Wait` classes still work, but will be removed in a future version.
+  `dispatch(WaitAction.add(index))` in `before` and `dispatch(WaitAction.remove(index))`
+  in `after`, now you only write `Object? get statusKey => index;` in the action, and
+  where you had `state.wait.isWaiting(index)` you write
+  `context.isWaiting(MyAction, statusKey: index)`.
+  Nothing needs to be added to the state, and nothing is left behind when the action
+  fails. The `Wait` classes still work, but will be removed in a future version.
 
-* Fix: a widget that calls only `isFailed` or `exceptionFor` (not `isWaiting`) for an action
-  type is now rebuilt when an action of that type fails with a `UserException.noDialog`, or
-  with any error that is not a `UserException`. Before, it was only rebuilt when the
-  exception opened a dialog, or when the widget also called `isWaiting`.
+* Fix: a widget that calls only `isFailed` or `exceptionFor` (not `isWaiting`) for an
+  action type is now rebuilt when an action of that type fails with a
+  `UserException.noDialog`, or with any error that is not a `UserException`. Before, it
+  was only rebuilt when the exception opened a dialog, or when the widget also called
+  `isWaiting`.
 
-* New `shouldRetry(error, attempt)` method in the `Retry` and `UnlimitedRetryCheckInternet`
-  mixins, to give up retrying on some errors. By default, every error is retried, including
-  `UserException`s. Override `shouldRetry` to return `false` for errors that will fail again
-  anyway (like a 404 or a 401), and the action fails right away with that error. It's called
-  after each failed attempt that still has retries left, with the error and the attempt
-  number (starting at 1). With `UnlimitedRetryCheckInternet`, it's the only way to stop a
-  permanent error from being retried forever, and it's not called when there is no internet.
+* New `shouldRetry(error, attempt)` method in the `Retry` and
+  `UnlimitedRetryCheckInternet` mixins, to give up retrying on some errors. By default,
+  every error is retried, including
+  `UserException`s. Override `shouldRetry` to return `false` for errors that will fail
+  again anyway (like a 404 or a 401), and the action fails right away with that error.
+  It's called after each failed attempt that still has retries left, with the error and
+  the attempt number (starting at 1). With `UnlimitedRetryCheckInternet`, it's the only
+  way to stop a permanent error from being retried forever, and it's not called when there
+  is no internet.
   With `OptimisticCommand` combined with `Retry`, it's called after each failed
   `sendCommandToServer`, and the command then rolls back and fails right away.
 
@@ -103,20 +148,20 @@ Sponsored by [MyText.ai](https://mytext.ai)
   }
   ```
 
-* Fix: The `Retry` and `UnlimitedRetryCheckInternet` mixins, and `OptimisticCommand` combined
-  with `Retry`, no longer retry an `AbortDispatchException`. Before, an action that aborted
-  itself by throwing an `AbortDispatchException` from `reduce` (or from `sendCommandToServer`)
-  was retried like any other error. Now it's aborted right away, and `shouldRetry` is not
-  called for it.
+* Fix: The `Retry` and `UnlimitedRetryCheckInternet` mixins, and `OptimisticCommand`
+  combined with `Retry`, no longer retry an `AbortDispatchException`. Before, an action
+  that aborted itself by throwing an `AbortDispatchException` from `reduce` (or from
+  `sendCommandToServer`) was retried like any other error. Now it's aborted right away,
+  and `shouldRetry` is not called for it.
 
-* Fix: `isFailed` is now `true` when the action failed with **any** error. Note, 
+* Fix: `isFailed` is now `true` when the action failed with **any** error. Note,
   `exceptionFor` still returns only a `UserException`, or `null` for other errors.
   Errors swallowed by `wrapError` or the `GlobalErrorObserver`, and
   `AbortDispatchException`, still don't count as failures.
 
 * The store now keeps, for each failed action type, only the error, instead of the whole
-  action object. The action and everything it holds can now be garbage collected as soon as
-  it finishes.
+  action object. The action and everything it holds can now be garbage collected as soon
+  as it finishes.
 
 ## 29.2.3
 
@@ -137,7 +182,7 @@ Sponsored by [MyText.ai](https://mytext.ai)
   `readStateFromPersistence()` now wait for a running save to finish first.
 
 * Fix: A `PersistAction` dispatched while a save is running now saves the state as soon
-  as that save finishes, ignoring the throttle. 
+  as that save finishes, ignoring the throttle.
 
 * Fix: `persistAndPausePersistor()` called while a save is running now saves the state
   at the time of the call as soon as that save finishes, and then stays paused.

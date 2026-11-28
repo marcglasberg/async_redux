@@ -103,9 +103,7 @@ abstract class ReduxAction<St> {
   String toString() => 'Action';
 }
 
-mixin CheckInternet<St> on ReduxAction<St> {
-  bool? get internetOnOffSimulation => null;
-}
+mixin CheckInternet<St> on ReduxAction<St> {}
 
 mixin NonReentrant<St> on ReduxAction<St> {
   Object? nonReentrantKeyParams() => null;
@@ -132,13 +130,9 @@ mixin OptimisticCommand<St> on ReduxAction<St> {
 mixin NoDialog<St> on CheckInternet<St> {}
 mixin UnlimitedRetries<St> on Retry<St> {}
 
-mixin AbortWhenNoInternet<St> on ReduxAction<St> {
-  bool? get internetOnOffSimulation => null;
-}
+mixin AbortWhenNoInternet<St> on ReduxAction<St> {}
 
-mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {
-  bool? get internetOnOffSimulation => null;
-}
+mixin UnlimitedRetryCheckInternet<St> on ReduxAction<St> {}
 
 mixin Throttle<St> on ReduxAction<St> {
   Object? lockBuilder() => runtimeType;

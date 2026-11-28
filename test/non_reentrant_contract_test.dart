@@ -363,13 +363,13 @@ void main() {
     _NonReentrantAbortFirst.new,
   ]) {
     test('internet failure releases the key: ${create().runtimeType}', () async {
-      final store = _store()..forceInternetOnOffSimulation = () => false;
+      final store = _store()..options.hasConnection = () async => false;
       final failed = create();
       final status = await store.dispatchAndWait(failed);
       expect(status.originalError, isNotNull);
       expect(store.internalMixinProps.nonReentrantKeySet, isEmpty);
       expect(store.state, 0);
-      store.forceInternetOnOffSimulation = () => true;
+      store.options.hasConnection = () async => true;
       expect((await store.dispatchAndWait(create())).isCompletedOk, isTrue);
       expect(store.state, 1);
     });
